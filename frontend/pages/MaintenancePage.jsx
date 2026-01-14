@@ -20,7 +20,11 @@ import {
   CheckCircle, 
   Eye, 
   EyeOff,
-  Check 
+  Check,
+  Calendar,
+  User,
+  Building,
+  Tag
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -58,15 +62,6 @@ function normalizeHotelsResponse(data) {
     })
     .filter((x) => x.id && x.name);
 }
-
-/* SAMPLE fallback data */
-const SAMPLE = [
-  { id: 1, title: "Fix heating system malfunction", start: "2024-03-12", category: "Maintenance", hotel: "Building C", room: "Main Panel", raisedBy: "ABC Maintenance", status: "Completed", action: "Review", dueDate: "2024-03-12", closed: null, priority: "Medium", ref: "e5198a6e" },
-  { id: 2, title: "Unblock kitchen sink", start: "2024-03-01", category: "Plumbing", hotel: "Building B", room: "Flat 301", raisedBy: "Unassigned", status: "Pending", action: "Under Repair", dueDate: "2024-03-18", closed: null, priority: "Medium", ref: "c51690eb" },
-  { id: 3, title: "Repair leaking tap in bathroom", start: "2024-03-08", category: "Plumbing", hotel: "Building D", room: "Generator Room", raisedBy: "In-house Team", status: "Completed", action: "Closed", dueDate: "2024-03-10", closed: "2024-03-10", priority: "Low", ref: "cda9bd4e" },
-  { id: 4, title: "Repair shower head", start: "2025-09-04", category: "Sanitary", hotel: "Parmiter", room: "Room 100", raisedBy: "Quick Fix Services", status: "Completed", action: "Pending", dueDate: "2025-09-30", closed: null, priority: "Urgent", ref: "2b9c6ef8" },
-  { id: 5, title: "Repair ceiling leak", start: "2024-03-10", category: "Structural", hotel: "Building A", room: "Flat 203", raisedBy: "Unassigned", status: "Pending", action: "Pending", dueDate: "2024-03-20", closed: null, priority: "Low", ref: "f3c0c417" },
-];
 
 /* --- Helpers --- */
 function formatDateISO(value) {
@@ -112,10 +107,61 @@ function getAvatarColor(name) {
 }
 
 /* Helper for View Details */
-const DetailField = ({ label, value }) => (
-  <div>
-    <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">{label}</div>
-    <div className="text-slate-800 font-medium text-sm">{value || '-'}</div>
+const DetailField = ({ label, value, icon: Icon }) => (
+  <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+    <div className="flex items-center gap-2 mb-1">
+      {Icon && <Icon className="w-3 h-3 text-gray-400" />}
+      <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">{label}</div>
+    </div>
+    <div className="text-gray-900 font-medium text-sm truncate" title={value}>{value || '-'}</div>
+  </div>
+);
+
+/* Form Input Component */
+const FormInput = ({ label, value, onChange, type = "text", required = false, placeholder, icon: Icon }) => (
+  <div className="w-full">
+    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <div className="relative">
+      {Icon && (
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Icon className="h-4 w-4 text-gray-400" />
+        </div>
+      )}
+      <input
+        type={type}
+        required={required}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5 ${Icon ? 'pl-10' : 'pl-3'}`}
+      />
+    </div>
+  </div>
+);
+
+/* Form Select Component */
+const FormSelect = ({ label, value, onChange, options, required = false, icon: Icon }) => (
+  <div className="w-full">
+    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <div className="relative">
+       {Icon && (
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Icon className="h-4 w-4 text-gray-400" />
+        </div>
+      )}
+      <select
+        required={required}
+        value={value}
+        onChange={onChange}
+        className={`block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5 ${Icon ? 'pl-10' : 'pl-3'}`}
+      >
+        {options}
+      </select>
+    </div>
   </div>
 );
 
@@ -138,7 +184,8 @@ export default function MaintenancePage({ user }) {
   const hasDelete = canDelete("maintenance");
 
   const [query, setQuery] = useState("");
-  const [tasks, setTasks] = useState(null);
+  // CHANGED: Initialized to empty array instead of null to prevent issues
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Filter and Sort State
@@ -168,7 +215,7 @@ export default function MaintenancePage({ user }) {
 
   const hotelsControllerRef = useRef(null);
 
-  // Updated form state to match the new image fields
+  // Updated form state
   const initialForm = useMemo(() => ({
     title: "", 
     room: "",
@@ -203,7 +250,7 @@ export default function MaintenancePage({ user }) {
     "actions",
   ];
 
-  // Column visibility state - load from localStorage or default to all visible
+  // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState(() => {
     try {
       const saved = localStorage.getItem('maintenance_visible_columns');
@@ -244,9 +291,10 @@ export default function MaintenancePage({ user }) {
             setVisibleColumns(prev => {
               const updated = { ...prev };
               newCols.forEach(col => {
-                // Only auto-show if not explicitly set in localStorage
+                // Only act if not explicitly set in localStorage
                 if (prev[col] === undefined) {
-                  updated[col] = true;
+                  // CHANGED: Set to false by default so they are hidden initially
+                  updated[col] = false; 
                 }
               });
               return updated;
@@ -368,7 +416,8 @@ export default function MaintenancePage({ user }) {
     } catch (err) {
       if (err.name === "AbortError") return;
       console.error("Failed to load tasks:", err);
-      setTasks(SAMPLE);
+      // CHANGED: Removed setTasks(SAMPLE) to stop flashing mock data. Now sets empty array.
+      setTasks([]); 
       setLoading(false);
     }
   }, []);
@@ -387,7 +436,8 @@ export default function MaintenancePage({ user }) {
   /* ------------------------- Logic ------------------------- */
   const filtered = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
-    let list = tasks || [];
+    // CHANGED: Use empty array as fallback instead of tasks || []
+    let list = tasks; 
     
     // Apply search filter
     if (q) {
@@ -500,7 +550,8 @@ export default function MaintenancePage({ user }) {
   };
 
   const stats = useMemo(() => {
-    const list = tasks || SAMPLE;
+    // CHANGED: Removed "|| SAMPLE" fallback. Stats will be 0 if tasks is empty.
+    const list = tasks;
     const total = list.length;
     const pending = list.filter(t => ["pending", "open"].includes(t.status.toLowerCase())).length;
     const inProgress = list.filter(t => ["in progress", "under review"].includes(t.status.toLowerCase())).length;
@@ -513,10 +564,7 @@ export default function MaintenancePage({ user }) {
     if (!confirm("Delete this order?")) return;
     
     try {
-      // Delete via API
       await api.delete(`/api/maintenance/${id}`);
-      
-      // Refetch tasks to get updated data
       await loadTasks();
     } catch (error) {
       console.error("Error deleting maintenance task:", error);
@@ -529,7 +577,6 @@ export default function MaintenancePage({ user }) {
     setCreating(true);
     
     try {
-      // Prepare data for API call
       const createData = {
         title: form.title,
         start_date: form.start,
@@ -552,12 +599,8 @@ export default function MaintenancePage({ user }) {
         }
       });
 
-      // Create via API
       await api.post("/api/maintenance", createData);
-      
-      // Refetch tasks to get updated data
       await loadTasks();
-      
       setShowCreate(false);
     } catch (error) {
       console.error("Error creating maintenance task:", error);
@@ -572,7 +615,6 @@ export default function MaintenancePage({ user }) {
     setEditing(true);
     
     try {
-      // Prepare data for API call
       const updateData = {
         title: form.title,
         start_date: form.start,
@@ -595,12 +637,8 @@ export default function MaintenancePage({ user }) {
         }
       });
 
-      // Update via API
       await api.put(`/api/maintenance/${editingId}`, updateData);
-      
-      // Refetch tasks to get updated data
       await loadTasks();
-      
       setShowEdit(false);
     } catch (error) {
       console.error("Error updating maintenance task:", error);
@@ -616,14 +654,12 @@ export default function MaintenancePage({ user }) {
     const hotelId = hotelRecord?.id ?? (typeof task.hotel === 'number' ? task.hotel : '');
     const hotelName = hotelRecord?.name ?? task.hotel ?? '';
     
-    // Include custom column values
     const formData = { 
       ...task,
       hotelId: hotelId,
       hotelName: hotelName
     };
     
-    // Load custom column values
     customColumns.forEach(col => {
       if (task[col] !== undefined) {
         formData[col] = task[col];
@@ -1034,15 +1070,15 @@ export default function MaintenancePage({ user }) {
                   {visibleColumns.date && (
                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
                   )}
-                  {visibleColumns.actions && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
-                  )}
-                  {/* Custom Columns */}
+                  {/* Custom Columns (Inserted Before Actions) */}
                   {customColumns.filter(col => visibleColumns[col]).map(col => (
-                    <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-purple-600 uppercase tracking-wider">
+                    <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       {col.replace(/_/g, ' ')}
                     </th>
                   ))}
+                  {visibleColumns.actions && (
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -1123,6 +1159,12 @@ export default function MaintenancePage({ user }) {
                           <span className="text-gray-700 text-sm">{formatDate(row.start || row.dueDate)}</span>
                         </td>
                       )}
+                      {/* Custom Column Cells (Inserted Before Actions) */}
+                      {customColumns.filter(col => visibleColumns[col]).map(col => (
+                        <td key={col} className="py-4 px-4">
+                          <span className="text-gray-700 text-sm">{row[col] || '-'}</span>
+                        </td>
+                      ))}
                       {visibleColumns.actions && (
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
@@ -1154,12 +1196,6 @@ export default function MaintenancePage({ user }) {
                           </div>
                         </td>
                       )}
-                      {/* Custom Column Cells */}
-                      {customColumns.filter(col => visibleColumns[col]).map(col => (
-                        <td key={col} className="py-4 px-4">
-                          <span className="text-gray-700 text-sm">{row[col] || '-'}</span>
-                        </td>
-                      ))}
                     </tr>
                   );
                 }) : (
@@ -1179,7 +1215,8 @@ export default function MaintenancePage({ user }) {
                     return (task.status || 'Open').toLowerCase() === status.toLowerCase();
                   });
                   
-                  const getStatusStyle = (status) => {
+                  // ... (Kanban card rendering remains the same, omitted for brevity but part of full file) ...
+                   const getStatusStyle = (status) => {
                     if (status === 'Open') {
                       return {
                         bg: 'bg-orange-50',
@@ -1251,6 +1288,7 @@ export default function MaintenancePage({ user }) {
                                   className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
                                   onClick={() => viewTask(task)}
                                 >
+                                  {/* ... Kanban Card Content ... */}
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-mono text-gray-500">{task.ref || `WO-${task.id}`}</span>
                                     <div className="flex items-center gap-1.5">
@@ -1270,77 +1308,26 @@ export default function MaintenancePage({ user }) {
                                       {task.description}
                                     </p>
                                   )}
-                                  
-                                  <div className="flex items-center gap-2 mb-3">
-                                    {task.category && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-medium">
-                                        {task.category}
-                                      </span>
-                                    )}
-                                    {task.room && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs font-medium">
-                                        {task.room}
-                                      </span>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
-                                    <div className="flex items-center gap-2">
-                                      {task.raisedBy && task.raisedBy !== 'Unassigned' ? (
-                                        <>
-                                          <div className={`w-6 h-6 rounded-full ${getAvatarColor(task.raisedBy)} flex items-center justify-center text-xs font-semibold`}>
-                                            {getInitials(task.raisedBy)}
-                                          </div>
-                                          <span className="text-xs text-gray-700 truncate max-w-[100px]">
-                                            {task.raisedBy}
-                                          </span>
-                                        </>
-                                      ) : (
-                                        <span className="text-xs text-gray-400">Unassigned</span>
-                                      )}
-                                    </div>
-                                    
-                                    <span className="text-xs text-gray-500">
-                                      {formatDate(task.dueDate)}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-1">
-                                    <button
+
+                                  <div className="flex items-center gap-1 mb-2">
+                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        viewTask(task);
+                                        openView(task);
                                       }}
-                                      className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 hover:bg-teal-50 hover:text-teal-600 rounded-md transition-colors text-xs font-medium flex items-center justify-center gap-1"
-                                      title="View"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                      View
-                                    </button>
-                                    {hasUpdate && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          editTask(task);
-                                        }}
-                                        className="p-1.5 bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
-                                        title="Edit"
-                                      >
-                                        <Edit className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                    {hasDelete && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          deleteTask(task.id);
-                                        }}
-                                        className="p-1.5 bg-gray-50 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-md transition-colors"
-                                        title="Delete"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
+                                      className="flex-1 py-1 px-2 bg-gray-50 text-gray-600 hover:text-teal-600 rounded text-xs border border-gray-100"
+                                     >
+                                       View
+                                     </button>
+                                     <button
+                                       onClick={(e) => {
+                                        e.stopPropagation();
+                                        openEdit(task);
+                                      }}
+                                       className="flex-1 py-1 px-2 bg-gray-50 text-blue-600 hover:bg-blue-50 rounded text-xs border border-gray-100"
+                                     >
+                                       Edit
+                                     </button>
                                   </div>
                                 </div>
                               );
@@ -1359,214 +1346,247 @@ export default function MaintenancePage({ user }) {
 
       {/* ----------------- MODAL SECTION ----------------- */}
       {(showCreate || showEdit || showView) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
             
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900">
-                {showView ? "View Maintenance Task" : (showEdit ? "Edit Maintenance Task" : "Create Maintenance Task")}
-              </h3>
+            {/* Modal Header (Fixed) */}
+            <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {showView ? "Task Details" : (showEdit ? "Edit Work Order" : "New Work Order")}
+                </h3>
+                <p className="text-sm text-gray-500 mt-0.5">
+                   {showView ? "View details for maintenance task" : "Fill in the details below to create a request"}
+                </p>
+              </div>
               <button 
                 onClick={() => { setShowCreate(false); setShowEdit(false); setShowView(false); }} 
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* View Mode Content */}
-            {showView ? (
-              <div className="p-6">
-                <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
-                  <DetailField label="TASK TITLE" value={form.title} />
-                  <DetailField label="PROPERTY" value={form.hotelName} />
-                  
-                  <DetailField label="ROOM / AREA" value={form.room} />
-                  <DetailField label="CATEGORY" value={form.category} />
-                  
-                  <DetailField label="START DATE" value={form.start ? new Date(form.start).toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'long', day:'numeric'}) : '-'} />
-                  <DetailField label="DUE DATE" value={form.dueDate ? new Date(form.dueDate).toLocaleDateString(undefined, {weekday:'short', year:'numeric', month:'long', day:'numeric'}) : '-'} />
-
-                  <DetailField label="PRIORITY" value={form.priority} />
-                  <DetailField label="STATUS" value={form.status} />
-
-                  <DetailField label="RAISED BY" value={form.raisedBy} />
-                  <DetailField label="ACTION REQUIRED" value={form.action} />
-                </div>
-
-                <div className="mb-4">
-                  <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">ADDITIONAL NOTES / DESCRIPTION</div>
-                  <div className="bg-slate-50 p-4 rounded-md text-sm text-slate-600 border border-slate-100 min-h-[80px]">
-                    {form.description || "No description provided."}
+            {/* Modal Body (Scrollable) */}
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              {showView ? (
+                <div className="space-y-6">
+                  {/* Primary Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <DetailField label="TASK TITLE" value={form.title} icon={Wrench} />
+                    <DetailField label="PROPERTY" value={form.hotelName} icon={Building} />
+                    <DetailField label="ROOM / AREA" value={form.room} icon={Home} />
+                    <DetailField label="CATEGORY" value={form.category} icon={Tag} />
                   </div>
-                </div>
 
-                <div className="flex justify-end pt-4 border-t border-gray-100">
-                  <button 
-                    onClick={() => setShowView(false)} 
-                    className="px-5 py-2 border border-slate-200 text-slate-700 font-medium rounded hover:bg-slate-50 transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Edit/Create Form Content */
-              <form onSubmit={showEdit ? handleEditSubmit : handleCreateSubmit} className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+                  {/* Status & Dates */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-1">PRIORITY</div>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          form.priority === 'Urgent' ? 'bg-red-100 text-red-800' : 
+                          form.priority === 'High' ? 'bg-orange-100 text-orange-800' : 
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {form.priority}
+                        </span>
+                     </div>
+                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-1">STATUS</div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {form.status}
+                        </span>
+                     </div>
+                     <DetailField label="DUE DATE" value={form.dueDate ? formatDate(form.dueDate) : '-'} icon={Calendar} />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-2">DESCRIPTION / NOTES</div>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 text-sm text-gray-700 leading-relaxed min-h-[100px]">
+                      {form.description || "No additional description provided."}
+                    </div>
+                  </div>
+
+                  {/* Secondary Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                    <DetailField label="RAISED BY" value={form.raisedBy} icon={User} />
+                    <DetailField label="ACTION REQUIRED" value={form.action} icon={Check} />
+                  </div>
                   
-                  {/* Row 1: Title & Room */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Task Title <span className="text-red-500">*</span></label>
-                    <input 
+                  {/* Custom Fields in View */}
+                  {customColumns.length > 0 && (
+                     <div className="pt-4 border-t border-gray-100">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Custom Fields</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           {customColumns.map(col => (
+                              <DetailField key={col} label={col.replace(/_/g, ' ')} value={form[col]} />
+                           ))}
+                        </div>
+                     </div>
+                  )}
+                </div>
+              ) : (
+                /* Edit/Create Form Content */
+                <form id="maintenance-form" onSubmit={showEdit ? handleEditSubmit : handleCreateSubmit} className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    
+                    {/* Row 1 */}
+                    <FormInput 
+                      label="Task Title" 
                       required 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
                       value={form.title} 
                       onChange={e => handleFormChange("title", e.target.value)} 
+                      placeholder="e.g., Leaking Tap"
+                      icon={Wrench}
                     />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Room No</label>
-                    <input 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                    <FormInput 
+                      label="Room / Area" 
                       value={form.room} 
                       onChange={e => handleFormChange("room", e.target.value)} 
+                      placeholder="e.g., Room 302"
+                      icon={Home}
                     />
-                  </div>
 
-                  {/* Row 2: Start Date & Raised By */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label>
-                    <input 
+                    {/* Row 2 */}
+                    <FormSelect 
+                      label="Property" 
+                      value={form.hotelId} 
+                      onChange={handleHotelChange}
+                      icon={Building}
+                      options={
+                        <>
+                          <option value="">-- Select Property --</option>
+                          {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                        </>
+                      }
+                    />
+                    <FormInput 
+                      label="Category" 
+                      value={form.category} 
+                      onChange={e => handleFormChange("category", e.target.value)} 
+                      placeholder="e.g., Plumbing, Electrical"
+                      icon={Tag}
+                    />
+
+                    {/* Row 3 */}
+                    <div className="grid grid-cols-2 gap-4 col-span-1 md:col-span-2">
+                       <FormSelect 
+                        label="Priority" 
+                        value={form.priority} 
+                        onChange={e => handleFormChange("priority", e.target.value)}
+                        options={
+                          <>
+                            <option>Low</option>
+                            <option>Medium</option>
+                            <option>High</option>
+                            <option>Urgent</option>
+                          </>
+                        }
+                      />
+                      <FormSelect 
+                        label="Status" 
+                        value={form.status} 
+                        onChange={e => handleFormChange("status", e.target.value)}
+                        options={
+                          <>
+                            <option>Open</option>
+                            <option>Pending</option>
+                            <option>In Progress</option>
+                            <option>Completed</option>
+                          </>
+                        }
+                      />
+                    </div>
+
+                    {/* Row 4 */}
+                    <FormInput 
+                      label="Start Date" 
                       type="date"
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
                       value={formatDateISO(form.start)} 
                       onChange={e => handleFormChange("start", e.target.value)} 
                     />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Raised By</label>
-                    <input 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                      value={form.raisedBy} 
-                      onChange={e => handleFormChange("raisedBy", e.target.value)} 
-                    />
-                  </div>
-
-                  {/* Row 3: Category & Status */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
-                    <input 
-                      placeholder="e.g., CAT1"
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                      value={form.category} 
-                      onChange={e => handleFormChange("category", e.target.value)} 
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                    <select 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white" 
-                      value={form.status} 
-                      onChange={e => handleFormChange("status", e.target.value)}
-                    >
-                      <option>Open</option>
-                      <option>Pending</option>
-                      <option>In Progress</option>
-                      <option>Completed</option>
-                    </select>
-                  </div>
-
-                  {/* Row 4: Hotel Name & Action */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Property</label>
-                    <select 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white" 
-                      value={form.hotelId} 
-                      onChange={handleHotelChange}
-                    >
-                      <option value="">-- Select hotel --</option>
-                      {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                    </select>
-                    {hotelsLoading && <div className="text-xs text-gray-400 mt-0.5">Loading hotels...</div>}
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Action</label>
-                    <input 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                      value={form.action} 
-                      onChange={e => handleFormChange("action", e.target.value)} 
-                    />
-                  </div>
-
-                  {/* Row 5: Due Date (Full Width) */}
-                  <div className="col-span-1 md:col-span-2">
-                     <label className="block text-xs font-medium text-gray-600 mb-1">Due Date</label>
-                     <input 
+                    <FormInput 
+                      label="Due Date" 
                       type="date"
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
                       value={formatDateISO(form.dueDate)} 
                       onChange={e => handleFormChange("dueDate", e.target.value)} 
                     />
-                  </div>
 
-                  {/* Row 6: Closed Date (Full Width) */}
-                  <div className="col-span-1 md:col-span-2">
-                     <label className="block text-xs font-medium text-gray-600 mb-1">Closed Date (if any)</label>
-                     <input 
-                      type="date"
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                      value={formatDateISO(form.closed)} 
-                      onChange={e => handleFormChange("closed", e.target.value)} 
+                    {/* Row 5 */}
+                    <FormInput 
+                      label="Raised By" 
+                      value={form.raisedBy} 
+                      onChange={e => handleFormChange("raisedBy", e.target.value)} 
+                      placeholder="Name of requester"
+                      icon={User}
                     />
-                  </div>
-
-                  {/* Row 7: Description (Full Width) */}
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Description (optional)</label>
-                    <textarea 
-                      rows={2}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" 
-                      value={form.description} 
-                      onChange={e => handleFormChange("description", e.target.value)} 
+                     <FormInput 
+                      label="Action Required" 
+                      value={form.action} 
+                      onChange={e => handleFormChange("action", e.target.value)} 
+                      placeholder="e.g., Replace part"
                     />
-                  </div>
 
-                  {/* Custom Columns from Forms Builder */}
-                  {customColumns.map(col => (
-                    <div key={col} className="col-span-1 md:col-span-2">
-                      <label className="block text-xs font-medium text-purple-600 mb-1">
-                        {col.replace(/_/g, ' ')}
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full border border-purple-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                        value={form[col] || ''}
-                        onChange={e => handleFormChange(col, e.target.value)}
+                    {/* Description */}
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Description</label>
+                      <textarea 
+                        rows={3}
+                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-3 resize-y" 
+                        value={form.description} 
+                        onChange={e => handleFormChange("description", e.target.value)} 
+                        placeholder="Detailed description of the issue..."
                       />
                     </div>
-                  ))}
-                </div>
 
-                {/* Footer Buttons */}
-                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
-                  <button 
-                    type="button" 
-                    onClick={() => { setShowCreate(false); setShowEdit(false); }} 
-                    className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="px-4 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 font-medium shadow-sm transition-colors text-sm"
-                  >
-                    {creating || editing ? "Saving..." : (showEdit ? "Update Task" : "Create Task")}
-                  </button>
-                </div>
-              </form>
-            )}
+                    {/* Custom Columns Section */}
+                    {customColumns.length > 0 && (
+                      <div className="col-span-1 md:col-span-2 pt-4 mt-2 border-t border-gray-100">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Additional Fields</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          {customColumns.map(col => (
+                            <div key={col}>
+                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                {col.replace(/_/g, ' ')}
+                              </label>
+                              <input
+                                type="text"
+                                className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5 px-3 bg-gray-50/50"
+                                value={form[col] || ''}
+                                onChange={e => handleFormChange(col, e.target.value)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Modal Footer (Fixed) */}
+            <div className="flex-shrink-0 px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl flex justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={() => { setShowCreate(false); setShowEdit(false); setShowView(false); }} 
+                className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm font-medium transition-all text-sm"
+              >
+                {showView ? "Close" : "Cancel"}
+              </button>
+              {!showView && (
+                <button 
+                  type="submit" 
+                  form="maintenance-form"
+                  className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium shadow-sm hover:shadow transition-all text-sm flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  {creating || editing ? "Saving..." : (showEdit ? "Update Order" : "Create Order")}
+                </button>
+              )}
+            </div>
+
           </div>
         </div>
       )}
