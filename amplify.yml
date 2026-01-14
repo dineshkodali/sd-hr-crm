@@ -1,0 +1,44 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Installing frontend dependencies..."
+        - cd frontend
+        - export NODE_OPTIONS=--max-old-space-size=4096
+        - npm ci --legacy-peer-deps
+    build:
+      commands:
+        - echo "Building frontend application..."
+        - export NODE_OPTIONS=--max-old-space-size=4096
+        - npm run build
+  artifacts:
+    baseDirectory: frontend/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - frontend/node_modules/**/*
+  customHeaders:
+    - pattern: '**/*'
+      headers:
+        - key: 'Cache-Control'
+          value: 'public, max-age=0, must-revalidate'
+        - key: 'X-Frame-Options'
+          value: 'DENY'
+        - key: 'X-XSS-Protection'
+          value: '1; mode=block'
+        - key: 'X-Content-Type-Options'
+          value: 'nosniff'
+        - key: 'Referrer-Policy'
+          value: 'same-origin'
+        - key: 'Content-Security-Policy'
+          value: "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'"
+  
+  # Redirects for Single Page Applications (SPA)
+  # This ensures all routes are handled by index.html
+  customRules:
+    - source: /<*>
+      target: /index.html
+      status: '200'
+      condition: null
