@@ -32,11 +32,18 @@ export async function createTask(req, res) {
     status = "open",
     category = null,
     site = null,
+    hotel_name = null,
+    hotel_id = null,
+    property_id = null,
+    hotelId = null,
     room = null,
     raised_by = null,
     action = null,
     closed_date = null,
   } = req.body ?? {};
+
+  const resolvedSite = site ?? hotel_name ?? null;
+  const resolvedHotelId = toIntOrNull(hotel_id ?? property_id ?? hotelId);
 
   const createdBy = toIntOrNull(req.user?.id);
 
@@ -77,7 +84,7 @@ export async function createTask(req, res) {
       due_date: due_date ? new Date(due_date) : null,
       status,
       category: category ?? null,
-      site: site ?? null,
+      site: resolvedSite,
       room: room ?? null,
       raised_by: raised_by ?? null,
       action: action ?? null,
@@ -87,6 +94,14 @@ export async function createTask(req, res) {
       updated_at: now,
       deleted: false
     };
+
+    if (resolvedHotelId !== null) {
+      if (existingCols.includes('hotel_id')) {
+        standardFields.hotel_id = resolvedHotelId;
+      } else if (existingCols.includes('property_id')) {
+        standardFields.property_id = resolvedHotelId;
+      }
+    }
 
     for (const [key, value] of Object.entries(standardFields)) {
       if (existingCols.includes(key)) {
@@ -137,12 +152,31 @@ export async function listTasks(req, res) {
     search,
   } = req.query ?? {};
 
+  const hotelParam = req.query.hotel_id ?? req.query.property_id ?? req.query.hotelId;
+  const hotelNameParam = req.query.hotel_name ?? req.query.site;
+
   const includeDeletedBool = String(includeDeleted).toLowerCase() === "true";
   const limitNum = Math.min(Math.max(Number(limit) || 100, 1), 1000);
   const offsetNum = Math.max(Number(offset) || 0, 0);
 
   const client = await pool.connect();
   try {
+    let hotelIdCol = null;
+    if (hotelParam) {
+      try {
+        const { rows: colRows } = await client.query(`
+          SELECT column_name
+          FROM information_schema.columns
+          WHERE table_name = 'maintenance_tasks' AND table_schema = 'public'
+        `);
+        const cols = colRows.map((r) => r.column_name);
+        if (cols.includes('hotel_id')) hotelIdCol = 'hotel_id';
+        else if (cols.includes('property_id')) hotelIdCol = 'property_id';
+      } catch {
+        hotelIdCol = null;
+      }
+    }
+
     const whereParts = [];
     const values = [];
     let idx = 1;
@@ -158,6 +192,19 @@ export async function listTasks(req, res) {
       whereParts.push(`(title ILIKE $${idx} OR description ILIKE $${idx})`);
       values.push(`%${search}%`);
       idx++;
+    }
+
+    if (hotelParam && hotelIdCol) {
+      const n = Number(hotelParam);
+      if (Number.isFinite(n) && Number.isInteger(n)) {
+        whereParts.push(`${hotelIdCol} = $${idx++}`);
+        values.push(n);
+      }
+    }
+
+    if (!hotelIdCol && hotelNameParam) {
+      whereParts.push(`site ILIKE $${idx++}`);
+      values.push(`%${String(hotelNameParam)}%`);
     }
 
     const whereClause = whereParts.length ? "WHERE " + whereParts.join(" AND ") : "";
@@ -240,7 +287,10 @@ export async function getTaskById(req, res) {
  */
 export async function updateTask(req, res) {
   const id = parseId(req.params.id);
-  const { title, description, due_date, start_date, category, site, room, raised_by, action, status, closed_date } = req.body ?? {};
+  const { title, description, due_date, start_date, category, site, hotel_name, hotel_id, property_id, hotelId, room, raised_by, action, status, closed_date } = req.body ?? {};
+
+  const resolvedSite = site ?? hotel_name;
+  const resolvedHotelId = toIntOrNull(hotel_id ?? property_id ?? hotelId);
 
   const client = await pool.connect();
   try {
@@ -291,9 +341,21 @@ export async function updateTask(req, res) {
       values.push(category ?? null);
     }
 
-    if (site !== undefined) {
+    if (resolvedSite !== undefined) {
       setParts.push(`site = $${idx++}`);
-      values.push(site ?? null);
+      values.push(resolvedSite ?? null);
+    }
+
+    if (resolvedHotelId !== null) {
+      const hasHotelId = existingCols.includes('hotel_id');
+      const hasPropertyId = existingCols.includes('property_id');
+      if (hasHotelId) {
+        setParts.push(`hotel_id = $${idx++}`);
+        values.push(resolvedHotelId);
+      } else if (hasPropertyId) {
+        setParts.push(`property_id = $${idx++}`);
+        values.push(resolvedHotelId);
+      }
     }
 
     if (room !== undefined) {

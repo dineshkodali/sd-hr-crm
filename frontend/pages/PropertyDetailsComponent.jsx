@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Home, Building, BedDouble, Users, MapPin } from "lucide-react";
 
@@ -12,6 +12,15 @@ export default function PropertyDetails({ property }) {
     totalBedspaces = 0,
     occupiedBeds = 0,
   } = property || {};
+
+  const hotelId = useMemo(() => {
+    const raw = property?._raw;
+    return raw?.id ?? raw?.hotel_id ?? raw?.property_id ?? null;
+  }, [property]);
+
+  const hotelName = useMemo(() => {
+    return name || property?._raw?.name || "";
+  }, [name, property]);
 
   const [activeTab, setActiveTab] = useState("overview");
   const [showCreateRoom, setShowCreateRoom] = useState(false);
@@ -98,7 +107,7 @@ export default function PropertyDetails({ property }) {
     } finally {
       // setCreating(false);
     }
-  };    
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -136,7 +145,7 @@ export default function PropertyDetails({ property }) {
                     "px-3 py-1 rounded-full text-xs font-medium capitalize";
 
                   if (label === "hotel" || label === "hotel style") {
-                    tagClass += " bg-blue-50 text-blue-700 border border-blue-200";
+                    tagClass += " bg-[#e8fbf8] text-[#0b6b60] border border-[#baf1e9]";
                   } else if (label === "active") {
                     tagClass += " bg-green-50 text-green-700 border border-green-200";
                   } else {
@@ -156,7 +165,7 @@ export default function PropertyDetails({ property }) {
             <div className="pt-6">
               <button
                 onClick={() => setShowCreateRoom(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm transition-colors whitespace-nowrap"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#66f1dd] hover:bg-[#4fcfbe] text-white text-sm font-semibold shadow-sm transition-colors whitespace-nowrap"
               >
                 <svg
                   width="16"
@@ -209,51 +218,46 @@ export default function PropertyDetails({ property }) {
           <div className="flex flex-wrap items-center gap-1 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "overview"
-                  ? "bg-blue-600 text-white shadow-sm"
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "overview"
+                  ? "bg-[#5cd9c7] text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
+                }`}
             >
               Overview
             </button>
             <button
               onClick={() => setActiveTab("floors")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "floors"
-                  ? "bg-blue-600 text-white shadow-sm"
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "floors"
+                  ? "bg-[#66f1dd] text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
+                }`}
             >
               Floors & Rooms
             </button>
             <button
               onClick={() => setActiveTab("residents")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "residents"
-                  ? "bg-blue-600 text-white shadow-sm"
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "residents"
+                  ? "bg-[#66f1dd] text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
+                }`}
             >
               Residents
             </button>
             <button
               onClick={() => setActiveTab("maintenance")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "maintenance"
-                  ? "bg-blue-600 text-white shadow-sm"
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "maintenance"
+                  ? "bg-[#5cd9c7] text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
+                }`}
             >
               Maintenance
             </button>
             <button
               onClick={() => setActiveTab("compliance")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "compliance"
-                  ? "bg-blue-600 text-white shadow-sm"
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "compliance"
+                  ? "bg-[#5cd9c7] text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-50"
-              }`}
+                }`}
             >
               Compliance
             </button>
@@ -268,11 +272,11 @@ export default function PropertyDetails({ property }) {
 
           {activeTab === "floors" && <FloorsRoomsCard property={property} />}
 
-          {activeTab === "residents" && <ResidentsCard property={property} />}
+          {activeTab === "residents" && <ResidentsCard hotelId={hotelId} />}
 
-          {activeTab === "maintenance" && <MaintenanceCard />}
+          {activeTab === "maintenance" && <MaintenanceCard hotelId={hotelId} hotelName={hotelName} />}
 
-          {activeTab === "compliance" && <ComplianceCard />}
+          {activeTab === "compliance" && <ComplianceCard hotelId={hotelId} hotelName={hotelName} />}
         </div>
 
         {/* Overview Card */}
@@ -627,11 +631,10 @@ function FloorsRoomsCard({ property }) {
                       <div className="flex items-center gap-3">
                         <span className="font-semibold text-gray-900">Room {room.room_number}</span>
                         <span className="text-sm text-gray-600">{room.type}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          room.status === 'Available' 
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${room.status === 'Available'
                             ? 'bg-green-50 text-green-700 border border-green-200'
                             : 'bg-orange-50 text-orange-700 border border-orange-200'
-                        }`}>
+                          }`}>
                           {room.status}
                         </span>
                       </div>
@@ -660,15 +663,55 @@ function FloorsRoomsCard({ property }) {
   );
 }
 
-function ResidentsCard({ property }) {
-  // Mock data - replace with actual API call
-  const residents = [
-    { id: 1, name: "John Doe", room: "G01", floor: "Ground Floor", move_in_date: "2024-01-15", added_by: "Admin User", status: "Active" },
-    { id: 2, name: "Jane Smith", room: "G03", floor: "Ground Floor", move_in_date: "2024-02-20", added_by: "Manager Name", status: "Active" },
-    { id: 3, name: "Mary Johnson", room: "G03", floor: "Ground Floor", move_in_date: "2024-02-20", added_by: "Manager Name", status: "Active" },
-    { id: 4, name: "Bob Wilson", room: "101", floor: "First Floor", move_in_date: "2024-03-10", added_by: "Admin User", status: "Active" },
-    { id: 5, name: "Sarah Brown", room: "103", floor: "First Floor", move_in_date: "2024-03-25", added_by: "Staff Member", status: "Active" },
-  ];
+function ResidentsCard({ hotelId }) {
+  const [residents, setResidents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!hotelId) {
+        setResidents([]);
+        return;
+      }
+      try {
+        setLoading(true);
+        setError("");
+        const res = await axios.get("/api/su/users", {
+          withCredentials: true,
+          params: { hotel_id: hotelId },
+        });
+
+        const data = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.users)
+            ? res.data.users
+            : Array.isArray(res.data?.data)
+              ? res.data.data
+              : [];
+
+        if (!cancelled) setResidents(data);
+      } catch (err) {
+        if (cancelled) return;
+        const msg =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load residents";
+        setError(msg);
+        setResidents([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [hotelId]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -677,45 +720,95 @@ function ResidentsCard({ property }) {
         All service users currently residing in this property
       </p>
 
+      {!hotelId ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Select a property to view residents</p>
+        </div>
+      ) : loading ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Loading...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-600">
+          <p>{error}</p>
+        </div>
+      ) : (
+
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-y border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Resident Name</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Room</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Floor</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Move-in Date</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Added By</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {residents.map((resident) => (
               <tr key={resident.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">{resident.name}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{resident.room}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{resident.floor}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{resident.move_in_date}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{resident.added_by}</td>
+                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                  {[resident.first_name, resident.last_name].filter(Boolean).join(" ") || "-"}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">{resident.room_number || resident.room || "-"}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{resident.admission_date || resident.move_in_date || "-"}</td>
                 <td className="px-4 py-3">
                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                    {resident.status}
+                    {resident.status || "Active"}
                   </span>
-                </td>
-                <td className="px-4 py-3 text-sm">
-                  <button className="text-blue-600 hover:text-blue-700 font-medium">View</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
 
-function MaintenanceCard() {
+function MaintenanceCard({ hotelId, hotelName }) {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!hotelId && !hotelName) {
+        setTasks([]);
+        return;
+      }
+      try {
+        setLoading(true);
+        setError("");
+        const res = await axios.get("/api/maintenance", {
+          withCredentials: true,
+          params: { limit: 200, ...(hotelId ? { hotel_id: hotelId } : {}), ...(hotelName ? { hotel_name: hotelName } : {}) },
+        });
+        const data = res?.data?.data ?? res?.data ?? [];
+        if (!cancelled) setTasks(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (cancelled) return;
+        const msg =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load maintenance";
+        setError(msg);
+        setTasks([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [hotelId]);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-1">Maintenance</h2>
@@ -723,14 +816,88 @@ function MaintenanceCard() {
         Maintenance requests and status
       </p>
 
-      <div className="text-center py-12 text-gray-400">
-        <p>Maintenance cards / table will appear here</p>
-      </div>
+      {!hotelId ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Select a property to view maintenance</p>
+        </div>
+      ) : loading ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Loading...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-600">
+          <p>{error}</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-y border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Reference</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Title</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Priority</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {tasks.map((t) => (
+                <tr key={t.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm text-gray-600">{t.reference || t.id}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{t.title || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{t.status || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{t.priority || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
-function ComplianceCard() {
+function ComplianceCard({ hotelId, hotelName }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!hotelId && !hotelName) {
+        setItems([]);
+        return;
+      }
+      try {
+        setLoading(true);
+        setError("");
+        const res = await axios.get("/api/compliance", {
+          withCredentials: true,
+          params: { limit: 200, ...(hotelId ? { hotel_id: hotelId } : {}), ...(hotelName ? { hotel_name: hotelName } : {}) },
+        });
+        const data = res?.data?.ok ? res.data.data || [] : [];
+        if (!cancelled) setItems(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (cancelled) return;
+        const msg =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load compliance";
+        setError(msg);
+        setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [hotelId]);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-1">Compliance</h2>
@@ -738,9 +905,40 @@ function ComplianceCard() {
         Property compliance and certifications
       </p>
 
-      <div className="text-center py-12 text-gray-400">
-        <p>Compliance data will appear here</p>
-      </div>
+      {!hotelId ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Select a property to view compliance</p>
+        </div>
+      ) : loading ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Loading...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-600">
+          <p>{error}</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-y border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Issue Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Expiry Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {items.map((c) => (
+                <tr key={c.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{c.certificate_type || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{c.issue_date || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{c.expiry_date || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

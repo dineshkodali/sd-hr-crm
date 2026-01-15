@@ -50,6 +50,27 @@ async function safeQuery(sql, params = []) {
   }
 }
 
+let HOTEL_PK_COL = null;
+async function getHotelsPkColumn() {
+  if (HOTEL_PK_COL) return HOTEL_PK_COL;
+  try {
+    const r = await safeQuery(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'hotels'`,
+      []
+    );
+    const cols = (r.ok ? r.rows : []).map((x) => x.column_name);
+    if (cols.includes('id')) HOTEL_PK_COL = 'id';
+    else if (cols.includes('hotel_id')) HOTEL_PK_COL = 'hotel_id';
+    else if (cols.includes('property_id')) HOTEL_PK_COL = 'property_id';
+    else HOTEL_PK_COL = null;
+  } catch {
+    HOTEL_PK_COL = null;
+  }
+  return HOTEL_PK_COL;
+}
+
 /* ensure denormalized column exists */
 (async function ensureHotelNameColumn() {
   try {
@@ -59,16 +80,10 @@ async function safeQuery(sql, params = []) {
   }
 })();
 
-/* lateral: resolve hotels.name using certificates.hotel_name (text) as canonical source */
-const HOTEL_LATERAL = `
-  LEFT JOIN LATERAL (
-    SELECT h.name
-    FROM hotels h
-    WHERE
-      (c.hotel_name IS NOT NULL AND h.name ILIKE c.hotel_name)
-      OR (h.name ILIKE c.hotel_name) -- redundant but harmless; keeps intent explicit
-    LIMIT 1
-  ) h ON true
+/* join: resolve hotels.name using certificates.hotel_name (text) as canonical source */
+const HOTEL_JOIN = `
+  LEFT JOIN hotels h
+    ON (c.hotel_name IS NOT NULL AND h.name ILIKE c.hotel_name)
 `;
 
 /* stats */
@@ -94,16 +109,26 @@ router.get("/", requireAuth, async (req, res) => {
   try {
     // Support both hotel_id (or property_id) param; treat it as either hotel id or hotel name fragment
     const hotelParam = req.query.hotel_id ?? req.query.property_id;
+    const hotelNameParam = req.query.hotel_name ?? req.query.site;
     const { status, search } = req.query;
+
+    const hotelPkCol = await getHotelsPkColumn();
 
     const where = ["c.is_active IS TRUE"];
     const params = [];
 
     if (hotelParam) {
-      // we push the same param (string) and will compare against h.id::text, h.name ILIKE, or c.hotel_name ILIKE
+      // we push the same param (string) and will compare against h.<pk>::text (if available), h.name ILIKE, or c.hotel_name ILIKE
       params.push(String(hotelParam));
       const idx = params.length;
-      where.push(`(h.id::text = $${idx} OR h.name ILIKE '%' || $${idx} || '%' OR c.hotel_name ILIKE '%' || $${idx} || '%')`);
+      const pkClause = hotelPkCol ? `h.${hotelPkCol}::text = $${idx} OR ` : "";
+      where.push(`(${pkClause}h.name ILIKE '%' || $${idx} || '%' OR c.hotel_name ILIKE '%' || $${idx} || '%')`);
+    }
+
+    if (hotelNameParam) {
+      params.push(String(hotelNameParam));
+      const idx = params.length;
+      where.push(`(h.name ILIKE '%' || $${idx} || '%' OR c.hotel_name ILIKE '%' || $${idx} || '%')`);
     }
 
     if (search) {
@@ -130,7 +155,7 @@ router.get("/", requireAuth, async (req, res) => {
         ELSE 'valid'
       END AS status
     FROM certificates c
-    ${HOTEL_LATERAL}
+    ${HOTEL_JOIN}
     WHERE ${where.join(" AND ")}
     ORDER BY c.expiry_date ASC
     LIMIT $${params.length - 1} OFFSET $${params.length};`;
@@ -160,7 +185,7 @@ router.get("/:id", requireAuth, async (req, res) => {
       SELECT c.*,
         COALESCE(h.name, c.hotel_name) AS hotel_name
       FROM certificates c
-      ${HOTEL_LATERAL}
+      ${HOTEL_JOIN}
       WHERE c.id::text = $1 AND c.is_active = true
     `;
     const r = await safeQuery(sql, [String(id)]);
@@ -207,21 +232,26 @@ router.post("/", requireAuth, async (req, res) => {
       const candid = String(in_hotel_id).trim();
       if (/^\d+$/.test(candid)) {
         try {
-          const r = await safeQuery("SELECT name FROM hotels WHERE id = $1 LIMIT 1", [Number(candid)]);
+          const hotelPkCol = await getHotelsPkColumn();
+          const pk = hotelPkCol && /^[A-Za-z_][A-Za-z0-9_]*$/.test(hotelPkCol) ? hotelPkCol : null;
+          const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
+          const r = await safeQuery(sql, [Number(candid)]);
           if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
           else hotelNameToStore = candid; // fallback to string provided
         } catch {
           hotelNameToStore = candid;
         }
       } else {
-        // treat as name fragment
         hotelNameToStore = candid;
       }
     } else if (in_property_id !== undefined && in_property_id !== null && String(in_property_id).trim() !== "") {
       const candid = String(in_property_id).trim();
       if (/^\d+$/.test(candid)) {
         try {
-          const r = await safeQuery("SELECT name FROM hotels WHERE id = $1 LIMIT 1", [Number(candid)]);
+          const hotelPkCol = await getHotelsPkColumn();
+          const pk = hotelPkCol && /^[A-Za-z_][A-Za-z0-9_]*$/.test(hotelPkCol) ? hotelPkCol : null;
+          const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
+          const r = await safeQuery(sql, [Number(candid)]);
           if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
           else hotelNameToStore = candid;
         } catch {
@@ -272,7 +302,7 @@ router.post("/", requireAuth, async (req, res) => {
         SELECT c.*,
           COALESCE(h.name, c.hotel_name) AS hotel_name
         FROM certificates c
-        ${HOTEL_LATERAL}
+        ${HOTEL_JOIN}
         WHERE c.id::text = $1
       `;
       const fetch = await safeQuery(fetchSql, [String(insertedId)]);
@@ -317,7 +347,10 @@ router.put("/:id", requireAuth, async (req, res) => {
       const candid = String(in_hotel_id).trim();
       if (/^\d+$/.test(candid)) {
         try {
-          const r = await safeQuery("SELECT name FROM hotels WHERE id = $1 LIMIT 1", [Number(candid)]);
+          const hotelPkCol = await getHotelsPkColumn();
+          const pk = hotelPkCol && /^[A-Za-z_][A-Za-z0-9_]*$/.test(hotelPkCol) ? hotelPkCol : null;
+          const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
+          const r = await safeQuery(sql, [Number(candid)]);
           if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
           else hotelNameToStore = candid;
         } catch {
@@ -330,7 +363,10 @@ router.put("/:id", requireAuth, async (req, res) => {
       const candid = String(in_property_id).trim();
       if (/^\d+$/.test(candid)) {
         try {
-          const r = await safeQuery("SELECT name FROM hotels WHERE id = $1 LIMIT 1", [Number(candid)]);
+          const hotelPkCol = await getHotelsPkColumn();
+          const pk = hotelPkCol && /^[A-Za-z_][A-Za-z0-9_]*$/.test(hotelPkCol) ? hotelPkCol : null;
+          const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
+          const r = await safeQuery(sql, [Number(candid)]);
           if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
           else hotelNameToStore = candid;
         } catch {

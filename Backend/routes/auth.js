@@ -1231,4 +1231,92 @@ router.get("/activity-stats", protect, async (req, res) => {
   }
 });
 
+/* ---------- OTP Password Reset Implementation ---------- */
+// 1. Request OTP for password reset
+router.post("/request-reset-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+    // Check if user exists
+    const userRes = await pool.query(
+      "SELECT id, email, status FROM users WHERE email = $1",
+      [email]
+    );
+    if (userRes.rows.length === 0) {
+      // Don't reveal if user exists
+      return res.json({ message: "If the account exists, an OTP has been sent to your email" });
+    }
+    const user = userRes.rows[0];
+    if (user.status !== "active") {
+      return res.status(403).json({ message: "Account not active" });
+    }
+    // Generate and send OTP for password reset
+    const otpCode = await createOTP(user.email, user.id, 'password_reset', 10); // 10 min expiry
+    // Device metadata
+    const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0];
+    const userAgent = req.headers['user-agent'] || 'Unknown';
+    let browser = '', os = '', deviceType = '';
+    try {
+      const { parseUserAgent } = await import('../utils/sessionHelper.js');
+      ({ browser, os, deviceType } = parseUserAgent(userAgent));
+    } catch {}
+    await sendOTPEmail(user.email, otpCode, 'password_reset', {
+      ipAddress,
+      browser,
+      os,
+      deviceType,
+      userAgent
+    });
+    return res.json({ message: "If the account exists, an OTP has been sent to your email", expiresIn: 10 });
+  } catch (err) {
+    console.error("Request password reset OTP error:", err);
+    return res.status(500).json({ message: "Failed to send OTP" });
+  }
+});
+
+// 2. Verify OTP (optional, for frontend step-by-step flows)
+router.post("/verify-reset-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+    const result = await verifyOTP(email, otp, 'password_reset');
+    if (!result.valid) {
+      return res.status(400).json({ message: result.error || "Invalid or expired OTP" });
+    }
+    return res.json({ success: true, message: "OTP verified" });
+  } catch (err) {
+    console.error("Verify reset OTP error:", err);
+    return res.status(500).json({ message: "Failed to verify OTP" });
+  }
+});
+
+// 3. Reset password with OTP
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "Email, OTP, and new password are required" });
+    }
+    // Verify OTP
+    const result = await verifyOTP(email, otp, 'password_reset');
+    if (!result.valid) {
+      return res.status(400).json({ message: result.error || "Invalid or expired OTP" });
+    }
+    // Update password
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      "UPDATE users SET password = $1 WHERE email = $2",
+      [hashed, email]
+    );
+    return res.json({ success: true, message: "Password has been reset successfully" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    return res.status(500).json({ message: "Failed to reset password" });
+  }
+});
+
 export default router;

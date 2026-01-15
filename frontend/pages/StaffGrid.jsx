@@ -5,11 +5,12 @@ import axios from "axios";
 import { useOutletContext } from "react-router-dom";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import { validatePassword, passwordStrengthLabel, passwordStrengthPercent } from '../src/utils/passwordUtils';
+import { ArrowLeft, Home, AlertCircle, CheckCircle, XCircle } from "lucide-react"; 
 
 axios.defaults.withCredentials = true;
 
-/* Avatar Component - Slight visual tweak for cleaner look */
-function Avatar({ user, size = 20 }) {
+/* Avatar Component - Restored to Teal theme */
+function Avatar({ user, size = 20, fontSizeOverride }) {
   const src =
     user?.avatar ||
     user?.avatar_url ||
@@ -31,7 +32,7 @@ function Avatar({ user, size = 20 }) {
     minWidth: `${dim}px`,
     minHeight: `${dim}px`,
   };
-  const fontSize = Math.floor(dim / 2.4);
+  const fontSize = fontSizeOverride || Math.floor(dim / 2.4);
 
   if (src) {
     return (
@@ -48,9 +49,10 @@ function Avatar({ user, size = 20 }) {
     );
   }
 
+  // Changed from Orange to Teal
   return (
     <div
-      className="rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white flex items-center justify-center font-bold shrink-0 shadow-inner"
+      className="rounded-full bg-teal-500 text-white flex items-center justify-center font-bold shrink-0 shadow-inner"
       style={{ ...style, fontSize: `${fontSize}px` }}
     >
       {initials}
@@ -58,44 +60,49 @@ function Avatar({ user, size = 20 }) {
   );
 }
 
-/* Staff Detail Panel */
+/* --- NEW COMPLIANCE & PROFILE UI --- */
+
 function StaffDetailPanel({ open, onClose, user, loading }) {
+  const [activeTab, setActiveTab] = useState("Compliance");
+
   if (!open) return null;
 
-  const name =
-    user?.name ||
-    `${user?.first_name || ""} ${user?.last_name || ""}`.trim() ||
-    "Unknown";
-  const avatar = user?.avatar || user?.photo || user?.image || null;
-  const email = user?.email || "—";
-  const phone = user?.phone || "—";
-  const role = user?.role || "—";
+  // Data mapping from DB user object
+  const name = user?.name || "Unknown Staff";
+  const role = user?.role || "Staff";
+  const department = user?.department || user?.branch || "General"; 
+  const empId = user?.employee_id || `EMP${String(user?.id || "000").padStart(5, '0')}`;
   const joiningDate = user?.joining_date
     ? new Date(user.joining_date).toLocaleDateString()
     : user?.created_at
       ? new Date(user.created_at).toLocaleDateString()
       : "—";
+  const status = user?.status || "active";
 
-  const dob = user?.dob
-    ? new Date(user.dob).toLocaleDateString()
-    : user?.date_of_birth
-      ? new Date(user.date_of_birth).toLocaleDateString()
-      : "—";
-  const gender = user?.gender || "—";
-  const nationality = user?.nationality || "—";
-  const religion = user?.religion || "—";
-  const marital_status = user?.marital_status || "—";
+  // Compliance Data Mapping (Dynamic from DB object)
+  const dbsStatus = user?.dbs_status || 'Pending'; // Default to pending if not in DB
+  const dbsFile = user?.dbs_document_url || null;
+  
+  const trainingList = [
+    { label: 'Safeguarding Training', status: user?.training_safeguarding || 'Pending' },
+    { label: 'First Aid', status: user?.training_first_aid || 'Pending' },
+    { label: 'Fire Safety', status: user?.training_fire_safety || 'Pending' },
+    { label: 'Health & Safety', status: user?.training_health_safety || 'Pending' },
+  ];
 
-  const address = user?.address || user?.addr || "—";
-  const city = user?.city || "—";
-  const state = user?.state || "—";
-  const country = user?.country || "—";
-
-  const resumeUrl = user?.resume_url || user?.resume || user?.cv || null;
+  // Helper for status colors
+  const getStatusBadge = (statusText) => {
+    const s = (statusText || '').toLowerCase();
+    if (s === 'completed' || s === 'clear' || s === 'valid') {
+      return <span className="bg-green-100 text-green-700 text-xs font-medium px-3 py-1 rounded-full capitalize">{statusText}</span>;
+    }
+    if (s === 'expired' || s === 'failed') {
+      return <span className="bg-red-100 text-red-700 text-xs font-medium px-3 py-1 rounded-full capitalize">{statusText}</span>;
+    }
+    return <span className="bg-yellow-100 text-yellow-700 text-xs font-medium px-3 py-1 rounded-full capitalize">{statusText || 'Pending'}</span>;
+  };
 
   return (
-    // FIXED: Added 'top-[60px]' to push the panel below the Navbar height
-    // z-index is kept high, but this physical spacing ensures visibility regardless of stacking context
     <div className="fixed inset-0 top-[64px] z-[100] flex justify-end h-[calc(100vh-64px)]">
       {/* Backdrop */}
       <div
@@ -104,195 +111,196 @@ function StaffDetailPanel({ open, onClose, user, loading }) {
       />
 
       {/* Side Panel */}
-      <aside className="relative w-full max-w-2xl bg-white shadow-2xl h-full flex flex-col animate-slide-in-right border-l border-gray-100">
-        {/* Panel Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white shrink-0">
-          <div className="flex items-center gap-5">
-            {/* Large Avatar in Header */}
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center text-2xl font-bold border border-gray-200 shadow-sm shrink-0">
-              {avatar ? (
-                <img
-                  src={avatar}
-                  alt={name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                (name || "U")
-                  .split(" ")
-                  .map((n) => n[0])
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase()
-              )}
-            </div>
-            <div>
-              <div className="text-xl font-bold text-gray-800">{name}</div>
-              <div className="text-sm font-medium text-gray-500 capitalize mt-0.5">
-                {role}
-              </div>
-              <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                Joined: {joiningDate}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <a
-              href={resumeUrl || "#"}
-              target="_blank"
-              rel="noreferrer"
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${resumeUrl
-                  ? "bg-slate-800 text-white hover:bg-slate-900 shadow-sm"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-              onClick={(e) => !resumeUrl && e.preventDefault()}
-            >
-              {resumeUrl ? "Download Resume" : "No Resume"}
-            </a>
-
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-500 transition-colors border border-gray-200"
-            >
-              <svg
-                width="20"
-                height="20"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+      <aside className="relative w-full max-w-6xl bg-[#F8F9FA] shadow-2xl h-full flex flex-col animate-slide-in-right overflow-y-auto">
+        
+        {loading ? (
+           <div className="flex items-center justify-center h-full text-gray-500">Loading Profile...</div>
+        ) : (
+          <div className="p-6 md:p-8 space-y-6">
+            
+            {/* --- TOP HEADER NAVIGATION --- */}
+            <div className="flex items-center justify-between">
+              <button 
+                onClick={onClose}
+                className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-white">
-          {loading ? (
-            <div className="text-center text-gray-500 py-12">
-              Loading profile details...
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </button>
+              <div className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                {status}
+              </div>
             </div>
-          ) : (
-            <>
-              {/* Contact Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                    EMAIL
-                  </div>
-                  <div className="text-sm font-semibold text-gray-800 break-all">
-                    {email}
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                    PHONE
-                  </div>
-                  <div className="text-sm font-semibold text-gray-800">
-                    {phone}
-                  </div>
-                </div>
+
+            {/* --- NAME & BREADCRUMBS --- */}
+            <div>
+              <h1 className="text-3xl font-bold text-[#1F2937]">{name}</h1>
+              <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                <Home className="w-3.5 h-3.5" />
+                <span>›</span>
+                <span>Staff</span>
+                <span>›</span>
+                <span className="text-gray-700">{name}</span>
+              </div>
+            </div>
+
+            {/* --- HERO CARD (Teal Avatar) --- */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 flex flex-col md:flex-row items-center md:items-start gap-6 relative">
+              <div className="relative">
+                <Avatar user={user} size={100} fontSizeOverride={36} />
+                {/* Online Status Dot */}
+                <div className="absolute bottom-1 right-1 w-5 h-5 bg-[#4ADE80] border-4 border-white rounded-full"></div>
+              </div>
+              
+              <div className="flex-1 text-center md:text-left">
+                <h2 className="text-xl font-bold text-gray-900">{name}</h2>
+                <p className="text-gray-500 text-sm mt-1">{role} • {department}</p>
+                
+                {/* Updated Button to Teal */}
+                <button className="mt-4 inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  Upload Avatar
+                </button>
+              </div>
+            </div>
+
+            {/* --- INFO CARDS ROW --- */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <p className="text-xs text-gray-400 mb-1">Employee ID</p>
+                <p className="font-semibold text-gray-800">{empId}</p>
+              </div>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <p className="text-xs text-gray-400 mb-1">Department</p>
+                <p className="font-semibold text-gray-800">{department}</p>
+              </div>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <p className="text-xs text-gray-400 mb-1">Role</p>
+                <p className="font-semibold text-gray-800 capitalize">{role}</p>
+              </div>
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <p className="text-xs text-gray-400 mb-1">Joining Date</p>
+                <p className="font-semibold text-gray-800">{joiningDate}</p>
+              </div>
+            </div>
+
+            {/* --- TABS --- */}
+            <div className="bg-white rounded-t-xl border border-gray-200 shadow-sm">
+              <div className="flex border-b border-gray-100">
+                {['Overview', 'Compliance', 'Leave', 'Documents'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex-1 py-4 text-sm font-medium text-center transition-colors relative ${
+                      activeTab === tab 
+                        ? 'text-teal-600 bg-teal-50/50' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {tab}
+                    {activeTab === tab && (
+                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-teal-500"></div>
+                    )}
+                  </button>
+                ))}
               </div>
 
-              {/* Personal Information Section */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100">
-                  <h4 className="text-sm font-bold text-gray-800">
-                    Personal Information
-                  </h4>
-                </div>
-                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1">Full Name</div>
-                    <div className="font-medium text-gray-800 text-sm">
-                      {name}
+              {/* --- TAB CONTENT --- */}
+              <div className="p-6 min-h-[300px]">
+                
+                {/* COMPLIANCE TAB */}
+                {activeTab === 'Compliance' && (
+                  <div className="space-y-6">
+                    
+                    {/* DBS Check Section - Dynamic Data */}
+                    <div className={`flex items-start gap-4 p-4 border rounded-lg bg-white shadow-sm ${dbsStatus.toLowerCase() === 'clear' ? 'border-green-100' : 'border-orange-100'}`}>
+                      <div className={`mt-1 ${dbsStatus.toLowerCase() === 'clear' ? 'text-green-500' : 'text-orange-500'}`}>
+                        {dbsStatus.toLowerCase() === 'clear' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">DBS Check</h4>
+                        <p className="text-sm text-gray-500">
+                          {dbsFile ? "Document on file" : "No DBS document uploaded"}
+                        </p>
+                      </div>
+                      {getStatusBadge(dbsStatus)}
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      Date of Birth
-                    </div>
-                    <div className="font-medium text-gray-800 text-sm">
-                      {dob}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1">Gender</div>
-                    <div className="font-medium text-gray-800 text-sm">
-                      {gender}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      Nationality
-                    </div>
-                    <div className="font-medium text-gray-800 text-sm">
-                      {nationality}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1">Religion</div>
-                    <div className="font-medium text-gray-800 text-sm">
-                      {religion}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1">
-                      Marital Status
-                    </div>
-                    <div className="font-medium text-gray-800 text-sm">
-                      {marital_status}
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Address Information Section */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="px-5 py-3 bg-gray-50/50 border-b border-gray-100">
-                  <h4 className="text-sm font-bold text-gray-800">
-                    Address Information
-                  </h4>
-                </div>
-                <div className="p-5 space-y-5">
-                  <div>
-                    <div className="text-xs text-gray-400 mb-1">Address</div>
-                    <div className="font-medium text-gray-800 text-sm">
-                      {address}
+                    {/* Mandatory Training Table - Dynamic Data */}
+                    <div className="bg-[#F8F9FA] rounded-lg p-4">
+                      <h4 className="text-gray-500 text-sm font-medium mb-4">Mandatory Training Status</h4>
+                      <div className="space-y-3">
+                        {trainingList.map((training, idx) => (
+                          <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-0">
+                            <span className="text-sm text-gray-700 font-medium">{training.label}</span>
+                            {getStatusBadge(training.status)}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* OVERVIEW TAB */}
+                {activeTab === 'Overview' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-bold text-gray-800 mb-4">Contact Info</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs text-gray-400">Email</label>
+                          <p className="text-sm font-medium">{user?.email}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-400">Phone</label>
+                          <p className="text-sm font-medium">{user?.phone || "No phone listed"}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-800 mb-4">Address</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs text-gray-400">Full Address</label>
+                          <p className="text-sm font-medium">{user?.address || user?.addr || "No address listed"}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div>
+                              <label className="text-xs text-gray-400">City</label>
+                              <p className="text-sm font-medium">{user?.city || "-"}</p>
+                           </div>
+                           <div>
+                              <label className="text-xs text-gray-400">Country</label>
+                              <p className="text-sm font-medium">{user?.country || "-"}</p>
+                           </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <div className="text-xs text-gray-400 mb-1">City</div>
-                      <div className="font-medium text-gray-800 text-sm">
-                        {city}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-400 mb-1">State</div>
-                      <div className="font-medium text-gray-800 text-sm">
-                        {state}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-400 mb-1">Country</div>
-                      <div className="font-medium text-gray-800 text-sm">
-                        {country}
-                      </div>
-                    </div>
+                )}
+
+                {activeTab === 'Leave' && (
+                  <div className="text-center text-gray-400 py-10 flex flex-col items-center">
+                    <div className="bg-gray-100 p-3 rounded-full mb-3"><Home className="w-6 h-6 text-gray-300" /></div>
+                    No leave history available.
                   </div>
-                </div>
+                )}
+                {activeTab === 'Documents' && (
+                  <div className="text-center text-gray-400 py-10 flex flex-col items-center">
+                     <div className="bg-gray-100 p-3 rounded-full mb-3"><svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
+                     No documents uploaded.
+                  </div>
+                )}
               </div>
-            </>
-          )}
-        </div>
+            </div>
+
+          </div>
+        )}
       </aside>
     </div>
   );
