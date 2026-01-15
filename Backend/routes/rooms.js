@@ -5,6 +5,15 @@ import { protect } from "../middleware/auth.js";
 
 const router = express.Router({ mergeParams: true }); // <- important: reads :hotelId from parent mount
 
+async function getRoomsColumns() {
+  const { rows } = await pool.query(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_name = 'rooms'`
+  );
+  return (rows || []).map(r => r.column_name);
+}
+
 /**
  * Helper: check whether the current authenticated user may manage rooms
  * for the provided hotelId.
@@ -80,7 +89,23 @@ router.get("/", protect, async (req, res) => {
     const { hotelId } = req.params;
     if (!hotelId) return res.status(400).json({ message: "hotelId required in URL" });
 
-    const q = `SELECT id, hotel_id, room_number, type, rate, status, created_at, updated_at
+    const existingCols = await getRoomsColumns();
+    const baseCols = [
+      "id",
+      "hotel_id",
+      "room_number",
+      "type",
+      "rate",
+      "status",
+      "created_at",
+      "updated_at",
+    ];
+    const customCols = existingCols.filter(
+      (c) => !baseCols.includes(c) && c !== "hotel_id" && c !== "id"
+    );
+    const selectCols = [...baseCols, ...customCols].join(", ");
+
+    const q = `SELECT ${selectCols}
                FROM rooms
                WHERE CAST(hotel_id AS text) = $1
                ORDER BY room_number`;
@@ -119,11 +144,34 @@ router.post("/", protect, async (req, res) => {
       return res.status(400).json({ message: "rate must be a number" });
     }
 
-    const q = `INSERT INTO rooms (hotel_id, room_number, type, rate, status, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5, now(), now())
-               RETURNING id, hotel_id, room_number, type, rate, status, created_at, updated_at`;
-    const vals = [String(hotelId), String(room_number), String(type), rateNum, 'available'];
-    const r = await pool.query(q, vals);
+    const existingCols = await getRoomsColumns();
+    const columnsToInsert = ["hotel_id", "room_number", "type", "rate", "status"];
+    const valuesToInsert = [String(hotelId), String(room_number), String(type), rateNum, "available"];
+
+    const standardCols = [
+      "id",
+      "hotel_id",
+      "room_number",
+      "type",
+      "rate",
+      "status",
+      "created_at",
+      "updated_at",
+    ];
+
+    for (const col of existingCols) {
+      if (standardCols.includes(col)) continue;
+      if (req.body?.[col] !== undefined) {
+        columnsToInsert.push(col);
+        valuesToInsert.push(req.body[col]);
+      }
+    }
+
+    const placeholders = columnsToInsert.map((_, i) => `$${i + 1}`).join(",");
+    const q = `INSERT INTO rooms (${columnsToInsert.join(", ")}, created_at, updated_at)
+               VALUES (${placeholders}, now(), now())
+               RETURNING *`;
+    const r = await pool.query(q, valuesToInsert);
     return res.status(201).json({ message: "Room created", room: r.rows[0] });
   } catch (err) {
     console.error("create room:", err && err.stack ? err.stack : err);
@@ -140,7 +188,23 @@ router.get("/:roomId", protect, async (req, res) => {
     const { hotelId, roomId } = req.params;
     if (!hotelId) return res.status(400).json({ message: "hotelId required in URL" });
 
-    const q = `SELECT id, hotel_id, room_number, type, rate, status, created_at, updated_at
+    const existingCols = await getRoomsColumns();
+    const baseCols = [
+      "id",
+      "hotel_id",
+      "room_number",
+      "type",
+      "rate",
+      "status",
+      "created_at",
+      "updated_at",
+    ];
+    const customCols = existingCols.filter(
+      (c) => !baseCols.includes(c) && c !== "hotel_id" && c !== "id"
+    );
+    const selectCols = [...baseCols, ...customCols].join(", ");
+
+    const q = `SELECT ${selectCols}
                FROM rooms WHERE id = $1 AND CAST(hotel_id AS text) = $2 LIMIT 1`;
     const r = await pool.query(q, [roomId, String(hotelId)]);
     if (!r.rows.length) return res.status(404).json({ message: "Room not found for this hotel" });
@@ -245,6 +309,8 @@ router.put("/:roomId", protect, async (req, res) => {
     const params = [];
     let idx = 1;
 
+    const existingCols = await getRoomsColumns();
+
     if (room_number !== undefined) { fields.push(`room_number = $${idx++}`); params.push(String(room_number)); }
     if (type !== undefined) { fields.push(`type = $${idx++}`); params.push(String(type)); }
     if (rate !== undefined) {
@@ -254,6 +320,25 @@ router.put("/:roomId", protect, async (req, res) => {
     }
     if (status !== undefined) { fields.push(`status = $${idx++}`); params.push(String(status)); }
 
+    const standardCols = [
+      "id",
+      "hotel_id",
+      "room_number",
+      "type",
+      "rate",
+      "status",
+      "created_at",
+      "updated_at",
+    ];
+
+    for (const col of existingCols) {
+      if (standardCols.includes(col)) continue;
+      if (req.body?.[col] !== undefined) {
+        fields.push(`${col} = $${idx++}`);
+        params.push(req.body[col]);
+      }
+    }
+
     if (fields.length === 0) return res.status(400).json({ message: "No fields to update" });
 
     params.push(roomId);
@@ -261,7 +346,7 @@ router.put("/:roomId", protect, async (req, res) => {
 
     const sql = `UPDATE rooms SET ${fields.join(", ")}, updated_at = NOW()
                  WHERE id = $${idx++} AND CAST(hotel_id AS text) = $${idx}
-                 RETURNING id, hotel_id, room_number, type, rate, status, created_at, updated_at`;
+                 RETURNING *`;
     const u = await pool.query(sql, params);
     if (!u.rows.length) return res.status(404).json({ message: "Room not found or update failed" });
     return res.json({ message: "Room updated", room: u.rows[0] });

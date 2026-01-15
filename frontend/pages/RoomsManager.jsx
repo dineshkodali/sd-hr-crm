@@ -11,7 +11,7 @@ export default function RoomsManager({ user }) {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ room_number: "", type: "", rate: "" });
+  const [form, setForm] = useState({ room_number: "", type: "", rate: "", floor: "" });
   const [editing, setEditing] = useState(null);
   const [hotel, setHotel] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -71,9 +71,10 @@ export default function RoomsManager({ user }) {
         room_number: form.room_number,
         type: form.type,
         rate: form.rate !== "" ? Number(form.rate) : null,
+        floor: form.floor !== "" ? form.floor : null,
       };
       const res = await axios.post(`/api/hotels/${hotelId}/rooms`, payload);
-      setForm({ room_number: "", type: "", rate: "" });
+      setForm({ room_number: "", type: "", rate: "", floor: "" });
       await fetch();
       // optionally show server message
       if (res.data && res.data.message) {
@@ -94,6 +95,7 @@ export default function RoomsManager({ user }) {
       room_number: r.room_number || "",
       type: r.type || "",
       rate: (r.rate !== undefined && r.rate !== null) ? String(r.rate) : "",
+      floor: (r.floor !== undefined && r.floor !== null) ? String(r.floor) : "",
     });
     // scroll into view or focus can be added here if desired
   };
@@ -108,11 +110,12 @@ export default function RoomsManager({ user }) {
         room_number: form.room_number,
         type: form.type,
         rate: form.rate !== "" ? Number(form.rate) : null,
+        floor: form.floor !== "" ? form.floor : null,
       };
       // IMPORTANT: use the hotel-scoped route for editing
       await axios.put(`/api/hotels/${hotelId}/rooms/${editing}`, payload);
       setEditing(null);
-      setForm({ room_number: "", type: "", rate: "" });
+      setForm({ room_number: "", type: "", rate: "", floor: "" });
       await fetch();
     } catch (err) {
       console.error("Save edit error:", err);
@@ -239,6 +242,18 @@ export default function RoomsManager({ user }) {
                 />
               </div>
 
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Floor
+                </label>
+                <input
+                  value={form.floor}
+                  onChange={(e) => setForm({ ...form, floor: e.target.value })}
+                  placeholder="e.g., 1"
+                  className="w-full px-4 py-3 bg-[#f0faf9] border border-[#d3f1ec] rounded-xl focus:border-teal-500 focus:ring-2 focus:ring-[#d3f1ec] text-slate-700 placeholder-slate-400 transition-all outline-none"
+                />
+              </div>
+
               <div className="md:col-span-3 flex gap-3 pt-2">
                 <button
                   type="submit"
@@ -277,7 +292,7 @@ export default function RoomsManager({ user }) {
                     type="button"
                     onClick={() => { 
                       setEditing(null); 
-                      setForm({ room_number: "", type: "", rate: "" }); 
+                      setForm({ room_number: "", type: "", rate: "", floor: "" }); 
                     }}
                     className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-semibold transition-all"
                   >

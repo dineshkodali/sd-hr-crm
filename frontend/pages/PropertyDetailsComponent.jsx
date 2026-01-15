@@ -270,7 +270,7 @@ export default function PropertyDetails({ property }) {
             <OverviewCard totalFloors={totalFloors} totalRooms={totalRooms} />
           )}
 
-          {activeTab === "floors" && <FloorsRoomsCard property={property} />}
+          {activeTab === "floors" && <FloorsRoomsCard hotelId={hotelId} />}
 
           {activeTab === "residents" && <ResidentsCard hotelId={hotelId} />}
 
@@ -588,26 +588,140 @@ function OverviewCard({ totalFloors, totalRooms }) {
   );
 }
 
-function FloorsRoomsCard({ property }) {
-  // Mock data - replace with actual API call
-  const floors = [
-    {
-      floor: "Ground Floor",
-      rooms: [
-        { id: 1, room_number: "G01", type: "Single", status: "Occupied", bedspaces: 1, occupied: 1, resident: "John Doe" },
-        { id: 2, room_number: "G02", type: "Double", status: "Available", bedspaces: 2, occupied: 0, resident: null },
-        { id: 3, room_number: "G03", type: "Twin", status: "Occupied", bedspaces: 2, occupied: 2, resident: "Jane Smith, Mary Johnson" },
-      ]
-    },
-    {
-      floor: "First Floor",
-      rooms: [
-        { id: 4, room_number: "101", type: "Single", status: "Occupied", bedspaces: 1, occupied: 1, resident: "Bob Wilson" },
-        { id: 5, room_number: "102", type: "Double", status: "Available", bedspaces: 2, occupied: 0, resident: null },
-        { id: 6, room_number: "103", type: "Family", status: "Occupied", bedspaces: 4, occupied: 3, resident: "Sarah Brown & Family" },
-      ]
-    },
-  ];
+function FloorsRoomsCard({ hotelId }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [floors, setFloors] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!hotelId) {
+        setFloors([]);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        const [roomsRes, residentsRes] = await Promise.all([
+          axios.get(`/api/hotels/${hotelId}/rooms`, { withCredentials: true }),
+          axios.get("/api/su/users", { withCredentials: true, params: { hotel_id: hotelId } }),
+        ]);
+
+        const rooms = Array.isArray(roomsRes.data?.rooms)
+          ? roomsRes.data.rooms
+          : Array.isArray(roomsRes.data)
+            ? roomsRes.data
+            : [];
+
+        const residents = Array.isArray(residentsRes.data)
+          ? residentsRes.data
+          : Array.isArray(residentsRes.data?.users)
+            ? residentsRes.data.users
+            : Array.isArray(residentsRes.data?.data)
+              ? residentsRes.data.data
+              : [];
+
+        const residentsByRoom = new Map();
+        for (const r of residents) {
+          const key = (r.room_number ?? r.room ?? "")?.toString?.() ?? "";
+          if (!key) continue;
+          const name = [r.first_name, r.last_name].filter(Boolean).join(" ") || r.name || "";
+          if (!name) continue;
+          if (!residentsByRoom.has(key)) residentsByRoom.set(key, []);
+          residentsByRoom.get(key).push(name);
+        }
+
+        const bedspaceCountsEntries = await Promise.all(
+          rooms.map(async (room) => {
+            if (!room?.id) return [room?.id, null];
+            try {
+              const res = await axios.get(
+                `/api/hotels/${hotelId}/rooms/${room.id}/bedspaces`,
+                { withCredentials: true }
+              );
+              const list = Array.isArray(res.data?.bedspaces)
+                ? res.data.bedspaces
+                : Array.isArray(res.data)
+                  ? res.data
+                  : [];
+              return [room.id, list.length];
+            } catch {
+              return [room.id, null];
+            }
+          })
+        );
+        const bedspaceCounts = new Map(bedspaceCountsEntries);
+
+        const grouped = new Map();
+        for (const room of rooms) {
+          const rawFloor = room?.floor ?? room?.Floor ?? room?.floor_name ?? null;
+          const floorKey = rawFloor === null || rawFloor === undefined || String(rawFloor).trim() === ""
+            ? "Unassigned"
+            : String(rawFloor);
+
+          if (!grouped.has(floorKey)) grouped.set(floorKey, []);
+          grouped.get(floorKey).push(room);
+        }
+
+        const asList = Array.from(grouped.entries()).map(([floor, rs]) => {
+          const roomsForFloor = [...rs].sort((a, b) => String(a?.room_number ?? "").localeCompare(String(b?.room_number ?? "")));
+          const normalizedRooms = roomsForFloor.map((room) => {
+            const roomKey = (room?.room_number ?? "")?.toString?.() ?? "";
+            const resNames = residentsByRoom.get(roomKey) || [];
+            const totalBeds = bedspaceCounts.get(room?.id) ?? null;
+            const occupiedBeds = roomKey ? resNames.length : 0;
+            return {
+              ...room,
+              _residentNames: resNames,
+              _totalBeds: totalBeds,
+              _occupiedBeds: occupiedBeds,
+            };
+          });
+          return { floor, rooms: normalizedRooms };
+        });
+
+        const orderFloor = (name) => {
+          const s = String(name || "").toLowerCase();
+          if (s.includes("ground")) return -1;
+          if (s === "unassigned") return 9999;
+          const n = Number.parseInt(s, 10);
+          if (Number.isFinite(n)) return n;
+          const m = s.match(/(\d+)/);
+          if (m) return Number.parseInt(m[1], 10);
+          return 1000;
+        };
+
+        asList.sort((a, b) => {
+          const na = orderFloor(a.floor);
+          const nb = orderFloor(b.floor);
+          if (na !== nb) return na - nb;
+          return String(a.floor).localeCompare(String(b.floor));
+        });
+
+        if (!cancelled) setFloors(asList);
+      } catch (err) {
+        if (cancelled) return;
+        const msg =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load rooms";
+        setError(msg);
+        setFloors([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [hotelId]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -616,6 +730,23 @@ function FloorsRoomsCard({ property }) {
         Detailed floor and room information with occupancy status
       </p>
 
+      {!hotelId ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Select a property to view floors and rooms</p>
+        </div>
+      ) : loading ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Loading...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-600">
+          <p>{error}</p>
+        </div>
+      ) : floors.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>No rooms found</p>
+        </div>
+      ) : (
       <div className="space-y-6">
         {floors.map((floor, idx) => (
           <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -631,25 +762,28 @@ function FloorsRoomsCard({ property }) {
                       <div className="flex items-center gap-3">
                         <span className="font-semibold text-gray-900">Room {room.room_number}</span>
                         <span className="text-sm text-gray-600">{room.type}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${room.status === 'Available'
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${String(room.status || "").toLowerCase() === 'available'
                             ? 'bg-green-50 text-green-700 border border-green-200'
                             : 'bg-orange-50 text-orange-700 border border-orange-200'
                           }`}>
-                          {room.status}
+                          {room.status || "-"}
                         </span>
                       </div>
                       <div className="mt-2 flex items-center gap-4 text-sm">
                         <span className="text-gray-600">
-                          <span className="font-medium">Beds:</span> {room.occupied}/{room.bedspaces}
+                          <span className="font-medium">Beds:</span> {room._occupiedBeds}/{room._totalBeds ?? "-"}
                         </span>
-                        {room.resident && (
+                        {Array.isArray(room._residentNames) && room._residentNames.length > 0 && (
                           <span className="text-gray-600">
-                            <span className="font-medium">Resident:</span> {room.resident}
+                            <span className="font-medium">Resident:</span> {room._residentNames.join(", ")}
                           </span>
                         )}
                       </div>
                     </div>
-                    <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                    <button
+                      onClick={() => window.location.assign(`/hotels/${hotelId}/rooms`)}
+                      className="text-[#5cd9c7] hover:text-[#4fcfbe] text-sm font-medium"
+                    >
                       View Details
                     </button>
                   </div>
@@ -659,6 +793,7 @@ function FloorsRoomsCard({ property }) {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
