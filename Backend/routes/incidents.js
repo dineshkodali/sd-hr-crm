@@ -52,8 +52,25 @@ router.get('/', async (req, res) => {
     const ready = await ensureIncidentsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
 
-    const { limit = 200, offset = 0 } = req.query;
-    const { rows } = await pool.query(`SELECT * FROM maintenance.incidents ORDER BY created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]);
+    const { limit = 200, offset = 0, property_id, propertyId } = req.query;
+    const pidRaw = property_id ?? propertyId ?? null;
+
+    const where = [];
+    const values = [];
+    let idx = 1;
+
+    if (pidRaw !== null && pidRaw !== undefined && String(pidRaw).trim() !== '') {
+      where.push(`CAST(property_id AS text) = $${idx++}`);
+      values.push(String(pidRaw));
+    }
+
+    values.push(Number(limit));
+    values.push(Number(offset));
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const { rows } = await pool.query(
+      `SELECT * FROM maintenance.incidents ${whereClause} ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`,
+      values
+    );
     res.json({ success: true, data: rows });
   } catch (err) {
     console.error('GET /api/incidents error:', err);

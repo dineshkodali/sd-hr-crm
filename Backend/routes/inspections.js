@@ -73,7 +73,56 @@ router.get("/", async (req, res) => {
       return res.status(500).json({ success: false, message: "Database not initialized" });
     }
 
-    const { q, status, property, limit = 100, offset = 0 } = req.query;
+    const {
+      q,
+      status,
+      property,
+      property_id,
+      propertyId,
+      hotel_id,
+      hotelId,
+      property_name,
+      propertyName,
+      hotel_name,
+      hotelName,
+      limit = 100,
+      offset = 0,
+    } = req.query;
+
+    // Detect which property column exists in current inspections table
+    const { rows: colRows } = await pool.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'inspections'`
+    );
+    const existingCols = new Set((colRows || []).map((r) => r.column_name));
+    const propertyFilterColumn = existingCols.has("property_id")
+      ? "property_id"
+      : existingCols.has("hotel_id")
+        ? "hotel_id"
+        : existingCols.has("property_name")
+          ? "property_name"
+        : existingCols.has("property")
+          ? "property"
+          : null;
+
+    const propertyIdValue = property_id ?? propertyId ?? hotel_id ?? hotelId ?? property ?? null;
+    const propertyNameValue = property_name ?? propertyName ?? hotel_name ?? hotelName ?? null;
+    let propertyFilterValue = null;
+    if (propertyFilterColumn === "property_name") {
+      propertyFilterValue = propertyNameValue;
+      // If we only have an id, try to resolve name from hotels table
+      if (!propertyFilterValue && propertyIdValue) {
+        try {
+          const r = await pool.query(`SELECT name FROM hotels WHERE id = $1 LIMIT 1`, [propertyIdValue]);
+          propertyFilterValue = r.rows?.[0]?.name ?? null;
+        } catch (e) {
+          // ignore lookup errors
+        }
+      }
+    } else {
+      propertyFilterValue = propertyIdValue;
+    }
 
     // base query
     let text = `SELECT * FROM inspections`;
@@ -88,9 +137,18 @@ router.get("/", async (req, res) => {
       params.push(status);
       where.push(`status = $${params.length}`);
     }
-    if (property) {
-      params.push(property);
-      where.push(`property = $${params.length}`);
+    if (
+      propertyFilterColumn &&
+      propertyFilterValue !== null &&
+      propertyFilterValue !== undefined &&
+      String(propertyFilterValue).trim() !== ""
+    ) {
+      params.push(propertyFilterValue);
+      if (propertyFilterColumn === "property_name") {
+        where.push(`CAST(${propertyFilterColumn} AS text) = $${params.length}`);
+      } else {
+        where.push(`${propertyFilterColumn} = $${params.length}`);
+      }
     }
     if (where.length) {
       text += " WHERE " + where.join(" AND ");

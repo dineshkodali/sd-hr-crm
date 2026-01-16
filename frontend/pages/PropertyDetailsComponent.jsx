@@ -253,6 +253,24 @@ export default function PropertyDetails({ property }) {
               Maintenance
             </button>
             <button
+              onClick={() => setActiveTab("inspections")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "inspections"
+                  ? "bg-[#5cd9c7] text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-50"
+                }`}
+            >
+              Inspections
+            </button>
+            <button
+              onClick={() => setActiveTab("incidents")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "incidents"
+                  ? "bg-[#5cd9c7] text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-50"
+                }`}
+            >
+              Incidents
+            </button>
+            <button
               onClick={() => setActiveTab("compliance")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "compliance"
                   ? "bg-[#5cd9c7] text-white shadow-sm"
@@ -275,6 +293,10 @@ export default function PropertyDetails({ property }) {
           {activeTab === "residents" && <ResidentsCard hotelId={hotelId} />}
 
           {activeTab === "maintenance" && <MaintenanceCard hotelId={hotelId} hotelName={hotelName} />}
+
+          {activeTab === "inspections" && <InspectionsCard hotelId={hotelId} hotelName={hotelName} />}
+
+          {activeTab === "incidents" && <IncidentsCard hotelId={hotelId} hotelName={hotelName} />}
 
           {activeTab === "compliance" && <ComplianceCard hotelId={hotelId} hotelName={hotelName} />}
         </div>
@@ -897,6 +919,316 @@ function ResidentsCard({ hotelId }) {
           </tbody>
         </table>
       </div>
+      )}
+    </div>
+  );
+}
+
+function IncidentsCard({ hotelId, hotelName }) {
+  const [incidents, setIncidents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!hotelId) {
+        setIncidents([]);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        const res = await axios.get("/api/incidents", {
+          withCredentials: true,
+          params: { property_id: hotelId, limit: 200 },
+        });
+
+        const data = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+            ? res.data
+            : [];
+
+        if (!cancelled) setIncidents(data);
+      } catch (err) {
+        if (cancelled) return;
+        const msg =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load incidents";
+        setError(msg);
+        setIncidents([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [hotelId]);
+
+  const statusBadge = (status) => {
+    const s = String(status || "").toLowerCase();
+    if (s === "resolved" || s === "closed" || s === "completed") {
+      return "bg-green-50 text-green-700 border border-green-200";
+    }
+    if (s === "open" || s === "pending") {
+      return "bg-orange-50 text-orange-700 border border-orange-200";
+    }
+    if (s === "in progress") {
+      return "bg-purple-50 text-purple-700 border border-purple-200";
+    }
+    return "bg-gray-100 text-gray-700 border border-gray-200";
+  };
+
+  const severityBadge = (severity) => {
+    const s = String(severity || "").toLowerCase();
+    if (s === "high" || s === "urgent" || s === "critical") {
+      return "bg-red-50 text-red-700 border border-red-200";
+    }
+    if (s === "medium") {
+      return "bg-orange-50 text-orange-700 border border-orange-200";
+    }
+    if (s === "low") {
+      return "bg-green-50 text-green-700 border border-green-200";
+    }
+    return "bg-gray-100 text-gray-700 border border-gray-200";
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 className="text-xl font-semibold text-gray-900 mb-1">Incidents</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        {hotelName ? `Incidents logged for ${hotelName}` : "Incidents logged for this property"}
+      </p>
+
+      {!hotelId ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Select a property to view incidents</p>
+        </div>
+      ) : loading ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Loading...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-600">
+          <p>{error}</p>
+        </div>
+      ) : incidents.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>No incidents found</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-y border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Reference</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Severity</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Reported</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {incidents.map((it) => (
+                <tr key={it.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{it.reference || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{it.type || "-"}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${severityBadge(it.severity)}`}>
+                      {it.severity || "-"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(it.status)}`}>
+                      {it.status || "-"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{it.reported_date || it.reportedDate || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InspectionsCard({ hotelId, hotelName }) {
+  const [inspections, setInspections] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!hotelId) {
+        setInspections([]);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        const res = await axios.get("/api/inspections", {
+          withCredentials: true,
+          params: {
+            property: hotelId,
+            property_id: hotelId,
+            propertyId: hotelId,
+            hotel_id: hotelId,
+            hotelId: hotelId,
+            property_name: hotelName,
+            propertyName: hotelName,
+            hotel_name: hotelName,
+            hotelName: hotelName,
+            limit: 200,
+          },
+        });
+
+        const data = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+            ? res.data
+            : [];
+
+        const filtered = (Array.isArray(data) ? data : []).filter((it) => {
+          const pid = it.property_id ?? it.propertyId ?? it.hotel_id ?? it.hotelId ?? it.property ?? null;
+          const pname = it.property_name ?? it.propertyName ?? it.hotel_name ?? it.hotelName ?? null;
+          if (hotelId && pid != null && String(pid) === String(hotelId)) return true;
+          if (hotelName && pname && String(pname).toLowerCase() === String(hotelName).toLowerCase()) return true;
+          return false;
+        });
+
+        if (!cancelled) setInspections(filtered);
+      } catch (err) {
+        if (cancelled) return;
+        const msg =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load inspections";
+        setError(msg);
+        setInspections([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [hotelId]);
+
+  const statusBadge = (status) => {
+    const s = String(status || "").toLowerCase();
+    if (s === "completed" || s === "resolved") {
+      return "bg-green-50 text-green-700 border border-green-200";
+    }
+    if (s === "pending" || s === "open") {
+      return "bg-orange-50 text-orange-700 border border-orange-200";
+    }
+    if (s === "in progress" || s === "in_progress") {
+      return "bg-purple-50 text-purple-700 border border-purple-200";
+    }
+    return "bg-gray-100 text-gray-700 border border-gray-200";
+  };
+
+  const priorityBadge = (priority) => {
+    const p = String(priority || "").toLowerCase();
+    if (p === "urgent" || p === "high") {
+      return "bg-red-50 text-red-700 border border-red-200";
+    }
+    if (p === "medium") {
+      return "bg-orange-50 text-orange-700 border border-orange-200";
+    }
+    if (p === "low") {
+      return "bg-green-50 text-green-700 border border-green-200";
+    }
+    return "bg-gray-100 text-gray-700 border border-gray-200";
+  };
+
+  const formatDateCell = (value) => {
+    if (!value) return "-";
+    try {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      return d.toISOString().slice(0, 10);
+    } catch {
+      return String(value);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <h2 className="text-xl font-semibold text-gray-900 mb-1">Inspections</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        {hotelName ? `Inspections logged for ${hotelName}` : "Inspections logged for this property"}
+      </p>
+
+      {!hotelId ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Select a property to view inspections</p>
+        </div>
+      ) : loading ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>Loading...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-red-600">
+          <p>{error}</p>
+        </div>
+      ) : inspections.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">
+          <p>No inspections found</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-y border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Reference</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Priority</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Inspector</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {inspections.map((it) => (
+                <tr key={it.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{it.reference || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{it.inspection_type || it.inspectionType || "-"}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityBadge(it.priority)}`}>
+                      {it.priority || "-"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusBadge(it.status)}`}>
+                      {it.status || "-"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{it.inspector_name || it.inspectorName || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{formatDateCell(it.inspection_date || it.inspectionDate)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
