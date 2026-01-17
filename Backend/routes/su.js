@@ -18,6 +18,14 @@ async function ensureServiceUsersTable() {
   try {
     const check = await pool.query(`SELECT to_regclass('service_users') AS exists`);
     if (check.rows?.[0]?.exists) {
+      try {
+        const roomIdExists = await columnExists('service_users', 'room_id');
+        if (!roomIdExists) {
+          await pool.query(`ALTER TABLE service_users ADD COLUMN room_id INTEGER`);
+        }
+      } catch (e) {
+        // best-effort
+      }
       suTableReady = true;
       return true;
     }
@@ -44,6 +52,7 @@ async function ensureServiceUsersTable() {
         property_id INTEGER,
         hotel_id INTEGER,
         accommodation_id INTEGER,
+        room_id INTEGER,
         room_number TEXT,
         room TEXT,
         admission_date DATE,
@@ -955,6 +964,11 @@ router.post("/users", async (req, res) => {
  */
 router.put("/users/:id", async (req, res) => {
   try {
+    const ready = await ensureServiceUsersTable();
+    if (!ready) {
+      return res.status(500).json({ error: "service_users table not available" });
+    }
+
     const rawId = req.params.id;
     const id = Number(rawId);
     if (!Number.isInteger(id) || id <= 0) {
@@ -1050,10 +1064,31 @@ router.put("/users/:id", async (req, res) => {
     if (room_id !== undefined) {
       pushSet("room_id", room_id);
     }
+
     if (room_number !== undefined) {
       pushSet("room_number", room_number);
     } else if (room !== undefined) {
       pushSet("room", room);
+    } else if (room_id !== undefined) {
+      try {
+        const names = await resolveSchemaNames();
+        const roomTable = names.roomTable || "rooms";
+        if (roomTable) {
+          const roomNumberCol = await columnExists(roomTable, "room_number");
+          if (roomNumberCol) {
+            const r = await pool.query(
+              `SELECT room_number::text AS room_number FROM ${quoteIdent(roomTable)} WHERE id = $1 LIMIT 1`,
+              [Number(room_id)]
+            );
+            const rn = r.rows?.[0]?.room_number;
+            if (rn !== undefined) {
+              pushSet("room_number", rn);
+            }
+          }
+        }
+      } catch (e) {
+        // best-effort
+      }
     }
 
     // admission date

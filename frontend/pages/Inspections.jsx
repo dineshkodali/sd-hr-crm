@@ -136,6 +136,8 @@ export default function Inspections({ user }) {
   const [inspections, setInspections] = useState([]);
   const [hotels, setHotels] = useState([]);
   const [serviceUsers, setServiceUsers] = useState([]);
+  const [staffUsers, setStaffUsers] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
   const [hotelsLoading, setHotelsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -412,6 +414,54 @@ export default function Inspections({ user }) {
     setServiceUsers([]);
   }
 
+  async function fetchStaffForHotel(hotelId) {
+    if (!hotelId) {
+      setStaffUsers([]);
+      return;
+    }
+    try {
+      setStaffLoading(true);
+
+      const tryPath = async (path) => {
+        const r = await api.get(path);
+        return r?.data;
+      };
+
+      const paths = [
+        `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          data = await tryPath(p);
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) throw lastErr || new Error('Unable to load staff');
+
+      const list = data?.staff ?? data?.users ?? data ?? [];
+      const normalized = (Array.isArray(list) ? list : [])
+        .map((u) => ({
+          id: u.id,
+          name: u.name || u.email || `User ${u.id}`,
+          email: u.email || null,
+        }))
+        .filter((u) => u.id && u.name);
+      setStaffUsers(normalized);
+    } catch (err) {
+      console.error('fetchStaffForHotel error:', err);
+      setStaffUsers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  }
+
   async function fetchInspections() {
     try {
       setLoading(true);
@@ -449,9 +499,14 @@ export default function Inspections({ user }) {
       propertyName: hotel ? hotel.name : "",
       serviceUserId: "",
       serviceUserName: "",
+      inspectorName: "", // Reset inspectorName
     }));
     setServiceUsers([]);
-    if (hotelId) fetchServiceUsers(hotelId);
+    setStaffUsers([]);
+    if (hotelId) {
+      fetchServiceUsers(hotelId);
+      fetchStaffForHotel(hotelId);
+    }
   }
 
   function handleServiceUserChange(e) {
@@ -501,7 +556,6 @@ export default function Inspections({ user }) {
       actionRequired: !!formData.actionRequired,
       action_required: !!formData.actionRequired,
       status: formData.status || "pending",
-      priority: formData.actionRequired ? "Urgent" : "Medium",
     };
     // Add custom column values to payload
     customColumns.forEach(col => {
@@ -1688,15 +1742,40 @@ export default function Inspections({ user }) {
 
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Inspector Name <span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="inspectorName" 
-                    required 
-                    value={formData.inspectorName} 
-                    onChange={handleInputChange} 
-                    placeholder="Name of inspector" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" 
-                  />
+                  {staffUsers && staffUsers.length > 0 ? (
+                    <select
+                      name="inspectorName"
+                      value={formData.inspectorName}
+                      onChange={handleInputChange}
+                      disabled={!formData.propertyId || staffLoading}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      required
+                    >
+                      <option value="">
+                        {!formData.propertyId
+                          ? "Select property first"
+                          : staffLoading
+                          ? "Loading staff..."
+                          : "Select inspector"}
+                      </option>
+                      {!!formData.inspectorName && !staffUsers.some((u) => String(u.name) === String(formData.inspectorName)) && (
+                        <option value={formData.inspectorName}>{formData.inspectorName}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>{u.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input 
+                      type="text" 
+                      name="inspectorName" 
+                      required 
+                      value={formData.inspectorName} 
+                      onChange={handleInputChange} 
+                      placeholder="Name of inspector" 
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" 
+                    />
+                  )}
                 </div>
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Inspection Date <span className="text-red-500">*</span></label>

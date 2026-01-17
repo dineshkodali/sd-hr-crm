@@ -92,6 +92,7 @@ const [deleting, setDeleting] = useState(false);
     immigration_status: "",
     home_office_reference: "",
     hotel_id: "",
+    room_id: "",
     room_number: "",
     admission_date: "",
     number_of_dependents: "",
@@ -215,9 +216,11 @@ const [deleting, setDeleting] = useState(false);
       });
 
       setRooms(roomsList);
+      return roomsList;
     } catch (err) {
       console.error("Error fetching rooms:", err);
       setRooms([]);
+      return [];
     }
   };
 
@@ -247,6 +250,7 @@ const [deleting, setDeleting] = useState(false);
         dob: formatDateForInput(user.dob || user.date_of_birth),
         admission_date: admissionDate,
         hotel_id: String(user.hotel_id || user.property_id || ""),
+        room_id: String(user.room_id || ""),
         room_number: user.room_number || "",
         number_of_dependents: user.number_of_dependents ?? "",
         vulnerabilities: Array.isArray(user.vulnerabilities)
@@ -264,7 +268,15 @@ const [deleting, setDeleting] = useState(false);
       setIsModalOpen(true);
 
       if (userData.hotel_id) {
-        await fetchRooms(userData.hotel_id);
+        const roomsList = await fetchRooms(userData.hotel_id);
+        if ((!userData.room_id || String(userData.room_id).trim() === "") && userData.room_number) {
+          const match = (roomsList || []).find(
+            (r) => String(r.room_number) === String(userData.room_number)
+          );
+          if (match?.id) {
+            setFormData((prev) => ({ ...prev, room_id: String(match.id) }));
+          }
+        }
       }
     } catch (error) {
       console.error("Error preparing user data for edit:", error);
@@ -370,7 +382,17 @@ const [deleting, setDeleting] = useState(false);
         return {
           ...prev,
           hotel_id: newValue,
+          room_id: "",
           room_number: "",
+        };
+      }
+
+      if (name === "room_id") {
+        const matched = rooms.find((r) => String(r.id) === String(newValue));
+        return {
+          ...prev,
+          room_id: newValue,
+          room_number: matched?.room_number ? String(matched.room_number) : "",
         };
       }
 
@@ -404,6 +426,7 @@ const [deleting, setDeleting] = useState(false);
         // backend prefers property_id/hotel_id/accommodation_id
         property_id: formData.hotel_id ? Number(formData.hotel_id) : null,
         hotel_id: formData.hotel_id ? Number(formData.hotel_id) : null,
+        room_id: formData.room_id ? Number(formData.room_id) : null,
         room_number: formData.room_number,
         admission_date: cleanAdmission,
         number_of_dependents: formData.number_of_dependents
@@ -1040,8 +1063,8 @@ const [deleting, setDeleting] = useState(false);
                       Room
                     </label>
                     <select
-                      name="room_number"
-                      value={formData.room_number}
+                      name="room_id"
+                      value={formData.room_id}
                       onChange={handleFormChange}
                       disabled={!formData.hotel_id}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300  outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -1052,7 +1075,7 @@ const [deleting, setDeleting] = useState(false);
                           : "Select property first"}
                       </option>
                       {rooms.map((room) => (
-                        <option key={room.id} value={room.room_number}>
+                        <option key={room.id} value={room.id}>
                           {room.room_number}
                           {room.type ? ` - ${room.type}` : ""}
                           {room.status ? ` (${room.status})` : ""}

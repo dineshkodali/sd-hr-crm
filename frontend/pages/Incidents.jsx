@@ -134,6 +134,8 @@ export default function Incidents({ user }) {
   const [rows, setRows] = useState([]);
   const [hotels, setHotels] = useState([]);
   const [serviceUsers, setServiceUsers] = useState([]);
+  const [staffUsers, setStaffUsers] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
   const [hotelsLoading, setHotelsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -589,6 +591,55 @@ export default function Incidents({ user }) {
     setServiceUsers([]);
   }
 
+  async function fetchStaffForHotel(hotelId) {
+    if (!hotelId) {
+      setStaffUsers([]);
+      return;
+    }
+    try {
+      setStaffLoading(true);
+      const tryPath = async (path) => {
+        const r = await api.get(path);
+        return r?.data;
+      };
+
+      const paths = [
+        `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          data = await tryPath(p);
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) {
+        throw lastErr || new Error('Unable to load staff');
+      }
+
+      const list = data?.staff ?? data?.users ?? data ?? [];
+      const normalized = (Array.isArray(list) ? list : [])
+        .map((u) => ({
+          id: u.id,
+          name: u.name || u.email || `User ${u.id}`,
+          email: u.email || null,
+        }))
+        .filter((u) => u.id && u.name);
+      setStaffUsers(normalized);
+    } catch (err) {
+      console.error('fetchStaffForHotel error:', err);
+      setStaffUsers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  }
+
   /* View Handler */
   const handleView = (row) => {
     setViewingIncident(row);
@@ -620,7 +671,11 @@ export default function Incidents({ user }) {
       ? customColumns.reduce((acc, col) => ({ ...acc, [col]: record[col] ?? '' }), {})
       : {};
     setFormData({ ...baseFormData, ...customFormData });
-    if (record.property_id || record.propertyId) fetchServiceUsers(record.property_id ?? record.propertyId);
+    if (record.property_id || record.propertyId) {
+      const pid = record.property_id ?? record.propertyId;
+      fetchServiceUsers(pid);
+      fetchStaffForHotel(pid);
+    }
     setEditingId(record.id ?? null);
     setShowModal(true);
   };
@@ -664,9 +719,20 @@ export default function Incidents({ user }) {
   function handlePropertyChange(e) {
     const hotelId = e.target.value;
     const hotel = hotels.find((h) => String(h.id) === String(hotelId)) || null;
-    setFormData((p) => ({ ...p, propertyId: hotelId, propertyName: hotel ? hotel.name : '', serviceUserId: '' }));
+    setFormData((p) => ({
+      ...p,
+      propertyId: hotelId,
+      propertyName: hotel ? hotel.name : '',
+      serviceUserId: '',
+      reportedBy: '',
+      assignedTo: '',
+    }));
     setServiceUsers([]);
-    if (hotelId) fetchServiceUsers(hotelId);
+    setStaffUsers([]);
+    if (hotelId) {
+      fetchServiceUsers(hotelId);
+      fetchStaffForHotel(hotelId);
+    }
   }
 
   async function handleSubmit(e) {
@@ -768,6 +834,7 @@ export default function Incidents({ user }) {
       ? customColumns.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
       : {};
     setFormData({ ...baseFormData, ...customFormData });
+    setStaffUsers([]);
     setShowModal(true);
   };
 
@@ -1441,14 +1508,30 @@ export default function Incidents({ user }) {
 
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                  <input 
-                    name="reportedBy" 
-                    required 
-                    value={formData.reportedBy} 
-                    onChange={handleInputChange} 
-                    placeholder="Name of person reporting" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                  />
+                  <select
+                    name="reportedBy"
+                    required
+                    value={formData.reportedBy}
+                    onChange={handleInputChange}
+                    disabled={!formData.propertyId || staffLoading}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {!formData.propertyId
+                        ? "Select property first"
+                        : staffLoading
+                        ? "Loading staff..."
+                        : "Select staff"}
+                    </option>
+                    {!!formData.reportedBy && !staffUsers.some((u) => String(u.name) === String(formData.reportedBy)) && (
+                      <option value={formData.reportedBy}>{formData.reportedBy}</option>
+                    )}
+                    {staffUsers.map((u) => (
+                      <option key={u.id} value={u.name}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Reported Date <span className="text-red-500">*</span></label>
@@ -1464,13 +1547,29 @@ export default function Incidents({ user }) {
 
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                  <input 
-                    name="assignedTo" 
-                    value={formData.assignedTo} 
-                    onChange={handleInputChange} 
-                    placeholder="Name of person handling incident" 
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                  />
+                  <select
+                    name="assignedTo"
+                    value={formData.assignedTo}
+                    onChange={handleInputChange}
+                    disabled={!formData.propertyId || staffLoading}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {!formData.propertyId
+                        ? "Select property first"
+                        : staffLoading
+                        ? "Loading staff..."
+                        : "Select staff"}
+                    </option>
+                    {!!formData.assignedTo && !staffUsers.some((u) => String(u.name) === String(formData.assignedTo)) && (
+                      <option value={formData.assignedTo}>{formData.assignedTo}</option>
+                    )}
+                    {staffUsers.map((u) => (
+                      <option key={u.id} value={u.name}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Status <span className="text-red-500">*</span></label>

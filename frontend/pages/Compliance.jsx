@@ -110,6 +110,9 @@ export default function Compliance() {
   const [stats, setStats] = useState({ valid_count: 0, expiring_count: 0, expired_count: 0 });
   const [loading, setLoading] = useState(false);
   const [hotelsLoading, setHotelsLoading] = useState(false);
+  const [staffUsers, setStaffUsers] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
+  const [documentFile, setDocumentFile] = useState(null);
 
   // Dialog State
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'warning' });
@@ -198,6 +201,66 @@ export default function Compliance() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.classList.add('form-modal-open');
+    } else {
+      document.body.classList.remove('form-modal-open');
+    }
+    return () => {
+      document.body.classList.remove('form-modal-open');
+    };
+  }, [modalOpen]);
+
+  const fetchStaffForHotel = async (hotelId) => {
+    if (!hotelId) {
+      setStaffUsers([]);
+      return;
+    }
+    try {
+      setStaffLoading(true);
+
+      const tryPath = async (path) => {
+        const r = await api.get(path);
+        return r?.data;
+      };
+
+      const paths = [
+        `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          data = await tryPath(p);
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) throw lastErr || new Error('Unable to load staff');
+
+      const list = data?.staff ?? data?.users ?? data ?? [];
+      const normalized = (Array.isArray(list) ? list : [])
+        .map((u) => ({
+          id: u.id,
+          name: u.name || u.email || `User ${u.id}`,
+          email: u.email || null,
+        }))
+        .filter((u) => u.id && u.name);
+
+      setStaffUsers(normalized);
+    } catch (err) {
+      console.error('fetchStaffForHotel error:', err);
+      setStaffUsers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+
   // --- 2. Centralized Filtering Logic ---
   const filteredCertificates = useMemo(() => {
     return certificates.filter(c => {
@@ -227,6 +290,8 @@ export default function Compliance() {
       status: "valid",
       notes: "",
     });
+    setStaffUsers([]);
+    setDocumentFile(null);
     setFormError("");
     setIsEditing(false);
     setViewMode(false);
@@ -247,6 +312,11 @@ export default function Compliance() {
         notes: cert.notes ?? "",
       });
       setEditId(cert.id);
+
+      const pid = cert.property_id ?? cert.hotel_id;
+      if (pid) {
+        fetchStaffForHotel(pid);
+      }
     }
     if (mode === 'edit') setIsEditing(true);
     if (mode === 'view') setViewMode(true);
@@ -273,7 +343,20 @@ export default function Compliance() {
     try {
       const url = isEditing ? `/api/compliance/${editId}` : "/api/compliance";
       const method = isEditing ? "put" : "post";
-      await api[method](url, payload);
+
+      if (documentFile) {
+        const formData = new FormData();
+        Object.entries(payload).forEach(([k, v]) => {
+          if (v === undefined || v === null) return;
+          formData.append(k, v);
+        });
+        formData.append('document', documentFile);
+        await api[method](url, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      } else {
+        await api[method](url, payload);
+      }
 
       setModalOpen(false);
       resetForm();
@@ -407,6 +490,12 @@ export default function Compliance() {
           ) : (
             filteredCertificates.map((c) => {
               const status = c.status || computeStatusFromExpiry(c.expiry_date);
+              const hasDocument = !!(
+                c.document_data ||
+                c.document_name ||
+                c.document_mime ||
+                c.file_path
+              );
               return (
                 <div key={c.id} className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -427,6 +516,19 @@ export default function Compliance() {
 
                     {/* MODIFIED ACTION BUTTONS */}
                     <div className="flex items-center gap-2 self-end md:self-center mt-2 md:mt-0">
+                      {hasDocument && (
+                        <button
+                          onClick={() => {
+                            try {
+                              window.open(`/api/compliance/${c.id}/document`, '_blank');
+                            } catch {}
+                          }}
+                          className="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                          title="View Document"
+                        >
+                          <FileText className="w-5 h-5" />
+                        </button>
+                      )}
                       <button onClick={() => openModal('view', c)} className="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors" title="View Details">
                         <Eye className="w-5 h-5" /> {/* Increased size to w-5 h-5 */}
                       </button>
@@ -472,7 +574,12 @@ export default function Compliance() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Property <span className="text-red-500">*</span></label>
-                    <select value={form.property_id} onChange={(e) => setForm({ ...form, property_id: e.target.value })} disabled={viewMode} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 outline-none">
+                    <select value={form.property_id} onChange={(e) => {
+                      const nextPropertyId = e.target.value;
+                      setForm({ ...form, property_id: nextPropertyId, issued_by: '' });
+                      setStaffUsers([]);
+                      if (nextPropertyId) fetchStaffForHotel(nextPropertyId);
+                    }} disabled={viewMode} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 outline-none">
                       <option value="">Select property</option>
                       {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
                     </select>
@@ -484,7 +591,28 @@ export default function Compliance() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Issued By</label>
-                    <input value={form.issued_by} onChange={(e) => setForm({ ...form, issued_by: e.target.value })} disabled={viewMode} placeholder="Issuing organization" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 outline-none" />
+                    <select
+                      value={form.issued_by}
+                      onChange={(e) => setForm({ ...form, issued_by: e.target.value })}
+                      disabled={viewMode || !form.property_id || staffLoading}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!form.property_id
+                          ? "Select property first"
+                          : staffLoading
+                          ? "Loading staff..."
+                          : "Select staff"}
+                      </option>
+                      {!!form.issued_by && !staffUsers.some((u) => String(u.name) === String(form.issued_by)) && (
+                        <option value={form.issued_by}>{form.issued_by}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date <span className="text-red-500">*</span></label>
@@ -508,10 +636,37 @@ export default function Compliance() {
 
                 <div>
                    <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Document</label>
-                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-emerald-400 transition">
+                   <input
+                     type="file"
+                     accept="application/pdf,image/*"
+                     disabled={viewMode}
+                     onChange={(e) => {
+                       const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                       setDocumentFile(f);
+                     }}
+                     className="hidden"
+                     id="certificate-document-input"
+                   />
+                   <label
+                     htmlFor={viewMode ? undefined : "certificate-document-input"}
+                     className={`border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center transition ${viewMode ? 'cursor-default opacity-80' : 'cursor-pointer hover:border-emerald-400'}`}
+                   >
                      <Download className="text-gray-400 mb-2" />
-                     <p className="text-sm text-gray-500">Click to upload files (PDF preferred)</p>
-                   </div>
+                     <p className="text-sm text-gray-500">{documentFile ? documentFile.name : "Click to upload files (PDF preferred)"}</p>
+                     {!viewMode && isEditing && !documentFile && editId && (
+                       <button
+                         type="button"
+                         onClick={() => {
+                           try {
+                             window.open(`/api/compliance/${editId}/document`, '_blank');
+                           } catch {}
+                         }}
+                         className="mt-2 text-xs text-teal-600 hover:text-teal-700"
+                       >
+                         View existing document
+                       </button>
+                     )}
+                   </label>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">

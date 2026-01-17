@@ -1,5 +1,6 @@
 // C:\PostgreAuth\Backend\routes\compliance.js
 import express from "express";
+import multer from "multer";
 
 let pool;
 try {
@@ -32,6 +33,11 @@ try {
 }
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 function requireAuth(req, res, next) {
   try {
@@ -77,6 +83,16 @@ async function getHotelsPkColumn() {
     await safeQuery("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS hotel_name TEXT");
   } catch (err) {
     console.warn("Could not ensure hotel_name column exists:", err && (err.message || err));
+  }
+})();
+
+(async function ensureCertificateDocumentColumns() {
+  try {
+    await safeQuery("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS document_name TEXT");
+    await safeQuery("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS document_mime TEXT");
+    await safeQuery("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS document_data BYTEA");
+  } catch (err) {
+    console.warn("Could not ensure certificate document columns exist:", err && (err.message || err));
   }
 })();
 
@@ -202,8 +218,35 @@ router.get("/:id", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/:id/document", requireAuth, async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
+
+    const r = await safeQuery(
+      "SELECT document_name, document_mime, document_data FROM certificates WHERE id::text = $1 AND is_active = true LIMIT 1",
+      [String(id)]
+    );
+    if (!r.ok) return res.status(500).json({ ok: false, error: "Server error" });
+    const row = r.rows?.[0];
+    if (!row || !row.document_data) return res.status(404).json({ ok: false, error: "No document" });
+
+    const mime = row.document_mime || "application/octet-stream";
+    const filename = row.document_name || `certificate-${id}`;
+    res.setHeader("Content-Type", mime);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=\"${String(filename).replace(/\"/g, '')}\"`
+    );
+    return res.send(row.document_data);
+  } catch (err) {
+    console.error("GET /api/compliance/:id/document error:", err);
+    return res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
 /* create */
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, upload.single("document"), async (req, res) => {
   try {
     const {
       certificate_type,
@@ -217,6 +260,10 @@ router.post("/", requireAuth, async (req, res) => {
       file_path,
       notes,
     } = req.body || {};
+
+    const document_name = req.file?.originalname || null;
+    const document_mime = req.file?.mimetype || null;
+    const document_data = req.file?.buffer || null;
 
     if (!certificate_type || !issue_date || !expiry_date)
       return res.status(400).json({ ok: false, error: "Missing required fields" });
@@ -262,8 +309,8 @@ router.post("/", requireAuth, async (req, res) => {
       }
     }
 
-    const insertSql = `INSERT INTO certificates (certificate_type, property_id, hotel_name, issue_date, expiry_date, issued_by, file_path, notes, created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`;
+    const insertSql = `INSERT INTO certificates (certificate_type, property_id, hotel_name, issue_date, expiry_date, issued_by, file_path, document_name, document_mime, document_data, notes, created_by)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`;
     // property_id we keep as null unless user provided an actual property id that resolves to a properties.id
     let resolvedPropertyId = null;
     // try quick resolve if they provided a numeric property_id (backwards-compatible)
@@ -280,7 +327,10 @@ router.post("/", requireAuth, async (req, res) => {
       issue_date,
       expiry_date,
       issued_by || null,
-      file_path || null,
+      file_path || document_name || null,
+      document_name,
+      document_mime,
+      document_data,
       notes || null,
       (req.session?.user?.id || req.user?.id || null),
     ];
@@ -321,7 +371,7 @@ router.post("/", requireAuth, async (req, res) => {
 });
 
 /* update */
-router.put("/:id", requireAuth, async (req, res) => {
+router.put("/:id", requireAuth, upload.single("document"), async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
@@ -338,6 +388,10 @@ router.put("/:id", requireAuth, async (req, res) => {
       notes,
       is_active,
     } = req.body || {};
+
+    const document_name = req.file?.originalname || null;
+    const document_mime = req.file?.mimetype || null;
+    const document_data = req.file?.buffer || null;
 
     // Determine hotel_name to store (same priority as create)
     let hotelNameToStore = null;
@@ -385,7 +439,7 @@ router.put("/:id", requireAuth, async (req, res) => {
       if (rp.ok && rp.rowCount > 0) resolvedPropertyId = rp.rows[0].id;
     }
 
-    const sql = `UPDATE certificates SET certificate_type = $1, property_id = $2, hotel_name = $3, issue_date = $4, expiry_date = $5, issued_by = $6, file_path = $7, notes = $8, is_active = $9, updated_at = now() WHERE id::text = $10 RETURNING id`;
+    const sql = `UPDATE certificates SET certificate_type = $1, property_id = $2, hotel_name = $3, issue_date = $4, expiry_date = $5, issued_by = $6, file_path = $7, document_name = COALESCE($8, document_name), document_mime = COALESCE($9, document_mime), document_data = COALESCE($10, document_data), notes = $11, is_active = $12, updated_at = now() WHERE id::text = $13 RETURNING id`;
     const params = [
       certificate_type,
       resolvedPropertyId,
@@ -393,7 +447,10 @@ router.put("/:id", requireAuth, async (req, res) => {
       issue_date,
       expiry_date,
       issued_by || null,
-      file_path || null,
+      file_path || document_name || null,
+      document_name,
+      document_mime,
+      document_data,
       notes || null,
       (is_active === false ? false : true),
       String(id),
@@ -417,7 +474,7 @@ router.put("/:id", requireAuth, async (req, res) => {
         SELECT c.*,
           COALESCE(h.name, c.hotel_name) AS hotel_name
         FROM certificates c
-        ${HOTEL_LATERAL}
+        ${HOTEL_JOIN}
         WHERE c.id::text = $1
       `;
       const fetch = await safeQuery(fetchSql, [String(id)]);

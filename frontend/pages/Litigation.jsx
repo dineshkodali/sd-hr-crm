@@ -824,14 +824,14 @@ export default function Litigation({ user }) {
                         )}
                         {visibleColumns.assigned && (
                           <td className="py-4 px-4">
-                            {task.assignedTo === "Unassigned" || !task.assignedTo ? (
+                            {(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned || "").trim() === "" ? (
                               <span className="text-gray-500 text-sm">Unassigned</span>
                             ) : (
                               <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(task.assignedTo)} flex items-center justify-center text-xs font-semibold`}>
-                                  {getInitials(task.assignedTo)}
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)} flex items-center justify-center text-xs font-semibold`}>
+                                  {getInitials(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)}
                                 </div>
-                                <span className="text-gray-900 text-sm">{task.assignedTo}</span>
+                                <span className="text-gray-900 text-sm">{task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned}</span>
                               </div>
                             )}
                           </td>
@@ -1000,13 +1000,13 @@ export default function Litigation({ user }) {
 
                                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
                                     <div className="flex items-center gap-2">
-                                      {task.lawyer_assigned ? (
+                                      {(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned) ? (
                                         <>
-                                          <div className={`w-6 h-6 rounded-full ${getAvatarColor(task.lawyer_assigned)} flex items-center justify-center text-xs font-semibold`}>
-                                            {getInitials(task.lawyer_assigned)}
+                                          <div className={`w-6 h-6 rounded-full ${getAvatarColor(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)} flex items-center justify-center text-xs font-semibold`}>
+                                            {getInitials(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)}
                                           </div>
                                           <span className="text-xs text-gray-700 truncate max-w-[100px]">
-                                            {task.lawyer_assigned}
+                                            {task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned}
                                           </span>
                                         </>
                                       ) : (
@@ -1108,6 +1108,8 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
   const isEdit = mode === 'edit';
   const [form, setForm] = useState({ title: '', description: '', property: '', propertyName: '', category: '', priority: 'medium', reportedBy: '', assignedTo: '', assignedToId: '', serviceUserId: '', scheduledDate: '', status: 'Pending' });
   const [serviceUsers, setServiceUsers] = useState([]);
+  const [staffUsers, setStaffUsers] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
 
   // Initialize custom columns in form
   useEffect(() => {
@@ -1145,7 +1147,10 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
         baseData[col] = initialData[col] ?? '';
       });
       setForm(baseData);
-      if (initialData.property_id) fetchServiceUsers(initialData.property_id);
+      if (initialData.property_id) {
+        fetchServiceUsers(initialData.property_id);
+        fetchStaffForHotel(initialData.property_id);
+      }
     }
   }, [initialData, customColumns.join(',')]);
 
@@ -1160,12 +1165,72 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
     } catch (err) { setServiceUsers([]); }
   }
 
+  async function fetchStaffForHotel(hotelId) {
+    if (!hotelId) {
+      setStaffUsers([]);
+      return;
+    }
+    try {
+      setStaffLoading(true);
+
+      const tryPath = async (path) => {
+        const r = await api.get(path);
+        return r?.data;
+      };
+
+      const paths = [
+        `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          data = await tryPath(p);
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) throw lastErr || new Error('Unable to load staff');
+
+      const list = data?.staff ?? data?.users ?? data ?? [];
+      const normalized = (Array.isArray(list) ? list : [])
+        .map((u) => ({
+          id: u.id,
+          name: u.name || u.email || `User ${u.id}`,
+          email: u.email || null,
+        }))
+        .filter((u) => u.id && u.name);
+      setStaffUsers(normalized);
+    } catch (err) {
+      console.error('fetchStaffForHotel error:', err);
+      setStaffUsers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  }
+
   function handlePropertyChange(e) {
     const hotelId = e.target.value;
     const hotel = hotels.find((h) => String(h.id) === String(hotelId)) || null;
-    setForm((p) => ({ ...p, property: hotelId, propertyName: hotel ? hotel.name : '' }));
+    setForm((p) => ({
+      ...p,
+      property: hotelId,
+      propertyName: hotel ? hotel.name : '',
+      reportedBy: '',
+      assignedTo: '',
+      assignedToId: '',
+      serviceUserId: '',
+    }));
     setServiceUsers([]);
-    if (hotelId) fetchServiceUsers(hotelId);
+    setStaffUsers([]);
+    if (hotelId) {
+      fetchServiceUsers(hotelId);
+      fetchStaffForHotel(hotelId);
+    }
   }
 
   function handleServiceUserChange(e) {
@@ -1360,14 +1425,26 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
             </div>
             <div className="col-span-1">
               <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-              {serviceUsers && serviceUsers.length > 0 ? (
+              {staffUsers && staffUsers.length > 0 ? (
                 <select
-                  value={form.serviceUserId || ''}
-                  onChange={handleServiceUserChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  value={form.assignedTo || ''}
+                  onChange={(e) => setForm((p)=>({...p, assignedTo: e.target.value, assignedToId: ''}))}
+                  disabled={!form.property || staffLoading}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
-                  <option value="">Select assignee</option>
-                  {serviceUsers.map(s => <option key={s.id} value={s.id}>{s.first_name}</option>)}
+                  <option value="">
+                    {!form.property
+                      ? "Select property first"
+                      : staffLoading
+                      ? "Loading staff..."
+                      : "Select staff"}
+                  </option>
+                  {!!form.assignedTo && !staffUsers.some((u) => String(u.name) === String(form.assignedTo)) && (
+                    <option value={form.assignedTo}>{form.assignedTo}</option>
+                  )}
+                  {staffUsers.map((u) => (
+                    <option key={u.id} value={u.name}>{u.name}</option>
+                  ))}
                 </select>
               ) : (
                 <input
@@ -1380,11 +1457,34 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
             {/* Row 5: Reported By & Date */}
             <div className="col-span-1">
               <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
-              <input
-                value={form.reportedBy}
-                onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-              />
+              {staffUsers && staffUsers.length > 0 ? (
+                <select
+                  value={form.reportedBy}
+                  onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
+                  disabled={!form.property || staffLoading}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">
+                    {!form.property
+                      ? "Select property first"
+                      : staffLoading
+                      ? "Loading staff..."
+                      : "Select staff"}
+                  </option>
+                  {!!form.reportedBy && !staffUsers.some((u) => String(u.name) === String(form.reportedBy)) && (
+                    <option value={form.reportedBy}>{form.reportedBy}</option>
+                  )}
+                  {staffUsers.map((u) => (
+                    <option key={u.id} value={u.name}>{u.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={form.reportedBy}
+                  onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                />
+              )}
             </div>
             <div className="col-span-1">
               <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>

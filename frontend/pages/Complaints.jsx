@@ -98,6 +98,9 @@ export default function Complaints({ user }) {
   const [viewingComplaint, setViewingComplaint] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [query, setQuery] = useState("");
+
+  const [staffUsers, setStaffUsers] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
   
   // Filter and Sort State
   const [priorityFilter, setPriorityFilter] = useState("");
@@ -269,6 +272,54 @@ export default function Complaints({ user }) {
     }
   };
 
+  const fetchStaffForHotel = async (hotelId) => {
+    if (!hotelId) {
+      setStaffUsers([]);
+      return;
+    }
+    try {
+      setStaffLoading(true);
+
+      const tryPath = async (path) => {
+        const r = await api.get(path);
+        return r?.data;
+      };
+
+      const paths = [
+        `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          data = await tryPath(p);
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) throw lastErr || new Error('Unable to load staff');
+
+      const list = data?.staff ?? data?.users ?? data ?? [];
+      const normalized = (Array.isArray(list) ? list : [])
+        .map((u) => ({
+          id: u.id,
+          name: u.name || u.email || `User ${u.id}`,
+          email: u.email || null,
+        }))
+        .filter((u) => u.id && u.name);
+      setStaffUsers(normalized);
+    } catch (err) {
+      console.error('fetchStaffForHotel error:', err);
+      setStaffUsers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchComplaints();
     fetchProperties();
@@ -313,6 +364,7 @@ export default function Complaints({ user }) {
       assigned_to: '',
       scheduled_date: '',
     });
+    setStaffUsers([]);
     setShowForm(true);
   };
 
@@ -335,6 +387,11 @@ export default function Complaints({ user }) {
       customFieldData[col] = complaint[col] ?? '';
     });
     setFormData({ ...baseFormData, ...customFieldData });
+    if (complaint.property_id) {
+      fetchStaffForHotel(complaint.property_id);
+    } else {
+      setStaffUsers([]);
+    }
     setShowForm(true);
   };
 
@@ -1247,7 +1304,17 @@ export default function Complaints({ user }) {
                   <select 
                     required 
                     value={formData.property_id} 
-                    onChange={e => setFormData({...formData, property_id: e.target.value})} 
+                    onChange={e => {
+                      const nextPropertyId = e.target.value;
+                      setFormData({
+                        ...formData,
+                        property_id: nextPropertyId,
+                        reported_by: '',
+                        assigned_to: '',
+                      });
+                      setStaffUsers([]);
+                      if (nextPropertyId) fetchStaffForHotel(nextPropertyId);
+                    }} 
                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                   >
                     <option value="">Select Property</option>
@@ -1287,11 +1354,28 @@ export default function Complaints({ user }) {
                 </div>
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
-                  <input 
-                    value={formData.reported_by} 
-                    onChange={e => setFormData({...formData, reported_by: e.target.value})} 
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                  />
+                  <select
+                    value={formData.reported_by}
+                    onChange={e => setFormData({ ...formData, reported_by: e.target.value })}
+                    disabled={!formData.property_id || staffLoading}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {!formData.property_id
+                        ? "Select property first"
+                        : staffLoading
+                        ? "Loading staff..."
+                        : "Select staff"}
+                    </option>
+                    {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
+                      <option value={formData.reported_by}>{formData.reported_by}</option>
+                    )}
+                    {staffUsers.map((u) => (
+                      <option key={u.id} value={u.name}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Row 4: Dates & Assignment */}
@@ -1306,12 +1390,28 @@ export default function Complaints({ user }) {
                 </div>
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                  <input 
-                    value={formData.assigned_to} 
-                    onChange={e => setFormData({...formData, assigned_to: e.target.value})} 
-                    placeholder="Staff Name"
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                  />
+                  <select
+                    value={formData.assigned_to}
+                    onChange={e => setFormData({ ...formData, assigned_to: e.target.value })}
+                    disabled={!formData.property_id || staffLoading}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {!formData.property_id
+                        ? "Select property first"
+                        : staffLoading
+                        ? "Loading staff..."
+                        : "Select staff"}
+                    </option>
+                    {!!formData.assigned_to && !staffUsers.some((u) => String(u.name) === String(formData.assigned_to)) && (
+                      <option value={formData.assigned_to}>{formData.assigned_to}</option>
+                    )}
+                    {staffUsers.map((u) => (
+                      <option key={u.id} value={u.name}>
+                        {u.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>

@@ -142,7 +142,7 @@ const FormInput = ({ label, value, onChange, type = "text", required = false, pl
 );
 
 /* Form Select Component */
-const FormSelect = ({ label, value, onChange, options, required = false, icon: Icon }) => (
+const FormSelect = ({ label, value, onChange, options, required = false, disabled = false, icon: Icon }) => (
   <div className="w-full">
     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
       {label} {required && <span className="text-red-500">*</span>}
@@ -157,7 +157,8 @@ const FormSelect = ({ label, value, onChange, options, required = false, icon: I
         required={required}
         value={value}
         onChange={onChange}
-        className={`block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5 ${Icon ? 'pl-10' : 'pl-3'}`}
+        disabled={disabled}
+        className={`block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5 ${Icon ? 'pl-10' : 'pl-3'} ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
       >
         {options}
       </select>
@@ -196,6 +197,11 @@ export default function MaintenancePage({ user }) {
   
   const [hotels, setHotels] = useState([]);
   const [hotelsLoading, setHotelsLoading] = useState(false);
+
+  const [staffUsers, setStaffUsers] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
+  const [rooms, setRooms] = useState([]);
+  const [roomsLoading, setRoomsLoading] = useState(false);
   
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -433,6 +439,112 @@ export default function MaintenancePage({ user }) {
     };
   }, [fetchHotels, loadTasks]);
 
+  const fetchStaffForHotel = useCallback(async (hotelId) => {
+    if (!hotelId) {
+      setStaffUsers([]);
+      return;
+    }
+    try {
+      setStaffLoading(true);
+
+      const tryPath = async (path) => {
+        const r = await api.get(path);
+        return r?.data;
+      };
+
+      const paths = [
+        `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          data = await tryPath(p);
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) throw lastErr || new Error('Unable to load staff');
+
+      const list = data?.staff ?? data?.users ?? data ?? [];
+      const normalized = (Array.isArray(list) ? list : [])
+        .map((u) => ({
+          id: u.id,
+          name: u.name || u.email || `User ${u.id}`,
+          email: u.email || null,
+        }))
+        .filter((u) => u.id && u.name);
+      setStaffUsers(normalized);
+    } catch (err) {
+      console.error('fetchStaffForHotel error:', err);
+      setStaffUsers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  }, []);
+
+  const fetchRoomsForHotel = useCallback(async (hotelId) => {
+    if (!hotelId) {
+      setRooms([]);
+      return;
+    }
+    try {
+      setRoomsLoading(true);
+
+      const tryPath = async (path) => {
+        const r = await api.get(path);
+        return r?.data;
+      };
+
+      const paths = [
+        `/api/hotels/${encodeURIComponent(String(hotelId))}/rooms`,
+        `/hotels/${encodeURIComponent(String(hotelId))}/rooms`,
+        `/api/su/rooms/${encodeURIComponent(String(hotelId))}`,
+        `/su/rooms/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          data = await tryPath(p);
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) throw lastErr || new Error('Unable to load rooms');
+
+      const list = data?.rooms ?? data?.data ?? data ?? [];
+      const normalized = (Array.isArray(list) ? list : [])
+        .map((r) => ({
+          id: r.id,
+          room_number: r.room_number ?? r.room ?? r.roomNo ?? r.number ?? '',
+          type: r.type ?? null,
+          status: r.status ?? null,
+        }))
+        .filter((r) => r.id && String(r.room_number).trim() !== '');
+
+      normalized.sort((a, b) => {
+        const numA = parseInt(a.room_number, 10) || 0;
+        const numB = parseInt(b.room_number, 10) || 0;
+        return numA - numB;
+      });
+
+      setRooms(normalized);
+    } catch (err) {
+      console.error('fetchRoomsForHotel error:', err);
+      setRooms([]);
+    } finally {
+      setRoomsLoading(false);
+    }
+  }, []);
+
   /* ------------------------- Logic ------------------------- */
   const filtered = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
@@ -669,6 +781,13 @@ export default function MaintenancePage({ user }) {
     });
     
     setForm(formData);
+    if (hotelId) {
+      fetchStaffForHotel(hotelId);
+      fetchRoomsForHotel(hotelId);
+    } else {
+      setStaffUsers([]);
+      setRooms([]);
+    }
     setShowEdit(true);
   }
 
@@ -681,6 +800,13 @@ export default function MaintenancePage({ user }) {
       hotelId: hotelId,
       hotelName: hotelName
     });
+    if (hotelId) {
+      fetchStaffForHotel(hotelId);
+      fetchRoomsForHotel(hotelId);
+    } else {
+      setStaffUsers([]);
+      setRooms([]);
+    }
     setShowView(true);
   }
 
@@ -691,7 +817,22 @@ export default function MaintenancePage({ user }) {
   function handleHotelChange(e) {
     const hotelId = e.target.value;
     const hotel = hotels.find((h) => String(h.id) === String(hotelId)) || null;
-    setForm((p) => ({ ...p, hotelId: hotelId, hotelName: hotel ? hotel.name : '' }));
+    setForm((p) => {
+      const changed = String(p.hotelId || '') !== String(hotelId || '');
+      return {
+        ...p,
+        hotelId: hotelId,
+        hotelName: hotel ? hotel.name : '',
+        room: changed ? '' : p.room,
+        raisedBy: changed ? '' : p.raisedBy,
+      };
+    });
+    setStaffUsers([]);
+    setRooms([]);
+    if (hotelId) {
+      fetchStaffForHotel(hotelId);
+      fetchRoomsForHotel(hotelId);
+    }
   }
 
   /* ------------------------- UI RENDERER ------------------------- */
@@ -1442,12 +1583,33 @@ export default function MaintenancePage({ user }) {
                       placeholder="e.g., Leaking Tap"
                       icon={Wrench}
                     />
-                    <FormInput 
-                      label="Room / Area" 
-                      value={form.room} 
-                      onChange={e => handleFormChange("room", e.target.value)} 
-                      placeholder="e.g., Room 302"
+                    <FormSelect
+                      label="Room / Area"
+                      value={form.room}
+                      onChange={e => handleFormChange("room", e.target.value)}
+                      disabled={!form.hotelId || roomsLoading}
                       icon={Home}
+                      options={
+                        <>
+                          <option value="">
+                            {!form.hotelId
+                              ? "Select property first"
+                              : roomsLoading
+                              ? "Loading rooms..."
+                              : "Select room"}
+                          </option>
+                          {!!form.room && !rooms.some((r) => String(r.room_number) === String(form.room)) && (
+                            <option value={form.room}>{form.room}</option>
+                          )}
+                          {rooms.map((r) => (
+                            <option key={r.id} value={String(r.room_number)}>
+                              {r.room_number}
+                              {r.type ? ` - ${r.type}` : ""}
+                              {r.status ? ` (${r.status})` : ""}
+                            </option>
+                          ))}
+                        </>
+                      }
                     />
 
                     {/* Row 2 */}
@@ -1516,12 +1678,31 @@ export default function MaintenancePage({ user }) {
                     />
 
                     {/* Row 5 */}
-                    <FormInput 
-                      label="Raised By" 
-                      value={form.raisedBy} 
-                      onChange={e => handleFormChange("raisedBy", e.target.value)} 
-                      placeholder="Name of requester"
+                    <FormSelect
+                      label="Raised By"
+                      value={form.raisedBy}
+                      onChange={e => handleFormChange("raisedBy", e.target.value)}
+                      disabled={!form.hotelId || staffLoading}
                       icon={User}
+                      options={
+                        <>
+                          <option value="">
+                            {!form.hotelId
+                              ? "Select property first"
+                              : staffLoading
+                              ? "Loading staff..."
+                              : "Select staff"}
+                          </option>
+                          {!!form.raisedBy && !staffUsers.some((u) => String(u.name) === String(form.raisedBy)) && (
+                            <option value={form.raisedBy}>{form.raisedBy}</option>
+                          )}
+                          {staffUsers.map((u) => (
+                            <option key={u.id} value={u.name}>
+                              {u.name}
+                            </option>
+                          ))}
+                        </>
+                      }
                     />
                      <FormInput 
                       label="Action Required" 

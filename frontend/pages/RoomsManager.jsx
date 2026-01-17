@@ -138,6 +138,18 @@ export default function RoomsManager({ user }) {
     }
   };
 
+  const goBack = () => {
+    try {
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate('/hotels');
+      }
+    } catch {
+      navigate('/hotels');
+    }
+  };
+
   return (
     /* SCROLL FIX: 
       Changed 'min-h-screen' to 'h-screen overflow-y-auto'. 
@@ -148,7 +160,17 @@ export default function RoomsManager({ user }) {
       <div className="w-[90%] max-w-[1800px] mx-auto">
         {/* Breadcrumb & Header */}
         <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-white border border-[#d3f1ec] px-4 py-2.5 rounded-full shadow-sm">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={goBack}
+              className="flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white border border-[#d3f1ec] px-4 py-2.5 rounded-full shadow-sm hover:text-teal-700 transition-colors"
+            >
+              <span className="text-lg leading-none">←</span>
+              <span>Back</span>
+            </button>
+
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-white border border-[#d3f1ec] px-4 py-2.5 rounded-full shadow-sm">
             <svg className="w-5 h-5 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
             </svg>
@@ -160,6 +182,7 @@ export default function RoomsManager({ user }) {
             </button>
             <span className="text-slate-300">/</span>
             <span className="text-teal-700 font-bold">Manage Rooms</span>
+          </div>
           </div>
         </div>
 

@@ -1415,6 +1415,8 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
 
     const [hotels, setHotels] = useState([]);
     const [serviceUsers, setServiceUsers] = useState([]);
+    const [staffUsers, setStaffUsers] = useState([]);
+    const [staffLoading, setStaffLoading] = useState(false);
     const [hotelsLoading, setHotelsLoading] = useState(false);
     const hotelsControllerRef = React.useRef(null);
 
@@ -1460,7 +1462,9 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
       }));
       
       if (editingTask.propertyId || editingTask.property_id) {
-        fetchServiceUsers(editingTask.propertyId ?? editingTask.property_id);
+        const pid = editingTask.propertyId ?? editingTask.property_id;
+        fetchServiceUsers(pid);
+        fetchStaffForHotel(pid);
       }
     }, [editingTask, customColumns.join(',')]);  // Re-run when task or columns change
 
@@ -1502,12 +1506,71 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
       setServiceUsers([]);
     }
 
+    async function fetchStaffForHotel(hotelId) {
+      if (!hotelId) {
+        setStaffUsers([]);
+        return;
+      }
+      try {
+        setStaffLoading(true);
+
+        const tryPath = async (path) => {
+          const r = await api.get(path);
+          return r?.data;
+        };
+
+        const paths = [
+          `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+          `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        ];
+
+        let data = null;
+        let lastErr = null;
+        for (const p of paths) {
+          try {
+            data = await tryPath(p);
+            if (data) break;
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+
+        if (!data) throw lastErr || new Error('Unable to load staff');
+
+        const list = data?.staff ?? data?.users ?? data ?? [];
+        const normalized = (Array.isArray(list) ? list : [])
+          .map((u) => ({
+            id: u.id,
+            name: u.name || u.email || `User ${u.id}`,
+            email: u.email || null,
+          }))
+          .filter((u) => u.id && u.name);
+        setStaffUsers(normalized);
+      } catch (err) {
+        console.error('fetchStaffForHotel error:', err);
+        setStaffUsers([]);
+      } finally {
+        setStaffLoading(false);
+      }
+    }
+
     function handlePropertyChange(e) {
       const hotelId = e.target.value;
       const hotel = hotels.find((h) => String(h.id) === String(hotelId)) || null;
-      setForm((prev) => ({ ...prev, property: hotelId, propertyName: hotel ? hotel.name : '', assignedTo: '' }));
+      setForm((prev) => ({
+        ...prev,
+        property: hotelId,
+        propertyName: hotel ? hotel.name : '',
+        reportedBy: '',
+        assignedTo: '',
+        assignedToId: '',
+      }));
       setServiceUsers([]);
-      if (hotelId) fetchServiceUsers(hotelId);
+      setStaffUsers([]);
+      if (hotelId) {
+        fetchServiceUsers(hotelId);
+        fetchStaffForHotel(hotelId);
+      }
     }
 
     function handleServiceUserChange(e) {
@@ -1712,28 +1775,63 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                         </div>
                         <div className="col-span-1">
                             <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                            <input 
-                                type="text" 
-                                name="reportedBy" 
-                                value={form.reportedBy} 
-                                onChange={handleChange} 
-                                placeholder="Name of person" 
-                                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                                required 
-                            />
+                            {staffUsers && staffUsers.length > 0 ? (
+                              <select
+                                name="reportedBy"
+                                value={form.reportedBy}
+                                onChange={handleChange}
+                                disabled={!form.property || staffLoading}
+                                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                required
+                              >
+                                <option value="">
+                                  {!form.property
+                                    ? "Select property first"
+                                    : staffLoading
+                                    ? "Loading staff..."
+                                    : "Select staff"}
+                                </option>
+                                {!!form.reportedBy && !staffUsers.some((u) => String(u.name) === String(form.reportedBy)) && (
+                                  <option value={form.reportedBy}>{form.reportedBy}</option>
+                                )}
+                                {staffUsers.map((u) => (
+                                  <option key={u.id} value={u.name}>{u.name}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input 
+                                  type="text" 
+                                  name="reportedBy" 
+                                  value={form.reportedBy} 
+                                  onChange={handleChange} 
+                                  placeholder="Name of person" 
+                                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                                  required 
+                              />
+                            )}
                         </div>
                         {/* Row 5: Assigned To & Scheduled Date */}
                         <div className="col-span-1">
                             <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                            {serviceUsers && serviceUsers.length > 0 ? (
+                            {staffUsers && staffUsers.length > 0 ? (
                                 <select 
                                     name="assignedTo" 
-                                    value={form.serviceUserId || ''} 
-                                    onChange={handleServiceUserChange} 
+                                    value={form.assignedTo || ''} 
+                                    onChange={(e) => setForm((p)=>({...p, assignedTo: e.target.value, assignedToId: ''}))} 
+                                    disabled={!form.property || staffLoading}
                                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                                 >
-                                    <option value="">Select assignee</option>
-                                    {serviceUsers.map(s => <option key={s.id} value={s.id}>{s.first_name}</option>)}
+                                    <option value="">
+                                      {!form.property
+                                        ? "Select property first"
+                                        : staffLoading
+                                        ? "Loading staff..."
+                                        : "Select staff"}
+                                    </option>
+                                    {!!form.assignedTo && !staffUsers.some((u) => String(u.name) === String(form.assignedTo)) && (
+                                      <option value={form.assignedTo}>{form.assignedTo}</option>
+                                    )}
+                                    {staffUsers.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
                                 </select>
                             ) : (
                                 <input 
