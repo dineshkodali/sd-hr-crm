@@ -165,6 +165,7 @@ router.post("/", protect, async (req, res) => {
     const postcode = body.postcode ?? body.zipcode ?? body.postal_code ?? null;
     const total_beds = Number.isFinite(Number(body.total_beds)) ? Number(body.total_beds) : (Number.isFinite(Number(body.total_bed)) ? Number(body.total_bed) : 0);
     const occupied_beds = Number.isFinite(Number(body.occupied_beds)) ? Number(body.occupied_beds) : (Number.isFinite(Number(body.occupied)) ? Number(body.occupied) : 0);
+    const total_floors = (typeof body.total_floors !== "undefined" && body.total_floors !== "") ? Number(body.total_floors) : null;
     const is_self_contained = (typeof body.is_self_contained !== "undefined") ? !!body.is_self_contained : undefined;
     const description = body.description ?? body.about ?? null;
     const managerInput = body.manager ?? body.manager_id ?? body.manager_name ?? body.managerName ?? null;
@@ -176,14 +177,14 @@ router.post("/", protect, async (req, res) => {
       const insertQ = `
         INSERT INTO hotels
           (name, code, address, city, state, country, phone, rating, manager_id, branch,
-           property_type, status, postcode, total_beds, occupied_beds, is_self_contained, description, created_at, updated_at)
+           property_type, status, postcode, total_beds, occupied_beds, total_floors, is_self_contained, description, created_at, updated_at)
         VALUES
-          ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW())
+          ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW(),NOW())
         RETURNING id;
       `;
       const insertVals = [
         name, code, address, city, state, country, phone, rating, managerId, branchVal,
-        property_type, status, postcode, total_beds, occupied_beds, is_self_contained, description
+        property_type, status, postcode, total_beds, occupied_beds, total_floors, is_self_contained, description
       ];
 
       const insert = await pool.query(insertQ, insertVals);
@@ -200,14 +201,14 @@ router.post("/", protect, async (req, res) => {
       const insertQ = `
         INSERT INTO hotels
           (name, code, address, city, state, country, phone, rating, manager_id, branch,
-           property_type, status, postcode, total_beds, occupied_beds, is_self_contained, description, created_at, updated_at)
+           property_type, status, postcode, total_beds, occupied_beds, total_floors, is_self_contained, description, created_at, updated_at)
         VALUES
-          ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,NOW(),NOW())
+          ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,NOW(),NOW())
         RETURNING id;
       `;
       const insertVals = [
         name, code, address, city, state, country, phone, rating, forcedManagerId, forcedBranch,
-        property_type, status, postcode, total_beds, occupied_beds, is_self_contained, description
+        property_type, status, postcode, total_beds, occupied_beds, total_floors, is_self_contained, description
       ];
 
       const insert = await pool.query(insertQ, insertVals);
@@ -287,6 +288,7 @@ router.put("/:id", protect, async (req, res) => {
     const postcode = (typeof body.postcode !== "undefined") ? body.postcode : (typeof body.zipcode !== "undefined" ? body.zipcode : undefined);
     const total_beds = (typeof body.total_beds !== "undefined") ? (Number.isFinite(Number(body.total_beds)) ? Number(body.total_beds) : 0) : undefined;
     const occupied_beds = (typeof body.occupied_beds !== "undefined") ? (Number.isFinite(Number(body.occupied_beds)) ? Number(body.occupied_beds) : 0) : undefined;
+    const total_floors = (typeof body.total_floors !== "undefined" && body.total_floors !== "") ? Number(body.total_floors) : undefined;
     const is_self_contained = (typeof body.is_self_contained !== "undefined") ? !!body.is_self_contained : undefined;
     const description = (typeof body.description !== "undefined") ? body.description : (typeof body.about !== "undefined" ? body.about : undefined);
 
@@ -313,10 +315,11 @@ router.put("/:id", protect, async (req, res) => {
           postcode = COALESCE($13, postcode),
           total_beds = COALESCE($14, total_beds),
           occupied_beds = COALESCE($15, occupied_beds),
-          is_self_contained = COALESCE($16, is_self_contained),
-          description = COALESCE($17, description),
+          total_floors = COALESCE($16, total_floors),
+          is_self_contained = COALESCE($17, is_self_contained),
+          description = COALESCE($18, description),
           updated_at = NOW()
-        WHERE id = $18
+        WHERE id = $19
         RETURNING id;
       `;
       const vals = [
@@ -325,6 +328,7 @@ router.put("/:id", protect, async (req, res) => {
         managerId, branch, property_type, status, postcode,
         (typeof total_beds === "undefined") ? null : total_beds,
         (typeof occupied_beds === "undefined") ? null : occupied_beds,
+        (typeof total_floors === "undefined") ? null : total_floors,
         (typeof is_self_contained === "undefined") ? null : is_self_contained,
         (typeof description === "undefined") ? null : description,
         id
@@ -360,10 +364,11 @@ router.put("/:id", protect, async (req, res) => {
           postcode = COALESCE($11, postcode),
           total_beds = COALESCE($12, total_beds),
           occupied_beds = COALESCE($13, occupied_beds),
-          is_self_contained = COALESCE($14, is_self_contained),
-          description = COALESCE($15, description),
+          total_floors = COALESCE($14, total_floors),
+          is_self_contained = COALESCE($15, is_self_contained),
+          description = COALESCE($16, description),
           updated_at = NOW()
-        WHERE id = $16
+        WHERE id = $17
         RETURNING id;
       `;
       const vals = [
@@ -372,6 +377,7 @@ router.put("/:id", protect, async (req, res) => {
         property_type, status, postcode,
         (typeof total_beds === "undefined") ? null : total_beds,
         (typeof occupied_beds === "undefined") ? null : occupied_beds,
+        (typeof total_floors === "undefined") ? null : total_floors,
         (typeof is_self_contained === "undefined") ? null : is_self_contained,
         (typeof description === "undefined") ? null : description,
         id

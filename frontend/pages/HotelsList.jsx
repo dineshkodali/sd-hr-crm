@@ -26,6 +26,7 @@ export default function HotelsList({ user: userProp }) {
     postcode: "",
     total_beds: 0,
     occupied_beds: 0,
+    total_floors: 0,
     manager_name: "",
     manager_phone: "",
     manager_email: "",
@@ -121,6 +122,7 @@ export default function HotelsList({ user: userProp }) {
         postcode: form.postcode || null,
         total_beds: Number(form.total_beds) || 0,
         occupied_beds: Number(form.occupied_beds) || 0,
+        total_floors: Number(form.total_floors) || 0,
         manager_name: form.manager_name || null,
         manager_phone: form.manager_phone || null,
         manager_email: form.manager_email || null,
@@ -142,6 +144,7 @@ export default function HotelsList({ user: userProp }) {
         postcode: "",
         total_beds: 0,
         occupied_beds: 0,
+        total_floors: 0,
         manager_name: "",
         manager_phone: "",
         manager_email: "",
@@ -428,6 +431,11 @@ export default function HotelsList({ user: userProp }) {
         "is_self_contained",
         editingHotel.is_self_contained ?? false,
         "is_self_contained"
+      );
+      setIfChanged(
+        "total_floors",
+        Number(editingHotel.total_floors ?? 0),
+        "total_floors"
       );
 
       if (typeof editingHotel.rating !== "undefined") {
@@ -1204,7 +1212,7 @@ export default function HotelsList({ user: userProp }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-1">
                       Total Beds
@@ -1229,6 +1237,22 @@ export default function HotelsList({ user: userProp }) {
                         setForm({
                           ...form,
                           occupied_beds: Number(e.target.value),
+                        })
+                      }
+                      className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 font-medium mb-1">
+                      Total Floors
+                    </label>
+                    <input
+                      type="number"
+                      value={form.total_floors}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          total_floors: Number(e.target.value),
                         })
                       }
                       className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
@@ -1431,7 +1455,7 @@ export default function HotelsList({ user: userProp }) {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm text-gray-700 mb-1">
                           Total Beds
@@ -1459,6 +1483,23 @@ export default function HotelsList({ user: userProp }) {
                           onChange={(e) =>
                             handleEditChange(
                               "occupied_beds",
+                              Number(e.target.value)
+                            )
+                          }
+                          className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">
+                          Total Floors
+                        </label>
+                        <input
+                          type="number"
+                          value={editingHotel.total_floors ?? 0}
+                          onChange={(e) =>
+                            handleEditChange(
+                              "total_floors",
                               Number(e.target.value)
                             )
                           }
@@ -1804,6 +1845,6 @@ export default function HotelsList({ user: userProp }) {
           © {new Date().getFullYear()} Property Manager
         </div>
       </div>
-    </div>
+    </div >
   );
 }

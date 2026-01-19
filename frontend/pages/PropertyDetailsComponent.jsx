@@ -24,6 +24,24 @@ export default function PropertyDetails({ property }) {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [realTotalRooms, setRealTotalRooms] = useState(totalRooms);
+
+  useEffect(() => {
+    if (hotelId) {
+      axios
+        .get(`/api/hotels/${hotelId}/rooms`)
+        .then((res) => {
+          const list =
+            res.data && res.data.rooms
+              ? res.data.rooms
+              : Array.isArray(res.data)
+                ? res.data
+                : [];
+          setRealTotalRooms(list.length);
+        })
+        .catch((err) => console.error("Failed to fetch room count", err));
+    }
+  }, [hotelId]);
   // const [creating, setCreating] = useState(false);
 
   // Form State
@@ -195,7 +213,7 @@ export default function PropertyDetails({ property }) {
           <StatCard
             icon={<Home className="w-5 h-5" />}
             title="Total Rooms"
-            value={totalRooms}
+            value={realTotalRooms}
           />
 
           <StatCard
@@ -285,7 +303,7 @@ export default function PropertyDetails({ property }) {
         {/* TAB CONTENT */}
         <div>
           {activeTab === "overview" && (
-            <OverviewCard totalFloors={totalFloors} totalRooms={totalRooms} />
+            <FloorsRoomsCard hotelId={hotelId} />
           )}
 
           {activeTab === "floors" && <FloorsRoomsCard hotelId={hotelId} />}
@@ -747,10 +765,12 @@ function FloorsRoomsCard({ hotelId }) {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-1">Floors & Rooms</h2>
-      <p className="text-sm text-gray-500 mb-6">
-        Detailed floor and room information with occupancy status
-      </p>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Floors & Rooms</h2>
+        <p className="text-sm text-gray-500">
+          Detailed floor and room information with occupancy status
+        </p>
+      </div>
 
       {!hotelId ? (
         <div className="text-center py-12 text-gray-400">
@@ -769,43 +789,57 @@ function FloorsRoomsCard({ hotelId }) {
           <p>No rooms found</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {floors.map((floor, idx) => (
-            <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900">{floor.floor}</h3>
-                <p className="text-xs text-gray-500">{floor.rooms.length} rooms</p>
+            <div key={idx}>
+              <div className="mb-3">
+                <h3 className="text-lg font-bold text-gray-900">
+                  {floor.floor === "Unassigned"
+                    ? "Unassigned Rooms"
+                    : String(floor.floor) === "0"
+                      ? "Ground Floor"
+                      : !isNaN(Number(floor.floor))
+                        ? `Floor ${floor.floor}`
+                        : floor.floor}
+                </h3>
+                <p className="text-sm text-gray-500 font-medium pl-0.5">
+                  {floor.rooms.length} room{floor.rooms.length !== 1 ? 's' : ''}
+                </p>
               </div>
-              <div className="divide-y divide-gray-100">
+
+              <div className="space-y-4">
                 {floor.rooms.map((room) => (
-                  <div key={room.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <span className="font-semibold text-gray-900">Room {room.room_number}</span>
-                          <span className="text-sm text-gray-600">{room.type}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${String(room.status || "").toLowerCase() === 'available'
-                            ? 'bg-green-50 text-green-700 border border-green-200'
-                            : 'bg-orange-50 text-orange-700 border border-orange-200'
-                            }`}>
-                            {room.status || "-"}
-                          </span>
-                        </div>
-                        <div className="mt-2 flex items-center gap-4 text-sm">
-                          <span className="text-gray-600">
-                            <span className="font-medium">Beds:</span> {room._occupiedBeds}/{room._totalBeds ?? "-"}
-                          </span>
-                          {Array.isArray(room._residentNames) && room._residentNames.length > 0 && (
-                            <span className="text-gray-600">
-                              <span className="font-medium">Resident:</span> {room._residentNames.join(", ")}
-                            </span>
-                          )}
-                        </div>
+                  <div key={room.id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    {/* Left Content */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="font-bold text-gray-900 text-lg">Room {room.room_number}</span>
+                        <span className="text-sm text-gray-500 capitalize">{room.type || "Standard"}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${(room.status || 'available').toLowerCase() === 'available'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                          : 'bg-gray-100 text-gray-600 border-gray-200'
+                          }`}>
+                          {room.status || "available"}
+                        </span>
                       </div>
-                      <button
-                        onClick={() => window.location.assign(`/hotels/${hotelId}/rooms`)}
-                        className="text-[#5cd9c7] hover:text-[#4fcfbe] text-sm font-medium"
-                      >
+
+                      <div className="text-sm text-gray-600 flex flex-wrap items-center gap-x-6 gap-y-1">
+                        <span className="flex items-center gap-1.5">
+                          <span className="font-semibold text-gray-900">Beds:</span>
+                          {room._occupiedBeds}/{room._totalBeds || 0}
+                        </span>
+                        {room._residentNames && room._residentNames.length > 0 && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="font-semibold text-gray-900">Resident:</span>
+                            <span>{room._residentNames.join(", ")}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right Action */}
+                    <div className="flex-shrink-0">
+                      <button className="text-[#5cd9c7] hover:text-[#4fcfbe] text-sm font-medium transition-colors">
                         View Details
                       </button>
                     </div>

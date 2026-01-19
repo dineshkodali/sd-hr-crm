@@ -24,8 +24,8 @@ const Icons = {
   ),
   Table: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" rx="2"/>
-      <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
     </svg>
   ),
   Database: () => (
@@ -37,13 +37,13 @@ const Icons = {
   ),
   Columns: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="7" height="18" rx="1"/>
-      <rect x="14" y="3" width="7" height="18" rx="1"/>
+      <rect x="3" y="3" width="7" height="18" rx="1" />
+      <rect x="14" y="3" width="7" height="18" rx="1" />
     </svg>
   ),
   Refresh: () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
     </svg>
   ),
   Search: () => (
@@ -81,7 +81,7 @@ export default function Forms() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Modals
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [showEditColumnModal, setShowEditColumnModal] = useState(false);
@@ -129,8 +129,8 @@ export default function Forms() {
 
   const fetchColumns = async (tableName) => {
     try {
-      const res = await axios.get(`/api/forms-builder/tables/${tableName}/columns`, { 
-        withCredentials: true 
+      const res = await axios.get(`/api/forms-builder/tables/${tableName}/columns`, {
+        withCredentials: true
       });
       setColumns(res.data.columns || []);
       setError(null);
@@ -145,12 +145,12 @@ export default function Forms() {
       await axios.post(`/api/forms-builder/tables/${selectedTable}/columns`, columnForm, {
         withCredentials: true
       });
-      
+
       setSuccess(`Column "${columnForm.column_name}" added successfully!`);
       setShowAddColumnModal(false);
       resetColumnForm();
       fetchColumns(selectedTable);
-      
+
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to add column');
@@ -167,23 +167,23 @@ export default function Forms() {
         nullable: columnForm.nullable,
         default_value: columnForm.default_value
       };
-      
+
       await axios.put(
         `/api/forms-builder/tables/${selectedTable}/columns/${editingColumn.column_name}`,
         payload,
         { withCredentials: true }
       );
-      
-      const displayName = columnForm.column_name !== editingColumn.column_name 
+
+      const displayName = columnForm.column_name !== editingColumn.column_name
         ? `"${editingColumn.column_name}" renamed to "${columnForm.column_name}"`
         : `"${editingColumn.column_name}"`;
-      
+
       setSuccess(`Column ${displayName} updated successfully!`);
       setShowEditColumnModal(false);
       setEditingColumn(null);
       resetColumnForm();
       fetchColumns(selectedTable);
-      
+
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update column');
@@ -197,11 +197,11 @@ export default function Forms() {
         `/api/forms-builder/tables/${selectedTable}/columns/${columnName}`,
         { withCredentials: true }
       );
-      
+
       setSuccess(`Column "${columnName}" deleted successfully!`);
       setShowDeleteConfirm(null);
       fetchColumns(selectedTable);
-      
+
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete column');
@@ -233,7 +233,7 @@ export default function Forms() {
     });
   };
 
-  const filteredTables = tables.filter(t => 
+  const filteredTables = tables.filter(t =>
     t.table_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -251,8 +251,8 @@ export default function Forms() {
                 {isEdit ? 'Modify column properties' : 'Add a new column to the table'}
               </p>
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="p-2 hover:bg-white/50 rounded-lg transition-colors"
             >
               <Icons.X />
@@ -269,7 +269,7 @@ export default function Forms() {
               <input
                 type="text"
                 value={columnForm.column_name}
-                onChange={(e) => setColumnForm({...columnForm, column_name: e.target.value.toLowerCase().replace(/\s+/g, '_')})}
+                onChange={(e) => setColumnForm({ ...columnForm, column_name: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
                 className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-mono text-sm"
                 placeholder="e.g., employee_name"
               />
@@ -283,7 +283,7 @@ export default function Forms() {
               </label>
               <select
                 value={columnForm.data_type}
-                onChange={(e) => setColumnForm({...columnForm, data_type: e.target.value})}
+                onChange={(e) => setColumnForm({ ...columnForm, data_type: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
               >
                 {dataTypes.map(type => (
@@ -301,7 +301,7 @@ export default function Forms() {
                 <input
                   type="number"
                   value={columnForm.max_length}
-                  onChange={(e) => setColumnForm({...columnForm, max_length: e.target.value})}
+                  onChange={(e) => setColumnForm({ ...columnForm, max_length: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
                   placeholder="255"
                 />
@@ -313,13 +313,25 @@ export default function Forms() {
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Default Value
               </label>
-              <input
-                type="text"
-                value={columnForm.default_value}
-                onChange={(e) => setColumnForm({...columnForm, default_value: e.target.value})}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
-                placeholder="Optional default value"
-              />
+              {columnForm.data_type === 'BOOLEAN' ? (
+                <select
+                  value={columnForm.default_value}
+                  onChange={(e) => setColumnForm({ ...columnForm, default_value: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                >
+                  <option value="">No Default</option>
+                  <option value="TRUE">True</option>
+                  <option value="FALSE">False</option>
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={columnForm.default_value}
+                  onChange={(e) => setColumnForm({ ...columnForm, default_value: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                  placeholder="Optional default value"
+                />
+              )}
             </div>
 
             {/* Checkboxes */}
@@ -329,7 +341,7 @@ export default function Forms() {
                   type="checkbox"
                   id="nullable"
                   checked={columnForm.nullable}
-                  onChange={(e) => setColumnForm({...columnForm, nullable: e.target.checked})}
+                  onChange={(e) => setColumnForm({ ...columnForm, nullable: e.target.checked })}
                   className="w-4 h-4 text-teal-600 rounded"
                 />
                 <label htmlFor="nullable" className="text-sm font-medium text-slate-700">
@@ -342,7 +354,7 @@ export default function Forms() {
                   type="checkbox"
                   id="unique"
                   checked={columnForm.unique}
-                  onChange={(e) => setColumnForm({...columnForm, unique: e.target.checked})}
+                  onChange={(e) => setColumnForm({ ...columnForm, unique: e.target.checked })}
                   className="w-4 h-4 text-teal-600 rounded"
                 />
                 <label htmlFor="unique" className="text-sm font-medium text-slate-700">
@@ -376,7 +388,7 @@ export default function Forms() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -417,7 +429,7 @@ export default function Forms() {
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           {/* Tables List */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
@@ -426,7 +438,7 @@ export default function Forms() {
                   <Icons.Table />
                   Tables ({filteredTables.length})
                 </h2>
-                
+
                 {/* Search */}
                 <div className="relative mt-3">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -459,11 +471,10 @@ export default function Forms() {
                       <button
                         key={table.table_name}
                         onClick={() => setSelectedTable(table.table_name)}
-                        className={`w-full px-5 py-3.5 text-left hover:bg-slate-50 transition-colors ${
-                          selectedTable === table.table_name
+                        className={`w-full px-5 py-3.5 text-left hover:bg-slate-50 transition-colors ${selectedTable === table.table_name
                             ? 'bg-teal-50 border-l-4 border-teal-500'
                             : ''
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -546,11 +557,10 @@ export default function Forms() {
                             </span>
                           </td>
                           <td className="px-5 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              col.is_nullable === 'YES'
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${col.is_nullable === 'YES'
                                 ? 'bg-green-50 text-green-700 border border-green-200'
                                 : 'bg-red-50 text-red-700 border border-red-200'
-                            }`}>
+                              }`}>
                               {col.is_nullable === 'YES' ? 'YES' : 'NO'}
                             </span>
                           </td>
@@ -642,7 +652,7 @@ export default function Forms() {
                   Delete Column?
                 </h3>
                 <p className="text-slate-600 mb-6">
-                  Are you sure you want to delete column <strong>{showDeleteConfirm}</strong>? 
+                  Are you sure you want to delete column <strong>{showDeleteConfirm}</strong>?
                   This action cannot be undone and all data in this column will be lost.
                 </p>
                 <div className="flex gap-3 w-full">
