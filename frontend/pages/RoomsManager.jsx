@@ -148,7 +148,8 @@ export default function RoomsManager({ user }) {
       await fetch();
     } catch (err) {
       console.error("Save edit error:", err);
-      alert(err?.response?.data?.message || "Failed to update room");
+      const detail = err?.response?.data?.detail ? `\n\nDetails: ${err.response.data.detail}` : "";
+      alert((err?.response?.data?.message || "Failed to update room") + detail);
     } finally {
       setSaving(false);
     }

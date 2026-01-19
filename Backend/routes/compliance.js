@@ -27,8 +27,8 @@ try {
     connect: async () => {
       throw errMsg;
     },
-    on: () => {},
-    end: async () => {},
+    on: () => { },
+    end: async () => { },
   };
 }
 
@@ -42,7 +42,7 @@ const upload = multer({
 function requireAuth(req, res, next) {
   try {
     if (req.session?.user || req.user) return next();
-  } catch {}
+  } catch { }
   return next();
 }
 
@@ -96,10 +96,11 @@ async function getHotelsPkColumn() {
   }
 })();
 
-/* join: resolve hotels.name using certificates.hotel_name (text) as canonical source */
+/* join: resolve hotels.name using certificates.hotel_name (text) as canonical source, but prefer ID match */
 const HOTEL_JOIN = `
   LEFT JOIN hotels h
-    ON (c.hotel_name IS NOT NULL AND h.name ILIKE c.hotel_name)
+    ON (c.property_id IS NOT NULL AND h.id::text = c.property_id::text)
+    OR (c.property_id IS NULL AND c.hotel_name IS NOT NULL AND h.name ILIKE c.hotel_name)
 `;
 
 /* stats */
@@ -177,7 +178,10 @@ router.get("/", requireAuth, async (req, res) => {
     LIMIT $${params.length - 1} OFFSET $${params.length};`;
 
     const r = await safeQuery(sql, params);
-    if (!r.ok) return res.status(200).json({ ok: true, data: [] });
+    if (!r.ok) {
+      console.error("Compliance List Query Failed:", r.error);
+      return res.status(500).json({ ok: false, error: r.error?.message || "Database Query Warning" });
+    }
 
     const out = (r.rows || []).map((row) => {
       row.hotel_name = row.hotel_name && String(row.hotel_name).trim() ? String(row.hotel_name).trim() : "";
@@ -187,7 +191,7 @@ router.get("/", requireAuth, async (req, res) => {
     return res.json({ ok: true, data: out });
   } catch (err) {
     console.error("GET /api/compliance error:", err && (err.stack || err.message || err));
-    return res.status(500).json({ ok: false, error: "Server error" });
+    return res.status(500).json({ ok: false, error: err?.message || "Server error" });
   }
 });
 

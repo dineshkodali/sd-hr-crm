@@ -3,6 +3,7 @@
 
 import express from "express";
 import cors from "cors";
+import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import path from "path";
@@ -65,78 +66,18 @@ console.log("Starting server (server.js) - NODE_ENV:", process.env.NODE_ENV || "
 
 app.set("trust proxy", 1);
 
-// Allow configurable CORS origins (comma-separated in env), with sensible defaults
-const defaultOrigins = [
-  "http://localhost:5173",
-  "http://localhost:444",
-  "http://localhost:4000",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:444",
-];
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow any origin for dynamic host support
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}));
 
-const envOrigins = (process.env.CORS_ORIGINS || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
-
-const allowedOrigins = [...new Set([...envOrigins, ...defaultOrigins])];
-
-// Regex for private LAN IPs (10.x.x.x, 192.168.x.x, 172.16-31.x.x), allow http/https and optional port
-const PRIVATE_IP_ORIGIN_REGEX = /^https?:\/\/(?:(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}))(?::\d+)?$/i;
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // origin === undefined -> non-browser client (Postman, curl, server-to-server)
-      if (!origin) {
-        console.log("[CORS] No origin (server/Postman) — allowing request.");
-        return callback(null, true);
-      }
-
-      console.log("[CORS] Incoming origin:", origin);
-
-      // Exact whitelist match
-      if (allowedOrigins.includes(origin)) {
-        console.log("[CORS] Allowed origin (whitelist):", origin);
-        return callback(null, true);
-      }
-
-      // Host-only match: allow if whitelist contains same host without protocol/port
-      try {
-        const parsed = new URL(origin);
-        const hostOnly = `${parsed.protocol}//${parsed.hostname}`; // protocol + hostname (no port)
-        if (allowedOrigins.some((o) => {
-          try {
-            const p = new URL(o);
-            return p.hostname === parsed.hostname && p.protocol === parsed.protocol;
-          } catch {
-            // allowedOrigins may include host-only strings like "http://10.0.0.1"
-            return o === hostOnly;
-          }
-        })) {
-          console.log("[CORS] Allowed origin by host match:", origin);
-          return callback(null, true);
-        }
-      } catch (err) {
-        // ignore parse errors
-      }
-
-      // Allow common private network IP ranges (for LAN/mobile testing)
-      if (PRIVATE_IP_ORIGIN_REGEX.test(origin)) {
-        console.log("[CORS] Allowed private-network origin:", origin);
-        return callback(null, true);
-      }
-
-      console.warn("[CORS] Blocked CORS origin:", origin);
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-    optionsSuccessStatus: 200,
-  })
-);
-
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 /* ----------------------------

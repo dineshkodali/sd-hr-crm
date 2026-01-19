@@ -54,7 +54,7 @@ export async function createTask(req, res) {
   const client = await pool.connect();
   try {
     const now = new Date();
-    
+
     // Get existing columns in maintenance_tasks table
     let existingCols = [];
     try {
@@ -113,8 +113,8 @@ export async function createTask(req, res) {
 
     // Handle custom columns from Forms Builder
     const standardCols = ['id', 'title', 'description', 'start_date', 'due_date', 'status',
-                         'category', 'site', 'room', 'raised_by', 'action', 'closed',
-                         'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at'];
+      'category', 'site', 'room', 'raised_by', 'action', 'closed',
+      'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         columnsToInsert.push(col);
@@ -385,8 +385,8 @@ export async function updateTask(req, res) {
 
     // Handle custom columns from Forms Builder
     const standardCols = ['id', 'title', 'description', 'start_date', 'due_date', 'status',
-                         'category', 'site', 'room', 'raised_by', 'action', 'closed',
-                         'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at'];
+      'category', 'site', 'room', 'raised_by', 'action', 'closed',
+      'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         setParts.push(`${col} = $${idx++}`);
@@ -474,7 +474,7 @@ export async function changeTaskStatus(req, res) {
       },
     });
   } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
+    await client.query("ROLLBACK").catch(() => { });
     throw err;
   } finally {
     client.release();

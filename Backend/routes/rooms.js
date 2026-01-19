@@ -2,6 +2,7 @@
 import express from "express";
 import pool from "../config/db.js";
 import { protect } from "../middleware/auth.js";
+import fs from "fs";
 
 const router = express.Router({ mergeParams: true }); // <- important: reads :hotelId from parent mount
 
@@ -270,7 +271,7 @@ router.get("/:roomId/bedspaces", protect, async (req, res) => {
           [found.table, c]
         );
         if (l.rows.length) { labelCol = c; break; }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const selectCols = ["id", `${found.roomCol} AS room_id`, (labelCol ? `${labelCol} AS label` : "NULL AS label")].join(", ");
@@ -351,6 +352,9 @@ router.put("/:roomId", protect, async (req, res) => {
     if (!u.rows.length) return res.status(404).json({ message: "Room not found or update failed" });
     return res.json({ message: "Room updated", room: u.rows[0] });
   } catch (err) {
+    try {
+      fs.writeFileSync("rooms_put_error.log", `${new Date().toISOString()} - Update Room Error: ${err.message}\n${err.stack}\n`);
+    } catch (e) { console.error("Failed to write log", e); }
     console.error("update room:", err && err.stack ? err.stack : err);
     return res.status(500).json({ message: "Server error", detail: err?.message });
   }

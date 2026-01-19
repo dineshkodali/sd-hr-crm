@@ -4,21 +4,21 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { usePermissions } from "../hooks/usePermissions";
-import { 
-  Home, 
-  Wrench, 
-  Search, 
-  ChevronDown, 
-  Filter, 
-  Columns, 
-  Download, 
-  X, 
-  Edit, 
-  Trash2, 
-  AlertCircle, 
-  Clock, 
-  CheckCircle, 
-  Eye, 
+import {
+  Home,
+  Wrench,
+  Search,
+  ChevronDown,
+  Filter,
+  Columns,
+  Download,
+  X,
+  Edit,
+  Trash2,
+  AlertCircle,
+  Clock,
+  CheckCircle,
+  Eye,
   EyeOff,
   Check,
   Calendar,
@@ -91,7 +91,7 @@ function getPriorityColor(p) {
   const low = String(p).toLowerCase();
   if (low === "urgent" || low === "high") return { dot: "bg-red-500", text: "text-red-700" };
   if (low === "medium") return { dot: "bg-orange-500", text: "text-orange-700" };
-  return { dot: "bg-green-500", text: "text-green-700" }; 
+  return { dot: "bg-green-500", text: "text-green-700" };
 }
 
 function getStatusColor(s) {
@@ -148,7 +148,7 @@ const FormSelect = ({ label, value, onChange, options, required = false, disable
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <div className="relative">
-       {Icon && (
+      {Icon && (
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Icon className="h-4 w-4 text-gray-400" />
         </div>
@@ -188,13 +188,13 @@ export default function MaintenancePage({ user }) {
   // CHANGED: Initialized to empty array instead of null to prevent issues
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Filter and Sort State
   const [priorityFilter, setPriorityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [propertyFilter, setPropertyFilter] = useState("");
   const [sortBy, setSortBy] = useState("");
-  
+
   const [hotels, setHotels] = useState([]);
   const [hotelsLoading, setHotelsLoading] = useState(false);
 
@@ -202,10 +202,10 @@ export default function MaintenancePage({ user }) {
   const [staffLoading, setStaffLoading] = useState(false);
   const [rooms, setRooms] = useState([]);
   const [roomsLoading, setRoomsLoading] = useState(false);
-  
+
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  
+
   const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -223,17 +223,17 @@ export default function MaintenancePage({ user }) {
 
   // Updated form state
   const initialForm = useMemo(() => ({
-    title: "", 
+    title: "",
     room: "",
-    start: "", 
+    start: "",
     raisedBy: "",
-    category: "", 
-    status: "Open", 
+    category: "",
+    status: "Open",
     hotelId: "",
-    hotelName: "", 
-    action: "", 
-    dueDate: "", 
-    closed: "", 
+    hotelName: "",
+    action: "",
+    dueDate: "",
+    closed: "",
     description: "",
     priority: "Medium"
   }), []);
@@ -276,7 +276,7 @@ export default function MaintenancePage({ user }) {
       try {
         const res = await api.get('/api/forms-builder/tables/maintenance_tasks/columns');
         if (!mounted) return;
-        
+
         const cols = res?.data?.columns || res?.data || [];
         const columnNames = cols.map(col => {
           if (typeof col === 'string') return col;
@@ -284,12 +284,12 @@ export default function MaintenancePage({ user }) {
           if (col.name) return col.name;
           return String(col);
         });
-        
+
         setAvailableColumns(columnNames);
-        
+
         const standardCols = DEFAULT_COLUMNS;
         const customCols = columnNames.filter(col => !standardCols.includes(col));
-        
+
         setCustomColumns(prevCustom => {
           // Only auto-show columns that are truly new (never seen before)
           const newCols = customCols.filter(c => !prevCustom.includes(c));
@@ -300,7 +300,7 @@ export default function MaintenancePage({ user }) {
                 // Only act if not explicitly set in localStorage
                 if (prev[col] === undefined) {
                   // CHANGED: Set to false by default so they are hidden initially
-                  updated[col] = false; 
+                  updated[col] = false;
                 }
               });
               return updated;
@@ -388,7 +388,7 @@ export default function MaintenancePage({ user }) {
       const res = await api.get("/api/maintenance", { signal, params: { limit: 200 } });
       const data = res?.data?.data ?? res?.data ?? [];
       let mapped = Array.isArray(data) ? data : [];
-      
+
       const formattedTasks = mapped.map((t) => {
         const baseTask = {
           id: t.id,
@@ -407,14 +407,14 @@ export default function MaintenancePage({ user }) {
           description: t.description || "",
           raw: t,
         };
-        
+
         // Include all properties from API response that might be custom columns
         Object.keys(t).forEach(key => {
           if (!(key in baseTask)) {
             baseTask[key] = t[key];
           }
         });
-        
+
         return baseTask;
       });
       setTasks(formattedTasks);
@@ -423,7 +423,7 @@ export default function MaintenancePage({ user }) {
       if (err.name === "AbortError") return;
       console.error("Failed to load tasks:", err);
       // CHANGED: Removed setTasks(SAMPLE) to stop flashing mock data. Now sets empty array.
-      setTasks([]); 
+      setTasks([]);
       setLoading(false);
     }
   }, []);
@@ -434,7 +434,7 @@ export default function MaintenancePage({ user }) {
     fetchHotels(ac.signal);
     loadTasks(ac.signal);
     return () => {
-      try { ac.abort(); } catch {}
+      try { ac.abort(); } catch { }
       hotelsControllerRef.current = null;
     };
   }, [fetchHotels, loadTasks]);
@@ -549,38 +549,38 @@ export default function MaintenancePage({ user }) {
   const filtered = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
     // CHANGED: Use empty array as fallback instead of tasks || []
-    let list = tasks; 
-    
+    let list = tasks;
+
     // Apply search filter
     if (q) {
-      list = list.filter((r) => 
-        r.title.toLowerCase().includes(q) || 
-        r.hotel.toLowerCase().includes(q) || 
+      list = list.filter((r) =>
+        r.title.toLowerCase().includes(q) ||
+        r.hotel.toLowerCase().includes(q) ||
         r.status.toLowerCase().includes(q)
       );
     }
-    
+
     // Apply priority filter
     if (priorityFilter) {
-      list = list.filter((r) => 
+      list = list.filter((r) =>
         (r.priority || "").toLowerCase() === priorityFilter.toLowerCase()
       );
     }
-    
+
     // Apply status filter
     if (statusFilter) {
-      list = list.filter((r) => 
+      list = list.filter((r) =>
         (r.status || "").toLowerCase() === statusFilter.toLowerCase()
       );
     }
-    
+
     // Apply property filter
     if (propertyFilter) {
-      list = list.filter((r) => 
+      list = list.filter((r) =>
         String(r.raw?.hotel_id || "") === String(propertyFilter)
       );
     }
-    
+
     // Apply sorting
     if (sortBy) {
       list = [...list].sort((a, b) => {
@@ -608,7 +608,7 @@ export default function MaintenancePage({ user }) {
         return 0;
       });
     }
-    
+
     return list;
   }, [tasks, query, priorityFilter, statusFilter, propertyFilter, sortBy]);
 
@@ -622,7 +622,7 @@ export default function MaintenancePage({ user }) {
       { header: 'Due Date', key: 'dueDate' },
       { header: 'Description', key: 'description' }
     ];
-    
+
     const data = filtered.map(task => ({
       title: task.title || '-',
       hotel: task.hotel || '-',
@@ -632,7 +632,7 @@ export default function MaintenancePage({ user }) {
       dueDate: task.dueDate || '-',
       description: task.description || '-'
     }));
-    
+
     generatePDF(data, columns, 'Maintenance Tasks Report', 'maintenance-tasks-report');
   };
 
@@ -647,7 +647,7 @@ export default function MaintenancePage({ user }) {
       { header: 'Due Date', key: 'dueDate' },
       { header: 'Description', key: 'description' }
     ];
-    
+
     const data = filtered.map(task => ({
       title: task.title || '-',
       hotel: task.hotel || '-',
@@ -657,7 +657,7 @@ export default function MaintenancePage({ user }) {
       dueDate: task.dueDate || '-',
       description: task.description || '-'
     }));
-    
+
     generateCSV(data, columns, 'maintenance-tasks-report');
   };
 
@@ -674,7 +674,7 @@ export default function MaintenancePage({ user }) {
   /* ------------------------- Handlers ------------------------- */
   async function handleDelete(id) {
     if (!confirm("Delete this order?")) return;
-    
+
     try {
       await api.delete(`/api/maintenance/${id}`);
       await loadTasks();
@@ -687,7 +687,7 @@ export default function MaintenancePage({ user }) {
   async function handleCreateSubmit(e) {
     e.preventDefault();
     setCreating(true);
-    
+
     try {
       const createData = {
         title: form.title,
@@ -726,7 +726,7 @@ export default function MaintenancePage({ user }) {
   async function handleEditSubmit(e) {
     e.preventDefault();
     setEditing(true);
-    
+
     try {
       const updateData = {
         title: form.title,
@@ -767,19 +767,19 @@ export default function MaintenancePage({ user }) {
     const hotelRecord = hotels.find((h) => h.name === task.hotel || String(h.id) === String(task.hotel)) || null;
     const hotelId = hotelRecord?.id ?? (typeof task.hotel === 'number' ? task.hotel : '');
     const hotelName = hotelRecord?.name ?? task.hotel ?? '';
-    
-    const formData = { 
+
+    const formData = {
       ...task,
       hotelId: hotelId,
       hotelName: hotelName
     };
-    
+
     customColumns.forEach(col => {
       if (task[col] !== undefined) {
         formData[col] = task[col];
       }
     });
-    
+
     setForm(formData);
     if (hotelId) {
       fetchStaffForHotel(hotelId);
@@ -795,7 +795,7 @@ export default function MaintenancePage({ user }) {
     const hotelRecord = hotels.find((h) => h.name === task.hotel || String(h.id) === String(task.hotel)) || null;
     const hotelId = hotelRecord?.id ?? (typeof task.hotel === 'number' ? task.hotel : '');
     const hotelName = hotelRecord?.name ?? task.hotel ?? '';
-    setForm({ 
+    setForm({
       ...task,
       hotelId: hotelId,
       hotelName: hotelName
@@ -839,7 +839,7 @@ export default function MaintenancePage({ user }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
-        
+
         {/* Page Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
@@ -854,11 +854,11 @@ export default function MaintenancePage({ user }) {
           </div>
           {hasCreate && (
             <div className="flex items-center gap-3">
-              <DownloadDropdown 
+              <DownloadDropdown
                 onDownloadPDF={handleDownloadPDF}
                 onDownloadCSV={handleDownloadCSV}
               />
-              <button 
+              <button
                 onClick={() => setShowCreate(true)}
                 className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2 px-4 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
               >
@@ -911,7 +911,7 @@ export default function MaintenancePage({ user }) {
 
         {/* Main Content Area - Work Orders Table */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-          
+
           {/* Table Header Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -931,7 +931,7 @@ export default function MaintenancePage({ user }) {
                     className="bg-white border-2 border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 w-72 transition-all shadow-sm hover:shadow-md"
                   />
                 </div>
-                
+
                 {/* View Dropdown */}
                 <div className="relative" ref={viewRef}>
                   <button
@@ -948,139 +948,137 @@ export default function MaintenancePage({ user }) {
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       <div className="p-4">
                         <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
-                        
+
                         {/* View Mode Selector */}
                         <div className="mb-3 pb-3 border-b border-gray-200">
                           <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => setViewMode('table')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'table'
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
                                   ? 'bg-teal-500 text-white shadow-sm'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                                }`}
                             >
                               <Columns className="w-4 h-4" />
                               <span>Table</span>
                             </button>
                             <button
                               onClick={() => setViewMode('board')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'board'
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
                                   ? 'bg-teal-500 text-white shadow-sm'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                                }`}
                             >
                               <Wrench className="w-4 h-4" />
                               <span>Board</span>
                             </button>
                           </div>
                         </div>
-                        
+
                         {viewMode === 'table' && (
                           <>
                             <button
-                          onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                        >
-                          <span>Property visibility</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">
-                              {Object.values(visibleColumns).filter(Boolean).length} shown
-                            </span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
-                          </div>
-                        </button>
-                        
-                        {/* Property Visibility Panel */}
-                        {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3">
-                            {/* Default Columns Section */}
-                            <div className="mb-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  Default Columns
+                              onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
+                              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                            >
+                              <span>Property visibility</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {Object.values(visibleColumns).filter(Boolean).length} shown
                                 </span>
-                                <button
-                                  onClick={() => {
-                                    const updated = { ...visibleColumns };
-                                    DEFAULT_COLUMNS.forEach(col => { updated[col] = false; });
-                                    setVisibleColumns(updated);
-                                  }}
-                                  className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                >
-                                  Hide all
-                                </button>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                               </div>
-                              <div className="space-y-1">
-                                {DEFAULT_COLUMNS.filter(col => visibleColumns[col]).map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
-                                    className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                                  >
-                                    <span className="capitalize">{col}</span>
-                                    <Eye className="w-4 h-4 text-teal-600" />
-                                  </button>
-                                ))}
-                                {DEFAULT_COLUMNS.filter(col => !visibleColumns[col]).map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
-                                    className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
-                                  >
-                                    <span className="capitalize">{col}</span>
-                                    <EyeOff className="w-4 h-4 text-gray-400" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            {/* Custom Columns Section */}
-                            {customColumns.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-semibold text-purple-600 uppercase tracking-wider">
-                                    Custom Columns ({customColumns.length})
-                                  </span>
-                                  <button
-                                    onClick={() => {
-                                      const updated = { ...visibleColumns };
-                                      customColumns.forEach(col => { updated[col] = false; });
-                                      setVisibleColumns(updated);
-                                    }}
-                                    className="text-xs text-purple-600 hover:text-purple-700 font-medium"
-                                  >
-                                    Hide all
-                                  </button>
-                                </div>
-                                <div className="space-y-1">
-                                  {customColumns.filter(col => visibleColumns[col]).map(col => (
+                            </button>
+
+                            {/* Property Visibility Panel */}
+                            {showPropertyVisibility && (
+                              <div className="mt-2 border-t border-gray-200 pt-3">
+                                {/* Default Columns Section */}
+                                <div className="mb-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                      Default Columns
+                                    </span>
                                     <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
-                                      className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-purple-700 hover:bg-purple-50 rounded transition-colors"
+                                      onClick={() => {
+                                        const updated = { ...visibleColumns };
+                                        DEFAULT_COLUMNS.forEach(col => { updated[col] = false; });
+                                        setVisibleColumns(updated);
+                                      }}
+                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                                     >
-                                      <span>{col.replace(/_/g, ' ')}</span>
-                                      <Eye className="w-4 h-4 text-purple-600" />
+                                      Hide all
                                     </button>
-                                  ))}
-                                  {customColumns.filter(col => !visibleColumns[col]).map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
-                                      className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
-                                    >
-                                      <span>{col.replace(/_/g, ' ')}</span>
-                                      <EyeOff className="w-4 h-4 text-gray-400" />
-                                    </button>
-                                  ))}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {DEFAULT_COLUMNS.filter(col => visibleColumns[col]).map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
+                                        className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                                      >
+                                        <span className="capitalize">{col}</span>
+                                        <Eye className="w-4 h-4 text-teal-600" />
+                                      </button>
+                                    ))}
+                                    {DEFAULT_COLUMNS.filter(col => !visibleColumns[col]).map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
+                                        className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
+                                      >
+                                        <span className="capitalize">{col}</span>
+                                        <EyeOff className="w-4 h-4 text-gray-400" />
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {/* Custom Columns Section */}
+                                {customColumns.length > 0 && (
+                                  <div className="mt-3 pt-3 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-xs font-semibold text-purple-600 uppercase tracking-wider">
+                                        Custom Columns ({customColumns.length})
+                                      </span>
+                                      <button
+                                        onClick={() => {
+                                          const updated = { ...visibleColumns };
+                                          customColumns.forEach(col => { updated[col] = false; });
+                                          setVisibleColumns(updated);
+                                        }}
+                                        className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                                      >
+                                        Hide all
+                                      </button>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.filter(col => visibleColumns[col]).map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
+                                          className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-purple-700 hover:bg-purple-50 rounded transition-colors"
+                                        >
+                                          <span>{col.replace(/_/g, ' ')}</span>
+                                          <Eye className="w-4 h-4 text-purple-600" />
+                                        </button>
+                                      ))}
+                                      {customColumns.filter(col => !visibleColumns[col]).map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
+                                          className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
+                                        >
+                                          <span>{col.replace(/_/g, ' ')}</span>
+                                          <EyeOff className="w-4 h-4 text-gray-400" />
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
-                          </div>
-                        )}
                           </>
                         )}
                       </div>
@@ -1089,8 +1087,8 @@ export default function MaintenancePage({ user }) {
                 </div>
 
                 {hasCreate && (
-                  <button 
-                    onClick={() => setShowCreate(true)} 
+                  <button
+                    onClick={() => setShowCreate(true)}
                     className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
                   >
                     <Wrench className="w-4 h-4" />
@@ -1104,8 +1102,8 @@ export default function MaintenancePage({ user }) {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={priorityFilter} 
+                <select
+                  value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -1117,11 +1115,11 @@ export default function MaintenancePage({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={statusFilter} 
+                <select
+                  value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -1133,11 +1131,11 @@ export default function MaintenancePage({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={propertyFilter} 
+                <select
+                  value={propertyFilter}
                   onChange={(e) => setPropertyFilter(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -1146,11 +1144,11 @@ export default function MaintenancePage({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={sortBy} 
+                <select
+                  value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -1162,7 +1160,7 @@ export default function MaintenancePage({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               {/* Clear Filters Button */}
               {(priorityFilter || statusFilter || propertyFilter || sortBy) && (
                 <button
@@ -1184,171 +1182,171 @@ export default function MaintenancePage({ user }) {
           {/* Data Display - Table or Board View */}
           {viewMode === 'table' ? (
             <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  {visibleColumns.checkbox && (
-                    <th className="text-left py-3 px-4">
-                      <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                    </th>
-                  )}
-                  {visibleColumns.type && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>
-                  )}
-                  {visibleColumns.reference && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
-                  )}
-                  {visibleColumns.description && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
-                  )}
-                  {visibleColumns.priority && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
-                  )}
-                  {visibleColumns.status && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
-                  )}
-                  {visibleColumns.assigned && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
-                  )}
-                  {visibleColumns.date && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
-                  )}
-                  {/* Custom Columns (Inserted Before Actions) */}
-                  {customColumns.filter(col => visibleColumns[col]).map(col => (
-                    <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {col.replace(/_/g, ' ')}
-                    </th>
-                  ))}
-                  {visibleColumns.actions && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {loading ? (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    {visibleColumns.checkbox && (
+                      <th className="text-left py-3 px-4">
+                        <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                      </th>
+                    )}
+                    {visibleColumns.type && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>
+                    )}
+                    {visibleColumns.reference && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
+                    )}
+                    {visibleColumns.description && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                    )}
+                    {visibleColumns.priority && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
+                    )}
+                    {visibleColumns.status && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
+                    )}
+                    {visibleColumns.assigned && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                    )}
+                    {visibleColumns.date && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
+                    )}
+                    {/* Custom Columns (Inserted Before Actions) */}
+                    {customColumns.filter(col => visibleColumns[col]).map(col => (
+                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        {col.replace(/_/g, ' ')}
+                      </th>
+                    ))}
+                    {visibleColumns.actions && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                    )}
                   </tr>
-                ) : filtered.length > 0 ? filtered.map((row) => {
-                  const priorityStyle = getPriorityColor(row.priority);
-                  const statusStyle = getStatusColor(row.status);
-                  
-                  return (
-                    <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                      {visibleColumns.checkbox && (
-                        <td className="py-4 px-4">
-                          <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                        </td>
-                      )}
-                      {visibleColumns.type && (
-                        <td className="py-4 px-4">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
-                            {row.category || "Maintenance"}
-                          </span>
-                        </td>
-                      )}
-                      {visibleColumns.reference && (
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700 font-medium">MNT-2025-{row.ref || (row.id ? Number(row.id).toString(36).padStart(8, '0').slice(-8) : '')}</span>
-                        </td>
-                      )}
-                      {visibleColumns.description && (
-                        <td className="py-4 px-4">
-                          <div>
-                            <div 
-                              className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
-                              onClick={hasUpdate ? () => openEdit(row) : undefined}
-                            >
-                              {row.title}
-                            </div>
-                            <div className="text-gray-500 text-xs mt-1">
-                              {row.description || "Maintenance work required as per inspection report."}
-                            </div>
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.priority && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                            <span className={`text-sm ${priorityStyle.text}`}>{row.priority}</span>
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.status && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                            <span className={`text-sm ${statusStyle.text}`}>{row.status === "Open" ? "Pending" : row.status}</span>
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.assigned && (
-                        <td className="py-4 px-4">
-                          {row.raisedBy === "Unassigned" ? (
-                            <span className="text-gray-500 text-sm">Unassigned</span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.raisedBy)} flex items-center justify-center text-xs font-semibold`}>
-                                {getInitials(row.raisedBy)}
-                              </div>
-                              <span className="text-gray-900 text-sm">{row.raisedBy}</span>
-                            </div>
-                          )}
-                        </td>
-                      )}
-                      {visibleColumns.date && (
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700 text-sm">{formatDate(row.start || row.dueDate)}</span>
-                        </td>
-                      )}
-                      {/* Custom Column Cells (Inserted Before Actions) */}
-                      {customColumns.filter(col => visibleColumns[col]).map(col => (
-                        <td key={col} className="py-4 px-4">
-                          <span className="text-gray-700 text-sm">{row[col] || '-'}</span>
-                        </td>
-                      ))}
-                      {visibleColumns.actions && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => openView(row)}
-                              className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
-                              title="View"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            {hasUpdate && (
-                              <button
-                                onClick={() => openEdit(row)}
-                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
-                                title="Edit"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                            )}
-                            {hasDelete && (
-                              <button
-                                onClick={() => handleDelete(row.id)}
-                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
                     </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">No work orders found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : filtered.length > 0 ? filtered.map((row) => {
+                    const priorityStyle = getPriorityColor(row.priority);
+                    const statusStyle = getStatusColor(row.status);
+
+                    return (
+                      <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                        {visibleColumns.checkbox && (
+                          <td className="py-4 px-4">
+                            <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                          </td>
+                        )}
+                        {visibleColumns.type && (
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
+                              {row.category || "Maintenance"}
+                            </span>
+                          </td>
+                        )}
+                        {visibleColumns.reference && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 font-medium">MNT-2025-{row.ref || (row.id ? Number(row.id).toString(36).padStart(8, '0').slice(-8) : '')}</span>
+                          </td>
+                        )}
+                        {visibleColumns.description && (
+                          <td className="py-4 px-4">
+                            <div>
+                              <div
+                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
+                                onClick={hasUpdate ? () => openEdit(row) : undefined}
+                              >
+                                {row.title}
+                              </div>
+                              <div className="text-gray-500 text-xs mt-1">
+                                {row.description || "Maintenance work required as per inspection report."}
+                              </div>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.priority && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
+                              <span className={`text-sm ${priorityStyle.text}`}>{row.priority}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.status && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
+                              <span className={`text-sm ${statusStyle.text}`}>{row.status === "Open" ? "Pending" : row.status}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.assigned && (
+                          <td className="py-4 px-4">
+                            {row.raisedBy === "Unassigned" ? (
+                              <span className="text-gray-500 text-sm">Unassigned</span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.raisedBy)} flex items-center justify-center text-xs font-semibold`}>
+                                  {getInitials(row.raisedBy)}
+                                </div>
+                                <span className="text-gray-900 text-sm">{row.raisedBy}</span>
+                              </div>
+                            )}
+                          </td>
+                        )}
+                        {visibleColumns.date && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{formatDate(row.start || row.dueDate)}</span>
+                          </td>
+                        )}
+                        {/* Custom Column Cells (Inserted Before Actions) */}
+                        {customColumns.filter(col => visibleColumns[col]).map(col => (
+                          <td key={col} className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{row[col] || '-'}</span>
+                          </td>
+                        ))}
+                        {visibleColumns.actions && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => openView(row)}
+                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                title="View"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              {hasUpdate && (
+                                <button
+                                  onClick={() => openEdit(row)}
+                                  className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              )}
+                              {hasDelete && (
+                                <button
+                                  onClick={() => handleDelete(row.id)}
+                                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">No work orders found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           ) : (
             /* Board/Kanban View */
             <div className="overflow-x-auto -mx-6 px-6">
@@ -1357,9 +1355,9 @@ export default function MaintenancePage({ user }) {
                   const statusItems = filtered.filter((task) => {
                     return (task.status || 'Open').toLowerCase() === status.toLowerCase();
                   });
-                  
+
                   // ... (Kanban card rendering remains the same, omitted for brevity but part of full file) ...
-                   const getStatusStyle = (status) => {
+                  const getStatusStyle = (status) => {
                     if (status === 'Open') {
                       return {
                         bg: 'bg-orange-50',
@@ -1414,7 +1412,7 @@ export default function MaintenancePage({ user }) {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                           {statusItems.length === 0 ? (
                             <div className="text-center py-8 px-4">
@@ -1424,7 +1422,7 @@ export default function MaintenancePage({ user }) {
                           ) : (
                             statusItems.map((task) => {
                               const priorityColor = getPriorityColor(task.priority || "Medium");
-                              
+
                               return (
                                 <div
                                   key={task.id}
@@ -1441,11 +1439,11 @@ export default function MaintenancePage({ user }) {
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
                                     {task.title}
                                   </h4>
-                                  
+
                                   {task.description && (
                                     <p className="text-xs text-gray-500 mb-3 line-clamp-2">
                                       {task.description}
@@ -1453,24 +1451,24 @@ export default function MaintenancePage({ user }) {
                                   )}
 
                                   <div className="flex items-center gap-1 mb-2">
-                                     <button
+                                    <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openView(task);
                                       }}
                                       className="flex-1 py-1 px-2 bg-gray-50 text-gray-600 hover:text-teal-600 rounded text-xs border border-gray-100"
-                                     >
-                                       View
-                                     </button>
-                                     <button
-                                       onClick={(e) => {
+                                    >
+                                      View
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
                                         e.stopPropagation();
                                         openEdit(task);
                                       }}
-                                       className="flex-1 py-1 px-2 bg-gray-50 text-blue-600 hover:bg-blue-50 rounded text-xs border border-gray-100"
-                                     >
-                                       Edit
-                                     </button>
+                                      className="flex-1 py-1 px-2 bg-gray-50 text-blue-600 hover:bg-blue-50 rounded text-xs border border-gray-100"
+                                    >
+                                      Edit
+                                    </button>
                                   </div>
                                 </div>
                               );
@@ -1491,7 +1489,7 @@ export default function MaintenancePage({ user }) {
       {(showCreate || showEdit || showView) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
-            
+
             {/* Modal Header (Fixed) */}
             <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-100">
               <div>
@@ -1499,11 +1497,11 @@ export default function MaintenancePage({ user }) {
                   {showView ? "Task Details" : (showEdit ? "Edit Work Order" : "New Work Order")}
                 </h3>
                 <p className="text-sm text-gray-500 mt-0.5">
-                   {showView ? "View details for maintenance task" : "Fill in the details below to create a request"}
+                  {showView ? "View details for maintenance task" : "Fill in the details below to create a request"}
                 </p>
               </div>
-              <button 
-                onClick={() => { setShowCreate(false); setShowEdit(false); setShowView(false); }} 
+              <button
+                onClick={() => { setShowCreate(false); setShowEdit(false); setShowView(false); }}
                 className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -1524,23 +1522,22 @@ export default function MaintenancePage({ user }) {
 
                   {/* Status & Dates */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-1">PRIORITY</div>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          form.priority === 'Urgent' ? 'bg-red-100 text-red-800' : 
-                          form.priority === 'High' ? 'bg-orange-100 text-orange-800' : 
-                          'bg-green-100 text-green-800'
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-1">PRIORITY</div>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${form.priority === 'Urgent' ? 'bg-red-100 text-red-800' :
+                          form.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+                            'bg-green-100 text-green-800'
                         }`}>
-                          {form.priority}
-                        </span>
-                     </div>
-                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-1">STATUS</div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {form.status}
-                        </span>
-                     </div>
-                     <DetailField label="DUE DATE" value={form.dueDate ? formatDate(form.dueDate) : '-'} icon={Calendar} />
+                        {form.priority}
+                      </span>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-1">STATUS</div>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {form.status}
+                      </span>
+                    </div>
+                    <DetailField label="DUE DATE" value={form.dueDate ? formatDate(form.dueDate) : '-'} icon={Calendar} />
                   </div>
 
                   {/* Description */}
@@ -1556,30 +1553,30 @@ export default function MaintenancePage({ user }) {
                     <DetailField label="RAISED BY" value={form.raisedBy} icon={User} />
                     <DetailField label="ACTION REQUIRED" value={form.action} icon={Check} />
                   </div>
-                  
+
                   {/* Custom Fields in View */}
                   {customColumns.length > 0 && (
-                     <div className="pt-4 border-t border-gray-100">
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Custom Fields</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           {customColumns.map(col => (
-                              <DetailField key={col} label={col.replace(/_/g, ' ')} value={form[col]} />
-                           ))}
-                        </div>
-                     </div>
+                    <div className="pt-4 border-t border-gray-100">
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Custom Fields</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {customColumns.map(col => (
+                          <DetailField key={col} label={col.replace(/_/g, ' ')} value={form[col]} />
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : (
                 /* Edit/Create Form Content */
                 <form id="maintenance-form" onSubmit={showEdit ? handleEditSubmit : handleCreateSubmit} className="space-y-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    
+
                     {/* Row 1 */}
-                    <FormInput 
-                      label="Task Title" 
-                      required 
-                      value={form.title} 
-                      onChange={e => handleFormChange("title", e.target.value)} 
+                    <FormInput
+                      label="Task Title"
+                      required
+                      value={form.title}
+                      onChange={e => handleFormChange("title", e.target.value)}
                       placeholder="e.g., Leaking Tap"
                       icon={Wrench}
                     />
@@ -1595,8 +1592,8 @@ export default function MaintenancePage({ user }) {
                             {!form.hotelId
                               ? "Select property first"
                               : roomsLoading
-                              ? "Loading rooms..."
-                              : "Select room"}
+                                ? "Loading rooms..."
+                                : "Select room"}
                           </option>
                           {!!form.room && !rooms.some((r) => String(r.room_number) === String(form.room)) && (
                             <option value={form.room}>{form.room}</option>
@@ -1613,9 +1610,9 @@ export default function MaintenancePage({ user }) {
                     />
 
                     {/* Row 2 */}
-                    <FormSelect 
-                      label="Property" 
-                      value={form.hotelId} 
+                    <FormSelect
+                      label="Property"
+                      value={form.hotelId}
                       onChange={handleHotelChange}
                       icon={Building}
                       options={
@@ -1625,19 +1622,19 @@ export default function MaintenancePage({ user }) {
                         </>
                       }
                     />
-                    <FormInput 
-                      label="Category" 
-                      value={form.category} 
-                      onChange={e => handleFormChange("category", e.target.value)} 
+                    <FormInput
+                      label="Category"
+                      value={form.category}
+                      onChange={e => handleFormChange("category", e.target.value)}
                       placeholder="e.g., Plumbing, Electrical"
                       icon={Tag}
                     />
 
                     {/* Row 3 */}
                     <div className="grid grid-cols-2 gap-4 col-span-1 md:col-span-2">
-                       <FormSelect 
-                        label="Priority" 
-                        value={form.priority} 
+                      <FormSelect
+                        label="Priority"
+                        value={form.priority}
                         onChange={e => handleFormChange("priority", e.target.value)}
                         options={
                           <>
@@ -1648,9 +1645,9 @@ export default function MaintenancePage({ user }) {
                           </>
                         }
                       />
-                      <FormSelect 
-                        label="Status" 
-                        value={form.status} 
+                      <FormSelect
+                        label="Status"
+                        value={form.status}
                         onChange={e => handleFormChange("status", e.target.value)}
                         options={
                           <>
@@ -1664,17 +1661,17 @@ export default function MaintenancePage({ user }) {
                     </div>
 
                     {/* Row 4 */}
-                    <FormInput 
-                      label="Start Date" 
+                    <FormInput
+                      label="Start Date"
                       type="date"
-                      value={formatDateISO(form.start)} 
-                      onChange={e => handleFormChange("start", e.target.value)} 
+                      value={formatDateISO(form.start)}
+                      onChange={e => handleFormChange("start", e.target.value)}
                     />
-                    <FormInput 
-                      label="Due Date" 
+                    <FormInput
+                      label="Due Date"
                       type="date"
-                      value={formatDateISO(form.dueDate)} 
-                      onChange={e => handleFormChange("dueDate", e.target.value)} 
+                      value={formatDateISO(form.dueDate)}
+                      onChange={e => handleFormChange("dueDate", e.target.value)}
                     />
 
                     {/* Row 5 */}
@@ -1690,8 +1687,8 @@ export default function MaintenancePage({ user }) {
                             {!form.hotelId
                               ? "Select property first"
                               : staffLoading
-                              ? "Loading staff..."
-                              : "Select staff"}
+                                ? "Loading staff..."
+                                : "Select staff"}
                           </option>
                           {!!form.raisedBy && !staffUsers.some((u) => String(u.name) === String(form.raisedBy)) && (
                             <option value={form.raisedBy}>{form.raisedBy}</option>
@@ -1704,21 +1701,21 @@ export default function MaintenancePage({ user }) {
                         </>
                       }
                     />
-                     <FormInput 
-                      label="Action Required" 
-                      value={form.action} 
-                      onChange={e => handleFormChange("action", e.target.value)} 
+                    <FormInput
+                      label="Action Required"
+                      value={form.action}
+                      onChange={e => handleFormChange("action", e.target.value)}
                       placeholder="e.g., Replace part"
                     />
 
                     {/* Description */}
                     <div className="col-span-1 md:col-span-2">
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Description</label>
-                      <textarea 
+                      <textarea
                         rows={3}
-                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-3 resize-y" 
-                        value={form.description} 
-                        onChange={e => handleFormChange("description", e.target.value)} 
+                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-3 resize-y"
+                        value={form.description}
+                        onChange={e => handleFormChange("description", e.target.value)}
                         placeholder="Detailed description of the issue..."
                       />
                     </div>
@@ -1751,16 +1748,16 @@ export default function MaintenancePage({ user }) {
 
             {/* Modal Footer (Fixed) */}
             <div className="flex-shrink-0 px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl flex justify-end gap-3">
-              <button 
-                type="button" 
-                onClick={() => { setShowCreate(false); setShowEdit(false); setShowView(false); }} 
+              <button
+                type="button"
+                onClick={() => { setShowCreate(false); setShowEdit(false); setShowView(false); }}
                 className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:shadow-sm font-medium transition-all text-sm"
               >
                 {showView ? "Close" : "Cancel"}
               </button>
               {!showView && (
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   form="maintenance-form"
                   className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium shadow-sm hover:shadow transition-all text-sm flex items-center gap-2"
                 >
