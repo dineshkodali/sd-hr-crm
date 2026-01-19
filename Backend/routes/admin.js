@@ -1202,6 +1202,18 @@ router.put("/users/:id", protect, upload.single("avatar"), async (req, res) => {
       values.push(phone || null);
     }
 
+    // city
+    if (body.city !== undefined) {
+      updates.push(`city = $${idx++}`);
+      values.push(body.city || null);
+    }
+
+    // country
+    if (body.country !== undefined) {
+      updates.push(`country = $${idx++}`);
+      values.push(body.country || null);
+    }
+
     // avatar file (multer)
     if (req.file) {
       const avatarUrl = `/uploads/${req.file.filename}`;
@@ -1214,7 +1226,7 @@ router.put("/users/:id", protect, upload.single("avatar"), async (req, res) => {
     }
 
     values.push(id);
-    const sql = `UPDATE users SET ${updates.join(", ")}, updated_at = NOW() WHERE id = $${idx} RETURNING id, name, email, role, branch, status, phone, avatar`;
+    const sql = `UPDATE users SET ${updates.join(", ")}, updated_at = NOW() WHERE id = $${idx} RETURNING id, name, email, role, branch, status, phone, avatar, city, country`;
     const result = await pool.query(sql, values);
     if (!result.rows.length) return res.status(404).json({ message: "User not found after update" });
     return res.json({ user: result.rows[0], message: "User updated" });

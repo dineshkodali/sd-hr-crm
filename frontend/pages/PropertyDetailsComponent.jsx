@@ -164,7 +164,7 @@ export default function PropertyDetails({ property }) {
             {/* RIGHT SIDE – Create Room */}
             <div className="pt-6">
               <button
-                onClick={() => setShowCreateRoom(true)}
+                onClick={() => window.location.assign(`/hotels/${hotelId}/rooms`)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#66f1dd] hover:bg-[#4fcfbe] text-white text-sm font-semibold shadow-sm transition-colors whitespace-nowrap"
               >
                 <svg
@@ -219,8 +219,8 @@ export default function PropertyDetails({ property }) {
             <button
               onClick={() => setActiveTab("overview")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "overview"
-                  ? "bg-[#5cd9c7] text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-50"
+                ? "bg-[#5cd9c7] text-white shadow-sm"
+                : "text-gray-600 hover:bg-gray-50"
                 }`}
             >
               Overview
@@ -228,8 +228,8 @@ export default function PropertyDetails({ property }) {
             <button
               onClick={() => setActiveTab("floors")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "floors"
-                  ? "bg-[#66f1dd] text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-50"
+                ? "bg-[#66f1dd] text-white shadow-sm"
+                : "text-gray-600 hover:bg-gray-50"
                 }`}
             >
               Floors & Rooms
@@ -237,8 +237,8 @@ export default function PropertyDetails({ property }) {
             <button
               onClick={() => setActiveTab("residents")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "residents"
-                  ? "bg-[#66f1dd] text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-50"
+                ? "bg-[#66f1dd] text-white shadow-sm"
+                : "text-gray-600 hover:bg-gray-50"
                 }`}
             >
               Residents
@@ -246,8 +246,8 @@ export default function PropertyDetails({ property }) {
             <button
               onClick={() => setActiveTab("maintenance")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "maintenance"
-                  ? "bg-[#5cd9c7] text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-50"
+                ? "bg-[#5cd9c7] text-white shadow-sm"
+                : "text-gray-600 hover:bg-gray-50"
                 }`}
             >
               Maintenance
@@ -255,8 +255,8 @@ export default function PropertyDetails({ property }) {
             <button
               onClick={() => setActiveTab("inspections")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "inspections"
-                  ? "bg-[#5cd9c7] text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-50"
+                ? "bg-[#5cd9c7] text-white shadow-sm"
+                : "text-gray-600 hover:bg-gray-50"
                 }`}
             >
               Inspections
@@ -264,8 +264,8 @@ export default function PropertyDetails({ property }) {
             <button
               onClick={() => setActiveTab("incidents")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "incidents"
-                  ? "bg-[#5cd9c7] text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-50"
+                ? "bg-[#5cd9c7] text-white shadow-sm"
+                : "text-gray-600 hover:bg-gray-50"
                 }`}
             >
               Incidents
@@ -273,8 +273,8 @@ export default function PropertyDetails({ property }) {
             <button
               onClick={() => setActiveTab("compliance")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "compliance"
-                  ? "bg-[#5cd9c7] text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-50"
+                ? "bg-[#5cd9c7] text-white shadow-sm"
+                : "text-gray-600 hover:bg-gray-50"
                 }`}
             >
               Compliance
@@ -769,52 +769,52 @@ function FloorsRoomsCard({ hotelId }) {
           <p>No rooms found</p>
         </div>
       ) : (
-      <div className="space-y-6">
-        {floors.map((floor, idx) => (
-          <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
-            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">{floor.floor}</h3>
-              <p className="text-xs text-gray-500">{floor.rooms.length} rooms</p>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {floor.rooms.map((room) => (
-                <div key={room.id} className="p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <span className="font-semibold text-gray-900">Room {room.room_number}</span>
-                        <span className="text-sm text-gray-600">{room.type}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${String(room.status || "").toLowerCase() === 'available'
+        <div className="space-y-6">
+          {floors.map((floor, idx) => (
+            <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h3 className="font-semibold text-gray-900">{floor.floor}</h3>
+                <p className="text-xs text-gray-500">{floor.rooms.length} rooms</p>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {floor.rooms.map((room) => (
+                  <div key={room.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-gray-900">Room {room.room_number}</span>
+                          <span className="text-sm text-gray-600">{room.type}</span>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${String(room.status || "").toLowerCase() === 'available'
                             ? 'bg-green-50 text-green-700 border border-green-200'
                             : 'bg-orange-50 text-orange-700 border border-orange-200'
-                          }`}>
-                          {room.status || "-"}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex items-center gap-4 text-sm">
-                        <span className="text-gray-600">
-                          <span className="font-medium">Beds:</span> {room._occupiedBeds}/{room._totalBeds ?? "-"}
-                        </span>
-                        {Array.isArray(room._residentNames) && room._residentNames.length > 0 && (
-                          <span className="text-gray-600">
-                            <span className="font-medium">Resident:</span> {room._residentNames.join(", ")}
+                            }`}>
+                            {room.status || "-"}
                           </span>
-                        )}
+                        </div>
+                        <div className="mt-2 flex items-center gap-4 text-sm">
+                          <span className="text-gray-600">
+                            <span className="font-medium">Beds:</span> {room._occupiedBeds}/{room._totalBeds ?? "-"}
+                          </span>
+                          {Array.isArray(room._residentNames) && room._residentNames.length > 0 && (
+                            <span className="text-gray-600">
+                              <span className="font-medium">Resident:</span> {room._residentNames.join(", ")}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      <button
+                        onClick={() => window.location.assign(`/hotels/${hotelId}/rooms`)}
+                        className="text-[#5cd9c7] hover:text-[#4fcfbe] text-sm font-medium"
+                      >
+                        View Details
+                      </button>
                     </div>
-                    <button
-                      onClick={() => window.location.assign(`/hotels/${hotelId}/rooms`)}
-                      className="text-[#5cd9c7] hover:text-[#4fcfbe] text-sm font-medium"
-                    >
-                      View Details
-                    </button>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -891,34 +891,34 @@ function ResidentsCard({ hotelId }) {
         </div>
       ) : (
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-y border-gray-200">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Resident Name</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Room</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Move-in Date</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {residents.map((resident) => (
-              <tr key={resident.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                  {[resident.first_name, resident.last_name].filter(Boolean).join(" ") || "-"}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-600">{resident.room_number || resident.room || "-"}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{resident.admission_date || resident.move_in_date || "-"}</td>
-                <td className="px-4 py-3">
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                    {resident.status || "Active"}
-                  </span>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-y border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Resident Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Room</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Move-in Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {residents.map((resident) => (
+                <tr key={resident.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                    {[resident.first_name, resident.last_name].filter(Boolean).join(" ") || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{resident.room_number || resident.room || "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{resident.admission_date || resident.move_in_date || "-"}</td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                      {resident.status || "Active"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

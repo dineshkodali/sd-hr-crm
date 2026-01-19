@@ -43,10 +43,10 @@ export default function HotelsList({ user: userProp }) {
   const [savingEdit, setSavingEdit] = useState(false);
   const modalRef = useRef(null);
 
-    /* Delete Modal */
-   const [showDeleteModal, setShowDeleteModal] = useState(false);
-const [deleteHotelId, setDeleteHotelId] = useState(null);
-const [deleting, setDeleting] = useState(false);
+  /* Delete Modal */
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteHotelId, setDeleteHotelId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
 
   // Access tab
@@ -69,8 +69,8 @@ const [deleting, setDeleting] = useState(false);
       const list = Array.isArray(res.data?.hotels)
         ? res.data.hotels
         : Array.isArray(res.data)
-        ? res.data
-        : res.data?.data ?? [];
+          ? res.data
+          : res.data?.data ?? [];
       setHotels(list);
     } catch (err) {
       console.error("fetch hotels error:", err);
@@ -178,26 +178,26 @@ const [deleting, setDeleting] = useState(false);
   };
 
   const handleDeleteConfirm = async () => {
-  if (!deleteHotelId) return;
+    if (!deleteHotelId) return;
 
-  try {
-    setDeleting(true);
+    try {
+      setDeleting(true);
 
-    await axios.delete(`/api/hotels/${deleteHotelId}`, {
-      withCredentials: true,
-    });
+      await axios.delete(`/api/hotels/${deleteHotelId}`, {
+        withCredentials: true,
+      });
 
-    await fetchHotels();
-  } catch (err) {
-    console.error("delete property:", err);
-    alert(err?.response?.data?.message || "Failed to delete property");
-  } finally {
-    setDeleting(false);
-    setOpenMenuId(null);
-    setShowDeleteModal(false);
-    setDeleteHotelId(null);
-  }
-};
+      await fetchHotels();
+    } catch (err) {
+      console.error("delete property:", err);
+      alert(err?.response?.data?.message || "Failed to delete property");
+    } finally {
+      setDeleting(false);
+      setOpenMenuId(null);
+      setShowDeleteModal(false);
+      setDeleteHotelId(null);
+    }
+  };
 
 
   // helpers for computing top stat cards
@@ -435,8 +435,8 @@ const [deleting, setDeleting] = useState(false);
           editingHotel.rating === ""
             ? null
             : Number.isFinite(Number(editingHotel.rating))
-            ? Number(editingHotel.rating)
-            : editingHotel.rating;
+              ? Number(editingHotel.rating)
+              : editingHotel.rating;
         setIfChanged("rating", ratingVal, "rating");
       }
 
@@ -534,7 +534,7 @@ const [deleting, setDeleting] = useState(false);
         hotel.address || `${hotel.city || ""} ${hotel.postcode || ""}`.trim(),
       tags: [
         hotel.property_type ||
-          (hotel.is_self_contained ? "Self-Contained" : "Hotel"),
+        (hotel.is_self_contained ? "Self-Contained" : "Hotel"),
         (hotel.status || "").toLowerCase(),
       ].filter(Boolean),
       totalFloors: hotel.total_floors ?? hotel.floor_count ?? 0,
@@ -1047,30 +1047,30 @@ const [deleting, setDeleting] = useState(false);
                       </svg>
                     </button>
                     <button
-  onClick={() => {
-    setDeleteHotelId(h.id);
-    setShowDeleteModal(true);
-  }}
-  className="w-10 flex items-center justify-center
+                      onClick={() => {
+                        setDeleteHotelId(h.id);
+                        setShowDeleteModal(true);
+                      }}
+                      className="w-10 flex items-center justify-center
              bg-white border border-gray-200
              hover:border-red-200 hover:bg-red-50
              text-gray-400 hover:text-red-500
              rounded-lg transition-colors"
->
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-    />
-  </svg>
-</button>
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
 
                   </div>
                 </div>
@@ -1347,21 +1347,19 @@ const [deleting, setDeleting] = useState(false);
                 <div className="flex gap-6 border-b">
                   <button
                     onClick={() => setEditTab("basic")}
-                    className={`py-3 text-sm font-medium ${
-                      editTab === "basic"
-                        ? "border-b-2 border-blue-600 text-blue-600"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
+                    className={`py-3 text-sm font-medium ${editTab === "basic"
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                      }`}
                   >
                     Basic Information
                   </button>
                   <button
                     onClick={() => setEditTab("address")}
-                    className={`py-3 text-sm font-medium ${
-                      editTab === "address"
-                        ? "border-b-2 border-blue-600 text-blue-600"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
+                    className={`py-3 text-sm font-medium ${editTab === "address"
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                      }`}
                   >
                     Address
                   </button>
@@ -1371,11 +1369,10 @@ const [deleting, setDeleting] = useState(false);
                       fetchStaffForHotel(editingHotel);
                       fetchAllowedUsersForHotel(editingHotel.id);
                     }}
-                    className={`py-3 text-sm font-medium ${
-                      editTab === "access"
-                        ? "border-b-2 border-blue-600 text-blue-600"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
+                    className={`py-3 text-sm font-medium ${editTab === "access"
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                      }`}
                   >
                     Access
                   </button>

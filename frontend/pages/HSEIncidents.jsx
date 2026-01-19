@@ -127,6 +127,9 @@ export default function HSEIncidents({ user }) {
   const [selected, setSelected] = useState(null);
   const [mode, setMode] = useState('create'); // 'create' | 'edit' | 'view'
 
+  const [staffUsers, setStaffUsers] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
+
   const [query, setQuery] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
@@ -156,9 +159,69 @@ export default function HSEIncidents({ user }) {
     incident_date: ''
   });
 
+  const normalizeStaffResponse = (data) => {
+    const list = data?.staff ?? data?.users ?? data?.rows ?? data?.data ?? data ?? [];
+    const arr = Array.isArray(list) ? list : [];
+    return arr
+      .map((u) => ({
+        id: u?.id ?? u?.user_id ?? null,
+        name: u?.name ?? u?.email ?? [u?.first_name, u?.last_name].filter(Boolean).join(' ') ?? ''
+      }))
+      .filter((u) => u?.id && u?.name);
+  };
+
+  const fetchStaffForHotel = async (hotelId) => {
+    if (!hotelId) {
+      setStaffUsers([]);
+      return;
+    }
+    try {
+      setStaffLoading(true);
+
+      const paths = [
+        `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          const r = await api.get(p);
+          data = r?.data;
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) throw lastErr || new Error('Unable to load staff');
+      setStaffUsers(normalizeStaffResponse(data));
+    } catch (err) {
+      console.error('fetchStaffForHotel error:', err);
+      setStaffUsers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+
   // Custom columns from Forms Builder
   const [customColumns, setCustomColumns] = useState([]);
   const [availableColumns, setAvailableColumns] = useState([]);
+
+  const STANDARD_FORM_COLS = useMemo(() => ([
+    'id', 'reference', 'created_at', 'updated_at',
+    'incident_type', 'severity',
+    'property_id', 'property_name', 'hotel_id', 'hotel_name',
+    'affected_person', 'reported_by',
+    'details', 'assigned_investigator',
+    'status', 'incident_date'
+  ]), []);
+
+  const displayCustomColumns = useMemo(
+    () => (customColumns || []).filter((c) => c && !STANDARD_FORM_COLS.includes(String(c))),
+    [customColumns, STANDARD_FORM_COLS]
+  );
 
   // Define all available columns
   const DEFAULT_COLUMNS = [
@@ -319,6 +382,16 @@ export default function HSEIncidents({ user }) {
     setSelected(rec);
     setShowModal(true);
   };
+
+  useEffect(() => {
+    if (!showModal || mode === 'view') return;
+    if (!formData?.property_id) {
+      setStaffUsers([]);
+      return;
+    }
+    fetchStaffForHotel(formData.property_id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showModal, mode, formData?.property_id]);
 
   const closeModal = () => { setShowModal(false); setSelected(null); setMode('create'); setError(null); };
 
@@ -1151,8 +1224,8 @@ export default function HSEIncidents({ user }) {
 
       {/* ----------------- MODAL SECTION ----------------- */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg relative my-4">
 
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -1212,9 +1285,9 @@ export default function HSEIncidents({ user }) {
               </div>
             ) : (
               /* Create/Edit Form Content */
-              <form onSubmit={submit} className="p-4">
+              <form onSubmit={submit} className="p-3">
                 {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-2.5">
 
                   {/* Row 1: Incident Type & Severity */}
                   <div className="col-span-1">
@@ -1246,7 +1319,11 @@ export default function HSEIncidents({ user }) {
                     <select
                       required
                       value={formData.property_id}
-                      onChange={(e) => { const id = e.target.value; const h = hotels.find(h => h.id == id); setFormData({ ...formData, property_id: id, property_name: h?.name || '' }) }}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const h = hotels.find(h => h.id == id);
+                        setFormData({ ...formData, property_id: id, property_name: h?.name || '', reported_by: '', assigned_investigator: '' });
+                      }}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
                       <option value="">Select property...</option>
@@ -1263,25 +1340,53 @@ export default function HSEIncidents({ user }) {
                     />
                   </div>
 
-                  {/* Row 3: Reported By & Affected Person */}
+                  {/* Row 3: Reported By & Assigned To */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                    <input
+                    <select
                       required
-                      value={formData.reported_by}
+                      value={formData.reported_by || ''}
                       onChange={(e) => setFormData({ ...formData, reported_by: e.target.value })}
-                      placeholder="Your full name"
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                    />
+                      disabled={!formData.property_id || staffLoading}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.property_id
+                          ? "Select property first"
+                          : staffLoading
+                          ? "Loading staff..."
+                          : "Select staff"}
+                      </option>
+                      {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
+                        <option value={formData.reported_by}>{formData.reported_by}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>{u.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Affected Person (Optional)</label>
-                    <input
-                      value={formData.affected_person}
-                      onChange={(e) => setFormData({ ...formData, affected_person: e.target.value })}
-                      placeholder="Name of affected person"
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                    />
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                    <select
+                      value={formData.assigned_investigator || ''}
+                      onChange={(e) => setFormData({ ...formData, assigned_investigator: e.target.value })}
+                      disabled={!formData.property_id || staffLoading}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.property_id
+                          ? "Select property first"
+                          : staffLoading
+                          ? "Loading staff..."
+                          : "Select staff"}
+                      </option>
+                      {!!formData.assigned_investigator && !staffUsers.some((u) => String(u.name) === String(formData.assigned_investigator)) && (
+                        <option value={formData.assigned_investigator}>{formData.assigned_investigator}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>{u.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Row 4: Incident Details (Full Width) */}
@@ -1297,7 +1402,7 @@ export default function HSEIncidents({ user }) {
                     />
                   </div>
 
-                  {/* Row 5: Status & Assigned Investigator */}
+                  {/* Row 5: Status */}
                   {mode !== 'create' && (
                     <>
                       <div className="col-span-1">
@@ -1312,20 +1417,11 @@ export default function HSEIncidents({ user }) {
                           <option>Closed</option>
                         </select>
                       </div>
-                      <div className="col-span-1">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Assigned Investigator</label>
-                        <input
-                          value={formData.assigned_investigator}
-                          onChange={(e) => setFormData({ ...formData, assigned_investigator: e.target.value })}
-                          placeholder="Assign to..."
-                          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                        />
-                      </div>
                     </>
                   )}
 
                   {/* Custom Columns from Forms Builder */}
-                  {customColumns.map(col => (
+                  {displayCustomColumns.map(col => (
                     <div key={col} className="col-span-1">
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         {col.replace(/_/g, ' ')}

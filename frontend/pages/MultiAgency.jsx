@@ -2,20 +2,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
-import { 
-  Home, 
-  Network, 
-  Search, 
-  ChevronDown, 
-  Filter, 
-  Columns, 
-  Download, 
-  X, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  EyeOff, 
-  Check 
+import {
+  Home,
+  Network,
+  Search,
+  ChevronDown,
+  Filter,
+  Columns,
+  Download,
+  X,
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
+  Check
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -37,10 +37,10 @@ function normalizeHotelsResponse(data) {
     }
   }
   return items.map((h) => {
-      const id = h?.id ?? h?.hotel_id ?? h?._id ?? null;
-      const name = h?.name ?? h?.title ?? h?.hotel_name ?? `${id ?? ''}`;
-      return { id, name };
-    }).filter((x) => x.id && x.name);
+    const id = h?.id ?? h?.hotel_id ?? h?._id ?? null;
+    const name = h?.name ?? h?.title ?? h?.hotel_name ?? `${id ?? ''}`;
+    return { id, name };
+  }).filter((x) => x.id && x.name);
 }
 
 /* Helper functions */
@@ -66,7 +66,7 @@ function getPriorityColor(p) {
   const low = String(p).toLowerCase();
   if (low === "urgent" || low === "high" || low === "critical") return { dot: "bg-red-500", text: "text-red-700" };
   if (low === "medium") return { dot: "bg-orange-500", text: "text-orange-700" };
-  return { dot: "bg-green-500", text: "text-green-700" }; 
+  return { dot: "bg-green-500", text: "text-green-700" };
 }
 
 function getStatusColor(s) {
@@ -130,7 +130,8 @@ export default function MultiAgency({ user }) {
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [modalMode, setModalMode] = useState('create');
-   
+  const [staffMembers, setStaffMembers] = useState([]);
+
   // Filter States
   const [query, setQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
@@ -159,7 +160,7 @@ export default function MultiAgency({ user }) {
 
   // Define all available columns
   const ALL_COLUMNS = [
-    "checkbox", "type", "reference", "description", "priority", 
+    "checkbox", "type", "reference", "description", "priority",
     "status", "assigned", "date", "actions"
   ];
 
@@ -177,7 +178,7 @@ export default function MultiAgency({ user }) {
   });
 
   const [customColumns, setCustomColumns] = useState([]);
-  const [availableColumns, setAvailableColumns] = useState([]); 
+  const [availableColumns, setAvailableColumns] = useState([]);
 
   const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true, timeout: 15000 }), []);
 
@@ -197,28 +198,28 @@ export default function MultiAgency({ user }) {
 
         const cols = res?.data?.columns || res?.data || [];
         const columnNames = cols.map(c => typeof c === 'string' ? c : c.column_name || c.name || c);
-        
+
         setAvailableColumns(columnNames);
-        
+
         const standardCols = ['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
           'title', 'description', 'property_id', 'property_name', 'category', 'priority',
           'assigned_to', 'reported_by', 'scheduled_date', 'status'];
         const custom = columnNames.filter(c => !standardCols.includes(c));
-        
+
         // Only update if changes detected
         if (JSON.stringify(custom) !== JSON.stringify(customColumns)) {
-            setCustomColumns(custom);
-            
-            // Update visibleColumns for new custom columns (default to visible)
-            setVisibleColumns(prev => {
-              const updated = { ...prev };
-              custom.forEach(col => {
-                if (updated[col] === undefined) {
-                  updated[col] = true;
-                }
-              });
-              return updated;
+          setCustomColumns(custom);
+
+          // Update visibleColumns for new custom columns (default to visible)
+          setVisibleColumns(prev => {
+            const updated = { ...prev };
+            custom.forEach(col => {
+              if (updated[col] === undefined) {
+                updated[col] = true;
+              }
             });
+            return updated;
+          });
         }
       } catch (err) {
         console.warn('Failed to fetch columns:', err);
@@ -267,7 +268,7 @@ export default function MultiAgency({ user }) {
         if (mounted) setHotels(normalized);
       } catch (err) {
         console.warn('Failed to load hotels', err);
-      } 
+      }
     }
     load();
 
@@ -294,16 +295,33 @@ export default function MultiAgency({ user }) {
     } finally { setRecordsLoading(false); }
   };
 
-  const handlePropertyChange = (propId) => {
+  const handlePropertyChange = async (propId) => {
     const prop = hotels.find(h => h.id == propId);
     setFormData(prev => ({
       ...prev,
       property_id: propId,
       property_name: prop?.name || '',
+      // Reset assigned_to and reported_by when property changes
+      assigned_to: '',
+      reported_by: '',
     }));
+
+    // Fetch staff members for the selected property
+    if (propId) {
+      try {
+        const response = await api.get(`/api/staff/for-hotel/${propId}`);
+        const staff = response?.data?.staff || [];
+        setStaffMembers(staff);
+      } catch (err) {
+        console.warn('Failed to fetch staff for property:', err);
+        setStaffMembers([]);
+      }
+    } else {
+      setStaffMembers([]);
+    }
   };
 
-  const handleOpenModal = (mode = 'create', record = null) => {
+  const handleOpenModal = async (mode = 'create', record = null) => {
     setModalMode(mode);
     if (mode === 'create') {
       const baseData = {
@@ -324,11 +342,12 @@ export default function MultiAgency({ user }) {
         customData[col] = '';
       });
       setFormData({ ...baseData, ...customData });
+      setStaffMembers([]); // Clear staff members for new record
     } else {
       // Ensure inputs are never null
       const safeData = { ...record };
       Object.keys(safeData).forEach(key => {
-          if (safeData[key] === null) safeData[key] = '';
+        if (safeData[key] === null) safeData[key] = '';
       });
 
       setFormData({
@@ -336,6 +355,20 @@ export default function MultiAgency({ user }) {
         property_id: record?.property_id || '',
         property_name: record?.property_name || '',
       });
+
+      // Fetch staff members if property is already set
+      if (record?.property_id) {
+        try {
+          const response = await api.get(`/api/staff/for-hotel/${record.property_id}`);
+          const staff = response?.data?.staff || [];
+          setStaffMembers(staff);
+        } catch (err) {
+          console.warn('Failed to fetch staff for property:', err);
+          setStaffMembers([]);
+        }
+      } else {
+        setStaffMembers([]);
+      }
     }
     setSelectedRecord(record);
     setShowModal(true);
@@ -389,7 +422,7 @@ export default function MultiAgency({ user }) {
   const filteredRecords = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
     let list = records.filter(r => {
-      const matchSearch = !q || 
+      const matchSearch = !q ||
         r.title?.toLowerCase().includes(q) ||
         r.description?.toLowerCase().includes(q) ||
         r.reference?.toLowerCase().includes(q);
@@ -398,7 +431,7 @@ export default function MultiAgency({ user }) {
       const matchProperty = !propertyFilter || String(r.property_id) === String(propertyFilter);
       return matchSearch && matchPriority && matchStatus && matchProperty;
     });
-    
+
     // Apply sorting
     if (sortBy) {
       list = [...list].sort((a, b) => {
@@ -422,7 +455,7 @@ export default function MultiAgency({ user }) {
         return 0;
       });
     }
-    
+
     return list;
   }, [records, query, filterPriority, filterStatus, propertyFilter, sortBy]);
 
@@ -570,7 +603,7 @@ export default function MultiAgency({ user }) {
                     className="bg-white border-2 border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 w-72 transition-all shadow-sm hover:shadow-md"
                   />
                 </div>
-                
+
                 {/* View Dropdown */}
                 <div className="relative" ref={viewRef}>
                   <button
@@ -587,124 +620,122 @@ export default function MultiAgency({ user }) {
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       <div className="p-4">
                         <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
-                        
+
                         {/* View Mode Selector */}
                         <div className="mb-3 pb-3 border-b border-gray-200">
                           <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => setViewMode('table')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'table'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
                             >
                               <Columns className="w-4 h-4" />
                               <span>Table</span>
                             </button>
                             <button
                               onClick={() => setViewMode('board')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'board'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
                             >
                               <Network className="w-4 h-4" />
                               <span>Board</span>
                             </button>
                           </div>
                         </div>
-                        
+
                         {viewMode === 'table' && (
                           <>
-                        <button
-                          onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                        >
-                          <span>Column visibility</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">
-                              {Object.values(visibleColumns).filter(Boolean).length} shown
-                            </span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
-                          </div>
-                        </button>
-                        
-                        {/* Column Visibility Panel */}
-                        {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3">
-                            {/* Default Columns Section */}
-                            <div className="mb-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Default Columns</span>
-                                <button
-                                  onClick={() => {
-                                    const updated = { ...visibleColumns };
-                                    ALL_COLUMNS.forEach(col => { updated[col] = false; });
-                                    setVisibleColumns(updated);
-                                  }}
-                                  className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                >
-                                  Hide all
-                                </button>
+                            <button
+                              onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
+                              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                            >
+                              <span>Column visibility</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {Object.values(visibleColumns).filter(Boolean).length} shown
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                               </div>
-                              <div className="space-y-1">
-                                {ALL_COLUMNS.map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                    className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                                  >
-                                    <span className="capitalize">{col}</span>
-                                    {visibleColumns[col] ? (
-                                      <Eye className="w-4 h-4 text-teal-600" />
-                                    ) : (
-                                      <EyeOff className="w-4 h-4 text-gray-400" />
-                                    )}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            {/* Custom Columns Section */}
-                            {customColumns.length > 0 && (
-                              <div className="mb-3 pt-3 border-t border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Custom Columns</span>
-                                  <button
-                                    onClick={() => {
-                                      const updated = { ...visibleColumns };
-                                      customColumns.forEach(col => { updated[col] = false; });
-                                      setVisibleColumns(updated);
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Hide all
-                                  </button>
-                                </div>
-                                <div className="space-y-1">
-                                  {customColumns.map(col => (
+                            </button>
+
+                            {/* Column Visibility Panel */}
+                            {showPropertyVisibility && (
+                              <div className="mt-2 border-t border-gray-200 pt-3">
+                                {/* Default Columns Section */}
+                                <div className="mb-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Default Columns</span>
                                     <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                      className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                                      onClick={() => {
+                                        const updated = { ...visibleColumns };
+                                        ALL_COLUMNS.forEach(col => { updated[col] = false; });
+                                        setVisibleColumns(updated);
+                                      }}
+                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                                     >
-                                      <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                      {visibleColumns[col] ? (
-                                        <Eye className="w-4 h-4 text-teal-600" />
-                                      ) : (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
-                                      )}
+                                      Hide all
                                     </button>
-                                  ))}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {ALL_COLUMNS.map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                        className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                                      >
+                                        <span className="capitalize">{col}</span>
+                                        {visibleColumns[col] ? (
+                                          <Eye className="w-4 h-4 text-teal-600" />
+                                        ) : (
+                                          <EyeOff className="w-4 h-4 text-gray-400" />
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {/* Custom Columns Section */}
+                                {customColumns.length > 0 && (
+                                  <div className="mb-3 pt-3 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Custom Columns</span>
+                                      <button
+                                        onClick={() => {
+                                          const updated = { ...visibleColumns };
+                                          customColumns.forEach(col => { updated[col] = false; });
+                                          setVisibleColumns(updated);
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Hide all
+                                      </button>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                                        >
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          {visibleColumns[col] ? (
+                                            <Eye className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
-                          </div>
-                        )}
-                          </> 
+                          </>
                         )}
                       </div>
                     </div>
@@ -729,7 +760,7 @@ export default function MultiAgency({ user }) {
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <select
                   value={filterPriority}
-                  onChange={(e)=>setFilterPriority(e.target.value)} 
+                  onChange={(e) => setFilterPriority(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option>All Priority</option>
@@ -740,12 +771,12 @@ export default function MultiAgency({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <select
                   value={filterStatus}
-                  onChange={(e)=>setFilterStatus(e.target.value)} 
+                  onChange={(e) => setFilterStatus(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option>All Status</option>
@@ -756,12 +787,12 @@ export default function MultiAgency({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <select
                   value={propertyFilter}
-                  onChange={(e)=>setPropertyFilter(e.target.value)}
+                  onChange={(e) => setPropertyFilter(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">All Properties</option>
@@ -769,12 +800,12 @@ export default function MultiAgency({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <select
                   value={sortBy}
-                  onChange={(e)=>setSortBy(e.target.value)}
+                  onChange={(e) => setSortBy(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">Sort By</option>
@@ -785,7 +816,7 @@ export default function MultiAgency({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               {(filterPriority !== 'All Priority' || filterStatus !== 'All Status' || propertyFilter || sortBy) && (
                 <button
                   onClick={() => {
@@ -805,173 +836,173 @@ export default function MultiAgency({ user }) {
 
           {/* Data Display - Table or Board View */}
           {viewMode === 'table' ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  {visibleColumns.checkbox && (
-                    <th className="text-left py-3 px-4">
-                      <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                    </th>
-                  )}
-                  {visibleColumns.type && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">CATEGORY</th>
-                  )}
-                  {visibleColumns.reference && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
-                  )}
-                  {visibleColumns.description && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
-                  )}
-                  {visibleColumns.priority && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
-                  )}
-                  {visibleColumns.status && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
-                  )}
-                  {visibleColumns.assigned && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
-                  )}
-                  {visibleColumns.date && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
-                  )}
-                  {/* Custom column headers - Matched UI to standard columns */}
-                  {customColumns.map(col => visibleColumns[col] && (
-                    <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {col.replace(/_/g, ' ')}
-                    </th>
-                  ))}
-                  {visibleColumns.actions && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {recordsLoading ? (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    {visibleColumns.checkbox && (
+                      <th className="text-left py-3 px-4">
+                        <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                      </th>
+                    )}
+                    {visibleColumns.type && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">CATEGORY</th>
+                    )}
+                    {visibleColumns.reference && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
+                    )}
+                    {visibleColumns.description && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                    )}
+                    {visibleColumns.priority && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
+                    )}
+                    {visibleColumns.status && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
+                    )}
+                    {visibleColumns.assigned && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                    )}
+                    {visibleColumns.date && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
+                    )}
+                    {/* Custom column headers - Matched UI to standard columns */}
+                    {customColumns.map(col => visibleColumns[col] && (
+                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        {col.replace(/_/g, ' ')}
+                      </th>
+                    ))}
+                    {visibleColumns.actions && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                    )}
                   </tr>
-                ) : filteredRecords.length > 0 ? filteredRecords.map((rec, idx) => {
-                  const priorityStyle = getPriorityColor(rec.priority || "Medium");
-                  const statusStyle = getStatusColor(rec.status || "New");
-                  
-                  return (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      {visibleColumns.checkbox && (
-                        <td className="py-4 px-4">
-                          <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                        </td>
-                      )}
-                      {visibleColumns.type && (
-                        <td className="py-4 px-4">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
-                            {rec.category || "Multi-Agency"}
-                          </span>
-                        </td>
-                      )}
-                      {visibleColumns.reference && (
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700 font-medium">{rec.reference || `MA-${rec.id || idx}`}</span>
-                        </td>
-                      )}
-                      {visibleColumns.description && (
-                        <td className="py-4 px-4">
-                          <div>
-                            <div 
-                              className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
-                              onClick={hasUpdate ? () => handleOpenModal('edit', rec) : undefined}
-                            >
-                              {rec.title || "Record Title"}
-                            </div>
-                            <div className="text-gray-500 text-xs mt-1">
-                              {rec.description || "Record description and information."}
-                            </div>
-                            {rec.property_name && <div className="text-gray-500 text-xs mt-1">Property: {rec.property_name}</div>}
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.priority && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                            <span className={`text-sm ${priorityStyle.text}`}>{rec.priority || "Medium"}</span>
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.status && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                            <span className={`text-sm ${statusStyle.text}`}>{rec.status || "New"}</span>
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.assigned && (
-                        <td className="py-4 px-4">
-                          {!rec.assigned_to ? (
-                            <span className="text-gray-500 text-sm">Unassigned</span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-full ${getAvatarColor(rec.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
-                                {getInitials(rec.assigned_to)}
-                              </div>
-                              <span className="text-gray-900 text-sm">{rec.assigned_to}</span>
-                            </div>
-                          )}
-                        </td>
-                      )}
-                      {visibleColumns.date && (
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700 text-sm">{formatDate(rec.scheduled_date)}</span>
-                        </td>
-                      )}
-                      {/* Custom column cells - Matched UI */}
-                      {customColumns.map(col => visibleColumns[col] && (
-                        <td key={col} className="py-4 px-4">
-                          <span className="text-gray-700 text-sm">{rec[col] || '-'}</span>
-                        </td>
-                      ))}
-                      {visibleColumns.actions && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleOpenModal('view', rec)}
-                              className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
-                              title="View"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            {hasUpdate && (
-                              <button
-                                onClick={() => handleOpenModal('edit', rec)}
-                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
-                                title="Edit"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                            )}
-                            {hasDelete && (
-                              <button
-                                onClick={() => handleDelete(rec.id)}
-                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {recordsLoading ? (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
                     </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">No records found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : filteredRecords.length > 0 ? filteredRecords.map((rec, idx) => {
+                    const priorityStyle = getPriorityColor(rec.priority || "Medium");
+                    const statusStyle = getStatusColor(rec.status || "New");
+
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                        {visibleColumns.checkbox && (
+                          <td className="py-4 px-4">
+                            <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                          </td>
+                        )}
+                        {visibleColumns.type && (
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
+                              {rec.category || "Multi-Agency"}
+                            </span>
+                          </td>
+                        )}
+                        {visibleColumns.reference && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 font-medium">{rec.reference || `MA-${rec.id || idx}`}</span>
+                          </td>
+                        )}
+                        {visibleColumns.description && (
+                          <td className="py-4 px-4">
+                            <div>
+                              <div
+                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
+                                onClick={hasUpdate ? () => handleOpenModal('edit', rec) : undefined}
+                              >
+                                {rec.title || "Record Title"}
+                              </div>
+                              <div className="text-gray-500 text-xs mt-1">
+                                {rec.description || "Record description and information."}
+                              </div>
+                              {rec.property_name && <div className="text-gray-500 text-xs mt-1">Property: {rec.property_name}</div>}
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.priority && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
+                              <span className={`text-sm ${priorityStyle.text}`}>{rec.priority || "Medium"}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.status && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
+                              <span className={`text-sm ${statusStyle.text}`}>{rec.status || "New"}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.assigned && (
+                          <td className="py-4 px-4">
+                            {!rec.assigned_to ? (
+                              <span className="text-gray-500 text-sm">Unassigned</span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(rec.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
+                                  {getInitials(rec.assigned_to)}
+                                </div>
+                                <span className="text-gray-900 text-sm">{rec.assigned_to}</span>
+                              </div>
+                            )}
+                          </td>
+                        )}
+                        {visibleColumns.date && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{formatDate(rec.scheduled_date)}</span>
+                          </td>
+                        )}
+                        {/* Custom column cells - Matched UI */}
+                        {customColumns.map(col => visibleColumns[col] && (
+                          <td key={col} className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{rec[col] || '-'}</span>
+                          </td>
+                        ))}
+                        {visibleColumns.actions && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleOpenModal('view', rec)}
+                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                title="View"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              {hasUpdate && (
+                                <button
+                                  onClick={() => handleOpenModal('edit', rec)}
+                                  className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              )}
+                              {hasDelete && (
+                                <button
+                                  onClick={() => handleDelete(rec.id)}
+                                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">No records found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           ) : (
             /* Board/Kanban View */
             <div className="overflow-x-auto -mx-6 px-6">
@@ -980,7 +1011,7 @@ export default function MultiAgency({ user }) {
                   const statusItems = filteredRecords.filter((record) => {
                     return (record.status || 'New').toLowerCase() === status.toLowerCase();
                   });
-                  
+
                   const getStatusStyle = (status) => {
                     if (status === 'New') {
                       return {
@@ -1036,7 +1067,7 @@ export default function MultiAgency({ user }) {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                           {statusItems.length === 0 ? (
                             <div className="text-center py-8 px-4">
@@ -1046,12 +1077,12 @@ export default function MultiAgency({ user }) {
                           ) : (
                             statusItems.map((record) => {
                               const priorityColor = getPriorityColor(record.priority || "Medium");
-                              
+
                               return (
                                 <div
                                   key={record.id}
                                   className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
-                                  onClick={() => {setSelectedRecord(record); setModalMode('view'); setShowModal(true);}}
+                                  onClick={() => { setSelectedRecord(record); setModalMode('view'); setShowModal(true); }}
                                 >
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-mono text-gray-500">{record.reference || `MA-${record.id}`}</span>
@@ -1062,17 +1093,17 @@ export default function MultiAgency({ user }) {
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
                                     {record.title || "Multi-Agency Case"}
                                   </h4>
-                                  
+
                                   {record.description && (
                                     <p className="text-xs text-gray-500 mb-3 line-clamp-2">
                                       {record.description}
                                     </p>
                                   )}
-                                  
+
                                   <div className="flex items-center gap-2 mb-3">
                                     {record.category && (
                                       <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-medium">
@@ -1080,7 +1111,7 @@ export default function MultiAgency({ user }) {
                                       </span>
                                     )}
                                   </div>
-                                  
+
                                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
                                     <div className="flex items-center gap-2">
                                       {record.assigned_to && record.assigned_to !== 'Unassigned' ? (
@@ -1096,12 +1127,12 @@ export default function MultiAgency({ user }) {
                                         <span className="text-xs text-gray-400">Unassigned</span>
                                       )}
                                     </div>
-                                    
+
                                     <span className="text-xs text-gray-500">
                                       {formatDate(record.scheduled_date)}
                                     </span>
                                   </div>
-                                  
+
                                   <div className="flex items-center gap-1">
                                     <button
                                       onClick={(e) => {
@@ -1158,7 +1189,7 @@ export default function MultiAgency({ user }) {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <div className="flex items-center gap-3">
@@ -1166,18 +1197,17 @@ export default function MultiAgency({ user }) {
                   {modalMode === 'create' ? "New Multi-Agency Referral" : modalMode === 'edit' ? "Edit Referral" : "View Referral"}
                 </h3>
                 {modalMode === 'view' && (
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${
-                    (formData.status||'').toLowerCase() === 'open' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
-                    (formData.status||'').toLowerCase() === 'under review' ? 'bg-purple-50 text-purple-600 border-purple-100' :
-                    (formData.status||'').toLowerCase() === 'escalated' ? 'bg-red-50 text-red-600 border-red-100' :
-                    'bg-green-50 text-green-600 border-green-100'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${(formData.status || '').toLowerCase() === 'open' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                    (formData.status || '').toLowerCase() === 'under review' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                      (formData.status || '').toLowerCase() === 'escalated' ? 'bg-red-50 text-red-600 border-red-100' :
+                        'bg-green-50 text-green-600 border-green-100'
+                    }`}>
                     {formData.status}
                   </span>
                 )}
               </div>
-              <button 
-                onClick={handleCloseModal} 
+              <button
+                onClick={handleCloseModal}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -1190,16 +1220,16 @@ export default function MultiAgency({ user }) {
                 <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
                   <DetailField label="TITLE" value={formData.title} />
                   <DetailField label="PROPERTY" value={formData.property_name} />
-                  
+
                   <DetailField label="CATEGORY" value={formData.category} />
                   <DetailField label="PRIORITY" value={formData.priority} />
-                  
+
                   <DetailField label="REPORTED BY" value={formData.reported_by} />
                   <DetailField label="ASSIGNED TO" value={formData.assigned_to} />
-                  
+
                   <DetailField label="SCHEDULED DATE" value={formatDate(formData.scheduled_date)} />
                   <DetailField label="STATUS" value={formData.status} />
-                  
+
                   {customColumns.map(col => (
                     <DetailField key={col} label={col.replace(/_/g, ' ').toUpperCase()} value={formData[col]} />
                   ))}
@@ -1213,8 +1243,8 @@ export default function MultiAgency({ user }) {
                 </div>
 
                 <div className="flex justify-end pt-4 border-t border-gray-100">
-                  <button 
-                    onClick={handleCloseModal} 
+                  <button
+                    onClick={handleCloseModal}
                     className="px-5 py-2 border border-slate-200 text-slate-700 font-medium rounded hover:bg-slate-50 transition-colors"
                   >
                     Close
@@ -1226,36 +1256,36 @@ export default function MultiAgency({ user }) {
               <form onSubmit={submit} className="p-4">
                 {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-                  
+
                   {/* Row 1: Title & Description */}
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
-                    <input 
-                      required 
-                      value={formData.title || ''} 
+                    <input
+                      required
+                      value={formData.title || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Brief description of task" 
+                      placeholder="Brief description of task"
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     />
                   </div>
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
-                    <textarea 
-                      required 
-                      value={formData.description || ''} 
+                    <textarea
+                      required
+                      value={formData.description || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
-                      placeholder="Detailed description of the referral..." 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" 
+                      placeholder="Detailed description of the referral..."
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
                     />
                   </div>
 
                   {/* Row 2: Property & Category */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
-                    <select 
-                      required 
-                      value={formData.property_id || ''} 
+                    <select
+                      required
+                      value={formData.property_id || ''}
                       onChange={(e) => handlePropertyChange(e.target.value)}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
@@ -1265,9 +1295,9 @@ export default function MultiAgency({ user }) {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
-                    <select 
-                      required 
-                      value={formData.category || ''} 
+                    <select
+                      required
+                      value={formData.category || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
@@ -1279,9 +1309,9 @@ export default function MultiAgency({ user }) {
                   {/* Row 3: Priority & Reported By */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Priority <span className="text-red-500">*</span></label>
-                    <select 
-                      required 
-                      value={formData.priority || 'Medium'} 
+                    <select
+                      required
+                      value={formData.priority || 'Medium'}
                       onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
@@ -1290,32 +1320,61 @@ export default function MultiAgency({ user }) {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                    <input 
-                      required 
-                      value={formData.reported_by || ''} 
-                      onChange={(e) => setFormData(prev => ({ ...prev, reported_by: e.target.value }))}
-                      placeholder="Name of person reporting" 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                    />
+                    {formData.property_id && staffMembers.length > 0 ? (
+                      <select
+                        required
+                        value={formData.reported_by || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, reported_by: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      >
+                        <option value="">Select staff member</option>
+                        {staffMembers.map(staff => (
+                          <option key={staff.id} value={staff.name}>{staff.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        required
+                        value={formData.reported_by || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, reported_by: e.target.value }))}
+                        placeholder={formData.property_id ? "Loading staff..." : "Select property first"}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50"
+                        disabled={!formData.property_id}
+                      />
+                    )}
                   </div>
 
                   {/* Row 4: Assigned To & Scheduled Date */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                    <input 
-                      value={formData.assigned_to || ''} 
-                      onChange={(e) => setFormData(prev => ({ ...prev, assigned_to: e.target.value }))}
-                      placeholder="Name of assignee" 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                    />
+                    {formData.property_id && staffMembers.length > 0 ? (
+                      <select
+                        value={formData.assigned_to || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, assigned_to: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      >
+                        <option value="">Select staff member</option>
+                        {staffMembers.map(staff => (
+                          <option key={staff.id} value={staff.name}>{staff.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={formData.assigned_to || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, assigned_to: e.target.value }))}
+                        placeholder={formData.property_id ? "Loading staff..." : "Select property first"}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50"
+                        disabled={!formData.property_id}
+                      />
+                    )}
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
-                    <input 
-                      type="date" 
-                      value={formatDateISO(formData.scheduled_date) || ''} 
+                    <input
+                      type="date"
+                      value={formatDateISO(formData.scheduled_date) || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                     />
                   </div>
 
@@ -1323,8 +1382,8 @@ export default function MultiAgency({ user }) {
                   {modalMode !== 'create' && (
                     <div className="col-span-1 md:col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                      <select 
-                        value={formData.status || 'New'} 
+                      <select
+                        value={formData.status || 'New'}
                         onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
                         className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                       >
@@ -1342,8 +1401,8 @@ export default function MultiAgency({ user }) {
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         {col.replace(/_/g, ' ').toUpperCase()}
                       </label>
-                      <input 
-                        value={formData[col] || ''} 
+                      <input
+                        value={formData[col] || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
                         placeholder={`Enter ${col.replace(/_/g, ' ')}`}
                         className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
@@ -1354,15 +1413,15 @@ export default function MultiAgency({ user }) {
 
                 {/* Footer Buttons */}
                 <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
-                  <button 
-                    type="button" 
-                    onClick={handleCloseModal} 
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
                     className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={submitting}
                     className="px-4 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 font-medium shadow-sm transition-colors text-sm"
                   >

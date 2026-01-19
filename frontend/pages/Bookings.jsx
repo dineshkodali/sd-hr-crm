@@ -1,13 +1,13 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
-import { 
-  Home, 
-  UserPlus, 
-  Search, 
-  Users, 
-  UserCheck, 
-  UserX, 
+import {
+  Home,
+  UserPlus,
+  Search,
+  Users,
+  UserCheck,
+  UserX,
   Calendar,
   Building,
   BedDouble,
@@ -49,14 +49,14 @@ export default function Bookings({ user }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Data States
   const [bookings, setBookings] = useState([]);
   const [properties, setProperties] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [loadingProperties, setLoadingProperties] = useState(false);
-  
+
   // Mock Rooms Data
   const mockRooms = [
     { id: 1, room_number: '101', type: 'Single', capacity: 1, property_id: 1, status: 'Available' },
@@ -86,20 +86,20 @@ export default function Bookings({ user }) {
     { id: 25, room_number: 'B2', type: 'Sole', capacity: 1, property_id: 4, status: 'Available' },
     { id: 26, room_number: 'B3', type: 'Shared', capacity: 6, property_id: 4, status: 'Available' },
   ];
-  
+
   // Filter States
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'checked-in', 'arriving', 'late', 'pending'
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterProperty, setFilterProperty] = useState('');
   const [sortBy, setSortBy] = useState('');
-  
+
   // View States
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'board'
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [showColumnVisibility, setShowColumnVisibility] = useState(false);
   const viewRef = useRef(null);
-  
+
   // Define all available columns
   const ALL_COLUMNS = [
     "checkbox",
@@ -113,12 +113,12 @@ export default function Bookings({ user }) {
     "status",
     "actions",
   ];
-  
+
   // Column visibility state - all visible by default
   const [visibleColumns, setVisibleColumns] = useState(
     ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {})
   );
-  
+
   // Form States
   const [formData, setFormData] = useState({
     first_name: '',
@@ -138,7 +138,7 @@ export default function Bookings({ user }) {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'warning'
   });
 
@@ -149,10 +149,10 @@ export default function Bookings({ user }) {
     type: 'info'
   });
 
-  const api = useMemo(() => axios.create({ 
-    baseURL: import.meta.env.VITE_API_URL || '', 
-    withCredentials: true, 
-    timeout: 15000 
+  const api = useMemo(() => axios.create({
+    baseURL: import.meta.env.VITE_API_URL || '',
+    withCredentials: true,
+    timeout: 15000
   }), []);
 
   // Load properties first, then bookings
@@ -191,14 +191,14 @@ export default function Bookings({ user }) {
   const loadBookings = async () => {
     try {
       setLoadingBookings(true);
-      
+
       // Fetch service users (bookings are service users)
       const suResponse = await api.get('/api/su/users');
-      const serviceUsers = Array.isArray(suResponse.data?.users) 
-        ? suResponse.data.users 
-        : Array.isArray(suResponse.data) 
-        ? suResponse.data 
-        : [];
+      const serviceUsers = Array.isArray(suResponse.data?.users)
+        ? suResponse.data.users
+        : Array.isArray(suResponse.data)
+          ? suResponse.data
+          : [];
 
       // Fetch move-ins to get room and property associations
       let moveIns = [];
@@ -207,8 +207,8 @@ export default function Bookings({ user }) {
         moveIns = Array.isArray(moveInsResponse.data?.moveIns)
           ? moveInsResponse.data.moveIns
           : Array.isArray(moveInsResponse.data)
-          ? moveInsResponse.data
-          : [];
+            ? moveInsResponse.data
+            : [];
       } catch (err) {
         console.log('Move-ins data not available:', err.message);
       }
@@ -228,10 +228,10 @@ export default function Bookings({ user }) {
       const bookingsData = serviceUsers.map(su => {
         // Find move-in record for this service user
         const moveIn = moveIns.find(mi => mi.service_user_id === su.id || mi.service_user_id === su.service_user_id);
-        
+
         // Find room details
         const room = allRooms.find(r => r.id === su.room_id || r.id === moveIn?.room_id);
-        
+
         // Find property from properties list
         const property = properties.find(p => p.id === su.property_id || p.id === moveIn?.property_id);
 
@@ -276,7 +276,7 @@ export default function Bookings({ user }) {
 
       console.log('Loaded bookings:', bookingsData.length, 'records');
       setBookings(bookingsData);
-      
+
     } catch (err) {
       console.error('Failed to load bookings:', err);
       // Use fallback mock data if API fails
@@ -306,8 +306,8 @@ export default function Bookings({ user }) {
       const list = Array.isArray(res.data?.hotels)
         ? res.data.hotels
         : Array.isArray(res.data)
-        ? res.data
-        : res.data?.data ?? [];
+          ? res.data
+          : res.data?.data ?? [];
       setProperties(list);
     } catch (err) {
       console.error('Failed to load properties', err);
@@ -325,8 +325,8 @@ export default function Bookings({ user }) {
         const roomsList = Array.isArray(res.data?.rooms)
           ? res.data.rooms
           : Array.isArray(res.data)
-          ? res.data
-          : res.data?.data ?? [];
+            ? res.data
+            : res.data?.data ?? [];
         setRooms(roomsList);
       } catch (err) {
         console.error('Failed to load rooms from API, using mock data', err);
@@ -375,12 +375,12 @@ export default function Bookings({ user }) {
           if (booking.move_in_id) {
             await api.delete(`/api/move-ins/${booking.move_in_id}`);
           }
-          
+
           // Then delete service user if needed
           if (booking.service_user_id) {
             await api.delete(`/api/su/users/${booking.service_user_id}`);
           }
-          
+
           setConfirmDialog(prev => ({ ...prev, isOpen: false }));
           loadBookings();
         } catch (err) {
@@ -400,18 +400,18 @@ export default function Bookings({ user }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    
+
     // Validation
-    if (!formData.first_name || !formData.last_name || !formData.date_of_birth || 
-        !formData.nationality || !formData.property_id || !formData.room_id || 
-        !formData.check_in_date) {
+    if (!formData.first_name || !formData.last_name || !formData.date_of_birth ||
+      !formData.nationality || !formData.property_id || !formData.room_id ||
+      !formData.check_in_date) {
       setError('Please fill in all required fields');
       return;
     }
 
     try {
       setSubmitting(true);
-      
+
       // Step 1: Create service user with all required fields
       const suData = {
         first_name: formData.first_name,
@@ -428,11 +428,11 @@ export default function Bookings({ user }) {
         status: 'Active', // Set status
         created_by: user?.id || user?.user_id || null // Track who created
       };
-      
+
       console.log('Creating service user:', suData);
       const suResponse = await api.post('/api/su/users', suData);
       const serviceUserId = suResponse.data.id || suResponse.data.service_user_id || suResponse.data.user_id;
-      
+
       if (!serviceUserId) {
         throw new Error('Failed to create service user - no ID returned');
       }
@@ -448,12 +448,12 @@ export default function Bookings({ user }) {
         status: 'Active',
         notes: `Check-in via booking system on ${new Date().toLocaleDateString()}`
       };
-      
+
       console.log('Creating move-in record:', moveInData);
       await api.post('/api/move-ins', moveInData);
-      
+
       console.log('Booking completed successfully');
-      
+
       // Step 3: Reset form and refresh data
       setFormData({
         first_name: '',
@@ -470,10 +470,10 @@ export default function Bookings({ user }) {
       });
       setShowModal(false);
       setRooms([]); // Clear rooms selection
-      
+
       // Reload bookings to show the new entry
       await loadBookings();
-      
+
       // Show success message
       setAlertDialog({
         isOpen: true,
@@ -481,12 +481,12 @@ export default function Bookings({ user }) {
         message: 'Booking created successfully! Service user has been added to the property.',
         type: 'success'
       });
-      
+
     } catch (err) {
       console.error('Create booking error:', err);
-      const errorMsg = err.response?.data?.error 
-        || err.response?.data?.message 
-        || err.message 
+      const errorMsg = err.response?.data?.error
+        || err.response?.data?.message
+        || err.message
         || 'Failed to create booking. Please check all fields and try again.';
       setError(errorMsg);
     } finally {
@@ -516,7 +516,7 @@ export default function Bookings({ user }) {
       if (activeTab === 'arriving' && b.day?.toLowerCase() !== 'today') return false;
       if (activeTab === 'late' && b.status?.toLowerCase() !== 'late checkout') return false;
       if (activeTab === 'pending' && b.status?.toLowerCase() !== 'pending') return false;
-      
+
       // Search filter
       if (q) {
         const fullName = (b.full_name || '').toLowerCase();
@@ -525,26 +525,26 @@ export default function Bookings({ user }) {
         const roomType = (b.room_type || '').toLowerCase();
         const property = (b.property_name || b.property || '').toLowerCase();
         const status = (b.status || '').toLowerCase();
-        
-        if (!fullName.includes(q) && 
-            !orderNo.includes(q) && 
-            !room.includes(q) && 
-            !roomType.includes(q) && 
-            !property.includes(q) && 
-            !status.includes(q)) {
+
+        if (!fullName.includes(q) &&
+          !orderNo.includes(q) &&
+          !room.includes(q) &&
+          !roomType.includes(q) &&
+          !property.includes(q) &&
+          !status.includes(q)) {
           return false;
         }
       }
-      
+
       // Status filter
       if (filterStatus && b.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
-      
+
       // Property filter  
       if (filterProperty && String(b.property_id) !== String(filterProperty)) return false;
-      
+
       return true;
     });
-    
+
     // Apply sorting
     if (sortBy) {
       list = [...list].sort((a, b) => {
@@ -565,7 +565,7 @@ export default function Bookings({ user }) {
         return 0;
       });
     }
-    
+
     return list;
   }, [bookings, query, filterStatus, filterProperty, sortBy, activeTab]);
 
@@ -585,7 +585,7 @@ export default function Bookings({ user }) {
             </div>
             <p className="text-sm text-gray-600 mt-1">Manage reservations and check-ins</p>
           </div>
-          <button 
+          <button
             onClick={() => setShowModal(true)}
             className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
           >
@@ -640,65 +640,60 @@ export default function Bookings({ user }) {
           <div className="mb-6 flex items-center gap-3 border-b border-gray-200">
             <button
               onClick={() => setActiveTab('all')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'all'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               All Bookings
             </button>
             <button
               onClick={() => setActiveTab('checked-in')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'checked-in'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'checked-in'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               Checked In
             </button>
             <button
               onClick={() => setActiveTab('arriving')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'arriving'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'arriving'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               Arriving Today
             </button>
             <button
               onClick={() => setActiveTab('late')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'late'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'late'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               Late Checkout
             </button>
             <button
               onClick={() => setActiveTab('pending')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'pending'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pending'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               Pending
             </button>
           </div>
-          
+
           {/* Table Header Section */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-1">
-                  {activeTab === 'all' ? 'All Bookings' : 
-                   activeTab === 'checked-in' ? 'Checked In' :
-                   activeTab === 'arriving' ? 'Arriving Today' :
-                   activeTab === 'late' ? 'Late Checkout' : 'Pending'}
+                  {activeTab === 'all' ? 'All Bookings' :
+                    activeTab === 'checked-in' ? 'Checked In' :
+                      activeTab === 'arriving' ? 'Arriving Today' :
+                        activeTab === 'late' ? 'Late Checkout' : 'Pending'}
                 </h2>
                 <p className="text-sm text-gray-500">{filteredBookings.length} of {bookings.length} bookings</p>
               </div>
@@ -714,7 +709,7 @@ export default function Bookings({ user }) {
                     className="bg-white border-2 border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 w-72 transition-all shadow-sm hover:shadow-md"
                   />
                 </div>
-                
+
                 {/* View Dropdown */}
                 <div className="relative" ref={viewRef}>
                   <button
@@ -731,36 +726,34 @@ export default function Bookings({ user }) {
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
                       <div className="p-4">
                         <h3 className="text-sm font-semibold text-gray-900 mb-3">View Settings</h3>
-                        
+
                         {/* View Mode Selector */}
                         <div className="mb-3 pb-3 border-b border-gray-200">
                           <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => setViewMode('table')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'table'
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
                                   ? 'bg-teal-500 text-white shadow-sm'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                                }`}
                             >
                               <Columns className="w-4 h-4" />
                               <span>Table</span>
                             </button>
                             <button
                               onClick={() => setViewMode('board')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'board'
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
                                   ? 'bg-teal-500 text-white shadow-sm'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                                }`}
                             >
                               <ClipboardList className="w-4 h-4" />
                               <span>Board</span>
                             </button>
                           </div>
                         </div>
-                        
+
                         {viewMode === 'table' && (
                           <button
                             onClick={() => setShowColumnVisibility(!showColumnVisibility)}
@@ -775,7 +768,7 @@ export default function Bookings({ user }) {
                             </div>
                           </button>
                         )}
-                        
+
                         {/* Column Visibility Panel */}
                         {showColumnVisibility && (
                           <div className="mt-2 border-t border-gray-200 pt-3">
@@ -802,7 +795,7 @@ export default function Bookings({ user }) {
                                 ))}
                               </div>
                             </div>
-                            
+
                             {Object.values(visibleColumns).some(v => !v) && (
                               <div>
                                 <div className="flex items-center justify-between mb-2">
@@ -834,7 +827,7 @@ export default function Bookings({ user }) {
                   )}
                 </div>
 
-                <button 
+                <button
                   onClick={() => setShowModal(true)}
                   className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
                 >
@@ -848,8 +841,8 @@ export default function Bookings({ user }) {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={filterStatus} 
+                <select
+                  value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -878,8 +871,8 @@ export default function Bookings({ user }) {
               </div>
 
               <div className="relative">
-                <select 
-                  value={sortBy} 
+                <select
+                  value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg px-4 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -1372,10 +1365,10 @@ export default function Bookings({ user }) {
             <form onSubmit={async (e) => {
               e.preventDefault();
               setError(null);
-              
+
               try {
                 setSubmitting(true);
-                
+
                 // Step 1: Update service user with all fields
                 if (selectedBooking.service_user_id) {
                   const updateSuData = {
@@ -1391,11 +1384,11 @@ export default function Bookings({ user }) {
                     room_id: parseInt(formData.room_id),
                     updated_by: user?.id || user?.user_id || null
                   };
-                  
+
                   console.log('Updating service user:', updateSuData);
                   await api.put(`/api/su/users/${selectedBooking.service_user_id}`, updateSuData);
                 }
-                
+
                 // Step 2: Update move-in record if room/property changed
                 if (selectedBooking.move_in_id) {
                   const updateMoveInData = {
@@ -1404,7 +1397,7 @@ export default function Bookings({ user }) {
                     move_in_date: formData.check_in_date,
                     updated_by: user?.id || user?.user_id || null
                   };
-                  
+
                   console.log('Updating move-in record:', updateMoveInData);
                   await api.put(`/api/move-ins/${selectedBooking.move_in_id}`, updateMoveInData);
                 } else {
@@ -1419,26 +1412,26 @@ export default function Bookings({ user }) {
                   };
                   await api.post('/api/move-ins', moveInData);
                 }
-                
+
                 console.log('Booking updated successfully');
-                
+
                 setShowEditModal(false);
                 setSelectedBooking(null);
                 setRooms([]); // Clear rooms selection
                 await loadBookings();
-                
+
                 setAlertDialog({
                   isOpen: true,
                   title: 'Success',
                   message: 'Booking updated successfully!',
                   type: 'success'
                 });
-                
+
               } catch (err) {
                 console.error('Update error:', err);
-                const errorMsg = err.response?.data?.error 
-                  || err.response?.data?.message 
-                  || err.message 
+                const errorMsg = err.response?.data?.error
+                  || err.response?.data?.message
+                  || err.message
                   || 'Failed to update booking';
                 setError(errorMsg);
               } finally {

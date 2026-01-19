@@ -5,7 +5,7 @@ import axios from "axios";
 import { useOutletContext } from "react-router-dom";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import { validatePassword, passwordStrengthLabel, passwordStrengthPercent } from '../src/utils/passwordUtils';
-import { ArrowLeft, Home, AlertCircle, CheckCircle, XCircle } from "lucide-react"; 
+import { ArrowLeft, Home, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 
 axios.defaults.withCredentials = true;
 
@@ -62,15 +62,26 @@ function Avatar({ user, size = 20, fontSizeOverride }) {
 
 /* --- NEW COMPLIANCE & PROFILE UI --- */
 
-function StaffDetailPanel({ open, onClose, user, loading }) {
+function StaffDetailPanel({ open, onClose, user, loading, currentUser, onEditSuccess }) {
   const [activeTab, setActiveTab] = useState("Compliance");
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Debug logging
+  console.log('StaffDetailPanel - currentUser:', currentUser);
+  console.log('StaffDetailPanel - currentUser role:', currentUser?.role);
+
+  const isAdmin = currentUser?.role === 'admin';
+  console.log('StaffDetailPanel - isAdmin:', isAdmin);
+
+  // Temporarily always show edit button for testing
+  const showEditButton = true; // Change to isAdmin after testing
 
   if (!open) return null;
 
   // Data mapping from DB user object
   const name = user?.name || "Unknown Staff";
   const role = user?.role || "Staff";
-  const department = user?.department || user?.branch || "General"; 
+  const department = user?.department || user?.branch || "General";
   const empId = user?.employee_id || `EMP${String(user?.id || "000").padStart(5, '0')}`;
   const joiningDate = user?.joining_date
     ? new Date(user.joining_date).toLocaleDateString()
@@ -82,7 +93,7 @@ function StaffDetailPanel({ open, onClose, user, loading }) {
   // Compliance Data Mapping (Dynamic from DB object)
   const dbsStatus = user?.dbs_status || 'Pending'; // Default to pending if not in DB
   const dbsFile = user?.dbs_document_url || null;
-  
+
   const trainingList = [
     { label: 'Safeguarding Training', status: user?.training_safeguarding || 'Pending' },
     { label: 'First Aid', status: user?.training_first_aid || 'Pending' },
@@ -112,15 +123,15 @@ function StaffDetailPanel({ open, onClose, user, loading }) {
 
       {/* Side Panel */}
       <aside className="relative w-full max-w-6xl bg-[#F8F9FA] shadow-2xl h-full flex flex-col animate-slide-in-right overflow-y-auto">
-        
+
         {loading ? (
-           <div className="flex items-center justify-center h-full text-gray-500">Loading Profile...</div>
+          <div className="flex items-center justify-center h-full text-gray-500">Loading Profile...</div>
         ) : (
           <div className="p-6 md:p-8 space-y-6">
-            
+
             {/* --- TOP HEADER NAVIGATION --- */}
             <div className="flex items-center justify-between">
-              <button 
+              <button
                 onClick={onClose}
                 className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium"
               >
@@ -151,20 +162,34 @@ function StaffDetailPanel({ open, onClose, user, loading }) {
                 {/* Online Status Dot */}
                 <div className="absolute bottom-1 right-1 w-5 h-5 bg-[#4ADE80] border-4 border-white rounded-full"></div>
               </div>
-              
+
               <div className="flex-1 text-center md:text-left">
                 <h2 className="text-xl font-bold text-gray-900">{name}</h2>
                 <p className="text-gray-500 text-sm mt-1">{role} • {department}</p>
-                
-                {/* Updated Button to Teal */}
-                <button className="mt-4 inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
-                  Upload Avatar
-                </button>
+
+                {/* Action Buttons */}
+                <div className="mt-4 flex gap-2">
+                  <button className="inline-flex items-center gap-2 bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Upload Avatar
+                  </button>
+                  {showEditButton && (
+                    <button
+                      onClick={() => setShowEditModal(true)}
+                      className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      Edit
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -195,11 +220,10 @@ function StaffDetailPanel({ open, onClose, user, loading }) {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`flex-1 py-4 text-sm font-medium text-center transition-colors relative ${
-                      activeTab === tab 
-                        ? 'text-teal-600 bg-teal-50/50' 
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`flex-1 py-4 text-sm font-medium text-center transition-colors relative ${activeTab === tab
+                      ? 'text-teal-600 bg-teal-50/50'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     {tab}
                     {activeTab === tab && (
@@ -211,11 +235,11 @@ function StaffDetailPanel({ open, onClose, user, loading }) {
 
               {/* --- TAB CONTENT --- */}
               <div className="p-6 min-h-[300px]">
-                
+
                 {/* COMPLIANCE TAB */}
                 {activeTab === 'Compliance' && (
                   <div className="space-y-6">
-                    
+
                     {/* DBS Check Section - Dynamic Data */}
                     <div className={`flex items-start gap-4 p-4 border rounded-lg bg-white shadow-sm ${dbsStatus.toLowerCase() === 'clear' ? 'border-green-100' : 'border-orange-100'}`}>
                       <div className={`mt-1 ${dbsStatus.toLowerCase() === 'clear' ? 'text-green-500' : 'text-orange-500'}`}>
@@ -270,14 +294,14 @@ function StaffDetailPanel({ open, onClose, user, loading }) {
                           <p className="text-sm font-medium">{user?.address || user?.addr || "No address listed"}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                           <div>
-                              <label className="text-xs text-gray-400">City</label>
-                              <p className="text-sm font-medium">{user?.city || "-"}</p>
-                           </div>
-                           <div>
-                              <label className="text-xs text-gray-400">Country</label>
-                              <p className="text-sm font-medium">{user?.country || "-"}</p>
-                           </div>
+                          <div>
+                            <label className="text-xs text-gray-400">City</label>
+                            <p className="text-sm font-medium">{user?.city || "-"}</p>
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-400">Country</label>
+                            <p className="text-sm font-medium">{user?.country || "-"}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -292,8 +316,8 @@ function StaffDetailPanel({ open, onClose, user, loading }) {
                 )}
                 {activeTab === 'Documents' && (
                   <div className="text-center text-gray-400 py-10 flex flex-col items-center">
-                     <div className="bg-gray-100 p-3 rounded-full mb-3"><svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
-                     No documents uploaded.
+                    <div className="bg-gray-100 p-3 rounded-full mb-3"><svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
+                    No documents uploaded.
                   </div>
                 )}
               </div>
@@ -302,6 +326,19 @@ function StaffDetailPanel({ open, onClose, user, loading }) {
           </div>
         )}
       </aside>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <EditEmployeeModal
+          open={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          employee={user}
+          onSuccess={() => {
+            setShowEditModal(false);
+            if (onEditSuccess) onEditSuccess();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -665,6 +702,280 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
   );
 }
 
+/* Edit Employee Modal */
+function EditEmployeeModal({ open, onClose, employee, onSuccess }) {
+  const [formData, setFormData] = useState({
+    name: employee?.name || '',
+    email: employee?.email || '',
+    phone: employee?.phone || '',
+    role: employee?.role || 'staff',
+    branch: employee?.branch || employee?.department || '',
+    status: employee?.status || 'active',
+    city: employee?.city || '',
+    country: employee?.country || ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    // Basic validation
+    if (!formData.name || !formData.email || !formData.role) {
+      setError('Name, email, and role are required');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        role: formData.role,
+        phone: formData.phone?.trim() || null,
+        branch: formData.branch?.trim() || null,
+        department: formData.branch?.trim() || null,
+        status: formData.status || 'active',
+        city: formData.city?.trim() || null,
+        country: formData.country?.trim() || null
+      };
+
+      console.log('Updating employee:', employee.id, payload);
+
+      const response = await axios.put(`/api/admin/users/${employee.id}`, payload, {
+        withCredentials: true
+      });
+
+      if (response.data) {
+        // Success - close modal and refresh
+        if (onSuccess) onSuccess();
+        onClose();
+      }
+    } catch (err) {
+      console.error('Error updating employee:', err);
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to update employee';
+      setError(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200">
+
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">Edit Employee</h3>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Update employee information for {employee?.name}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-6 max-h-[calc(100vh-300px)] overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="John Smith"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="email@example.com"
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Phone
+                </label>
+                <input
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="Phone number"
+                />
+              </div>
+
+              {/* Role */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Role <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                >
+                  <option value="staff">Staff</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              {/* Branch/Department */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Branch/Department
+                </label>
+                <input
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="Branch or department name"
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Status <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  City
+                </label>
+                <input
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="City"
+                />
+              </div>
+
+              {/* Country */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Country
+                </label>
+                <input
+                  name="country"
+                  value={formData.country}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="Country"
+                />
+              </div>
+
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-3 px-6 py-5 border-t border-gray-100 bg-gray-50">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={submitting}
+              className="px-5 py-2 rounded-lg border border-gray-300 text-slate-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-5 py-2 rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Updating...' : 'Update Employee'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* --- Main Component --- */
 export default function StaffGrid() {
   const outlet = useOutletContext();
@@ -676,6 +987,8 @@ export default function StaffGrid() {
   const [showModal, setShowModal] = useState(false);
   const [showOutModal, setShowOutModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterBranch, setFilterBranch] = useState("");
@@ -1167,6 +1480,21 @@ export default function StaffGrid() {
           onClose={closeDrawer}
           user={selectedUser}
           loading={loadingUser}
+          currentUser={user}
+          onEditSuccess={async () => {
+            await fetchStaff();
+            // Refresh the selected user data
+            if (selectedUserId) {
+              try {
+                const res = await axios.get(`/api/admin/users/${selectedUserId}`, {
+                  withCredentials: true,
+                });
+                setSelectedUser(res.data?.user || res.data);
+              } catch (err) {
+                console.error('Failed to refresh user data:', err);
+              }
+            }
+          }}
         />
 
         {/* Confirmation Dialog */}

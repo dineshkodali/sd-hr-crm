@@ -131,6 +131,9 @@ export default function VulnerableUsers({ user }) {
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [modalMode, setModalMode] = useState('create');
+
+  const [staffUsers, setStaffUsers] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
    
   // Filter States
   const [query, setQuery] = useState('');
@@ -197,6 +200,52 @@ export default function VulnerableUsers({ user }) {
   const [availableColumns, setAvailableColumns] = useState([]); // Corrected useState destructuring
 
   const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true, timeout: 15000 }), []);
+
+  const normalizeStaffResponse = (data) => {
+    const list = data?.staff ?? data?.users ?? data?.rows ?? data?.data ?? data ?? [];
+    const arr = Array.isArray(list) ? list : [];
+    return arr
+      .map((u) => ({
+        id: u?.id ?? u?.user_id ?? null,
+        name: u?.name ?? u?.email ?? [u?.first_name, u?.last_name].filter(Boolean).join(' ') ?? ''
+      }))
+      .filter((u) => u?.id && u?.name);
+  };
+
+  const fetchStaffForHotel = async (hotelId) => {
+    if (!hotelId) {
+      setStaffUsers([]);
+      return;
+    }
+    try {
+      setStaffLoading(true);
+
+      const paths = [
+        `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          const r = await api.get(p);
+          data = r?.data;
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) throw lastErr || new Error('Unable to load staff');
+      setStaffUsers(normalizeStaffResponse(data));
+    } catch (err) {
+      console.error('fetchStaffForHotel error:', err);
+      setStaffUsers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  };
 
   // Save visible columns to localStorage
   useEffect(() => {
@@ -320,8 +369,20 @@ export default function VulnerableUsers({ user }) {
       ...prev,
       property_id: propId,
       property_name: prop?.name || '',
+      reported_by: '',
+      assigned_to: '',
     }));
   };
+
+  useEffect(() => {
+    if (!showModal || modalMode === 'view') return;
+    if (!formData?.property_id) {
+      setStaffUsers([]);
+      return;
+    }
+    fetchStaffForHotel(formData.property_id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showModal, modalMode, formData?.property_id]);
 
   const handleOpenModal = (mode = 'create', record = null) => {
     setModalMode(mode);
@@ -1314,24 +1375,52 @@ export default function VulnerableUsers({ user }) {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                    <input 
-                      required 
-                      value={formData.reported_by || ''} 
+                    <select
+                      required
+                      value={formData.reported_by || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, reported_by: e.target.value }))}
-                      placeholder="Name of person reporting" 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                    />
+                      disabled={!formData.property_id || staffLoading}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.property_id
+                          ? "Select property first"
+                          : staffLoading
+                          ? "Loading staff..."
+                          : "Select staff"}
+                      </option>
+                      {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
+                        <option value={formData.reported_by}>{formData.reported_by}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>{u.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Row 4: Assigned To & Scheduled Date */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                    <input 
-                      value={formData.assigned_to || ''} 
+                    <select
+                      value={formData.assigned_to || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, assigned_to: e.target.value }))}
-                      placeholder="Name of assignee" 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                    />
+                      disabled={!formData.property_id || staffLoading}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.property_id
+                          ? "Select property first"
+                          : staffLoading
+                          ? "Loading staff..."
+                          : "Select staff"}
+                      </option>
+                      {!!formData.assigned_to && !staffUsers.some((u) => String(u.name) === String(formData.assigned_to)) && (
+                        <option value={formData.assigned_to}>{formData.assigned_to}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>{u.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>

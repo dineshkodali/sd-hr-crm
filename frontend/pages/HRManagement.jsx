@@ -45,11 +45,11 @@ function normalizeHotelsResponse(data) {
   else if (Array.isArray(data.data)) items = data.data;
   else if (Array.isArray(data.rows)) items = data.rows;
   else if (Array.isArray(data.hotels)) items = data.hotels;
-  
+
   return items.map((h) => ({
-      id: h?.id ?? h?.hotel_id ?? null,
-      name: h?.name ?? h?.title ?? h?.hotel_name ?? "Unknown Property",
-    })).filter((x) => x.id);
+    id: h?.id ?? h?.hotel_id ?? null,
+    name: h?.name ?? h?.title ?? h?.hotel_name ?? "Unknown Property",
+  })).filter((x) => x.id);
 }
 
 /* SAMPLE fallback data */
@@ -85,7 +85,7 @@ function getPriorityColor(p) {
   const low = String(p).toLowerCase();
   if (low === "urgent") return "text-red-500";
   if (low === "medium") return "text-amber-400";
-  return "text-emerald-500"; 
+  return "text-emerald-500";
 }
 
 function getStatusColor(s) {
@@ -124,13 +124,13 @@ export default function HRManagement() {
   const [query, setQuery] = useState("");
   const [tasks, setTasks] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [hotels, setHotels] = useState([]);
   const [hotelsLoading, setHotelsLoading] = useState(false);
-  
+
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  
+
   const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -185,7 +185,7 @@ export default function HRManagement() {
       const res = await api.get("/api/hr-management", { signal, params: { limit: 200 } });
       const data = res?.data?.data ?? res?.data ?? [];
       let mapped = Array.isArray(data) ? data : [];
-      
+
       const formattedTasks = mapped.map((t) => ({
         id: t.id,
         title: t.title ?? "",
@@ -214,7 +214,7 @@ export default function HRManagement() {
     fetchHotels(ac.signal);
     loadTasks(ac.signal);
     return () => {
-      try { ac.abort(); } catch {}
+      try { ac.abort(); } catch { }
       hotelsControllerRef.current = null;
     };
   }, [fetchHotels, loadTasks]);
@@ -224,8 +224,8 @@ export default function HRManagement() {
     const q = (query || "").trim().toLowerCase();
     const list = tasks || [];
     if (!q) return list;
-    return list.filter((r) => 
-      r.title.toLowerCase().includes(q) || 
+    return list.filter((r) =>
+      r.title.toLowerCase().includes(q) ||
       r.reference.toLowerCase().includes(q) ||
       r.description.toLowerCase().includes(q)
     );
@@ -236,21 +236,21 @@ export default function HRManagement() {
     const total = list.length;
     const now = new Date();
     const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
+
     const overdue = list.filter(t => {
       if (t.status === "Completed") return false;
       const dueDate = t.date ? new Date(t.date) : null;
       return dueDate && dueDate < now;
     }).length;
-    
+
     const dueThisWeek = list.filter(t => {
       if (t.status === "Completed") return false;
       const dueDate = t.date ? new Date(t.date) : null;
       return dueDate && dueDate >= now && dueDate <= oneWeekFromNow;
     }).length;
-    
+
     const completed = list.filter(t => t.status.toLowerCase() === "completed").length;
-    
+
     return { total, overdue, dueThisWeek, completed };
   }, [tasks]);
 
@@ -350,23 +350,23 @@ export default function HRManagement() {
   /* ------------------------- UI RENDERER ------------------------- */
   return (
     <div className="min-h-screen bg-white font-sans text-slate-700 pb-12">
-      
+
       {/* Header */}
       <div className="bg-white px-8 py-6">
         <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-800 tracking-tight">HR Management</h1>
             <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-              <Icons.Home size={14} className="text-slate-400" /> 
+              <Icons.Home size={14} className="text-slate-400" />
               <span>/</span> <span>Employees</span> <span>/</span> <span className="text-slate-900">HR Management</span>
             </div>
           </div>
           {hasCreate && (
-            <button 
+            <button
               onClick={() => setShowCreate(true)}
               className="bg-[#e87c48] hover:bg-[#d66b38] text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all flex items-center gap-2"
             >
-               <Icons.Upload size={16} /> Add Task
+              <Icons.Upload size={16} /> Add Task
             </button>
           )}
         </div>
@@ -382,37 +382,37 @@ export default function HRManagement() {
 
       {/* Main Content */}
       <div className="px-8">
-        
+
         {/* Toolbar - MOVED OUTSIDE THE TABLE AND REDUCED GAP */}
         <div className="flex flex-col gap-2 mb-2">
-            <div className="flex justify-between items-center">
-                <div>
-                   <h2 className="font-bold text-slate-800 text-lg">All Tasks</h2>
-                   <p className="text-xs text-slate-500">{stats.total} total records</p>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                    <div className="relative group">
-                      <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input 
-                        type="text" 
-                        value={query}
-                        onChange={e => setQuery(e.target.value)}
-                        placeholder="Filter tasks..."
-                        className="pl-10 pr-4 py-2 border border-slate-200 rounded-md text-sm w-64 focus:outline-none focus:border-slate-400 transition-all"
-                      />
-                    </div>
-                    <ToolbarButton icon={<Icons.List size={16} />} label="View" hasDropdown />
-                    <ToolbarButton icon={<Icons.Filter size={16} />} label="Filter" />
-                    <ToolbarButton icon={<Icons.Columns size={16} />} label="Columns" />
-                </div>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="font-bold text-slate-800 text-lg">All Tasks</h2>
+              <p className="text-xs text-slate-500">{stats.total} total records</p>
             </div>
 
-            <div className="flex gap-3">
-               <FilterDropdown label="All Priority" />
-               <FilterDropdown label="All Status" />
-               <FilterDropdown label="All Properties" />
+            <div className="flex items-center gap-3">
+              <div className="relative group">
+                <Icons.Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Filter tasks..."
+                  className="pl-10 pr-4 py-2 border border-slate-200 rounded-md text-sm w-64 focus:outline-none focus:border-slate-400 transition-all"
+                />
+              </div>
+              <ToolbarButton icon={<Icons.List size={16} />} label="View" hasDropdown />
+              <ToolbarButton icon={<Icons.Filter size={16} />} label="Filter" />
+              <ToolbarButton icon={<Icons.Columns size={16} />} label="Columns" />
             </div>
+          </div>
+
+          <div className="flex gap-3">
+            <FilterDropdown label="All Priority" />
+            <FilterDropdown label="All Status" />
+            <FilterDropdown label="All Properties" />
+          </div>
         </div>
 
         {/* Table */}
@@ -497,33 +497,33 @@ export default function HRManagement() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-5 border-b border-slate-100">
-                <h3 className="text-lg font-bold text-slate-800">Task Details</h3>
-                <button onClick={() => { setShowView(false); setViewingTask(null); }} className="text-slate-400 hover:text-slate-600"><Icons.X size={20} /></button>
+              <h3 className="text-lg font-bold text-slate-800">Task Details</h3>
+              <button onClick={() => { setShowView(false); setViewingTask(null); }} className="text-slate-400 hover:text-slate-600"><Icons.X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
-               <div>
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Title & Reference</div>
-                  <div className="text-lg font-bold text-slate-800">{viewingTask.title}</div>
-                  <div className="text-sm font-mono text-slate-500">{viewingTask.reference}</div>
-               </div>
-               
-               <div className="bg-slate-50 p-3 rounded border border-slate-100">
-                   <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Description</div>
-                   <p className="text-sm text-slate-600">{viewingTask.description}</p>
-               </div>
+              <div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Title & Reference</div>
+                <div className="text-lg font-bold text-slate-800">{viewingTask.title}</div>
+                <div className="text-sm font-mono text-slate-500">{viewingTask.reference}</div>
+              </div>
 
-               <div className="grid grid-cols-2 gap-4">
-                   <ViewField label="Property" value={viewingTask.raw?.property_name || '-'} />
-                   <ViewField label="Category" value={viewingTask.raw?.category || viewingTask.type} />
-                   <ViewField label="Priority" value={viewingTask.priority} />
-                   <ViewField label="Status" value={viewingTask.status} />
-                   <ViewField label="Assigned To" value={viewingTask.assignedTo} />
-                   <ViewField label="Reported By" value={viewingTask.raw?.reported_by || '-'} />
-                   <ViewField label="Due Date" value={formatDate(viewingTask.date)} />
-               </div>
+              <div className="bg-slate-50 p-3 rounded border border-slate-100">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Description</div>
+                <p className="text-sm text-slate-600">{viewingTask.description}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <ViewField label="Property" value={viewingTask.raw?.property_name || '-'} />
+                <ViewField label="Category" value={viewingTask.raw?.category || viewingTask.type} />
+                <ViewField label="Priority" value={viewingTask.priority} />
+                <ViewField label="Status" value={viewingTask.status} />
+                <ViewField label="Assigned To" value={viewingTask.assignedTo} />
+                <ViewField label="Reported By" value={viewingTask.raw?.reported_by || '-'} />
+                <ViewField label="Due Date" value={formatDate(viewingTask.date)} />
+              </div>
             </div>
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-                <button onClick={() => { setShowView(false); setViewingTask(null); }} className="px-4 py-2 bg-white border border-slate-300 rounded text-sm font-medium text-slate-600 hover:bg-slate-50">Close</button>
+              <button onClick={() => { setShowView(false); setViewingTask(null); }} className="px-4 py-2 bg-white border border-slate-300 rounded text-sm font-medium text-slate-600 hover:bg-slate-50">Close</button>
             </div>
           </div>
         </div>
@@ -543,66 +543,66 @@ export default function HRManagement() {
               </button>
             </div>
             <div className="overflow-y-auto p-6">
-               <form id="taskForm" onSubmit={showEdit ? handleEditSubmit : handleCreateSubmit} className="space-y-6">
-                   {/* Form fields identical to logic but tighter UI */}
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                       <div className="col-span-2">
-                          <label className="block text-sm font-semibold text-slate-700 mb-1">Title <span className="text-red-500">*</span></label>
-                          <input required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-[#e87c48] outline-none" placeholder="Brief description" value={form.title} onChange={e => handleFormChange("title", e.target.value)} />
-                       </div>
-                       <div className="col-span-2">
-                          <label className="block text-sm font-semibold text-slate-700 mb-1">Description <span className="text-red-500">*</span></label>
-                          <textarea required rows={3} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-[#e87c48] outline-none resize-none" placeholder="Detailed description..." value={form.description} onChange={e => handleFormChange("description", e.target.value)} />
-                       </div>
-                       
-                       <div className="grid grid-cols-2 gap-5 col-span-2">
-                           <div>
-                               <label className="block text-sm font-semibold text-slate-700 mb-1">Property</label>
-                               <select required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white" value={form.property_id} onChange={handleHotelChange}>
-                                   <option value="">Select Property</option>
-                                   {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                               </select>
-                           </div>
-                           <div>
-                               <label className="block text-sm font-semibold text-slate-700 mb-1">Category</label>
-                               <select required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white" value={form.category} onChange={e => handleFormChange("category", e.target.value)}>
-                                  <option value="">Select category</option>
-                                  <option value="HR Management">HR Management</option>
-                                  <option value="Employee Relations">Employee Relations</option>
-                                  <option value="Recruitment">Recruitment</option>
-                                  <option value="Training">Training</option>
-                                  <option value="Compliance">Compliance</option>
-                               </select>
-                           </div>
-                       </div>
-                       
-                       <div className="grid grid-cols-2 gap-5 col-span-2">
-                           <div>
-                               <label className="block text-sm font-semibold text-slate-700 mb-1">Priority</label>
-                               <select required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white" value={form.priority} onChange={e => handleFormChange("priority", e.target.value)}>
-                                  <option value="low">Low</option>
-                                  <option value="medium">Medium</option>
-                                  <option value="urgent">Urgent</option>
-                               </select>
-                           </div>
-                           <div>
-                               <label className="block text-sm font-semibold text-slate-700 mb-1">Reported By</label>
-                               <input required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" value={form.reported_by} onChange={e => handleFormChange("reported_by", e.target.value)} />
-                           </div>
-                       </div>
-                       
-                       <div className="grid grid-cols-2 gap-5 col-span-2">
-                           <div>
-                               <label className="block text-sm font-semibold text-slate-700 mb-1">Assigned To</label>
-                               <input className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" value={form.assigned_to_name} onChange={e => handleFormChange("assigned_to_name", e.target.value)} />
-                           </div>
-                           <div>
-                               <label className="block text-sm font-semibold text-slate-700 mb-1">Date</label>
-                               <input type="date" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" value={formatDateISO(form.scheduled_date)} onChange={e => handleFormChange("scheduled_date", e.target.value)} />
-                           </div>
-                       </div>
-                   </div>
-               </form>
+              <form id="taskForm" onSubmit={showEdit ? handleEditSubmit : handleCreateSubmit} className="space-y-6">
+                {/* Form fields identical to logic but tighter UI */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="col-span-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Title <span className="text-red-500">*</span></label>
+                    <input required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-[#e87c48] outline-none" placeholder="Brief description" value={form.title} onChange={e => handleFormChange("title", e.target.value)} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Description <span className="text-red-500">*</span></label>
+                    <textarea required rows={3} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-[#e87c48] outline-none resize-none" placeholder="Detailed description..." value={form.description} onChange={e => handleFormChange("description", e.target.value)} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-5 col-span-2">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Property</label>
+                      <select required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white" value={form.property_id} onChange={handleHotelChange}>
+                        <option value="">Select Property</option>
+                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Category</label>
+                      <select required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white" value={form.category} onChange={e => handleFormChange("category", e.target.value)}>
+                        <option value="">Select category</option>
+                        <option value="HR Management">HR Management</option>
+                        <option value="Employee Relations">Employee Relations</option>
+                        <option value="Recruitment">Recruitment</option>
+                        <option value="Training">Training</option>
+                        <option value="Compliance">Compliance</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-5 col-span-2">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Priority</label>
+                      <select required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white" value={form.priority} onChange={e => handleFormChange("priority", e.target.value)}>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Reported By</label>
+                      <input required className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" value={form.reported_by} onChange={e => handleFormChange("reported_by", e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-5 col-span-2">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Assigned To</label>
+                      <input className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" value={form.assigned_to_name} onChange={e => handleFormChange("assigned_to_name", e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Date</label>
+                      <input type="date" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" value={formatDateISO(form.scheduled_date)} onChange={e => handleFormChange("scheduled_date", e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+              </form>
             </div>
             <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
               <button type="button" onClick={() => { setShowCreate(false); setShowEdit(false); }} className="px-5 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-white font-medium text-sm">Cancel</button>
@@ -674,10 +674,10 @@ function ActionButton({ onClick, icon, title }) {
 }
 
 function ViewField({ label, value }) {
-    return (
-        <div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</div>
-            <div className="text-sm font-medium text-slate-700">{value}</div>
-        </div>
-    );
+  return (
+    <div>
+      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-sm font-medium text-slate-700">{value}</div>
+    </div>
+  );
 }

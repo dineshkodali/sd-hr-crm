@@ -119,13 +119,13 @@ export default function EmployeeTraining() {
   const [query, setQuery] = useState("");
   const [tasks, setTasks] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [hotels, setHotels] = useState([]);
   const [hotelsLoading, setHotelsLoading] = useState(false);
-  
+
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  
+
   const [showEdit, setShowEdit] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -181,7 +181,7 @@ export default function EmployeeTraining() {
       const res = await api.get("/api/employee-training", { signal, params: { limit: 200 } });
       const data = res?.data?.data ?? res?.data ?? [];
       let mapped = Array.isArray(data) ? data : [];
-      
+
       const formattedTasks = mapped.map((t) => ({
         id: t.id,
         title: t.title ?? "",
@@ -210,7 +210,7 @@ export default function EmployeeTraining() {
     fetchHotels(ac.signal);
     loadTasks(ac.signal);
     return () => {
-      try { ac.abort(); } catch {}
+      try { ac.abort(); } catch { }
       hotelsControllerRef.current = null;
     };
   }, [fetchHotels, loadTasks]);
@@ -220,8 +220,8 @@ export default function EmployeeTraining() {
     const q = (query || "").trim().toLowerCase();
     const list = tasks || [];
     if (!q) return list;
-    return list.filter((r) => 
-      r.title.toLowerCase().includes(q) || 
+    return list.filter((r) =>
+      r.title.toLowerCase().includes(q) ||
       r.reference.toLowerCase().includes(q) ||
       r.description.toLowerCase().includes(q)
     );
@@ -232,21 +232,21 @@ export default function EmployeeTraining() {
     const total = list.length;
     const now = new Date();
     const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
+
     const overdue = list.filter(t => {
       if (t.status === "Completed") return false;
       const dueDate = t.date ? new Date(t.date) : null;
       return dueDate && dueDate < now;
     }).length;
-    
+
     const dueThisWeek = list.filter(t => {
       if (t.status === "Completed") return false;
       const dueDate = t.date ? new Date(t.date) : null;
       return dueDate && dueDate >= now && dueDate <= oneWeekFromNow;
     }).length;
-    
+
     const completed = list.filter(t => t.status.toLowerCase() === "completed").length;
-    
+
     return { total, overdue, dueThisWeek, completed };
   }, [tasks]);
 
@@ -346,7 +346,7 @@ export default function EmployeeTraining() {
   /* ------------------------- UI RENDERER ------------------------- */
   return (
     <div className="min-h-screen bg-slate-50/50 font-sans text-slate-700">
-      
+
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-8 py-6">
         <div className="max-w-[1500px] mx-auto">
@@ -358,7 +358,7 @@ export default function EmployeeTraining() {
               </div>
             </div>
             {hasCreate && (
-              <button 
+              <button
                 onClick={() => setShowCreate(true)}
                 className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-medium shadow-md shadow-orange-500/20 transition-all active:scale-95 flex items-center gap-2"
               >
@@ -380,7 +380,7 @@ export default function EmployeeTraining() {
       {/* Main Content */}
       <div className="px-8 py-8">
         <div className="max-w-[1500px] mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          
+
           {/* Toolbar */}
           <div className="p-5 border-b border-slate-100 bg-white">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
@@ -388,12 +388,12 @@ export default function EmployeeTraining() {
                 <h2 className="text-lg font-bold text-slate-800">Training Records</h2>
                 <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-2 py-0.5 rounded-full">{stats.total}</span>
               </div>
-              
+
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <div className="relative flex-1 sm:flex-none">
                   <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     placeholder="Search by ID, title..."
@@ -438,27 +438,27 @@ export default function EmployeeTraining() {
                 ) : filtered.length > 0 ? filtered.map((row) => {
                   const pStyle = getPriorityStyle(row.priority);
                   const sStyle = getStatusStyle(row.status);
-                  
+
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/80 transition-colors group">
                       <td className="p-4 text-center align-top pt-5">
                         <input type="checkbox" className="rounded border-slate-300 accent-orange-500 w-4 h-4 cursor-pointer" />
                       </td>
-                      
+
                       {/* Reference */}
                       <td className="p-4 align-top pt-5">
                         <div className="font-mono text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded w-fit whitespace-nowrap">
                           {row.reference}
                         </div>
                         <div className="mt-2 text-[10px] uppercase text-slate-400 font-bold tracking-wide">
-                            {row.type}
+                          {row.type}
                         </div>
                       </td>
 
                       {/* Title & Desc */}
                       <td className="p-4 align-top pt-5">
                         <div className="font-semibold text-slate-800 text-base cursor-pointer hover:text-orange-600 transition-colors" onClick={() => openEdit(row)}>
-                            {row.title}
+                          {row.title}
                         </div>
                         <div className="text-slate-500 text-xs mt-1 leading-relaxed line-clamp-2">{row.description}</div>
                       </td>
@@ -481,57 +481,57 @@ export default function EmployeeTraining() {
 
                       {/* Assigned To */}
                       <td className="p-4 align-top pt-5">
-                         <div className="flex items-center gap-3">
-                           {row.assignedTo === "Unassigned" ? (
-                             <span className="text-slate-400 text-xs italic bg-slate-50 px-2 py-1 rounded">Unassigned</span>
-                           ) : (
-                             <div className="flex items-center gap-2">
-                               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${getAvatarColor(row.assignedTo)}`}>
-                                   {getInitials(row.assignedTo)}
-                               </div>
-                               <div className="flex flex-col">
-                                   <span className="text-slate-700 font-medium text-xs">{row.assignedTo}</span>
-                               </div>
-                             </div>
-                           )}
-                         </div>
+                        <div className="flex items-center gap-3">
+                          {row.assignedTo === "Unassigned" ? (
+                            <span className="text-slate-400 text-xs italic bg-slate-50 px-2 py-1 rounded">Unassigned</span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${getAvatarColor(row.assignedTo)}`}>
+                                {getInitials(row.assignedTo)}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-slate-700 font-medium text-xs">{row.assignedTo}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* Date */}
                       <td className="p-4 align-top pt-5 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-slate-600">
-                            <IconCalendar size={14} className="text-slate-400"/>
-                            {formatDate(row.date)}
+                          <IconCalendar size={14} className="text-slate-400" />
+                          {formatDate(row.date)}
                         </div>
                       </td>
 
                       {/* Actions */}
                       <td className="p-4 align-top pt-4 text-right">
-                         <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                           <button onClick={() => openView(row)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="View Details">
-                             <IconEye size={18} />
-                           </button>
-                           {hasUpdate && <button onClick={() => openEdit(row)} className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded transition-colors" title="Edit Task">
-                             <IconEdit size={18} />
-                           </button>}
-                           {hasDelete && <button onClick={() => handleDelete(row.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Delete Task">
-                             <IconTrash size={18} />
-                           </button>}
-                         </div>
+                        <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => openView(row)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="View Details">
+                            <IconEye size={18} />
+                          </button>
+                          {hasUpdate && <button onClick={() => openEdit(row)} className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded transition-colors" title="Edit Task">
+                            <IconEdit size={18} />
+                          </button>}
+                          {hasDelete && <button onClick={() => handleDelete(row.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Delete Task">
+                            <IconTrash size={18} />
+                          </button>}
+                        </div>
                       </td>
                     </tr>
                   );
                 }) : (
                   <tr>
                     <td colSpan="8" className="p-12 text-center">
-                        <div className="flex flex-col items-center justify-center text-slate-400">
-                            <div className="bg-slate-50 p-4 rounded-full mb-3">
-                                <IconList size={32} className="opacity-50" />
-                            </div>
-                            <p className="text-base font-medium text-slate-600">No training records found</p>
-                            <p className="text-sm mt-1">Try adjusting your filters or add a new record.</p>
-                            <button onClick={() => setShowCreate(true)} className="mt-4 text-orange-500 hover:text-orange-600 text-sm font-medium">Add Record</button>
+                      <div className="flex flex-col items-center justify-center text-slate-400">
+                        <div className="bg-slate-50 p-4 rounded-full mb-3">
+                          <IconList size={32} className="opacity-50" />
                         </div>
+                        <p className="text-base font-medium text-slate-600">No training records found</p>
+                        <p className="text-sm mt-1">Try adjusting your filters or add a new record.</p>
+                        <button onClick={() => setShowCreate(true)} className="mt-4 text-orange-500 hover:text-orange-600 text-sm font-medium">Add Record</button>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -539,11 +539,11 @@ export default function EmployeeTraining() {
             </table>
           </div>
           <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
-              <div>Showing <span className="font-medium text-slate-700">{filtered.length}</span> of {stats.total} results</div>
-              <div className="flex gap-2">
-                  <button className="px-3 py-1 border border-slate-200 bg-white rounded hover:bg-slate-50 disabled:opacity-50" disabled>Previous</button>
-                  <button className="px-3 py-1 border border-slate-200 bg-white rounded hover:bg-slate-50 disabled:opacity-50" disabled>Next</button>
-              </div>
+            <div>Showing <span className="font-medium text-slate-700">{filtered.length}</span> of {stats.total} results</div>
+            <div className="flex gap-2">
+              <button className="px-3 py-1 border border-slate-200 bg-white rounded hover:bg-slate-50 disabled:opacity-50" disabled>Previous</button>
+              <button className="px-3 py-1 border border-slate-200 bg-white rounded hover:bg-slate-50 disabled:opacity-50" disabled>Next</button>
+            </div>
           </div>
         </div>
       </div>
@@ -552,12 +552,12 @@ export default function EmployeeTraining() {
       {showView && viewingTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-            
+
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
               <div>
                 <h3 className="text-lg font-bold text-slate-800">Training Details</h3>
                 <div className="flex items-center gap-2 mt-1">
-                    <span className="font-mono text-xs text-slate-500 bg-slate-100 px-1.5 rounded">{viewingTask.reference}</span>
+                  <span className="font-mono text-xs text-slate-500 bg-slate-100 px-1.5 rounded">{viewingTask.reference}</span>
                 </div>
               </div>
               <button onClick={() => { setShowView(false); setViewingTask(null); }} className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors">
@@ -567,42 +567,42 @@ export default function EmployeeTraining() {
 
             <div className="p-6 overflow-y-auto max-h-[80vh]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 
-                 {/* Full width section */}
-                 <div className="md:col-span-2 space-y-4">
-                    <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Title</label>
-                        <p className="text-lg font-medium text-slate-900 mt-1">{viewingTask.title}</p>
-                    </div>
-                    <div>
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Description</label>
-                        <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm text-slate-700 leading-relaxed border border-slate-100">
-                            {viewingTask.description || viewingTask.raw?.description}
-                        </div>
-                    </div>
-                 </div>
 
-                 <ViewField label="Status" value={viewingTask.status} pill={getStatusStyle(viewingTask.status)} />
-                 <ViewField label="Priority" value={viewingTask.priority} pill={getPriorityStyle(viewingTask.priority)} />
-                 
-                 <ViewField label="Property" value={viewingTask.raw?.property_name || "N/A"} icon={<IconBuilding size={14}/>} />
-                 <ViewField label="Category" value={viewingTask.raw?.category} />
-                 
-                 <ViewField label="Assigned To" value={viewingTask.assignedTo} icon={<IconUser size={14}/>} />
-                 <ViewField label="Reported By" value={viewingTask.raw?.reported_by} />
-                 
-                 <ViewField label="Scheduled Date" value={formatDate(viewingTask.date)} icon={<IconCalendar size={14}/>} />
-                 <ViewField label="Task Type" value={viewingTask.type} />
+                {/* Full width section */}
+                <div className="md:col-span-2 space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Title</label>
+                    <p className="text-lg font-medium text-slate-900 mt-1">{viewingTask.title}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Description</label>
+                    <div className="mt-1 p-3 bg-slate-50 rounded-lg text-sm text-slate-700 leading-relaxed border border-slate-100">
+                      {viewingTask.description || viewingTask.raw?.description}
+                    </div>
+                  </div>
+                </div>
+
+                <ViewField label="Status" value={viewingTask.status} pill={getStatusStyle(viewingTask.status)} />
+                <ViewField label="Priority" value={viewingTask.priority} pill={getPriorityStyle(viewingTask.priority)} />
+
+                <ViewField label="Property" value={viewingTask.raw?.property_name || "N/A"} icon={<IconBuilding size={14} />} />
+                <ViewField label="Category" value={viewingTask.raw?.category} />
+
+                <ViewField label="Assigned To" value={viewingTask.assignedTo} icon={<IconUser size={14} />} />
+                <ViewField label="Reported By" value={viewingTask.raw?.reported_by} />
+
+                <ViewField label="Scheduled Date" value={formatDate(viewingTask.date)} icon={<IconCalendar size={14} />} />
+                <ViewField label="Task Type" value={viewingTask.type} />
               </div>
 
               <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-slate-100">
-                <button 
-                  onClick={() => { setShowView(false); setViewingTask(null); }} 
+                <button
+                  onClick={() => { setShowView(false); setViewingTask(null); }}
                   className="px-5 py-2.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium transition-colors text-sm"
                 >
                   Close
                 </button>
-                <button 
+                <button
                   onClick={() => { setShowView(false); openEdit(viewingTask); }}
                   className="px-5 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium shadow-sm transition-colors text-sm flex items-center gap-2"
                 >
@@ -618,7 +618,7 @@ export default function EmployeeTraining() {
       {(showCreate || showEdit) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl relative border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-            
+
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
               <div>
                 <h3 className="text-xl font-bold text-slate-800">{showEdit ? "Edit Task" : "Create New Task"}</h3>
@@ -631,136 +631,136 @@ export default function EmployeeTraining() {
 
             <form onSubmit={showEdit ? handleEditSubmit : handleCreateSubmit} className="p-6">
               <div className="space-y-6">
-                
+
                 {/* Top Section */}
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Task Title <span className="text-red-500">*</span></label>
-                        <input 
-                            required 
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all placeholder:text-slate-400" 
-                            placeholder="e.g. Compliance Training Module A"
-                            value={form.title} 
-                            onChange={e => handleFormChange("title", e.target.value)} 
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Description <span className="text-red-500">*</span></label>
-                        <textarea 
-                            required
-                            rows={3}
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-y placeholder:text-slate-400" 
-                            placeholder="Detailed description of the training or task..."
-                            value={form.description} 
-                            onChange={e => handleFormChange("description", e.target.value)} 
-                        />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Task Title <span className="text-red-500">*</span></label>
+                    <input
+                      required
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all placeholder:text-slate-400"
+                      placeholder="e.g. Compliance Training Module A"
+                      value={form.title}
+                      onChange={e => handleFormChange("title", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Description <span className="text-red-500">*</span></label>
+                    <textarea
+                      required
+                      rows={3}
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all resize-y placeholder:text-slate-400"
+                      placeholder="Detailed description of the training or task..."
+                      value={form.description}
+                      onChange={e => handleFormChange("description", e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 <div className="h-px bg-slate-100 w-full" />
 
                 {/* Grid Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Property <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <select 
-                                required
-                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 bg-white appearance-none" 
-                                value={form.property_id} 
-                                onChange={handleHotelChange}
-                            >
-                                <option value="">Select property...</option>
-                                {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                            </select>
-                            <IconChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                        </div>
-                    </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Category <span className="text-red-500">*</span></label>
-                        <div className="relative">
-                            <select 
-                                required
-                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 bg-white appearance-none" 
-                                value={form.category} 
-                                onChange={e => handleFormChange("category", e.target.value)}
-                            >
-                                <option value="">Select category...</option>
-                                <option value="Employee Training">Employee Training</option>
-                                <option value="Onboarding">Onboarding</option>
-                                <option value="Compliance">Compliance</option>
-                                <option value="Skills">Skills</option>
-                            </select>
-                            <IconChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                        </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Property <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <select
+                        required
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 bg-white appearance-none"
+                        value={form.property_id}
+                        onChange={handleHotelChange}
+                      >
+                        <option value="">Select property...</option>
+                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                      </select>
+                      <IconChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     </div>
+                  </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Priority <span className="text-red-500">*</span></label>
-                        <div className="flex gap-3">
-                            {['Low', 'Medium', 'Urgent'].map(p => (
-                                <button
-                                    key={p}
-                                    type="button"
-                                    onClick={() => handleFormChange("priority", p.toLowerCase())}
-                                    className={`flex-1 py-2 text-sm border rounded-lg transition-all ${form.priority === p.toLowerCase() 
-                                        ? 'border-orange-500 bg-orange-50 text-orange-700 font-medium' 
-                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                >
-                                    {p}
-                                </button>
-                            ))}
-                        </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Category <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <select
+                        required
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 bg-white appearance-none"
+                        value={form.category}
+                        onChange={e => handleFormChange("category", e.target.value)}
+                      >
+                        <option value="">Select category...</option>
+                        <option value="Employee Training">Employee Training</option>
+                        <option value="Onboarding">Onboarding</option>
+                        <option value="Compliance">Compliance</option>
+                        <option value="Skills">Skills</option>
+                      </select>
+                      <IconChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     </div>
+                  </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Scheduled Date</label>
-                        <div className="relative">
-                            <input 
-                                type="date"
-                                className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500" 
-                                value={formatDateISO(form.scheduled_date)} 
-                                onChange={e => handleFormChange("scheduled_date", e.target.value)} 
-                            />
-                        </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Priority <span className="text-red-500">*</span></label>
+                    <div className="flex gap-3">
+                      {['Low', 'Medium', 'Urgent'].map(p => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => handleFormChange("priority", p.toLowerCase())}
+                          className={`flex-1 py-2 text-sm border rounded-lg transition-all ${form.priority === p.toLowerCase()
+                            ? 'border-orange-500 bg-orange-50 text-orange-700 font-medium'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          {p}
+                        </button>
+                      ))}
                     </div>
+                  </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Reported By <span className="text-red-500">*</span></label>
-                        <input 
-                            required
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500" 
-                            placeholder="Reporter Name"
-                            value={form.reported_by} 
-                            onChange={e => handleFormChange("reported_by", e.target.value)} 
-                        />
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Scheduled Date</label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                        value={formatDateISO(form.scheduled_date)}
+                        onChange={e => handleFormChange("scheduled_date", e.target.value)}
+                      />
                     </div>
+                  </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Assigned To</label>
-                        <input 
-                            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500" 
-                            placeholder="Assignee Name"
-                            value={form.assigned_to_name} 
-                            onChange={e => handleFormChange("assigned_to_name", e.target.value)} 
-                        />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Reported By <span className="text-red-500">*</span></label>
+                    <input
+                      required
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      placeholder="Reporter Name"
+                      value={form.reported_by}
+                      onChange={e => handleFormChange("reported_by", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Assigned To</label>
+                    <input
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      placeholder="Assignee Name"
+                      value={form.assigned_to_name}
+                      onChange={e => handleFormChange("assigned_to_name", e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Footer */}
               <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-100">
-                <button 
-                  type="button" 
-                  onClick={() => { setShowCreate(false); setShowEdit(false); }} 
+                <button
+                  type="button"
+                  onClick={() => { setShowCreate(false); setShowEdit(false); }}
                   className="px-6 py-2.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium transition-colors text-sm"
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="px-6 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium shadow-md shadow-orange-500/20 transition-all text-sm flex items-center gap-2"
                 >
                   {creating || editing ? "Saving..." : (showEdit ? "Update Task" : "Create Task")}
@@ -784,24 +784,24 @@ function KPICard({ title, count, color, icon, trend }) {
     green: { bg: "bg-emerald-500", light: "bg-emerald-50", text: "text-emerald-600" },
   };
   const theme = styles[color] || styles.blue;
-  
+
   return (
     <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between min-h-[120px] relative overflow-hidden group hover:shadow-md transition-shadow">
       <div className={`absolute top-0 left-0 w-full h-1 ${theme.bg}`}></div>
       <div className="flex justify-between items-start">
         <div>
-           <div className="text-slate-500 text-sm font-semibold uppercase tracking-wider">{title}</div>
-           <div className="text-3xl font-bold text-slate-800 mt-2">{count}</div>
+          <div className="text-slate-500 text-sm font-semibold uppercase tracking-wider">{title}</div>
+          <div className="text-3xl font-bold text-slate-800 mt-2">{count}</div>
         </div>
         <div className={`w-10 h-10 rounded-lg ${theme.light} flex items-center justify-center ${theme.text}`}>
           {icon}
         </div>
       </div>
       {trend && (
-          <div className="mt-3 text-xs font-medium text-slate-400 flex items-center gap-1">
-             <span className={`${theme.text} bg-white border border-slate-100 px-1.5 py-0.5 rounded`}>{trend}</span> 
-             <span>since last week</span>
-          </div>
+        <div className="mt-3 text-xs font-medium text-slate-400 flex items-center gap-1">
+          <span className={`${theme.text} bg-white border border-slate-100 px-1.5 py-0.5 rounded`}>{trend}</span>
+          <span>since last week</span>
+        </div>
       )}
     </div>
   );
@@ -816,23 +816,23 @@ function FilterPill({ label, active }) {
 }
 
 function ViewField({ label, value, icon, pill }) {
-    return (
-        <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
-                {icon} {label}
-            </label>
-            <div className="mt-1">
-                {pill ? (
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${pill.bg} ${pill.border} ${pill.text}`}>
-                        {pill.icon && <span className={`w-1.5 h-1.5 rounded-full bg-current`}></span>}
-                        {value || "N/A"}
-                    </span>
-                ) : (
-                    <p className="text-sm font-medium text-slate-800">{value || "N/A"}</p>
-                )}
-            </div>
-        </div>
-    )
+  return (
+    <div>
+      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+        {icon} {label}
+      </label>
+      <div className="mt-1">
+        {pill ? (
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${pill.bg} ${pill.border} ${pill.text}`}>
+            {pill.icon && <span className={`w-1.5 h-1.5 rounded-full bg-current`}></span>}
+            {value || "N/A"}
+          </span>
+        ) : (
+          <p className="text-sm font-medium text-slate-800">{value || "N/A"}</p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 /* Icons */

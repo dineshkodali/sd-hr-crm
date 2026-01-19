@@ -124,6 +124,9 @@ export default function HSERiskManagement({ user }) {
   const [selected, setSelected] = useState(null);
   const [mode, setMode] = useState('create');
 
+  const [staffUsers, setStaffUsers] = useState([]);
+  const [staffLoading, setStaffLoading] = useState(false);
+
   const [query, setQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
@@ -187,6 +190,52 @@ export default function HSERiskManagement({ user }) {
   });
 
   const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true, timeout: 15000 }), []);
+
+  const normalizeStaffResponse = (data) => {
+    const list = data?.staff ?? data?.users ?? data?.rows ?? data?.data ?? data ?? [];
+    const arr = Array.isArray(list) ? list : [];
+    return arr
+      .map((u) => ({
+        id: u?.id ?? u?.user_id ?? null,
+        name: u?.name ?? u?.email ?? [u?.first_name, u?.last_name].filter(Boolean).join(' ') ?? ''
+      }))
+      .filter((u) => u?.id && u?.name);
+  };
+
+  const fetchStaffForHotel = async (hotelId) => {
+    if (!hotelId) {
+      setStaffUsers([]);
+      return;
+    }
+    try {
+      setStaffLoading(true);
+
+      const paths = [
+        `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+        `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
+      ];
+
+      let data = null;
+      let lastErr = null;
+      for (const p of paths) {
+        try {
+          const r = await api.get(p);
+          data = r?.data;
+          if (data) break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!data) throw lastErr || new Error('Unable to load staff');
+      setStaffUsers(normalizeStaffResponse(data));
+    } catch (err) {
+      console.error('fetchStaffForHotel error:', err);
+      setStaffUsers([]);
+    } finally {
+      setStaffLoading(false);
+    }
+  };
 
   // Save visible columns to localStorage whenever they change
   useEffect(() => {
@@ -347,6 +396,16 @@ export default function HSERiskManagement({ user }) {
     setSelected(rec);
     setShowModal(true);
   };
+
+  useEffect(() => {
+    if (!showModal || mode === 'view') return;
+    if (!formData?.property_id) {
+      setStaffUsers([]);
+      return;
+    }
+    fetchStaffForHotel(formData.property_id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showModal, mode, formData?.property_id]);
   const closeModal = () => { setShowModal(false); setSelected(null); setMode('create'); setError(null); };
 
   const submit = async (e) => {
@@ -1290,7 +1349,11 @@ export default function HSERiskManagement({ user }) {
                     <select 
                       required 
                       value={formData.property_id} 
-                      onChange={(e)=>{const id=e.target.value; const h=hotels.find(h=>h.id==id); setFormData({...formData, property_id:id, property_name: h?.name||''})}} 
+                      onChange={(e)=>{
+                        const id=e.target.value;
+                        const h=hotels.find(h=>h.id==id);
+                        setFormData({ ...formData, property_id:id, property_name: h?.name||'', reported_by:'', assigned_to:'' });
+                      }} 
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
                       <option value="">Select property</option>
@@ -1324,24 +1387,52 @@ export default function HSERiskManagement({ user }) {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                    <input 
-                      required 
-                      value={formData.reported_by} 
-                      onChange={(e)=>setFormData({...formData, reported_by: e.target.value})} 
-                      placeholder="Name of person reporting" 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                    />
+                    <select
+                      required
+                      value={formData.reported_by || ''}
+                      onChange={(e)=>setFormData({...formData, reported_by: e.target.value})}
+                      disabled={!formData.property_id || staffLoading}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.property_id
+                          ? "Select property first"
+                          : staffLoading
+                          ? "Loading staff..."
+                          : "Select staff"}
+                      </option>
+                      {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
+                        <option value={formData.reported_by}>{formData.reported_by}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>{u.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Row 4: Assigned To & Scheduled Date */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                    <input 
-                      value={formData.assigned_to} 
-                      onChange={(e)=>setFormData({...formData, assigned_to: e.target.value})} 
-                      placeholder="Name of assignee" 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                    />
+                    <select
+                      value={formData.assigned_to || ''}
+                      onChange={(e)=>setFormData({...formData, assigned_to: e.target.value})}
+                      disabled={!formData.property_id || staffLoading}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.property_id
+                          ? "Select property first"
+                          : staffLoading
+                          ? "Loading staff..."
+                          : "Select staff"}
+                      </option>
+                      {!!formData.assigned_to && !staffUsers.some((u) => String(u.name) === String(formData.assigned_to)) && (
+                        <option value={formData.assigned_to}>{formData.assigned_to}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>{u.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>

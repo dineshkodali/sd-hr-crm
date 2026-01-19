@@ -114,7 +114,7 @@ export default function ServiceUserProfile() {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'warning'
   });
 
@@ -128,31 +128,35 @@ export default function ServiceUserProfile() {
   // Move Room Functions
   const fetchProperties = async () => {
     try {
-      const res = await axios.get("/api/properties", { withCredentials: true });
-      setProperties(res.data || []);
+      const res = await axios.get("/api/hotels", { withCredentials: true });
+      // Backend returns { hotels: [...] }
+      setProperties(res.data?.hotels || res.data || []);
     } catch (err) {
       console.error("Failed to load properties:", err);
+      setProperties([]); // Set empty array on error
     }
   };
 
   const fetchRoomsForProperty = async (propertyId) => {
     try {
-      const res = await axios.get(`/api/properties/${propertyId}/rooms`, { withCredentials: true });
-      const rooms = res.data || [];
-      
+      const res = await axios.get(`/api/hotels/${propertyId}/rooms`, { withCredentials: true });
+      const rooms = res.data?.rooms || res.data || [];
+
       const floorMap = {};
       rooms.forEach((room) => {
         const floor = room.floor || "Ground Floor";
         if (!floorMap[floor]) floorMap[floor] = [];
         floorMap[floor].push(room);
       });
-      
+
       setFloors(Object.keys(floorMap).sort());
       setAvailableRooms(floorMap);
       setSelectedFloor(null);
       setMoveRoomFormData((prev) => ({ ...prev, floor: "", room_id: "", room_name: "" }));
     } catch (err) {
       console.error("Failed to load rooms:", err);
+      setFloors([]);
+      setAvailableRooms({});
     }
   };
 
@@ -187,14 +191,14 @@ export default function ServiceUserProfile() {
   const handlePropertyChange = (e) => {
     const propId = e.target.value;
     const property = properties.find((p) => p.id === parseInt(propId));
-    
+
     setMoveRoomFormData((prev) => ({
       ...prev,
       property_id: propId,
       property_name: property?.name || "",
     }));
     setSelectedProperty(property);
-    
+
     if (propId) {
       fetchRoomsForProperty(propId);
     }
@@ -209,7 +213,7 @@ export default function ServiceUserProfile() {
   const handleRoomChange = (e) => {
     const roomId = e.target.value;
     const room = availableRooms[selectedFloor]?.find((r) => r.id === parseInt(roomId));
-    
+
     setMoveRoomFormData((prev) => ({
       ...prev,
       room_id: roomId,
@@ -242,13 +246,20 @@ export default function ServiceUserProfile() {
         notes: moveRoomFormData.notes,
       };
 
-      await axios.post("/api/moveins", payload, { withCredentials: true });
-      
+      const moveRes = await axios.post("/api/move-ins", payload, { withCredentials: true });
+      const userUpdate = moveRes?.data?.user_update;
+      if (userUpdate?.attempted && userUpdate?.success === false) {
+        throw new Error(
+          userUpdate?.error ||
+            "Move-in saved, but failed to update service user's current property/room in database."
+        );
+      }
+
       // Reload user data
       const res = await apiRef.current.get(`/su/users/${id}`);
       const userData = res?.data || res;
       setUser(userData);
-      
+
       closeMoveRoom();
       setAlertDialog({
         isOpen: true,
@@ -308,8 +319,8 @@ export default function ServiceUserProfile() {
         if (mounted)
           setError(
             err?.response?.data?.error ||
-              err?.message ||
-              "Unable to load service user"
+            err?.message ||
+            "Unable to load service user"
           );
       } finally {
         if (mounted) setLoading(false);
@@ -360,34 +371,34 @@ export default function ServiceUserProfile() {
 
   // Handle family type, gender, and emergency contact data from the database
   // Normalize array/string/null values
-  const familyType = user?.family_type 
-    ? (Array.isArray(user.family_type) 
-        ? (user.family_type[0] || user.family_type.join(", ") || "Not specified")
-        : (String(user.family_type).trim() || "Not specified"))
+  const familyType = user?.family_type
+    ? (Array.isArray(user.family_type)
+      ? (user.family_type[0] || user.family_type.join(", ") || "Not specified")
+      : (String(user.family_type).trim() || "Not specified"))
     : "Not specified";
-    
+
   const gender = user?.gender
-    ? (Array.isArray(user.gender) 
-        ? (user.gender[0] || "Not specified")
-        : (String(user.gender).trim() || "Not specified"))
+    ? (Array.isArray(user.gender)
+      ? (user.gender[0] || "Not specified")
+      : (String(user.gender).trim() || "Not specified"))
     : "Not specified";
-    
+
   // Ensure dependents is a number
   const dependents = user?.number_of_dependents !== null && user?.number_of_dependents !== undefined
     ? Number(user.number_of_dependents) || 0
     : 0;
-  
+
   // Handle emergency contact information - normalize arrays/strings
   const emergencyContactName = user?.emergency_contact_name
     ? (Array.isArray(user.emergency_contact_name)
-        ? (user.emergency_contact_name[0] || user.emergency_contact_name.join(", ") || "Not specified")
-        : (String(user.emergency_contact_name).trim() || "Not specified"))
+      ? (user.emergency_contact_name[0] || user.emergency_contact_name.join(", ") || "Not specified")
+      : (String(user.emergency_contact_name).trim() || "Not specified"))
     : "Not specified";
-    
+
   const emergencyContactPhone = user?.emergency_contact_phone
     ? (Array.isArray(user.emergency_contact_phone)
-        ? (user.emergency_contact_phone[0] || user.emergency_contact_phone.join(", ") || "Not specified")
-        : (String(user.emergency_contact_phone).trim() || "Not specified"))
+      ? (user.emergency_contact_phone[0] || user.emergency_contact_phone.join(", ") || "Not specified")
+      : (String(user.emergency_contact_phone).trim() || "Not specified"))
     : "Not specified";
 
   if (loading) {
@@ -441,22 +452,21 @@ export default function ServiceUserProfile() {
                 <span className="text-gray-900 font-medium">Profile</span>
               </div>
             </div>
-            <button 
+            <button
               onClick={openMoveRoom}
               className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transition-all flex items-center gap-2 whitespace-nowrap"
             >
               <MapPin size={18} /> Move Room
             </button>
           </div>
-          
+
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Status:</span>
-              <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-                user.status?.toLowerCase() === 'active' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-red-100 text-red-700'
-              }`}>
+              <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${user.status?.toLowerCase() === 'active'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700'
+                }`}>
                 {user.status || "Active"}
               </span>
             </div>
@@ -478,7 +488,7 @@ export default function ServiceUserProfile() {
             )}
             {user.home_office_reference && (
               <div className="ml-auto flex items-center gap-2 text-sm bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
-                <span className="font-semibold text-gray-700">HO Ref:</span> 
+                <span className="font-semibold text-gray-700">HO Ref:</span>
                 <span className="text-gray-600">{user.home_office_reference}</span>
               </div>
             )}
@@ -580,11 +590,10 @@ export default function ServiceUserProfile() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-4 text-sm font-semibold capitalize transition-all border-b-2 whitespace-nowrap ${
-                  activeTab === tab
-                    ? "text-teal-600 border-teal-500 bg-white"
-                    : "text-gray-600 border-transparent hover:text-gray-900 hover:bg-white"
-                }`}
+                className={`px-6 py-4 text-sm font-semibold capitalize transition-all border-b-2 whitespace-nowrap ${activeTab === tab
+                  ? "text-teal-600 border-teal-500 bg-white"
+                  : "text-gray-600 border-transparent hover:text-gray-900 hover:bg-white"
+                  }`}
               >
                 {tab === "health" ? "Health & Diet" : tab}
               </button>
@@ -593,126 +602,126 @@ export default function ServiceUserProfile() {
         </div>
 
         <div className="min-h-[300px]">
-        {activeTab === "profile" && (
-          <div className="space-y-6">
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-1.5 h-7 bg-teal-500 rounded-sm"></div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Personal Information
-                  </h2>
+          {activeTab === "profile" && (
+            <div className="space-y-6">
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-1.5 h-7 bg-teal-500 rounded-sm"></div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      Personal Information
+                    </h2>
+                  </div>
+                  <p className="text-sm text-gray-500 ml-4">
+                    Basic demographic and contact information
+                  </p>
                 </div>
-                <p className="text-sm text-gray-500 ml-4">
-                  Basic demographic and contact information
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                {infoRow("Full Name", computed.fullName)}
-                {infoRow("Date of Birth", formatDate(user.date_of_birth || user.dob))}
-                {infoRow("Gender", gender)}
-                {infoRow("Nationality", user.nationality)}
-                {infoRow("Immigration Status", user.immigration_status)}
-                {infoRow("Home Office Reference", user.home_office_reference)}
-              </div>
-            </section>
-
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-1.5 h-7 bg-purple-500 rounded-sm"></div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Family & Emergency Information
-                  </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                  {infoRow("Full Name", computed.fullName)}
+                  {infoRow("Date of Birth", formatDate(user.date_of_birth || user.dob))}
+                  {infoRow("Gender", gender)}
+                  {infoRow("Nationality", user.nationality)}
+                  {infoRow("Immigration Status", user.immigration_status)}
+                  {infoRow("Home Office Reference", user.home_office_reference)}
                 </div>
-                <p className="text-sm text-gray-500 ml-4">
-                  Family structure and emergency contacts
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                {infoRow("Family Type", familyType)}
-                {infoRow("Number of Dependents", dependents.toString())}
-                {infoRow("Emergency Contact Name", emergencyContactName)}
-                {infoRow("Emergency Contact Phone", emergencyContactPhone)}
-              </div>
-            </section>
+              </section>
 
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-1.5 h-7 bg-blue-500 rounded-sm"></div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Accommodation
-                  </h2>
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-1.5 h-7 bg-purple-500 rounded-sm"></div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      Family & Emergency Information
+                    </h2>
+                  </div>
+                  <p className="text-sm text-gray-500 ml-4">
+                    Family structure and emergency contacts
+                  </p>
                 </div>
-                <p className="text-sm text-gray-500 ml-4">
-                  Current placement details
-                </p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                {infoRow("Property", computed.property === "Not assigned" ? "Not assigned" : computed.property)}
-                {infoRow("Move-in Date", formatDate(user.admission_date))}
-              </div>
-            </section>
-          </div>
-        )}
-
-        {activeTab === "health" && (
-          <div className="space-y-6">
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-1.5 h-7 bg-red-500 rounded-sm"></div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Vulnerabilities
-                  </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                  {infoRow("Family Type", familyType)}
+                  {infoRow("Number of Dependents", dependents.toString())}
+                  {infoRow("Emergency Contact Name", emergencyContactName)}
+                  {infoRow("Emergency Contact Phone", emergencyContactPhone)}
                 </div>
-                <p className="text-sm text-gray-500 ml-4">
-                  Recorded vulnerabilities and risk factors
-                </p>
-              </div>
-              <TagList items={user.vulnerabilities} />
-            </section>
+              </section>
 
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-1.5 h-7 bg-orange-500 rounded-sm"></div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Medical Conditions
-                  </h2>
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-1.5 h-7 bg-blue-500 rounded-sm"></div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      Accommodation
+                    </h2>
+                  </div>
+                  <p className="text-sm text-gray-500 ml-4">
+                    Current placement details
+                  </p>
                 </div>
-                <p className="text-sm text-gray-500 ml-4">
-                  Known medical conditions and requirements
-                </p>
-              </div>
-              <TagList items={user.medical_conditions} />
-            </section>
-
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-1.5 h-7 bg-green-500 rounded-sm"></div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    Dietary Requirements
-                  </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                  {infoRow("Property", computed.property === "Not assigned" ? "Not assigned" : computed.property)}
+                  {infoRow("Move-in Date", formatDate(user.admission_date))}
                 </div>
-                <p className="text-sm text-gray-500 ml-4">
-                  Specific dietary needs and allergies
-                </p>
-              </div>
-              <TagList items={user.dietary_requirements} />
-            </section>
-          </div>
-        )}
+              </section>
+            </div>
+          )}
 
-        {(activeTab === "documents" || activeTab === "checklists") && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-10 text-center text-gray-400">
-            {activeTab === "documents"
-              ? "Document management coming soon."
-              : "Checklist management coming soon."}
-          </div>
-        )}
+          {activeTab === "health" && (
+            <div className="space-y-6">
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-1.5 h-7 bg-red-500 rounded-sm"></div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      Vulnerabilities
+                    </h2>
+                  </div>
+                  <p className="text-sm text-gray-500 ml-4">
+                    Recorded vulnerabilities and risk factors
+                  </p>
+                </div>
+                <TagList items={user.vulnerabilities} />
+              </section>
+
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-1.5 h-7 bg-orange-500 rounded-sm"></div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      Medical Conditions
+                    </h2>
+                  </div>
+                  <p className="text-sm text-gray-500 ml-4">
+                    Known medical conditions and requirements
+                  </p>
+                </div>
+                <TagList items={user.medical_conditions} />
+              </section>
+
+              <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-1.5 h-7 bg-green-500 rounded-sm"></div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      Dietary Requirements
+                    </h2>
+                  </div>
+                  <p className="text-sm text-gray-500 ml-4">
+                    Specific dietary needs and allergies
+                  </p>
+                </div>
+                <TagList items={user.dietary_requirements} />
+              </section>
+            </div>
+          )}
+
+          {(activeTab === "documents" || activeTab === "checklists") && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-10 text-center text-gray-400">
+              {activeTab === "documents"
+                ? "Document management coming soon."
+                : "Checklist management coming soon."}
+            </div>
+          )}
         </div>
       </div>
 
@@ -746,7 +755,7 @@ export default function ServiceUserProfile() {
                     </option>
                     {properties.map((prop) => (
                       <option key={prop.id} value={prop.id}>
-                        {prop.property_name}
+                        {prop.name || prop.property_name || `Hotel ${prop.id}`}
                       </option>
                     ))}
                   </select>
@@ -783,12 +792,12 @@ export default function ServiceUserProfile() {
                     value={moveRoomFormData.room_id || ""}
                     onChange={handleRoomChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    disabled={!moveRoomFormData.floor || availableRooms.length === 0}
+                    disabled={!selectedFloor || !availableRooms[selectedFloor] || availableRooms[selectedFloor].length === 0}
                   >
                     <option value="">
-                      {availableRooms.length === 0 ? "Select floor first" : "Select Room"}
+                      {!selectedFloor ? "Select floor first" : "Select Room"}
                     </option>
-                    {availableRooms.map((room) => (
+                    {selectedFloor && availableRooms[selectedFloor] && availableRooms[selectedFloor].map((room) => (
                       <option key={room.id} value={room.id}>
                         Room {room.room_number}
                         {room.room_name ? ` - ${room.room_name}` : ""}
@@ -803,11 +812,11 @@ export default function ServiceUserProfile() {
                   </label>
                   <input
                     type="date"
-                    value={moveRoomFormData.move_date || ""}
+                    value={moveRoomFormData.move_in_date || ""}
                     onChange={(e) =>
                       setMoveRoomFormData({
                         ...moveRoomFormData,
-                        move_date: e.target.value,
+                        move_in_date: e.target.value,
                       })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -833,13 +842,13 @@ export default function ServiceUserProfile() {
                 />
               </div>
 
-              {moveRoomFormData.room_id && (
+              {moveRoomFormData.room_id && selectedFloor && availableRooms[selectedFloor] && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-900">
                     <span className="font-semibold">Move Summary:</span> Moving to Room{" "}
-                    {availableRooms.find((r) => r.id === moveRoomFormData.room_id)
+                    {availableRooms[selectedFloor].find((r) => r.id === parseInt(moveRoomFormData.room_id))
                       ?.room_number || "N/A"}{" "}
-                    on {moveRoomFormData.move_date || "TBD"}
+                    on {moveRoomFormData.move_in_date || "TBD"}
                   </p>
                 </div>
               )}
@@ -859,7 +868,7 @@ export default function ServiceUserProfile() {
                   !moveRoomFormData.property_id ||
                   !moveRoomFormData.floor ||
                   !moveRoomFormData.room_id ||
-                  !moveRoomFormData.move_date
+                  !moveRoomFormData.move_in_date
                 }
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all"
               >

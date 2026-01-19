@@ -79,7 +79,7 @@ router.patch('/:id', async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ success: false, error: 'Missing id' });
-    
+
     const b = req.body || {};
     const move_out_date = coalesceCamelSnake(b, "move_out_date", "moveOutDate") || null;
     const checklist = b.checklist || b.check_list || null;
@@ -114,11 +114,11 @@ router.patch('/:id', async (req, res) => {
     values.push(id);
     const q = `UPDATE maintenance.move_outs SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
     const result = await pool.query(q, values);
-    
+
     if (!result.rows || result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Not found' });
     }
-    
+
     res.json({ success: true, row: result.rows[0] });
   } catch (err) {
     console.error('[move-outs] update error', err && err.stack ? err.stack : err);

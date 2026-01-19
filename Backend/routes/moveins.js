@@ -10,6 +10,22 @@ function coalesceCamelSnake(body, camel, snake) {
   return body[snake];
 }
 
+async function getTableColumns(tableName) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = $1`,
+      [tableName]
+    );
+    return new Set((rows || []).map((r) => r.column_name));
+  } catch (err) {
+    console.warn(
+      `[move-ins] Failed to read columns for ${tableName}:`,
+      err?.message || err
+    );
+    return new Set();
+  }
+}
+
 // Create move-in
 router.post("/", async (req, res) => {
   try {
@@ -58,8 +74,67 @@ router.post("/", async (req, res) => {
       created_by,
     ];
 
+    // Insert move-in record
     const result = await pool.query(q, values);
-    res.status(201).json({ success: true, row: result.rows[0] });
+
+    // Update service user's current property/hotel assignment
+    const userUpdate = { attempted: false, success: false, error: null };
+    if (service_user_id && property_id) {
+      userUpdate.attempted = true;
+      try {
+        const cols = await getTableColumns("service_users");
+
+        const sets = [];
+        const params = [];
+        const addSet = (col, val) => {
+          if (!cols.has(col)) return;
+          params.push(val);
+          sets.push(`${col} = $${params.length}`);
+        };
+
+        // Store property id in whichever id columns exist
+        addSet("hotel_id", property_id);
+        addSet("property_id", property_id);
+        addSet("accommodation_id", property_id);
+
+        // Store property name in whichever name columns exist
+        addSet("hotel", property_name);
+        addSet("hotel_name", property_name);
+        addSet("property", property_name);
+        addSet("property_name", property_name);
+
+        // Store room information
+        addSet("room_id", room_id);
+        addSet("room_number", room_name);
+        addSet("room", room_name);
+
+        // Timestamp
+        if (cols.has("updated_at")) sets.push("updated_at = NOW()");
+
+        if (sets.length === 0) {
+          userUpdate.success = false;
+          userUpdate.error = "No compatible columns found on service_users for property/room assignment";
+          console.warn(`[move-ins] ${userUpdate.error}`);
+        } else {
+          params.push(service_user_id);
+          const updateUserQuery = `UPDATE service_users SET ${sets.join(", ")} WHERE id = $${params.length}`;
+          await pool.query(updateUserQuery, params);
+          userUpdate.success = true;
+          console.log(
+            `[move-ins] ✅ Updated service user ${service_user_id} to property ${property_id} (${property_name})`
+          );
+        }
+      } catch (updateErr) {
+        userUpdate.success = false;
+        userUpdate.error = updateErr?.message || String(updateErr);
+        console.error(
+          "[move-ins] Failed to update user property assignment:",
+          userUpdate.error
+        );
+      }
+    }
+
+    res.status(201).json({ success: true, row: result.rows[0], user_update: userUpdate });
   } catch (err) {
     console.error("[move-ins] insert error", err && err.stack ? err.stack : err);
     res.status(500).json({ success: false, error: err && err.message ? err.message : String(err) });

@@ -6,21 +6,21 @@ import { AlertModal, ConfirmModal } from '../components/ModalDialogs';
 import { generatePDF } from '../utils/pdfGenerator';
 import { generateCSV } from '../utils/csvGenerator';
 import { DownloadDropdown } from '../components/DownloadDropdown';
-import { 
-  Home, 
-  Briefcase, 
-  Search, 
-  ChevronDown, 
-  Filter, 
-  Columns, 
-  Download, 
-  X, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  AlertCircle, 
-  Clock, 
-  CheckCircle 
+import {
+  Home,
+  Briefcase,
+  Search,
+  ChevronDown,
+  Filter,
+  Columns,
+  Download,
+  X,
+  Edit,
+  Trash2,
+  Eye,
+  AlertCircle,
+  Clock,
+  CheckCircle
 } from "lucide-react";
 
 /* --- Helpers --- */
@@ -51,7 +51,7 @@ function getPriorityColor(p) {
   const low = String(p).toLowerCase();
   if (low === "urgent" || low === "high") return { dot: "bg-red-500", text: "text-red-700" };
   if (low === "medium") return { dot: "bg-orange-500", text: "text-orange-700" };
-  return { dot: "bg-green-500", text: "text-green-700" }; 
+  return { dot: "bg-green-500", text: "text-green-700" };
 }
 
 function getStatusColor(s) {
@@ -75,101 +75,101 @@ const DetailField = ({ label, value }) => (
 );
 
 const CaseManagement = () => {
-        const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true }), []);
-      // Custom columns and available columns
-      const [customColumns, setCustomColumns] = useState([]);
-      const [availableColumns, setAvailableColumns] = useState([
-        "checkbox",
-        "type",
-        "reference",
-        "description",
-        "priority",
-        "status",
-        "assigned",
-        "date",
-        "actions",
-      ]);
+  const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true }), []);
+  // Custom columns and available columns
+  const [customColumns, setCustomColumns] = useState([]);
+  const [availableColumns, setAvailableColumns] = useState([
+    "checkbox",
+    "type",
+    "reference",
+    "description",
+    "priority",
+    "status",
+    "assigned",
+    "date",
+    "actions",
+  ]);
 
-      // Define all available columns
-      const ALL_COLUMNS = availableColumns;
+  // Define all available columns
+  const ALL_COLUMNS = availableColumns;
 
-      // Column visibility state - load from localStorage or default to all visible
-      const [visibleColumns, setVisibleColumns] = useState(() => {
-        try {
-          const saved = localStorage.getItem('caseManagementVisibleColumns');
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            const defaultCols = availableColumns.reduce((a, c) => ({ ...a, [c]: true }), {});
-            return { ...defaultCols, ...parsed };
-          }
-        } catch (e) {
-          console.error('Error loading column visibility:', e);
-        }
-        return availableColumns.reduce((a, c) => ({ ...a, [c]: true }), {});
-      });
+  // Column visibility state - load from localStorage or default to all visible
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('caseManagementVisibleColumns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const defaultCols = availableColumns.reduce((a, c) => ({ ...a, [c]: true }), {});
+        return { ...defaultCols, ...parsed };
+      }
+    } catch (e) {
+      console.error('Error loading column visibility:', e);
+    }
+    return availableColumns.reduce((a, c) => ({ ...a, [c]: true }), {});
+  });
 
-      // Save visible columns to localStorage whenever they change
-      useEffect(() => {
-        try {
-          localStorage.setItem('caseManagementVisibleColumns', JSON.stringify(visibleColumns));
-        } catch (e) {
-          console.warn('Failed to save visible columns to localStorage:', e);
-        }
-      }, [visibleColumns]);
+  // Save visible columns to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('caseManagementVisibleColumns', JSON.stringify(visibleColumns));
+    } catch (e) {
+      console.warn('Failed to save visible columns to localStorage:', e);
+    }
+  }, [visibleColumns]);
 
-      // Fetch available columns from backend
-      const fetchAvailableColumns = async () => {
-        try {
-          const res = await api.get('/api/case-management/columns');
-          const columns = res?.data?.columns || res?.data || [];
-          const defaultColumns = ["checkbox", "type", "reference", "description", "priority", "status", "assigned", "date", "actions"];
-          const systemColumns = [
-            'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
-            'title', 'description', 'property_id', 'property_name', 'category',
-            'priority', 'reported_by', 'assigned_to', 'scheduled_date', 'status'
-          ];
-          const columnNames = columns.map(col => typeof col === 'string' ? col : (col.column_name || col.name || String(col)));
-          const customCols = columnNames.filter(col => !systemColumns.includes(col) && !defaultColumns.includes(col));
-          // Insert custom columns before "actions"
-          const newColumns = [...defaultColumns.slice(0, -1), ...customCols, defaultColumns[defaultColumns.length - 1]];
-          if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
-            setCustomColumns(customCols);
-            setAvailableColumns(newColumns);
-            setVisibleColumns(prev => {
-              const updated = { ...prev };
-              customCols.forEach(col => {
-                if (prev[col] === undefined) {
-                  try {
-                    const saved = localStorage.getItem('caseManagementVisibleColumns');
-                    if (saved) {
-                      const parsed = JSON.parse(saved);
-                      updated[col] = parsed[col] ?? false;
-                    } else {
-                      updated[col] = false;
-                    }
-                  } catch (e) {
-                    updated[col] = false;
-                  }
+  // Fetch available columns from backend
+  const fetchAvailableColumns = async () => {
+    try {
+      const res = await api.get('/api/case-management/columns');
+      const columns = res?.data?.columns || res?.data || [];
+      const defaultColumns = ["checkbox", "type", "reference", "description", "priority", "status", "assigned", "date", "actions"];
+      const systemColumns = [
+        'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
+        'title', 'description', 'property_id', 'property_name', 'category',
+        'priority', 'reported_by', 'assigned_to', 'scheduled_date', 'status'
+      ];
+      const columnNames = columns.map(col => typeof col === 'string' ? col : (col.column_name || col.name || String(col)));
+      const customCols = columnNames.filter(col => !systemColumns.includes(col) && !defaultColumns.includes(col));
+      // Insert custom columns before "actions"
+      const newColumns = [...defaultColumns.slice(0, -1), ...customCols, defaultColumns[defaultColumns.length - 1]];
+      if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
+        setCustomColumns(customCols);
+        setAvailableColumns(newColumns);
+        setVisibleColumns(prev => {
+          const updated = { ...prev };
+          customCols.forEach(col => {
+            if (prev[col] === undefined) {
+              try {
+                const saved = localStorage.getItem('caseManagementVisibleColumns');
+                if (saved) {
+                  const parsed = JSON.parse(saved);
+                  updated[col] = parsed[col] ?? false;
+                } else {
+                  updated[col] = false;
                 }
-              });
-              return updated;
-            });
-          }
-        } catch (err) {
-          console.warn('Failed to fetch columns:', err);
-        }
-      };
+              } catch (e) {
+                updated[col] = false;
+              }
+            }
+          });
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to fetch columns:', err);
+    }
+  };
 
-      // Poll for columns every 5 seconds
-      useEffect(() => {
-        let mounted = true;
-        fetchAvailableColumns();
-        const intervalId = setInterval(() => {
-          if (mounted) fetchAvailableColumns();
-        }, 5000);
-        return () => { mounted = false; clearInterval(intervalId); };
-      }, [api]);
-    // --- Custom Columns State ---
+  // Poll for columns every 5 seconds
+  useEffect(() => {
+    let mounted = true;
+    fetchAvailableColumns();
+    const intervalId = setInterval(() => {
+      if (mounted) fetchAvailableColumns();
+    }, 5000);
+    return () => { mounted = false; clearInterval(intervalId); };
+  }, [api]);
+  // --- Custom Columns State ---
   // Get current user from props or localStorage
   const currentUser = (() => {
     try {
@@ -180,12 +180,12 @@ const CaseManagement = () => {
     }
   })();
 
-   // Get permissions
-   const { canRead, canCreate, canUpdate, canDelete } = usePermissions(currentUser);
-   const hasRead = canRead("case_management");
-   const hasCreate = canCreate("case_management");
-   const hasUpdate = canUpdate("case_management");
-   const hasDelete = canDelete("case_management");
+  // Get permissions
+  const { canRead, canCreate, canUpdate, canDelete } = usePermissions(currentUser);
+  const hasRead = canRead("case_management");
+  const hasCreate = canCreate("case_management");
+  const hasUpdate = canUpdate("case_management");
+  const hasDelete = canDelete("case_management");
 
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -195,6 +195,7 @@ const CaseManagement = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [properties, setProperties] = useState([]);
+  const [staffMembers, setStaffMembers] = useState([]);
 
   // Filter and Sort State
   const [priorityFilter, setPriorityFilter] = useState("");
@@ -211,19 +212,19 @@ const CaseManagement = () => {
   // Define all available columns for Case Management
 
   // Column visibility state - all visible by default
-  
+
   // Modal states
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertMessage, setAlertMessage] = useState({ title: '', message: '', type: 'info' });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState({ title: '', message: '' });
   const [confirmAction, setConfirmAction] = useState(null);
-  
+
   const showAlert = (title, message, type = 'info') => {
     setAlertMessage({ title, message, type });
     setShowAlertModal(true);
   };
-  
+
   const showConfirm = (title, message, onConfirm) => {
     setConfirmMessage({ title, message });
     setConfirmAction(() => onConfirm);
@@ -244,21 +245,21 @@ const CaseManagement = () => {
 
   // Mock Categories
   const categories = [
-    'Plumbing', 'Electrical', 'HVAC', 'Structural', 'Appliances', 
+    'Plumbing', 'Electrical', 'HVAC', 'Structural', 'Appliances',
     'Doors & Windows', 'Flooring', 'Roofing', 'Pest Control', 'Other',
     'Case Management'
   ];
 
   const initialForm = {
-    title: '', 
-    description: '', 
+    title: '',
+    description: '',
     type: '', // Maps to Category
     priority: 'Medium',
     status: 'Pending',
     property: '',
     assigned_to: '',
     reported_by: '',
-    scheduled_date: '', 
+    scheduled_date: '',
   };
   const [formData, setFormData] = useState(initialForm);
 
@@ -282,36 +283,36 @@ const CaseManagement = () => {
       try {
         setLoading(true);
         const res = await api.get('/api/case-management?limit=2000').catch(() => ({ data: [] }));
-        
+
         let data = res.data?.data || res.data || [];
         if (data.length === 0) {
-           data = [
-             { id: 1, type: 'Case Management', reference: 'CSM-2025-e5198a6e', title: 'Passport & VISA Verification', description: 'Operation work required as per inspection report.', priority: 'Medium', status: 'Completed', assigned_to: 'ABC Maintenance', scheduled_date: '2025-02-08T10:00:00', property: '1', reported_by: 'John Doe' },
-             { id: 2, type: 'Plumbing', reference: 'CSM-2025-c51690eb', title: 'Leaking pipe in kitchen', description: 'Urgent leak under the sink.', priority: 'High', status: 'Pending', assigned_to: 'Unassigned', scheduled_date: '2025-09-26T10:00:00', property: '2', reported_by: 'Jane Smith' },
-             { id: 3, type: 'Case Management', reference: 'CSM-2025-cda9bd4e', title: 'AIRE Annual Reporting', description: 'Operation work required as per inspection report.', priority: 'Low', status: 'Completed', assigned_to: 'In-house Team', scheduled_date: '2025-06-02T10:00:00', property: '1', reported_by: 'Admin' },
-           ];
+          data = [
+            { id: 1, type: 'Case Management', reference: 'CSM-2025-e5198a6e', title: 'Passport & VISA Verification', description: 'Operation work required as per inspection report.', priority: 'Medium', status: 'Completed', assigned_to: 'ABC Maintenance', scheduled_date: '2025-02-08T10:00:00', property: '1', reported_by: 'John Doe' },
+            { id: 2, type: 'Plumbing', reference: 'CSM-2025-c51690eb', title: 'Leaking pipe in kitchen', description: 'Urgent leak under the sink.', priority: 'High', status: 'Pending', assigned_to: 'Unassigned', scheduled_date: '2025-09-26T10:00:00', property: '2', reported_by: 'Jane Smith' },
+            { id: 3, type: 'Case Management', reference: 'CSM-2025-cda9bd4e', title: 'AIRE Annual Reporting', description: 'Operation work required as per inspection report.', priority: 'Low', status: 'Completed', assigned_to: 'In-house Team', scheduled_date: '2025-06-02T10:00:00', property: '1', reported_by: 'Admin' },
+          ];
         }
 
         const normalizedData = data.map(item => ({
-            ...item,
-            type: item.type || item.category || 'Other', 
-            property: String(item.property || item.property_id || item.propertyId || '')
+          ...item,
+          type: item.type || item.category || 'Other',
+          property: String(item.property || item.property_id || item.propertyId || '')
         }));
 
         setCases(normalizedData);
       } catch (err) { console.error(err); } finally { setLoading(false); }
     };
-    
+
     const fetchProps = async () => {
-       try {
-         const r = await api.get('/api/hotels?limit=1000').catch(() => ({ data: [] }));
-         let list = r.data?.hotels || r.data?.data || r.data || [];
-         if(list.length === 0) {
-            list = [{id: '1', name: 'Block A'}, {id: '2', name: 'Block B'}, {id: '3', name: 'Riverside Apartments'}];
-         }
-         const cleanList = (Array.isArray(list) ? list : []).map(p => ({...p, id: String(p.id)}));
-         setProperties(cleanList);
-       } catch (e) { setProperties([]); }
+      try {
+        const r = await api.get('/api/hotels?limit=1000').catch(() => ({ data: [] }));
+        let list = r.data?.hotels || r.data?.data || r.data || [];
+        if (list.length === 0) {
+          list = [{ id: '1', name: 'Block A' }, { id: '2', name: 'Block B' }, { id: '3', name: 'Riverside Apartments' }];
+        }
+        const cleanList = (Array.isArray(list) ? list : []).map(p => ({ ...p, id: String(p.id) }));
+        setProperties(cleanList);
+      } catch (e) { setProperties([]); }
     };
 
     fetchData();
@@ -323,19 +324,19 @@ const CaseManagement = () => {
     const total = cases.length;
     const completed = cases.filter(c => String(c.status || '').toLowerCase() === 'completed').length;
     const overdue = cases.filter(c => {
-       if (!c.scheduled_date) return false;
-       const d = new Date(c.scheduled_date);
-       const now = new Date();
-       return d < now && String(c.status || '').toLowerCase() !== 'completed';
+      if (!c.scheduled_date) return false;
+      const d = new Date(c.scheduled_date);
+      const now = new Date();
+      return d < now && String(c.status || '').toLowerCase() !== 'completed';
     }).length;
 
     const dueThisWeek = cases.filter(c => {
-       if (!c.scheduled_date) return false;
-       const d = new Date(c.scheduled_date);
-       const now = new Date();
-       const diffTime = d - now;
-       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-       return diffDays >= 0 && diffDays <= 7 && String(c.status || '').toLowerCase() !== 'completed';
+      if (!c.scheduled_date) return false;
+      const d = new Date(c.scheduled_date);
+      const now = new Date();
+      const diffTime = d - now;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays >= 0 && diffDays <= 7 && String(c.status || '').toLowerCase() !== 'completed';
     }).length;
 
     return { total, overdue, dueThisWeek, completed };
@@ -346,18 +347,35 @@ const CaseManagement = () => {
   const handleAdd = () => {
     setEditingId(null);
     setFormData(initialForm);
+    setStaffMembers([]); // Clear staff members for new record
     setShowForm(true);
   };
 
-  const handleEdit = (c) => {
+  const handleEdit = async (c) => {
     setEditingId(c.id);
     setFormData({
-       ...initialForm,
-       ...c,
-       scheduled_date: c.scheduled_date ? formatDateISO(c.scheduled_date) : '',
-       type: c.type || c.category || '',
-       property: String(c.property_id || c.property || c.propertyId || ''),
+      ...initialForm,
+      ...c,
+      scheduled_date: c.scheduled_date ? formatDateISO(c.scheduled_date) : '',
+      type: c.type || c.category || '',
+      property: String(c.property_id || c.property || c.propertyId || ''),
     });
+
+    // Fetch staff members if property is already set
+    const propId = c.property_id || c.property || c.propertyId;
+    if (propId) {
+      try {
+        const response = await api.get(`/api/staff/for-hotel/${propId}`);
+        const staff = response?.data?.staff || [];
+        setStaffMembers(staff);
+      } catch (err) {
+        console.warn('Failed to fetch staff for property:', err);
+        setStaffMembers([]);
+      }
+    } else {
+      setStaffMembers([]);
+    }
+
     setShowForm(true);
   };
 
@@ -410,9 +428,9 @@ const CaseManagement = () => {
       const res = await api.get('/api/case-management?limit=2000');
       let data = res.data?.data || res.data || [];
       const normalizedData = data.map(item => ({
-          ...item,
-          type: item.type || item.category || 'Other', 
-          property: String(item.property || item.property_id || item.propertyId || '')
+        ...item,
+        type: item.type || item.category || 'Other',
+        property: String(item.property || item.property_id || item.propertyId || '')
       }));
       setCases(normalizedData);
       setShowForm(false);
@@ -429,7 +447,7 @@ const CaseManagement = () => {
       () => handleDeleteConfirmed(id)
     );
   };
-  
+
   const handleDeleteConfirmed = async (id) => {
     try {
       await api.delete(`/api/case-management/${id}`);
@@ -437,9 +455,9 @@ const CaseManagement = () => {
       const res = await api.get('/api/case-management?limit=2000');
       let data = res.data?.data || res.data || [];
       const normalizedData = data.map(item => ({
-          ...item,
-          type: item.type || item.category || 'Other', 
-          property: String(item.property || item.property_id || item.propertyId || '')
+        ...item,
+        type: item.type || item.category || 'Other',
+        property: String(item.property || item.property_id || item.propertyId || '')
       }));
       setCases(normalizedData);
     } catch (err) {
@@ -449,10 +467,10 @@ const CaseManagement = () => {
   };
 
   const getPropertyName = (idOrName) => {
-      if(!idOrName) return '-';
-      if(isNaN(idOrName) && idOrName.length > 3) return idOrName;
-      const prop = properties.find(p => String(p.id) === String(idOrName));
-      return prop ? (prop.name || prop.property_name) : idOrName;
+    if (!idOrName) return '-';
+    if (isNaN(idOrName) && idOrName.length > 3) return idOrName;
+    const prop = properties.find(p => String(p.id) === String(idOrName));
+    return prop ? (prop.name || prop.property_name) : idOrName;
   };
 
   /* --- UI FILTER LOGIC --- */
@@ -462,8 +480,8 @@ const CaseManagement = () => {
     // Search filtering
     const q = (searchTerm || "").trim().toLowerCase();
     if (q) {
-      result = result.filter((r) => 
-        r.title.toLowerCase().includes(q) || 
+      result = result.filter((r) =>
+        r.title.toLowerCase().includes(q) ||
         String(r.reference).toLowerCase().includes(q) ||
         r.status.toLowerCase().includes(q) ||
         (r.description && r.description.toLowerCase().includes(q))
@@ -472,21 +490,21 @@ const CaseManagement = () => {
 
     // Priority filtering
     if (priorityFilter) {
-      result = result.filter((r) => 
+      result = result.filter((r) =>
         String(r.priority).toLowerCase() === priorityFilter.toLowerCase()
       );
     }
 
     // Status filtering
     if (statusFilter) {
-      result = result.filter((r) => 
+      result = result.filter((r) =>
         String(r.status).toLowerCase() === statusFilter.toLowerCase()
       );
     }
 
     // Property filtering
     if (propertyFilter) {
-      result = result.filter((r) => 
+      result = result.filter((r) =>
         String(r.property) === String(propertyFilter) ||
         String(r.property_id) === String(propertyFilter) ||
         String(r.hotel_id) === String(propertyFilter)
@@ -565,7 +583,7 @@ const CaseManagement = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
-      
+
         {/* Page Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
@@ -581,7 +599,7 @@ const CaseManagement = () => {
           {hasCreate && (
             <div className="flex items-center gap-3">
               <DownloadDropdown onDownloadPDF={handleDownloadPDF} onDownloadCSV={handleDownloadCSV} />
-              <button 
+              <button
                 onClick={handleAdd}
                 className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2 px-4 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
               >
@@ -590,7 +608,7 @@ const CaseManagement = () => {
               </button>
             </div>
           )}
-      </div>
+        </div>
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -630,7 +648,7 @@ const CaseManagement = () => {
               <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
             </div>
           </div>
-      </div>
+        </div>
 
         {/* Main Content Area - Table */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
@@ -643,7 +661,7 @@ const CaseManagement = () => {
               </div>
               <div className="flex items-center gap-3">
                 {/* Search Input */}
-               <div className="relative">
+                <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
@@ -652,8 +670,8 @@ const CaseManagement = () => {
                     placeholder="Search..."
                     className="bg-white border-2 border-gray-200 rounded-lg w-72 py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent shadow-sm hover:shadow-md transition-shadow"
                   />
-               </div>
-               
+                </div>
+
                 {/* View Dropdown - REPLACED OLD VIEW BUTTON WITH NEW LOGIC */}
                 <div className="relative" ref={viewRef}>
                   <button
@@ -670,154 +688,152 @@ const CaseManagement = () => {
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       <div className="p-4">
                         <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
-                        
+
                         {/* View Mode Selector */}
                         <div className="mb-3 pb-3 border-b border-gray-200">
                           <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => setViewMode('table')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'table'
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
                                   ? 'bg-teal-500 text-white shadow-sm'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                                }`}
                             >
                               <Columns className="w-4 h-4" />
                               <span>Table</span>
                             </button>
                             <button
                               onClick={() => setViewMode('board')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'board'
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
                                   ? 'bg-teal-500 text-white shadow-sm'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                                }`}
                             >
                               <Briefcase className="w-4 h-4" />
                               <span>Board</span>
                             </button>
                           </div>
                         </div>
-                        
+
                         {viewMode === 'table' && (
                           <>
-                        <button
-                          onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                        >
-                          <span>Column visibility</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">
-                              {Object.values(visibleColumns).filter(Boolean).length} shown
-                            </span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
-                          </div>
-                        </button>
-                        
-                        {/* Property Visibility Panel */}
-                        {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3">
-                            <div className="mb-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Default Columns</span>
-                                <button
-                                  onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: false }), {}))}
-                                  className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                >
-                                  Hide all
-                                </button>
+                            <button
+                              onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
+                              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                            >
+                              <span>Column visibility</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {Object.values(visibleColumns).filter(Boolean).length} shown
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                               </div>
-                              <div className="space-y-1">
-                                {ALL_COLUMNS.filter(col => visibleColumns[col]).map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
-                                    className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                                  >
-                                    <span className="capitalize">{col}</span>
-                                    <Eye className="w-4 h-4 text-teal-600" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            {Object.values(visibleColumns).some(v => !v) && (
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hidden columns</span>
-                                  <button
-                                    onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Show all
-                                  </button>
-                                </div>
-                                <div className="space-y-1">
-                                  {ALL_COLUMNS.filter(col => !visibleColumns[col]).map(col => (
+                            </button>
+
+                            {/* Property Visibility Panel */}
+                            {showPropertyVisibility && (
+                              <div className="mt-2 border-t border-gray-200 pt-3">
+                                <div className="mb-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Default Columns</span>
                                     <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
-                                      className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
+                                      onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: false }), {}))}
+                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                                     >
-                                      <span className="capitalize">{col}</span>
-                                      <EyeOff className="w-4 h-4 text-gray-400" />
+                                      Hide all
                                     </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Custom Columns Section */}
-                            {customColumns.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Custom Columns</span>
-                                </div>
-                                <div className="space-y-1">
-                                  {customColumns.map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                      className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                                    >
-                                      <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                      {visibleColumns[col] ? (
+                                  </div>
+                                  <div className="space-y-1">
+                                    {ALL_COLUMNS.filter(col => visibleColumns[col]).map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
+                                        className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                                      >
+                                        <span className="capitalize">{col}</span>
                                         <Eye className="w-4 h-4 text-teal-600" />
-                                      ) : (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
-                                      )}
-                                    </button>
-                                  ))}
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {Object.values(visibleColumns).some(v => !v) && (
+                                  <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hidden columns</span>
+                                      <button
+                                        onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Show all
+                                      </button>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {ALL_COLUMNS.filter(col => !visibleColumns[col]).map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
+                                          className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
+                                        >
+                                          <span className="capitalize">{col}</span>
+                                          <EyeOff className="w-4 h-4 text-gray-400" />
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Custom Columns Section */}
+                                {customColumns.length > 0 && (
+                                  <div className="mt-3 pt-3 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Custom Columns</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                                        >
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          {visibleColumns[col] ? (
+                                            <Eye className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
-                          </div>
-                        )}
-                          </> 
+                          </>
                         )}
                       </div>
                     </div>
                   )}
                 </div>
 
-               {hasCreate && (
-                  <button 
+                {hasCreate && (
+                  <button
                     onClick={handleAdd}
                     className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
                   >
                     <span>+</span>
                     <span>Create Task</span>
                   </button>
-               )}
+                )}
+              </div>
             </div>
-         </div>
-          
+
             {/* Filter Row */}
             <div className="flex items-center gap-3 flex-wrap">
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
+                <select
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
                   className="bg-gray-100 border border-gray-200 rounded-md pl-9 pr-8 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
@@ -830,10 +846,10 @@ const CaseManagement = () => {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
+                <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="bg-gray-100 border border-gray-200 rounded-md pl-9 pr-8 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
@@ -845,10 +861,10 @@ const CaseManagement = () => {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
+                <select
                   value={propertyFilter}
                   onChange={(e) => setPropertyFilter(e.target.value)}
                   className="bg-gray-100 border border-gray-200 rounded-md pl-9 pr-8 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
@@ -861,7 +877,7 @@ const CaseManagement = () => {
 
               <div className="relative">
                 <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
+                <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-gray-100 border border-gray-200 rounded-md pl-9 pr-8 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
@@ -889,158 +905,158 @@ const CaseManagement = () => {
                 </button>
               )}
             </div>
-         </div>
+          </div>
 
           {/* Data Display - Table or Board View */}
           {viewMode === 'table' ? (
-          <div className="overflow-x-auto">
-             <table className="w-full">
-               <thead>
-                 <tr className="border-b border-gray-200">
-                   {/* Standard columns */}
-                   {visibleColumns.checkbox && (
-                     <th className="text-left py-3 px-4">
-                       <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                     </th>
-                   )}
-                   {visibleColumns.type && (
-                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>
-                   )}
-                   {visibleColumns.reference && (
-                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
-                   )}
-                   {visibleColumns.description && (
-                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
-                   )}
-                   {visibleColumns.priority && (
-                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
-                   )}
-                   {visibleColumns.status && (
-                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
-                   )}
-                   {visibleColumns.assigned && (
-                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
-                   )}
-                   {visibleColumns.date && (
-                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
-                   )}
-                   {/* Custom columns - Styled exactly like other columns */}
-                   {customColumns && customColumns.map(col => visibleColumns[col] && (
-                     <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    {/* Standard columns */}
+                    {visibleColumns.checkbox && (
+                      <th className="text-left py-3 px-4">
+                        <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                      </th>
+                    )}
+                    {visibleColumns.type && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>
+                    )}
+                    {visibleColumns.reference && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
+                    )}
+                    {visibleColumns.description && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                    )}
+                    {visibleColumns.priority && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
+                    )}
+                    {visibleColumns.status && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
+                    )}
+                    {visibleColumns.assigned && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                    )}
+                    {visibleColumns.date && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
+                    )}
+                    {/* Custom columns - Styled exactly like other columns */}
+                    {customColumns && customColumns.map(col => visibleColumns[col] && (
+                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         {col}
-                     </th>
-                   ))}
-                   {visibleColumns.actions && (
-                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
-                   )}
-                 </tr>
-               </thead>
-               <tbody className="divide-y divide-gray-100">
-                 {loading ? (
-                   <tr><td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td></tr>
-                 ) : filteredCases.length > 0 ? filteredCases.map((row) => {
-                   const priorityStyle = getPriorityColor(row.priority);
-                   const statusStyle = getStatusColor(row.status);
-                   return (
-                     <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                       {/* Standard columns */}
-                       {visibleColumns.checkbox && (
-                         <td className="py-4 px-4">
-                           <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                         </td>
-                       )}
-                       {visibleColumns.type && (
-                         <td className="py-4 px-4">
-                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
-                             {row.type || "General"}
-                           </span>
-                         </td>
-                       )}
-                       {visibleColumns.reference && (
-                         <td className="py-4 px-4">
-                           <span className="text-gray-700 font-medium font-mono text-xs">{row.reference}</span>
-                         </td>
-                       )}
-                       {visibleColumns.description && (
-                         <td className="py-4 px-4">
-                           <div>
-                             <div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''}`} onClick={hasUpdate ? () => handleEdit(row) : undefined}>
-                               {row.title}
-                             </div>
-                             <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">
-                               {row.description}
-                             </div>
-                           </div>
-                         </td>
-                       )}
-                       {visibleColumns.priority && (
-                         <td className="py-4 px-4">
-                           <div className="flex items-center gap-2">
-                             <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                             <span className={`text-sm ${priorityStyle.text}`}>{row.priority}</span>
-                           </div>
-                         </td>
-                       )}
-                       {visibleColumns.status && (
-                         <td className="py-4 px-4">
-                           <div className="flex items-center gap-2">
-                             <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                             <span className={`text-sm ${statusStyle.text}`}>{row.status}</span>
-                           </div>
-                         </td>
-                       )}
-                       {visibleColumns.assigned && (
-                         <td className="py-4 px-4">
-                           {row.assigned_to === "Unassigned" || !row.assigned_to ? (
-                             <span className="text-gray-500 text-sm">Unassigned</span>
-                           ) : (
-                             <div className="flex items-center gap-2">
-                               <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
-                                 {getInitials(row.assigned_to)}
-                               </div>
-                               <span className="text-gray-900 text-sm">{row.assigned_to}</span>
-                             </div>
-                           )}
-                         </td>
-                       )}
-                       {visibleColumns.date && (
-                         <td className="py-4 px-4">
-                           <span className="text-gray-700 text-sm">{formatDate(row.scheduled_date)}</span>
-                         </td>
-                       )}
-                       {/* Custom columns - Styled exactly like other columns */}
-                       {customColumns && customColumns.map(col => visibleColumns[col] && (
-                         <td key={col} className="py-4 px-4">
-                           <span className="text-gray-700 text-sm">{row[col] ?? '-'}</span>
-                         </td>
-                       ))}
-                       {visibleColumns.actions && (
-                         <td className="py-4 px-4">
-                           <div className="flex items-center gap-2">
-                             <button onClick={() => handleView(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="View">
+                      </th>
+                    ))}
+                    {visibleColumns.actions && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr><td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td></tr>
+                  ) : filteredCases.length > 0 ? filteredCases.map((row) => {
+                    const priorityStyle = getPriorityColor(row.priority);
+                    const statusStyle = getStatusColor(row.status);
+                    return (
+                      <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                        {/* Standard columns */}
+                        {visibleColumns.checkbox && (
+                          <td className="py-4 px-4">
+                            <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                          </td>
+                        )}
+                        {visibleColumns.type && (
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
+                              {row.type || "General"}
+                            </span>
+                          </td>
+                        )}
+                        {visibleColumns.reference && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 font-medium font-mono text-xs">{row.reference}</span>
+                          </td>
+                        )}
+                        {visibleColumns.description && (
+                          <td className="py-4 px-4">
+                            <div>
+                              <div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''}`} onClick={hasUpdate ? () => handleEdit(row) : undefined}>
+                                {row.title}
+                              </div>
+                              <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">
+                                {row.description}
+                              </div>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.priority && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
+                              <span className={`text-sm ${priorityStyle.text}`}>{row.priority}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.status && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
+                              <span className={`text-sm ${statusStyle.text}`}>{row.status}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.assigned && (
+                          <td className="py-4 px-4">
+                            {row.assigned_to === "Unassigned" || !row.assigned_to ? (
+                              <span className="text-gray-500 text-sm">Unassigned</span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
+                                  {getInitials(row.assigned_to)}
+                                </div>
+                                <span className="text-gray-900 text-sm">{row.assigned_to}</span>
+                              </div>
+                            )}
+                          </td>
+                        )}
+                        {visibleColumns.date && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{formatDate(row.scheduled_date)}</span>
+                          </td>
+                        )}
+                        {/* Custom columns - Styled exactly like other columns */}
+                        {customColumns && customColumns.map(col => visibleColumns[col] && (
+                          <td key={col} className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{row[col] ?? '-'}</span>
+                          </td>
+                        ))}
+                        {visibleColumns.actions && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => handleView(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="View">
                                 <Eye className="w-4 h-4" />
-                             </button>
-                             {hasUpdate && (
-                               <button onClick={() => handleEdit(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="Edit">
-                                 <Edit className="w-4 h-4" />
-                               </button>
-                             )}
-                             {hasDelete && (
-                               <button onClick={() => handleDelete(row.id)} className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete">
-                                 <Trash2 className="w-4 h-4" />
-                               </button>
-                             )}
-                           </div>
-                         </td>
-                       )}
-                     </tr>
-                   );
-                 }) : (
-                   <tr><td colSpan="9" className="py-8 text-center text-gray-500">No cases found.</td></tr>
-                 )}
-               </tbody>
-            </table>
-          </div>
+                              </button>
+                              {hasUpdate && (
+                                <button onClick={() => handleEdit(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="Edit">
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              )}
+                              {hasDelete && (
+                                <button onClick={() => handleDelete(row.id)} className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  }) : (
+                    <tr><td colSpan="9" className="py-8 text-center text-gray-500">No cases found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           ) : (
             /* Board/Kanban View */
             <div className="overflow-x-auto -mx-6 px-6">
@@ -1050,7 +1066,7 @@ const CaseManagement = () => {
                     const itemStatus = caseItem.status || 'New';
                     return itemStatus.toLowerCase() === status.toLowerCase();
                   });
-                  
+
                   const getStatusStyle = (status) => {
                     if (status === 'New') {
                       return {
@@ -1106,7 +1122,7 @@ const CaseManagement = () => {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                           {statusItems.length === 0 ? (
                             <div className="text-center py-8 px-4">
@@ -1116,7 +1132,7 @@ const CaseManagement = () => {
                           ) : (
                             statusItems.map((caseItem) => {
                               const priorityColor = getPriorityColor(caseItem.priority || "Medium");
-                              
+
                               return (
                                 <div
                                   key={caseItem.id}
@@ -1132,17 +1148,17 @@ const CaseManagement = () => {
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
                                     {caseItem.title || "Case"}
                                   </h4>
-                                  
+
                                   {caseItem.description && (
                                     <p className="text-xs text-gray-500 mb-3 line-clamp-2">
                                       {caseItem.description}
                                     </p>
                                   )}
-                                  
+
                                   <div className="flex items-center gap-2 mb-3">
                                     {caseItem.category && (
                                       <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-medium">
@@ -1150,7 +1166,7 @@ const CaseManagement = () => {
                                       </span>
                                     )}
                                   </div>
-                                  
+
                                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
                                     <div className="flex items-center gap-2">
                                       {caseItem.assigned_to && caseItem.assigned_to !== 'Unassigned' ? (
@@ -1166,12 +1182,12 @@ const CaseManagement = () => {
                                         <span className="text-xs text-gray-400">Unassigned</span>
                                       )}
                                     </div>
-                                    
+
                                     <span className="text-xs text-gray-500">
                                       {formatDate(caseItem.date)}
                                     </span>
                                   </div>
-                                  
+
                                   <div className="flex items-center gap-1">
                                     <button
                                       onClick={(e) => {
@@ -1223,24 +1239,24 @@ const CaseManagement = () => {
           )}
         </div>
 
-       {/* --- VIEW DETAILS MODAL --- */}
-       {showView && viewing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
-            
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900">Case Details</h3>
-              <button 
-                onClick={() => setShowView(false)} 
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        {/* --- VIEW DETAILS MODAL --- */}
+        {showView && viewing && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
 
-            {/* View Mode Content */}
-            <div className="p-6">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900">Case Details</h3>
+                <button
+                  onClick={() => setShowView(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* View Mode Content */}
+              <div className="p-6">
                 <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
                   <DetailField label="CASE TITLE" value={viewing.title} />
                   <DetailField label="PROPERTY" value={getPropertyName(viewing.property)} />
@@ -1265,176 +1281,222 @@ const CaseManagement = () => {
                 </div>
 
                 <div className="flex justify-end pt-4 border-t border-gray-100">
-                  <button 
-                    onClick={() => setShowView(false)} 
+                  <button
+                    onClick={() => setShowView(false)}
                     className="px-5 py-2 border border-slate-200 text-slate-700 font-medium rounded hover:bg-slate-50 transition-colors"
                   >
                     Close
                   </button>
                 </div>
               </div>
-          </div>
-        </div>
-      )}
-
-       {/* --- FORM MODAL (Create/Edit) --- */}
-      {showForm && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-             <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
-               
-                {/* Modal Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                   <h3 className="text-lg font-bold text-gray-900">
-                     {editingId ? "Edit Case" : "Create New Case"}
-                   </h3>
-                   <button 
-                     onClick={() => setShowForm(false)} 
-                     className="text-gray-400 hover:text-gray-600 transition-colors"
-                   >
-                     <X className="w-5 h-5" />
-                   </button>
-               </div>
-               
-                {/* Modal Form Content */}
-                <form onSubmit={handleSubmit} className="p-4">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-                      
-                      {/* Row 1: Title & Priority */}
-                      <div className="col-span-1">
-                         <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
-                         <input 
-                           required 
-                           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                           value={formData.title} 
-                           onChange={e => setFormData({...formData, title: e.target.value})} 
-                         />
-                  </div>
-                      <div className="col-span-1">
-                         <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
-                         <select 
-                           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white" 
-                           value={formData.priority} 
-                           onChange={e => setFormData({...formData, priority: e.target.value})}
-                         >
-                           {['Low', 'Medium', 'High', 'Urgent'].map(o => <option key={o} value={o}>{o}</option>)}
-                         </select>
-                  </div>
-
-                      {/* Row 2: Property & Category */}
-                      <div className="col-span-1">
-                         <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
-                         <select 
-                           required
-                           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white" 
-                           value={formData.property} 
-                           onChange={e => setFormData({...formData, property: e.target.value})}
-                         >
-                           <option value="">Select property</option>
-                           {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                      </div>
-                      <div className="col-span-1">
-                         <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
-                         <select 
-                           required
-                           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white" 
-                           value={formData.type} 
-                           onChange={e => setFormData({...formData, type: e.target.value})}
-                         >
-                           <option value="">Select category</option>
-                           {categories.map(o => <option key={o} value={o}>{o}</option>)}
-                         </select>
-                  </div>
-
-                      {/* Row 3: Assigned To & Reported By */}
-                      <div className="col-span-1">
-                         <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                         <input 
-                           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                           value={formData.assigned_to} 
-                           onChange={e => setFormData({...formData, assigned_to: e.target.value})} 
-                         />
-                      </div>
-                      <div className="col-span-1">
-                         <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
-                         <input 
-                           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                           value={formData.reported_by} 
-                           onChange={e => setFormData({...formData, reported_by: e.target.value})} 
-                         />
-                  </div>
-
-                      {/* Row 4: Scheduled Date (Full Width) */}
-                      <div className="col-span-1 md:col-span-2">
-                         <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
-                         <input 
-                           type="date"
-                           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
-                           value={formData.scheduled_date} 
-                           onChange={e => setFormData({...formData, scheduled_date: e.target.value})} 
-                         />
-                  </div>
-
-                      {/* Row 5: Description (Full Width) */}
-                      <div className="col-span-1 md:col-span-2">
-                         <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
-                         <textarea 
-                           rows={3}
-                           required
-                           className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" 
-                           value={formData.description} 
-                           onChange={e => setFormData({...formData, description: e.target.value})} 
-                         />
-                      </div>
-                      {/* Custom columns - Standardized UI to Gray */}
-                      {customColumns && customColumns.map(col => (
-                        <div key={col} className="col-span-1 md:col-span-2">
-                          <label className="block text-xs font-medium text-gray-600 mb-1">{col}</label>
-                          <input
-                            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                            value={formData[col] || ''}
-                            onChange={e => setFormData({ ...formData, [col]: e.target.value })}
-                          />
-                        </div>
-                      ))}
-                  </div>
-
-                   {/* Footer Buttons */}
-                   <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
-                      <button 
-                        type="button" 
-                        onClick={() => setShowForm(false)} 
-                        className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        type="submit" 
-                        className="px-4 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 font-medium shadow-sm transition-colors text-sm"
-                      >
-                        {editingId ? "Update Case" : "Create Case"}
-                      </button>
-                  </div>
-               </form>
             </div>
-         </div>
-      )}
-      
-      {/* Modal Dialogs */}
-      <AlertModal
-        isOpen={showAlertModal}
-        onClose={() => setShowAlertModal(false)}
-        title={alertMessage.title}
-        message={alertMessage.message}
-        type={alertMessage.type}
-      />
-      <ConfirmModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={confirmAction}
-        title={confirmMessage.title}
-        message={confirmMessage.message}
-      />
+          </div>
+        )}
+
+        {/* --- FORM MODAL (Create/Edit) --- */}
+        {showForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
+
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900">
+                  {editingId ? "Edit Case" : "Create New Case"}
+                </h3>
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Form Content */}
+              <form onSubmit={handleSubmit} className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+
+                  {/* Row 1: Title & Priority */}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
+                    <input
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      value={formData.title}
+                      onChange={e => setFormData({ ...formData, title: e.target.value })}
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+                    <select
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      value={formData.priority}
+                      onChange={e => setFormData({ ...formData, priority: e.target.value })}
+                    >
+                      {['Low', 'Medium', 'High', 'Urgent'].map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Row 2: Property & Category */}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
+                    <select
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      value={formData.property}
+                      onChange={async (e) => {
+                        const propId = e.target.value;
+                        setFormData({ ...formData, property: propId, assigned_to: '', reported_by: '' });
+                        // Fetch staff members for the selected property
+                        if (propId) {
+                          try {
+                            const response = await api.get(`/api/staff/for-hotel/${propId}`);
+                            const staff = response?.data?.staff || [];
+                            setStaffMembers(staff);
+                          } catch (err) {
+                            console.warn('Failed to fetch staff for property:', err);
+                            setStaffMembers([]);
+                          }
+                        } else {
+                          setStaffMembers([]);
+                        }
+                      }}
+                    >
+                      <option value="">Select property</option>
+                      {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
+                    <select
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      value={formData.type}
+                      onChange={e => setFormData({ ...formData, type: e.target.value })}
+                    >
+                      <option value="">Select category</option>
+                      {categories.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Row 3: Assigned To & Reported By */}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                    {formData.property && staffMembers.length > 0 ? (
+                      <select
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                        value={formData.assigned_to}
+                        onChange={e => setFormData({ ...formData, assigned_to: e.target.value })}
+                      >
+                        <option value="">Select staff member</option>
+                        {staffMembers.map(staff => (
+                          <option key={staff.id} value={staff.name}>{staff.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50"
+                        value={formData.assigned_to}
+                        onChange={e => setFormData({ ...formData, assigned_to: e.target.value })}
+                        placeholder={formData.property ? "Loading staff..." : "Select property first"}
+                        disabled={!formData.property}
+                      />
+                    )}
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
+                    {formData.property && staffMembers.length > 0 ? (
+                      <select
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                        value={formData.reported_by}
+                        onChange={e => setFormData({ ...formData, reported_by: e.target.value })}
+                      >
+                        <option value="">Select staff member</option>
+                        {staffMembers.map(staff => (
+                          <option key={staff.id} value={staff.name}>{staff.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50"
+                        value={formData.reported_by}
+                        onChange={e => setFormData({ ...formData, reported_by: e.target.value })}
+                        placeholder={formData.property ? "Loading staff..." : "Select property first"}
+                        disabled={!formData.property}
+                      />
+                    )}
+                  </div>
+
+                  {/* Row 4: Scheduled Date (Full Width) */}
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
+                    <input
+                      type="date"
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      value={formData.scheduled_date}
+                      onChange={e => setFormData({ ...formData, scheduled_date: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Row 5: Description (Full Width) */}
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
+                    <textarea
+                      rows={3}
+                      required
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                      value={formData.description}
+                      onChange={e => setFormData({ ...formData, description: e.target.value })}
+                    />
+                  </div>
+                  {/* Custom columns - Standardized UI to Gray */}
+                  {customColumns && customColumns.map(col => (
+                    <div key={col} className="col-span-1 md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{col}</label>
+                      <input
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                        value={formData[col] || ''}
+                        onChange={e => setFormData({ ...formData, [col]: e.target.value })}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 font-medium shadow-sm transition-colors text-sm"
+                  >
+                    {editingId ? "Update Case" : "Create Case"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Dialogs */}
+        <AlertModal
+          isOpen={showAlertModal}
+          onClose={() => setShowAlertModal(false)}
+          title={alertMessage.title}
+          message={alertMessage.message}
+          type={alertMessage.type}
+        />
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          onConfirm={confirmAction}
+          title={confirmMessage.title}
+          message={confirmMessage.message}
+        />
 
       </div>
     </div>
