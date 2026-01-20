@@ -29,6 +29,8 @@ services:
       - db
     networks:
       - app-network
+    ports:
+      - "4000:4000"
 
   frontend:
     build:
@@ -40,6 +42,8 @@ services:
       - backend
     networks:
       - app-network
+    ports:
+      - "3002:3002"
 
 volumes:
   postgres_data:
@@ -47,3 +51,4 @@ volumes:
 networks:
   app-network:
     external: true
+
