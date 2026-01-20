@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
 
     server: {
       host: "0.0.0.0",
-      port: 3002,
+      port: parseInt(env.PORT) || parseInt(env.VITE_PORT) || 3002,
       proxy: {
         "/api": {
           target: env.VITE_API_URL || "http://localhost:4002",

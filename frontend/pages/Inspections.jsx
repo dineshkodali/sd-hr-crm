@@ -308,8 +308,7 @@ export default function Inspections({ user }) {
       mounted = false;
       clearInterval(intervalId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [DEFAULT_COLUMNS]);
 
   // Save column visibility to localStorage whenever it changes
   useEffect(() => {
@@ -673,8 +672,6 @@ export default function Inspections({ user }) {
   // PDF Download Handler
   const handleDownloadPDF = () => {
     try {
-      console.log('Download PDF clicked - Inspections');
-      console.log('Filtered data length:', filtered?.length);
       
       const columns = [
         { header: 'Inspection Type', key: 'inspectionType' },
@@ -696,7 +693,6 @@ export default function Inspections({ user }) {
         actionRequired: inspection.actionRequired || inspection.action_required ? 'Yes' : 'No'
       }));
       
-      console.log('PDF data prepared, rows:', data.length);
       generatePDF(data, columns, 'Inspections Report', 'inspections-report');
     } catch (error) {
       console.error('Error in handleDownloadPDF:', error);
@@ -707,8 +703,6 @@ export default function Inspections({ user }) {
   // CSV Download Handler
   const handleDownloadCSV = () => {
     try {
-      console.log('Download CSV clicked - Inspections');
-      console.log('Filtered data length:', filtered?.length);
       
       const columns = [
         { header: 'Inspection Type', key: 'inspectionType' },
@@ -730,7 +724,6 @@ export default function Inspections({ user }) {
         actionRequired: inspection.actionRequired || inspection.action_required ? 'Yes' : 'No'
       }));
       
-      console.log('CSV data prepared, rows:', data.length);
       generateCSV(data, columns, 'inspections-report');
     } catch (error) {
       console.error('Error in handleDownloadCSV:', error);
@@ -925,7 +918,7 @@ export default function Inspections({ user }) {
   }, [showModal, showViewModal]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
         {/* Page Header */}
         <div className="mb-6 flex items-start justify-between">
@@ -953,7 +946,7 @@ export default function Inspections({ user }) {
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
-            <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-full flex items-center justify-center shrink-0">
               <ClipboardList className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
@@ -962,7 +955,7 @@ export default function Inspections({ user }) {
             </div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
-            <div className="bg-orange-100 text-orange-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="bg-orange-100 text-orange-600 h-14 w-14 rounded-full flex items-center justify-center shrink-0">
               <Clock className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
@@ -971,7 +964,7 @@ export default function Inspections({ user }) {
             </div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
-            <div className="bg-purple-100 text-purple-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="bg-purple-100 text-purple-600 h-14 w-14 rounded-full flex items-center justify-center shrink-0">
               <Zap className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
@@ -980,7 +973,7 @@ export default function Inspections({ user }) {
             </div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
-            <div className="bg-emerald-100 text-emerald-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="bg-emerald-100 text-emerald-600 h-14 w-14 rounded-full flex items-center justify-center shrink-0">
               <CheckCircle className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
@@ -1514,7 +1507,7 @@ export default function Inspections({ user }) {
                   const displayStatus = status.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
                   return (
-                    <div key={status} className="flex-shrink-0 w-80">
+                    <div key={status} className="shrink-0 w-80">
                       <div className={`rounded-lg border ${style.border} ${style.bg}`}>
                         {/* Column Header */}
                         <div className={`${style.header} px-4 py-3 border-b ${style.border}`}>

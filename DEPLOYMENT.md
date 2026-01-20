@@ -47,7 +47,11 @@ This guide covers deploying the SD HR CRM application to AWS Amplify (frontend) 
 ### Repository Setup
 1. Ensure your code is pushed to GitHub
 2. Verify `.gitignore` excludes `.env` files
-3. Confirm all dependencies are in `package.json`
+3. ✅ **All dependencies are properly listed in `package.json` files**
+   - Frontend: Includes all runtime and dev dependencies (including `gh-pages` for deployment)
+   - Backend: All npm packages properly listed (local file references removed)
+   - Root: Monorepo scripts and shared dependencies configured
+
 
 ---
 

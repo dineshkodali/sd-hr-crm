@@ -46,4 +46,3 @@
  * 6. Add <AlertModal> and <ConfirmModal> components before closing </div>
  */
 
-console.log("Modal update tracking - see code for patterns");

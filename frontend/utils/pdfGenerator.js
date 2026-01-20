@@ -29,7 +29,6 @@ function formatDateForPDF(dateString) {
  */
 export function generatePDF(data, columns, title, filename = 'download') {
   try {
-    console.log('generatePDF called with:', { dataLength: data?.length, columns: columns?.length, title, filename });
     
     if (!data || !Array.isArray(data)) {
       console.error('Invalid data provided to generatePDF:', data);
@@ -97,9 +96,7 @@ export function generatePDF(data, columns, title, filename = 'download') {
   }
   
   // Save the PDF
-  console.log('Saving PDF:', `${filename}.pdf`);
   doc.save(`${filename}.pdf`);
-  console.log('PDF saved successfully');
   } catch (error) {
     console.error('Error generating PDF:', error);
     alert('Failed to generate PDF. Check console for details.');

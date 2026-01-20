@@ -589,9 +589,6 @@ export default function AIRETasks({ user }) {
           ...customColumns.reduce((acc, col) => ({ ...acc, [col]: updatedTask[col] || null }), {})
         };
         
-        console.log('Updating task with payload:', payload);
-        console.log('Custom columns:', customColumns);
-        console.log('Updated task data:', updatedTask);
         
         const res = await api.patch(`/api/aire-tasks/${encodeURIComponent(id)}`, payload);
         const updated = res?.data ?? null;

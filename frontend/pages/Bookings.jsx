@@ -210,7 +210,6 @@ export default function Bookings({ user }) {
             ? moveInsResponse.data
             : [];
       } catch (err) {
-        console.log('Move-ins data not available:', err.message);
       }
 
       // Fetch rooms to get room details
@@ -221,7 +220,6 @@ export default function Bookings({ user }) {
           allRooms = roomsResponse.data.rooms;
         }
       } catch (err) {
-        console.log('Using mock rooms data');
       }
 
       // Combine data to create bookings
@@ -274,7 +272,6 @@ export default function Bookings({ user }) {
         };
       });
 
-      console.log('Loaded bookings:', bookingsData.length, 'records');
       setBookings(bookingsData);
 
     } catch (err) {
@@ -429,7 +426,6 @@ export default function Bookings({ user }) {
         created_by: user?.id || user?.user_id || null // Track who created
       };
 
-      console.log('Creating service user:', suData);
       const suResponse = await api.post('/api/su/users', suData);
       const serviceUserId = suResponse.data.id || suResponse.data.service_user_id || suResponse.data.user_id;
 
@@ -437,7 +433,6 @@ export default function Bookings({ user }) {
         throw new Error('Failed to create service user - no ID returned');
       }
 
-      console.log('Service user created with ID:', serviceUserId);
 
       // Step 2: Create move-in record to link SU to room and property
       const moveInData = {
@@ -449,10 +444,8 @@ export default function Bookings({ user }) {
         notes: `Check-in via booking system on ${new Date().toLocaleDateString()}`
       };
 
-      console.log('Creating move-in record:', moveInData);
       await api.post('/api/move-ins', moveInData);
 
-      console.log('Booking completed successfully');
 
       // Step 3: Reset form and refresh data
       setFormData({
@@ -1385,7 +1378,6 @@ export default function Bookings({ user }) {
                     updated_by: user?.id || user?.user_id || null
                   };
 
-                  console.log('Updating service user:', updateSuData);
                   await api.put(`/api/su/users/${selectedBooking.service_user_id}`, updateSuData);
                 }
 
@@ -1398,11 +1390,9 @@ export default function Bookings({ user }) {
                     updated_by: user?.id || user?.user_id || null
                   };
 
-                  console.log('Updating move-in record:', updateMoveInData);
                   await api.put(`/api/move-ins/${selectedBooking.move_in_id}`, updateMoveInData);
                 } else {
                   // If no move-in record exists, create one
-                  console.log('No move-in record found, creating new one');
                   const moveInData = {
                     service_user_id: selectedBooking.service_user_id,
                     room_id: parseInt(formData.room_id),
@@ -1413,7 +1403,6 @@ export default function Bookings({ user }) {
                   await api.post('/api/move-ins', moveInData);
                 }
 
-                console.log('Booking updated successfully');
 
                 setShowEditModal(false);
                 setSelectedBooking(null);

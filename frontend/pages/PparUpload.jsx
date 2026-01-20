@@ -403,7 +403,6 @@ export default function PPARFileUpload() {
       } else {
         res = await api.post("/api/incidents", payload);
       }
-      console.log("Incident saved", res?.data);
       // refresh list from server to ensure DB is authoritative
       await fetchIncidents();
       setShowModal(false);

@@ -31,11 +31,9 @@ const SessionsManagement = () => {
       
       if (activeTab === 'sessions') {
         const res = await api.get('/api/auth/sessions');
-        console.log('Sessions data:', res.data.sessions);
         setSessions(res.data.sessions || []);
       } else {
         const res = await api.get('/api/auth/login-history');
-        console.log('Login history data:', res.data.history);
         setLoginHistory(res.data.history || []);
       }
     } catch (err) {

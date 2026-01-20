@@ -41,7 +41,6 @@ function escapeCSVField(field) {
  */
 export function generateCSV(data, columns, filename = 'download') {
   try {
-    console.log('generateCSV called with:', { dataLength: data?.length, columns: columns?.length, filename });
     
     if (!data || !Array.isArray(data)) {
       console.error('Invalid data provided to generateCSV:', data);
@@ -89,7 +88,6 @@ export function generateCSV(data, columns, filename = 'download') {
     link.click();
     document.body.removeChild(link);
     
-    console.log('CSV generated successfully');
   } catch (error) {
     console.error('Error generating CSV:', error);
     alert('Failed to generate CSV. Please try again.');

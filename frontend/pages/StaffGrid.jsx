@@ -67,11 +67,8 @@ function StaffDetailPanel({ open, onClose, user, loading, currentUser, onEditSuc
   const [showEditModal, setShowEditModal] = useState(false);
 
   // Debug logging
-  console.log('StaffDetailPanel - currentUser:', currentUser);
-  console.log('StaffDetailPanel - currentUser role:', currentUser?.role);
 
   const isAdmin = currentUser?.role === 'admin';
-  console.log('StaffDetailPanel - isAdmin:', isAdmin);
 
   // Temporarily always show edit button for testing
   const showEditButton = true; // Change to isAdmin after testing
@@ -431,7 +428,6 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
         status: formData.status || 'active'
       };
 
-      console.log('Sending payload:', { ...payload, password: '***' }); // Log without exposing password
 
       const response = await axios.post('/api/admin/users', payload, {
         withCredentials: true
@@ -754,7 +750,6 @@ function EditEmployeeModal({ open, onClose, employee, onSuccess }) {
         country: formData.country?.trim() || null
       };
 
-      console.log('Updating employee:', employee.id, payload);
 
       const response = await axios.put(`/api/admin/users/${employee.id}`, payload, {
         withCredentials: true

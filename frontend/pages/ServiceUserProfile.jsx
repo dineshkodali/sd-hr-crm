@@ -10,18 +10,25 @@ axios.defaults.withCredentials = true;
 // Reuse the resilient API base resolution used elsewhere
 const buildCandidateBases = () => {
   const list = [];
+  // Priority 1: Environment variable
   if (import.meta.env.VITE_API_URL) list.push(import.meta.env.VITE_API_URL);
+
   if (typeof window !== "undefined") {
     const { origin, hostname, protocol } = window.location;
-    const ports = [4000, 4001, 4002, 4003, 4004, 4005];
+
+    // Priority 2: Same-origin API (for production deployments)
     list.push(`${origin}/api`);
+
+    // Priority 3: Common development ports
+    const ports = [4000, 4001, 4002, 4003, 4004, 4005, 5000, 8000, 8080, 3000];
     ports.forEach((p) => {
       list.push(`${protocol}//localhost:${p}/api`);
       list.push(`${protocol}//127.0.0.1:${p}/api`);
-      list.push(`${protocol}//${hostname}:${p}/api`);
+      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        list.push(`${protocol}//${hostname}:${p}/api`);
+      }
     });
   }
-  list.push("http://localhost:4000/api");
   return Array.from(new Set(list));
 };
 
@@ -251,7 +258,7 @@ export default function ServiceUserProfile() {
       if (userUpdate?.attempted && userUpdate?.success === false) {
         throw new Error(
           userUpdate?.error ||
-            "Move-in saved, but failed to update service user's current property/room in database."
+          "Move-in saved, but failed to update service user's current property/room in database."
         );
       }
 
@@ -311,7 +318,6 @@ export default function ServiceUserProfile() {
         // Handle response structure - axios wraps data in res.data
         const userData = res?.data || res;
         if (mounted) {
-          console.log("Loaded user data:", userData);
           setUser(userData);
         }
       } catch (err) {

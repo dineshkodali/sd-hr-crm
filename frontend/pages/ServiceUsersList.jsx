@@ -11,25 +11,25 @@ import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 const buildCandidateBases = () => {
   const list = [];
 
+  // Priority 1: Environment variable
   if (import.meta.env.VITE_API_URL) list.push(import.meta.env.VITE_API_URL);
 
   if (typeof window !== "undefined") {
     const { origin, hostname, protocol } = window.location;
-    const ports = [4000, 4001, 4002];
 
-    // Same-origin proxy
+    // Priority 2: Same-origin API (for production deployments)
     list.push(`${origin}/api`);
 
-    // Common localhost hosts/ports
+    // Priority 3: Common development ports
+    const ports = [4000, 4001, 4002, 4003, 4004, 4005, 5000, 8000, 8080, 3000];
     ports.forEach((p) => {
       list.push(`${protocol}//localhost:${p}/api`);
       list.push(`${protocol}//127.0.0.1:${p}/api`);
-      list.push(`${protocol}//${hostname}:${p}/api`);
+      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        list.push(`${protocol}//${hostname}:${p}/api`);
+      }
     });
   }
-
-  // Fallback
-  list.push("http://localhost:4000/api");
 
   return Array.from(new Set(list));
 };
@@ -50,15 +50,15 @@ export default function ServiceUsersList() {
   const [apiBase, setApiBase] = useState(candidateBases[0]);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-const [deleteUserId, setDeleteUserId] = useState(null);
-const [deleting, setDeleting] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   /* Dialog State */
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'warning'
   });
 
@@ -327,40 +327,40 @@ const [deleting, setDeleting] = useState(false);
   };
 
   const handleDeleteUserConfirm = async () => {
-  if (!deleteUserId) return;
+    if (!deleteUserId) return;
 
-  try {
-    setDeleting(true);
+    try {
+      setDeleting(true);
 
-    const response = await apiRef.current.delete(
-      `/su/users/${deleteUserId}`
-    );
-
-    if (response.status === 200 || response.status === 204) {
-      const updatedUsers = users.filter(
-        (user) => user.id !== deleteUserId
+      const response = await apiRef.current.delete(
+        `/su/users/${deleteUserId}`
       );
 
-      setUsers(updatedUsers);
-      calculateStats(updatedUsers);
-    } else {
-      throw new Error("Failed to delete user");
-    }
+      if (response.status === 200 || response.status === 204) {
+        const updatedUsers = users.filter(
+          (user) => user.id !== deleteUserId
+        );
 
-    setShowDeleteModal(false);
-    setDeleteUserId(null);
-  } catch (error) {
-    console.error("Error deleting user:", error);
-    setAlertDialog({
-      isOpen: true,
-      title: 'Delete Failed',
-      message: error.response?.data?.error || "Failed to delete user",
-      type: 'error'
-    });
-  } finally {
-    setDeleting(false);
-  }
-};
+        setUsers(updatedUsers);
+        calculateStats(updatedUsers);
+      } else {
+        throw new Error("Failed to delete user");
+      }
+
+      setShowDeleteModal(false);
+      setDeleteUserId(null);
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      setAlertDialog({
+        isOpen: true,
+        title: 'Delete Failed',
+        message: error.response?.data?.error || "Failed to delete user",
+        type: 'error'
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
 
   const handleFormChange = (e) => {
@@ -457,7 +457,6 @@ const [deleting, setDeleting] = useState(false);
         }
       });
 
-      console.log("Submitting service user payload:", payload);
 
       let res;
       if (formData.id) {
@@ -507,10 +506,10 @@ const [deleting, setDeleting] = useState(false);
   const formatDate = (d) =>
     d
       ? new Date(d).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
       : "N/A";
 
   const getAvatarColor = (index) => {
@@ -525,11 +524,10 @@ const [deleting, setDeleting] = useState(false);
 
   const filteredUsers = users.filter((user) => {
     if (!search || !search.trim()) return true; // Show all if search is empty
-    
+
     const term = search.toLowerCase().trim();
-    const fullName = `${user.first_name || ""} ${
-      user.last_name || ""
-    }`.toLowerCase();
+    const fullName = `${user.first_name || ""} ${user.last_name || ""
+      }`.toLowerCase();
     const room = (user.room_number || "").toLowerCase();
     const property = (
       user.property ||
@@ -541,10 +539,10 @@ const [deleting, setDeleting] = useState(false);
     const homeOfficeRef = (user.home_office_reference || "").toLowerCase();
     const gender = (user.gender || "").toLowerCase();
     const status = (user.status || "").toLowerCase();
-    
+
     return (
-      fullName.includes(term) || 
-      property.includes(term) || 
+      fullName.includes(term) ||
+      property.includes(term) ||
       room.includes(term) ||
       nationality.includes(term) ||
       homeOfficeRef.includes(term) ||
@@ -733,13 +731,12 @@ const [deleting, setDeleting] = useState(false);
                       {user.first_name} {user.last_name}
                     </h3>
                     <span
-                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                        user.status === "Active"
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${user.status === "Active"
                           ? "bg-emerald-100 text-emerald-700"
                           : user.status === "Moved Out"
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
                     >
                       {user.status || "N/A"}
                     </span>
@@ -862,9 +859,9 @@ const [deleting, setDeleting] = useState(false);
                     </button>
                     <button
                       onClick={(e) => {
-                       e.stopPropagation();
-                       setDeleteUserId(user.id);
-                       setShowDeleteModal(true);
+                        e.stopPropagation();
+                        setDeleteUserId(user.id);
+                        setShowDeleteModal(true);
                       }}
 
                       className="flex items-center gap-1.5 px-3.5 py-1.75 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors"
@@ -1096,7 +1093,7 @@ const [deleting, setDeleting] = useState(false);
                       name="number_of_dependents"
                       value={
                         formData.number_of_dependents === null ||
-                        formData.number_of_dependents === undefined
+                          formData.number_of_dependents === undefined
                           ? ""
                           : formData.number_of_dependents
                       }
@@ -1224,8 +1221,8 @@ const [deleting, setDeleting] = useState(false);
                     ? "Updating..."
                     : "Creating..."
                   : formData.id
-                  ? "Update Service User"
-                  : "Create Service User"}
+                    ? "Update Service User"
+                    : "Create Service User"}
               </button>
             </div>
           </div>
@@ -1233,39 +1230,39 @@ const [deleting, setDeleting] = useState(false);
       )}
 
       {showDeleteModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-    <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
 
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        Delete User?
-      </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Delete User?
+            </h3>
 
-      <p className="text-sm text-gray-500 mb-6">
-        This action cannot be undone. The user will be permanently removed.
-      </p>
+            <p className="text-sm text-gray-500 mb-6">
+              This action cannot be undone. The user will be permanently removed.
+            </p>
 
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => {
-            setShowDeleteModal(false);
-            setDeleteUserId(null);
-          }}
-          className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
-        >
-          Cancel
-        </button>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteUserId(null);
+                }}
+                className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
+              >
+                Cancel
+              </button>
 
-        <button
-          onClick={handleDeleteUserConfirm}
-          disabled={deleting}
-          className="px-4 py-2 rounded-md bg-teal-400 hover:bg-teal-500 text-white font-medium disabled:opacity-50"
-        >
-          {deleting ? "Deleting..." : "Delete"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+              <button
+                onClick={handleDeleteUserConfirm}
+                disabled={deleting}
+                className="px-4 py-2 rounded-md bg-teal-400 hover:bg-teal-500 text-white font-medium disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Dialog */}
       <ConfirmDialog

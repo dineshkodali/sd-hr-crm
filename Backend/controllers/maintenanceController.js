@@ -38,7 +38,9 @@ export async function createTask(req, res) {
     hotelId = null,
     room = null,
     raised_by = null,
+    assigned_to = null,
     action = null,
+    priority = "Medium",
     closed_date = null,
   } = req.body ?? {};
 
@@ -67,7 +69,7 @@ export async function createTask(req, res) {
     } catch (schemaErr) {
       console.error('Error querying schema:', schemaErr);
       // Fallback to basic columns if schema query fails
-      existingCols = ['title', 'description', 'start_date', 'due_date', 'status', 'category', 'site', 'room', 'raised_by', 'action', 'closed', 'created_by', 'created_at', 'updated_at', 'deleted'];
+      existingCols = ['title', 'description', 'start_date', 'due_date', 'status', 'category', 'site', 'room', 'raised_by', 'assigned_to', 'action', 'priority', 'closed', 'created_by', 'created_at', 'updated_at', 'deleted'];
     }
 
     // Build dynamic INSERT
@@ -87,7 +89,9 @@ export async function createTask(req, res) {
       site: resolvedSite,
       room: room ?? null,
       raised_by: raised_by ?? null,
+      assigned_to: assigned_to ?? null,
       action: action ?? null,
+      priority: priority || "Medium",
       closed: closed_date ? new Date(closed_date) : null,
       created_by: createdBy,
       created_at: now,
@@ -112,9 +116,12 @@ export async function createTask(req, res) {
     }
 
     // Handle custom columns from Forms Builder
-    const standardCols = ['id', 'title', 'description', 'start_date', 'due_date', 'status',
-      'category', 'site', 'room', 'raised_by', 'action', 'closed',
-      'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at'];
+    const standardCols = [
+      'id', 'title', 'description', 'start_date', 'due_date', 'status',
+      'category', 'site', 'hotel_name', 'hotel_id', 'property_id', 'room',
+      'raised_by', 'assigned_to', 'action', 'priority', 'closed', 'closed_date',
+      'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at'
+    ];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         columnsToInsert.push(col);
@@ -128,6 +135,10 @@ export async function createTask(req, res) {
       VALUES (${placeholders.join(', ')})
       RETURNING *;
     `;
+
+    console.log('--- CREATE MAINTENANCE TASK ---');
+    console.log('Query:', insertQ);
+    console.log('Values:', JSON.stringify(valuesToInsert));
 
     const { rows } = await client.query(insertQ, valuesToInsert);
     return res.status(201).json({ success: true, data: rows[0] });
@@ -286,11 +297,14 @@ export async function getTaskById(req, res) {
  * PUT /api/maintenance/:id
  */
 export async function updateTask(req, res) {
+  console.log('Backend updateTask: received req.body', JSON.stringify(req.body, null, 2));
   const id = parseId(req.params.id);
-  const { title, description, due_date, start_date, category, site, hotel_name, hotel_id, property_id, hotelId, room, raised_by, action, status, closed_date } = req.body ?? {};
+  const { title, description, due_date, start_date, category, site, hotel_name, hotel_id, property_id, hotelId, room, raised_by, assigned_to, action, status, priority, closed_date } = req.body ?? {};
 
   const resolvedSite = site ?? hotel_name;
   const resolvedHotelId = toIntOrNull(hotel_id ?? property_id ?? hotelId);
+  console.log('Backend updateTask: resolvedSite', resolvedSite);
+  console.log('Backend updateTask: resolvedHotelId', resolvedHotelId);
 
   const client = await pool.connect();
   try {
@@ -303,10 +317,12 @@ export async function updateTask(req, res) {
         WHERE table_name = 'maintenance_tasks' AND table_schema = 'public'
       `);
       existingCols = colRows.map(r => r.column_name);
+      console.log('Backend updateTask: existingCols', existingCols); // Added logging
     } catch (schemaErr) {
       console.error('Error querying schema:', schemaErr);
       // Fallback to basic columns if schema query fails
-      existingCols = ['title', 'description', 'start_date', 'due_date', 'status', 'category', 'site', 'room', 'raised_by', 'action', 'closed', 'created_by', 'created_at', 'updated_at', 'deleted'];
+      existingCols = ['title', 'description', 'start_date', 'due_date', 'status', 'category', 'site', 'room', 'raised_by', 'assigned_to', 'action', 'priority', 'closed', 'created_by', 'created_at', 'updated_at', 'deleted'];
+      console.log('Backend updateTask: existingCols (fallback)', existingCols); // Added logging
     }
 
     const setParts = [];
@@ -328,12 +344,16 @@ export async function updateTask(req, res) {
 
     if (start_date !== undefined) {
       setParts.push(`start_date = $${idx++}`);
-      values.push(start_date ? new Date(start_date) : null);
+      const d = start_date ? new Date(start_date) : null;
+      values.push(d && !isNaN(d.getTime()) ? d : null);
+      console.log('Backend updateTask: adding start_date', start_date, '->', d); // Added logging
     }
 
     if (due_date !== undefined) {
       setParts.push(`due_date = $${idx++}`);
-      values.push(due_date ? new Date(due_date) : null);
+      const d = due_date ? new Date(due_date) : null;
+      values.push(d && !isNaN(d.getTime()) ? d : null);
+      console.log('Backend updateTask: adding due_date', due_date, '->', d); // Added logging
     }
 
     if (category !== undefined) {
@@ -358,35 +378,56 @@ export async function updateTask(req, res) {
       }
     }
 
-    if (room !== undefined) {
+    if (room !== undefined && existingCols.includes('room')) {
       setParts.push(`room = $${idx++}`);
       values.push(room ?? null);
     }
 
-    if (raised_by !== undefined) {
+    if (raised_by !== undefined && existingCols.includes('raised_by')) {
       setParts.push(`raised_by = $${idx++}`);
       values.push(raised_by ?? null);
     }
 
-    if (action !== undefined) {
+    if (assigned_to !== undefined && existingCols.includes('assigned_to')) {
+      setParts.push(`assigned_to = $${idx++}`);
+      values.push(assigned_to ?? null);
+      console.log('Backend updateTask: adding assigned_to', assigned_to); // Added logging
+    }
+
+    if (action !== undefined && existingCols.includes('action')) {
       setParts.push(`action = $${idx++}`);
       values.push(action ?? null);
     }
 
-    if (status !== undefined) {
+    if (status !== undefined && existingCols.includes('status')) {
       setParts.push(`status = $${idx++}`);
       values.push(status ?? null);
     }
 
+    if (priority !== undefined && existingCols.includes('priority')) {
+      setParts.push(`priority = $${idx++}`);
+      values.push(priority ?? null);
+    }
+
     if (closed_date !== undefined) {
-      setParts.push(`closed = $${idx++}`);
-      values.push(closed_date ? new Date(closed_date) : null);
+      if (existingCols.includes('closed')) {
+        setParts.push(`closed = $${idx++}`);
+        const d = closed_date ? new Date(closed_date) : null;
+        values.push(d && !isNaN(d.getTime()) ? d : null);
+      } else if (existingCols.includes('closed_date')) {
+        setParts.push(`closed_date = $${idx++}`);
+        const d = closed_date ? new Date(closed_date) : null;
+        values.push(d && !isNaN(d.getTime()) ? d : null);
+      }
     }
 
     // Handle custom columns from Forms Builder
-    const standardCols = ['id', 'title', 'description', 'start_date', 'due_date', 'status',
-      'category', 'site', 'room', 'raised_by', 'action', 'closed',
-      'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at'];
+    const standardCols = [
+      'id', 'title', 'description', 'start_date', 'due_date', 'status',
+      'category', 'site', 'hotel_name', 'hotel_id', 'property_id', 'room',
+      'raised_by', 'assigned_to', 'action', 'priority', 'closed', 'closed_date',
+      'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at'
+    ];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         setParts.push(`${col} = $${idx++}`);
@@ -409,6 +450,13 @@ export async function updateTask(req, res) {
       RETURNING *;
     `;
 
+    console.log('--- UPDATE MAINTENANCE TASK ---');
+    console.log('ID:', id);
+    console.log('Backend updateTask: setParts', setParts);
+    console.log('Backend updateTask: values (before final push of id)', JSON.stringify(values, null, 2));
+    console.log('Query:', updateQ);
+    console.log('Values:', JSON.stringify(values));
+
     const { rows } = await client.query(updateQ, values);
     if (!rows.length) {
       return res.status(404).json({ success: false, error: "Task not found or already deleted" });
@@ -421,6 +469,7 @@ export async function updateTask(req, res) {
     client.release();
   }
 }
+
 
 /**
  * changeTaskStatus

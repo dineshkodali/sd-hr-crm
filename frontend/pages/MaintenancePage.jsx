@@ -4,6 +4,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { usePermissions } from "../hooks/usePermissions";
+import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import {
   Home,
   Wrench,
@@ -66,6 +67,8 @@ function normalizeHotelsResponse(data) {
 /* --- Helpers --- */
 function formatDateISO(value) {
   if (!value) return "";
+  // Check if it's already YYYY-MM-DD
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   try {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
@@ -212,6 +215,23 @@ export default function MaintenancePage({ user }) {
 
   // VIEW STATE
   const [showView, setShowView] = useState(false);
+  const [viewingTask, setViewingTask] = useState(null);
+
+  // Dialog States
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+    type: 'warning'
+  });
+
+  const [alertDialog, setAlertDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   // Column Visibility State
   const [showViewMenu, setShowViewMenu] = useState(false);
@@ -227,6 +247,7 @@ export default function MaintenancePage({ user }) {
     room: "",
     start: "",
     raisedBy: "",
+    assignedTo: "",
     category: "",
     status: "Open",
     hotelId: "",
@@ -244,17 +265,19 @@ export default function MaintenancePage({ user }) {
   const [availableColumns, setAvailableColumns] = useState([]);
 
   // Define all available columns
-  const DEFAULT_COLUMNS = [
+  const DEFAULT_COLUMNS = useMemo(() => [
     "checkbox",
     "type",
-    "reference",
-    "description",
-    "priority",
-    "status",
-    "assigned",
-    "date",
-    "actions",
-  ];
+      "reference",
+      "description",
+      "property",
+      "priority",
+      "status",
+      "assigned_to",
+      "start_date",
+      "due_date",
+      "actions",
+    ], []);
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState(() => {
@@ -319,7 +342,7 @@ export default function MaintenancePage({ user }) {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [DEFAULT_COLUMNS]);
 
   // Save column visibility to localStorage
   useEffect(() => {
@@ -391,17 +414,18 @@ export default function MaintenancePage({ user }) {
 
       const formattedTasks = mapped.map((t) => {
         const baseTask = {
-          id: t.id,
+          id: t.id ?? t.task_id ?? t._id ?? t.ref ?? null,
           title: t.title ?? t.name ?? "",
           start: formatDateISO(t.start_date || t.start),
           category: t.category || "Maintenance",
           hotel: t.site || t.hotel_name || "",
           room: t.room || "",
           raisedBy: t.raised_by || "Unassigned",
+          assignedTo: t.assigned_to || t.assignedTo || "",
           status: t.status || "Open",
           action: t.action || "",
           dueDate: formatDateISO(t.due_date),
-          closed: formatDateISO(t.closed_date),
+          closed: formatDateISO(t.closed_date || t.closed),
           priority: t.priority || "Medium",
           ref: t.ref || (t.id ? Number(t.id).toString(36).padStart(8, '0').slice(-8) : Math.random().toString(36).slice(-8)),
           description: t.description || "",
@@ -417,12 +441,11 @@ export default function MaintenancePage({ user }) {
 
         return baseTask;
       });
-      setTasks(formattedTasks);
+        setTasks(formattedTasks);
       setLoading(false);
     } catch (err) {
-      if (err.name === "AbortError") return;
+      if (err.name === "AbortError" || err.code === "ERR_CANCELED") return;
       console.error("Failed to load tasks:", err);
-      // CHANGED: Removed setTasks(SAMPLE) to stop flashing mock data. Now sets empty array.
       setTasks([]);
       setLoading(false);
     }
@@ -673,15 +696,44 @@ export default function MaintenancePage({ user }) {
 
   /* ------------------------- Handlers ------------------------- */
   async function handleDelete(id) {
-    if (!confirm("Delete this order?")) return;
-
-    try {
-      await api.delete(`/api/maintenance/${id}`);
-      await loadTasks();
-    } catch (error) {
-      console.error("Error deleting maintenance task:", error);
-      alert("Failed to delete task. Please try again.");
+    if (!hasDelete) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: "You don't have permission to delete maintenance tasks.",
+        type: 'warning'
+      });
+      return;
     }
+
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Work Order',
+      message: 'Delete this work order? This action cannot be undone.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/maintenance/${id}`);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+          await loadTasks(); // No abort signal here
+          setAlertDialog({
+            isOpen: true,
+            title: 'Success',
+            message: 'Work order deleted successfully!',
+            type: 'success'
+          });
+        } catch (error) {
+          console.error("Error deleting maintenance task:", error);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+          setAlertDialog({
+            isOpen: true,
+            title: 'Delete Failed',
+            message: 'Failed to delete work order. Please try again.',
+            type: 'error'
+          });
+        }
+      }
+    });
   }
 
   async function handleCreateSubmit(e) {
@@ -691,16 +743,18 @@ export default function MaintenancePage({ user }) {
     try {
       const createData = {
         title: form.title,
-        start_date: form.start,
+        start_date: formatDateISO(form.start) || null,
         category: form.category,
         hotel_name: form.hotelName,
-        hotel_id: form.hotelId || null,
+          hotel_id: form.hotelId || null,
+          property_id: form.hotelId || null,
         room: form.room,
         raised_by: form.raisedBy,
+        assigned_to: form.assignedTo,
         status: form.status || "Pending",
         action: form.action,
-        due_date: form.dueDate,
-        closed_date: form.closed,
+        due_date: formatDateISO(form.dueDate) || null,
+        closed_date: formatDateISO(form.closed) || null,
         priority: form.priority || "Medium",
         description: form.description
       };
@@ -713,11 +767,22 @@ export default function MaintenancePage({ user }) {
       });
 
       await api.post("/api/maintenance", createData);
-      await loadTasks();
+      await loadTasks(); // No abort signal here
       setShowCreate(false);
+      setAlertDialog({
+        isOpen: true,
+        title: 'Success',
+        message: 'Work order created successfully!',
+        type: 'success'
+      });
     } catch (error) {
       console.error("Error creating maintenance task:", error);
-      alert("Failed to create task. Please try again.");
+      setAlertDialog({
+        isOpen: true,
+        title: 'Create Failed',
+        message: error?.response?.data?.message || 'Failed to create work order. Please try again.',
+        type: 'error'
+      });
     } finally {
       setCreating(false);
     }
@@ -730,16 +795,18 @@ export default function MaintenancePage({ user }) {
     try {
       const updateData = {
         title: form.title,
-        start_date: form.start,
+        start_date: formatDateISO(form.start) || null,
         category: form.category,
         hotel_name: form.hotelName,
-        hotel_id: form.hotelId || null,
+          hotel_id: form.hotelId || null,
+          property_id: form.hotelId || null,
         room: form.room,
         raised_by: form.raisedBy,
+        assigned_to: form.assignedTo,
         status: form.status,
         action: form.action,
-        due_date: form.dueDate,
-        closed_date: form.closed,
+        due_date: formatDateISO(form.dueDate) || null,
+        closed_date: formatDateISO(form.closed) || null,
         priority: form.priority,
         description: form.description
       };
@@ -751,19 +818,32 @@ export default function MaintenancePage({ user }) {
         }
       });
 
-      await api.put(`/api/maintenance/${editingId}`, updateData);
-      await loadTasks();
+      const res = await api.put(`/api/maintenance/${editingId}`, updateData);
+      await loadTasks(); // No abort signal here
       setShowEdit(false);
+      setAlertDialog({
+        isOpen: true,
+        title: 'Success',
+        message: 'Work order updated successfully!',
+        type: 'success'
+      });
     } catch (error) {
       console.error("Error updating maintenance task:", error);
-      alert("Failed to update task. Please try again.");
+      setAlertDialog({
+        isOpen: true,
+        title: 'Update Failed',
+        message: error?.response?.data?.message || 'Failed to update work order. Please try again.',
+        type: 'error'
+      });
     } finally {
       setEditing(false);
     }
   }
 
   function openEdit(task) {
-    setEditingId(task.id);
+    // Prefer the raw DB id when available to avoid using non-numeric reference keys
+    const numericId = task?.raw?.id ?? task.id ?? task.task_id ?? task._id ?? null;
+    setEditingId(numericId);
     const hotelRecord = hotels.find((h) => h.name === task.hotel || String(h.id) === String(task.hotel)) || null;
     const hotelId = hotelRecord?.id ?? (typeof task.hotel === 'number' ? task.hotel : '');
     const hotelName = hotelRecord?.name ?? task.hotel ?? '';
@@ -795,11 +875,19 @@ export default function MaintenancePage({ user }) {
     const hotelRecord = hotels.find((h) => h.name === task.hotel || String(h.id) === String(task.hotel)) || null;
     const hotelId = hotelRecord?.id ?? (typeof task.hotel === 'number' ? task.hotel : '');
     const hotelName = hotelRecord?.name ?? task.hotel ?? '';
+
+    setViewingTask({
+      ...task,
+      hotelId: hotelId,
+      hotelName: hotelName
+    });
+
     setForm({
       ...task,
       hotelId: hotelId,
       hotelName: hotelName
     });
+
     if (hotelId) {
       fetchStaffForHotel(hotelId);
       fetchRoomsForHotel(hotelId);
@@ -824,7 +912,6 @@ export default function MaintenancePage({ user }) {
         hotelId: hotelId,
         hotelName: hotel ? hotel.name : '',
         room: changed ? '' : p.room,
-        raisedBy: changed ? '' : p.raisedBy,
       };
     });
     setStaffUsers([]);
@@ -837,7 +924,7 @@ export default function MaintenancePage({ user }) {
 
   /* ------------------------- UI RENDERER ------------------------- */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
 
         {/* Page Header */}
@@ -872,7 +959,7 @@ export default function MaintenancePage({ user }) {
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
-            <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-full flex items-center justify-center shrink-0">
               <Wrench className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
@@ -881,7 +968,7 @@ export default function MaintenancePage({ user }) {
             </div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
-            <div className="bg-orange-100 text-orange-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="bg-orange-100 text-orange-600 h-14 w-14 rounded-full flex items-center justify-center shrink-0">
               <AlertCircle className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
@@ -890,7 +977,7 @@ export default function MaintenancePage({ user }) {
             </div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
-            <div className="bg-purple-100 text-purple-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="bg-purple-100 text-purple-600 h-14 w-14 rounded-full flex items-center justify-center shrink-0">
               <Clock className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
@@ -899,7 +986,7 @@ export default function MaintenancePage({ user }) {
             </div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
-            <div className="bg-emerald-100 text-emerald-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="bg-emerald-100 text-emerald-600 h-14 w-14 rounded-full flex items-center justify-center shrink-0">
               <CheckCircle className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
@@ -956,8 +1043,8 @@ export default function MaintenancePage({ user }) {
                             <button
                               onClick={() => setViewMode('table')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <Columns className="w-4 h-4" />
@@ -966,8 +1053,8 @@ export default function MaintenancePage({ user }) {
                             <button
                               onClick={() => setViewMode('board')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <Wrench className="w-4 h-4" />
@@ -1205,11 +1292,17 @@ export default function MaintenancePage({ user }) {
                     {visibleColumns.status && (
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
                     )}
-                    {visibleColumns.assigned && (
+                    {visibleColumns.property && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PROPERTY</th>
+                    )}
+                    {visibleColumns.assigned_to && (
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
                     )}
-                    {visibleColumns.date && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
+                    {visibleColumns.start_date && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">START DATE</th>
+                    )}
+                    {visibleColumns.due_date && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DUE DATE</th>
                     )}
                     {/* Custom Columns (Inserted Before Actions) */}
                     {customColumns.filter(col => visibleColumns[col]).map(col => (
@@ -1225,7 +1318,7 @@ export default function MaintenancePage({ user }) {
                 <tbody className="divide-y divide-gray-100">
                   {loading ? (
                     <tr>
-                      <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
+                      <td colSpan={DEFAULT_COLUMNS.length + customColumns.length} className="py-8 text-center text-gray-500">Loading...</td>
                     </tr>
                   ) : filtered.length > 0 ? filtered.map((row) => {
                     const priorityStyle = getPriorityColor(row.priority);
@@ -1281,23 +1374,33 @@ export default function MaintenancePage({ user }) {
                             </div>
                           </td>
                         )}
-                        {visibleColumns.assigned && (
+                        {visibleColumns.property && (
                           <td className="py-4 px-4">
-                            {row.raisedBy === "Unassigned" ? (
+                            <span className="text-gray-700 text-sm">{row.hotel || '-'}</span>
+                          </td>
+                        )}
+                        {visibleColumns.assigned_to && (
+                          <td className="py-4 px-4">
+                            {row.assignedTo === "Unassigned" ? (
                               <span className="text-gray-500 text-sm">Unassigned</span>
                             ) : (
                               <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.raisedBy)} flex items-center justify-center text-xs font-semibold`}>
-                                  {getInitials(row.raisedBy)}
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assignedTo)} flex items-center justify-center text-xs font-semibold`}>
+                                  {getInitials(row.assignedTo)}
                                 </div>
-                                <span className="text-gray-900 text-sm">{row.raisedBy}</span>
+                                <span className="text-gray-900 text-sm">{row.assignedTo}</span>
                               </div>
                             )}
                           </td>
                         )}
-                        {visibleColumns.date && (
+                        {visibleColumns.start_date && (
                           <td className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{formatDate(row.start || row.dueDate)}</span>
+                            <span className="text-gray-700 text-sm">{formatDate(row.start)}</span>
+                          </td>
+                        )}
+                        {visibleColumns.due_date && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{formatDate(row.dueDate)}</span>
                           </td>
                         )}
                         {/* Custom Column Cells (Inserted Before Actions) */}
@@ -1341,7 +1444,7 @@ export default function MaintenancePage({ user }) {
                     );
                   }) : (
                     <tr>
-                      <td colSpan="9" className="py-8 text-center text-gray-500">No work orders found.</td>
+                      <td colSpan={DEFAULT_COLUMNS.length + customColumns.length} className="py-8 text-center text-gray-500">No work orders found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -1397,7 +1500,7 @@ export default function MaintenancePage({ user }) {
                   const style = getStatusStyle(status);
 
                   return (
-                    <div key={status} className="flex-shrink-0 w-80">
+                    <div key={status} className="shrink-0 w-80">
                       <div className={`rounded-lg border ${style.border} ${style.bg}`}>
                         <div className={`${style.header} px-4 py-3 border-b ${style.border}`}>
                           <div className="flex items-center justify-between">
@@ -1427,7 +1530,7 @@ export default function MaintenancePage({ user }) {
                                 <div
                                   key={task.id}
                                   className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
-                                  onClick={() => viewTask(task)}
+                                  onClick={() => openView(task)}
                                 >
                                   {/* ... Kanban Card Content ... */}
                                   <div className="flex items-center justify-between mb-2">
@@ -1491,7 +1594,7 @@ export default function MaintenancePage({ user }) {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
 
             {/* Modal Header (Fixed) */}
-            <div className="flex-shrink-0 flex items-center justify-between p-5 border-b border-gray-100">
+            <div className="shrink-0 flex items-center justify-between p-5 border-b border-gray-100">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
                   {showView ? "Task Details" : (showEdit ? "Edit Work Order" : "New Work Order")}
@@ -1525,8 +1628,8 @@ export default function MaintenancePage({ user }) {
                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
                       <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-1">PRIORITY</div>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${form.priority === 'Urgent' ? 'bg-red-100 text-red-800' :
-                          form.priority === 'High' ? 'bg-orange-100 text-orange-800' :
-                            'bg-green-100 text-green-800'
+                        form.priority === 'High' ? 'bg-orange-100 text-orange-800' :
+                          'bg-green-100 text-green-800'
                         }`}>
                         {form.priority}
                       </span>
@@ -1690,8 +1793,8 @@ export default function MaintenancePage({ user }) {
                                 ? "Loading staff..."
                                 : "Select staff"}
                           </option>
-                          {!!form.raisedBy && !staffUsers.some((u) => String(u.name) === String(form.raisedBy)) && (
-                            <option value={form.raisedBy}>{form.raisedBy}</option>
+                          {form.raisedBy && !staffUsers.some((u) => String(u.name) === String(form.raisedBy)) && (
+                            <option value={form.raisedBy}>{form.raisedBy} (Current)</option>
                           )}
                           {staffUsers.map((u) => (
                             <option key={u.id} value={u.name}>
@@ -1701,6 +1804,34 @@ export default function MaintenancePage({ user }) {
                         </>
                       }
                     />
+                    <FormSelect
+                      label="Assigned To"
+                      value={form.assignedTo}
+                      onChange={e => handleFormChange("assignedTo", e.target.value)}
+                      disabled={!form.hotelId || staffLoading}
+                      icon={User}
+                      options={
+                        <>
+                          <option value="">
+                            {!form.hotelId
+                              ? "Select property first"
+                              : staffLoading
+                                ? "Loading staff..."
+                                : "Select staff"}
+                          </option>
+                          {form.assignedTo && !staffUsers.some((u) => String(u.name) === String(form.assignedTo)) && (
+                            <option value={form.assignedTo}>{form.assignedTo} (Current)</option>
+                          )}
+                          {staffUsers.map((u) => (
+                            <option key={u.id} value={u.name}>
+                              {u.name}
+                            </option>
+                          ))}
+                        </>
+                      }
+                    />
+
+                    {/* Row 6 */}
                     <FormInput
                       label="Action Required"
                       value={form.action}
@@ -1747,7 +1878,7 @@ export default function MaintenancePage({ user }) {
             </div>
 
             {/* Modal Footer (Fixed) */}
-            <div className="flex-shrink-0 px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl flex justify-end gap-3">
+            <div className="shrink-0 px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => { setShowCreate(false); setShowEdit(false); setShowView(false); }}
@@ -1770,6 +1901,80 @@ export default function MaintenancePage({ user }) {
           </div>
         </div>
       )}
+
+      {/* View Details Modal */}
+      {showView && viewingTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg relative">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">Work Order Details</h3>
+              <button
+                onClick={() => { setShowView(false); setViewingTask(null); }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">REFERENCE & TITLE</div>
+                <div className="text-gray-500 font-mono text-sm mb-1">MNT-2025-{viewingTask.ref || (viewingTask.id ? Number(viewingTask.id).toString(36).padStart(8, '0').slice(-8) : '')}</div>
+                <div className="text-xl font-bold text-gray-800">{viewingTask.title}</div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">DESCRIPTION</div>
+                <p className="text-gray-600 text-sm leading-relaxed">{viewingTask.description || "No description provided."}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+                <DetailField label="PROPERTY" value={viewingTask.hotel || viewingTask.hotelName} icon={Building} />
+                <DetailField label="ROOM" value={viewingTask.room} />
+
+                <DetailField label="CATEGORY" value={viewingTask.category} icon={Tag} />
+                <DetailField label="PRIORITY" value={viewingTask.priority} />
+
+                <DetailField label="STATUS" value={viewingTask.status} />
+                <DetailField label="RAISED BY" value={viewingTask.raisedBy} icon={User} />
+
+                <DetailField label="START DATE" value={formatDate(viewingTask.start)} icon={Calendar} />
+                <DetailField label="DUE DATE" value={formatDate(viewingTask.dueDate)} icon={Calendar} />
+
+                <DetailField label="ACTION REQUIRED" value={viewingTask.action} />
+                <DetailField label="CLOSED DATE" value={formatDate(viewingTask.closed)} />
+              </div>
+
+              <div className="flex justify-end pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => { setShowView(false); setViewingTask(null); }}
+                  className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+      />
+
+      {/* Alert Dialog */}
+      <AlertDialog
+        isOpen={alertDialog.isOpen}
+        onClose={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        type={alertDialog.type}
+      />
     </div>
   );
 }
