@@ -12,8 +12,9 @@ RUN npm run build
 FROM node:18-alpine AS backend
 WORKDIR /app
 COPY Backend/package*.json ./
-RUN npm ci
+RUN npm ci && npm list pg-query-stream
 COPY Backend/ ./
+RUN ls -d node_modules/pg-query-stream || echo "MISSING MODULE"
 EXPOSE 4000
 CMD ["node", "server.js"]
 
