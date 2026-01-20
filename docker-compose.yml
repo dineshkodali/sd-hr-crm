@@ -3,7 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: hr-crm-db
+    container_name: crm-db
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres_password}
@@ -13,14 +13,14 @@ services:
     ports:
       - "5432:5432"
     networks:
-      - hr-network
+      - crm-network
     restart: always
 
-  hr-backend:
+  backend:
     build:
       context: .
       target: backend
-    container_name: hr-crm-backend
+    container_name: crm-backend
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres_password}@db:5432/${DB_NAME:-hr_crm}
       - JWT_SECRET=${JWT_SECRET:-secret}
@@ -32,7 +32,7 @@ services:
     ports:
       - "4000:4000"
     networks:
-      - hr-network
+      - crm-network
     restart: always
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/health"]
@@ -40,22 +40,22 @@ services:
       timeout: 5s
       retries: 5
 
-  hr-frontend:
+  frontend:
     build:
       context: .
       target: frontend
-    container_name: hr-crm-frontend
+    container_name: crm-frontend
     ports:
       - "3002:80"
     depends_on:
-      hr-backend:
+      backend:
         condition: service_started
     networks:
-      - hr-network
+      - crm-network
     restart: always
 
 networks:
-  hr-network:
+  crm-network:
     driver: bridge
 
 volumes:
