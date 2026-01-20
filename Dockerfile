@@ -12,7 +12,7 @@ RUN npm run build
 FROM node:18-alpine AS backend
 WORKDIR /app
 COPY Backend/package*.json ./
-RUN npm install
+RUN npm ci
 COPY Backend/ ./
 EXPOSE 4000
 CMD ["node", "server.js"]
