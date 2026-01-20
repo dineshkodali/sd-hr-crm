@@ -4,59 +4,46 @@ services:
   db:
     image: postgres:15-alpine
     container_name: crm-db
+    restart: always
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres_password}
       POSTGRES_DB: ${DB_NAME:-hr_crm}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
-      - crm-network
-    restart: always
+      - app-network
 
   backend:
     build:
       context: .
       target: backend
     container_name: crm-backend
+    restart: always
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres_password}@db:5432/${DB_NAME:-hr_crm}
-      - JWT_SECRET=${JWT_SECRET:-secret}
-      - PORT=4000
-      - NODE_ENV=production
-      - CORS_ORIGINS=http://localhost:3002
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres_password}@db:5432/${DB_NAME:-hr_crm}
+      JWT_SECRET: ${JWT_SECRET:-secret}
+      PORT: 4000
+      NODE_ENV: production
     depends_on:
       - db
-    ports:
-      - "4000:4000"
     networks:
-      - crm-network
-    restart: always
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - app-network
 
   frontend:
     build:
       context: .
       target: frontend
     container_name: crm-frontend
-    ports:
-      - "3002:80"
-    depends_on:
-      backend:
-        condition: service_started
-    networks:
-      - crm-network
     restart: always
-
-networks:
-  crm-network:
-    driver: bridge
+    depends_on:
+      - backend
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
+
+networks:
+  app-network:
+    external: true
