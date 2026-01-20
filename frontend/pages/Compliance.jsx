@@ -168,6 +168,11 @@ export default function Compliance() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
 
+  const CERTIFICATE_TYPE_STORAGE_KEY = 'compliance.customCertificateTypes';
+  const [customCertificateTypes, setCustomCertificateTypes] = useState([]);
+  const [showCustomCertificateTypeInput, setShowCustomCertificateTypeInput] = useState(false);
+  const [customCertificateTypeValue, setCustomCertificateTypeValue] = useState('');
+
   // Modal & Form
   const [modalOpen, setModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -206,6 +211,26 @@ export default function Compliance() {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CERTIFICATE_TYPE_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setCustomCertificateTypes(parsed.filter(Boolean).map(String));
+      }
+    } catch {
+      setCustomCertificateTypes([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!modalOpen) {
+      setShowCustomCertificateTypeInput(false);
+      setCustomCertificateTypeValue('');
+    }
+  }, [modalOpen]);
 
   // --- Data Fetching ---
   const normalizeHotelsResponse = (data) => {
@@ -290,6 +315,44 @@ export default function Compliance() {
     });
     setStaffUsers([]); setDocumentFile(null); setFormError(""); setIsEditing(false); setViewMode(false); setEditId(null);
   }
+
+  const persistCustomCertificateTypes = (list) => {
+    try {
+      localStorage.setItem(CERTIFICATE_TYPE_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const handleCertificateTypeChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      setShowCustomCertificateTypeInput(true);
+      setCustomCertificateTypeValue('');
+      setForm((p) => ({ ...p, certificate_type: '' }));
+      return;
+    }
+    setShowCustomCertificateTypeInput(false);
+    setCustomCertificateTypeValue('');
+    setForm((p) => ({ ...p, certificate_type: value }));
+  };
+
+  const saveCustomCertificateType = () => {
+    const next = String(customCertificateTypeValue || '').trim();
+    if (!next) return;
+
+    const builtinLower = new Set(CERTIFICATE_TYPES.map((t) => String(t).toLowerCase()));
+    const merged = [...customCertificateTypes];
+    if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
+      merged.push(next);
+      setCustomCertificateTypes(merged);
+      persistCustomCertificateTypes(merged);
+    }
+
+    setForm((p) => ({ ...p, certificate_type: next }));
+    setShowCustomCertificateTypeInput(false);
+    setCustomCertificateTypeValue('');
+  };
 
   function openModal(mode, cert = null) {
     resetForm();
@@ -523,10 +586,43 @@ export default function Compliance() {
                   {/* Form fields here (same logic as provided code but consistent styling) */}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Certificate Type <span className="text-red-500">*</span></label>
-                    <select required value={form.certificate_type} onChange={(e) => setForm({ ...form, certificate_type: e.target.value })} disabled={viewMode} className="w-full rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5">
+                    <select required value={form.certificate_type} onChange={handleCertificateTypeChange} disabled={viewMode} className="w-full rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5">
                       <option value="">Select type...</option>
-                      {CERTIFICATE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      {[...CERTIFICATE_TYPES, ...customCertificateTypes].map((t) => <option key={t} value={t}>{t}</option>)}
+                      {!!form.certificate_type &&
+                        ![...CERTIFICATE_TYPES, ...customCertificateTypes].some((t) => String(t) === String(form.certificate_type)) && (
+                          <option value={form.certificate_type}>{form.certificate_type}</option>
+                        )}
+                      <option value="__add_new__">+ Add new...</option>
                     </select>
+                    {showCustomCertificateTypeInput && !viewMode && (
+                      <div className="mt-3 flex gap-2">
+                        <input
+                          type="text"
+                          value={customCertificateTypeValue}
+                          onChange={(e) => setCustomCertificateTypeValue(e.target.value)}
+                          placeholder="Enter new certificate type"
+                          className="flex-1 rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5"
+                        />
+                        <button
+                          type="button"
+                          onClick={saveCustomCertificateType}
+                          className="px-4 py-2.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-medium shadow-sm transition-colors"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCustomCertificateTypeInput(false);
+                            setCustomCertificateTypeValue('');
+                          }}
+                          className="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Property <span className="text-red-500">*</span></label>

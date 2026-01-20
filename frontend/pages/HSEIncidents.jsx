@@ -159,6 +159,69 @@ export default function HSEIncidents({ user }) {
     incident_date: ''
   });
 
+  const HSE_INCIDENT_TYPE_STORAGE_KEY = 'hse_incidents.customIncidentTypes';
+  const [customIncidentTypes, setCustomIncidentTypes] = useState([]);
+  const [showCustomIncidentTypeInput, setShowCustomIncidentTypeInput] = useState(false);
+  const [customIncidentTypeValue, setCustomIncidentTypeValue] = useState('');
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HSE_INCIDENT_TYPE_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setCustomIncidentTypes(parsed.filter(Boolean).map(String));
+      }
+    } catch {
+      setCustomIncidentTypes([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showModal) {
+      setShowCustomIncidentTypeInput(false);
+      setCustomIncidentTypeValue('');
+    }
+  }, [showModal]);
+
+  const persistCustomIncidentTypes = (list) => {
+    try {
+      localStorage.setItem(HSE_INCIDENT_TYPE_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const handleIncidentTypeChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      setShowCustomIncidentTypeInput(true);
+      setCustomIncidentTypeValue('');
+      setFormData((p) => ({ ...p, incident_type: '' }));
+      return;
+    }
+    setShowCustomIncidentTypeInput(false);
+    setCustomIncidentTypeValue('');
+    setFormData((p) => ({ ...p, incident_type: value }));
+  };
+
+  const saveCustomIncidentType = () => {
+    const next = String(customIncidentTypeValue || '').trim();
+    if (!next) return;
+
+    const builtinLower = new Set(incidentTypes.map((t) => String(t).toLowerCase()));
+    const merged = [...customIncidentTypes];
+    if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
+      merged.push(next);
+      setCustomIncidentTypes(merged);
+      persistCustomIncidentTypes(merged);
+    }
+
+    setFormData((p) => ({ ...p, incident_type: next }));
+    setShowCustomIncidentTypeInput(false);
+    setCustomIncidentTypeValue('');
+  };
+
   const normalizeStaffResponse = (data) => {
     const list = data?.staff ?? data?.users ?? data?.rows ?? data?.data ?? data ?? [];
     const arr = Array.isArray(list) ? list : [];
@@ -1295,12 +1358,45 @@ export default function HSEIncidents({ user }) {
                     <select
                       required
                       value={formData.incident_type}
-                      onChange={(e) => setFormData({ ...formData, incident_type: e.target.value })}
+                      onChange={handleIncidentTypeChange}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
                       <option value="">Select type...</option>
-                      {incidentTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                      {[...incidentTypes, ...customIncidentTypes].map(t => <option key={t} value={t}>{t}</option>)}
+                      {!!formData.incident_type &&
+                        ![...incidentTypes, ...customIncidentTypes].some((t) => String(t) === String(formData.incident_type)) && (
+                          <option value={formData.incident_type}>{formData.incident_type}</option>
+                        )}
+                      <option value="__add_new__">+ Add new...</option>
                     </select>
+                    {showCustomIncidentTypeInput && (
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={customIncidentTypeValue}
+                          onChange={(e) => setCustomIncidentTypeValue(e.target.value)}
+                          placeholder="Enter new incident type"
+                          className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={saveCustomIncidentType}
+                          className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCustomIncidentTypeInput(false);
+                            setCustomIncidentTypeValue('');
+                          }}
+                          className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Severity Level <span className="text-red-500">*</span></label>

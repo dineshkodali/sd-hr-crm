@@ -191,6 +191,76 @@ export default function Incidents({ user }) {
     status: 'Open',
   });
 
+  const INCIDENT_TYPE_STORAGE_KEY = 'incidents.customIncidentTypes';
+  const BUILTIN_INCIDENT_TYPES = [
+    'Injury',
+    'Property Damage',
+    'Theft',
+    'Noise Complaint',
+  ];
+
+  const [customIncidentTypes, setCustomIncidentTypes] = useState([]);
+  const [showCustomIncidentTypeInput, setShowCustomIncidentTypeInput] = useState(false);
+  const [customIncidentTypeValue, setCustomIncidentTypeValue] = useState('');
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(INCIDENT_TYPE_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setCustomIncidentTypes(parsed.filter(Boolean).map(String));
+      }
+    } catch {
+      setCustomIncidentTypes([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showModal) {
+      setShowCustomIncidentTypeInput(false);
+      setCustomIncidentTypeValue('');
+    }
+  }, [showModal]);
+
+  const persistCustomIncidentTypes = (list) => {
+    try {
+      localStorage.setItem(INCIDENT_TYPE_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const handleIncidentTypeChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      setShowCustomIncidentTypeInput(true);
+      setCustomIncidentTypeValue('');
+      setFormData((p) => ({ ...p, incidentType: '' }));
+      return;
+    }
+    setShowCustomIncidentTypeInput(false);
+    setCustomIncidentTypeValue('');
+    setFormData((p) => ({ ...p, incidentType: value }));
+  };
+
+  const saveCustomIncidentType = () => {
+    const next = String(customIncidentTypeValue || '').trim();
+    if (!next) return;
+
+    const builtinLower = new Set(BUILTIN_INCIDENT_TYPES.map((t) => String(t).toLowerCase()));
+    const merged = [...customIncidentTypes];
+    if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
+      merged.push(next);
+      setCustomIncidentTypes(merged);
+      persistCustomIncidentTypes(merged);
+    }
+
+    setFormData((p) => ({ ...p, incidentType: next }));
+    setShowCustomIncidentTypeInput(false);
+    setCustomIncidentTypeValue('');
+  };
+
   // Dynamic columns state
   const [availableColumns, setAvailableColumns] = useState([
     "checkbox",
@@ -1428,15 +1498,47 @@ export default function Incidents({ user }) {
                     name="incidentType" 
                     required 
                     value={formData.incidentType} 
-                    onChange={handleInputChange} 
+                    onChange={handleIncidentTypeChange} 
                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                   >
                     <option value="">Select type</option>
-                    <option value="Injury">Injury</option>
-                    <option value="Property Damage">Property Damage</option>
-                    <option value="Theft">Theft</option>
-                    <option value="Noise Complaint">Noise Complaint</option>
+                    {[...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                    {!!formData.incidentType &&
+                      ![...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].some((t) => String(t) === String(formData.incidentType)) && (
+                        <option value={formData.incidentType}>{formData.incidentType}</option>
+                      )}
+                    <option value="__add_new__">+ Add new...</option>
                   </select>
+                  {showCustomIncidentTypeInput && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={customIncidentTypeValue}
+                        onChange={(e) => setCustomIncidentTypeValue(e.target.value)}
+                        placeholder="Enter new incident type"
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={saveCustomIncidentType}
+                        className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomIncidentTypeInput(false);
+                          setCustomIncidentTypeValue('');
+                        }}
+                        className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
                 {/* Render dynamic custom columns as input fields */}
                 {customColumns && customColumns.length > 0 && customColumns.map(col => (

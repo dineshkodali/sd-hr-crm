@@ -198,6 +198,77 @@ export default function Inspections({ user }) {
     ...customColumns.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
   });
 
+  const INSPECTION_TYPE_STORAGE_KEY = 'inspections.customInspectionTypes';
+  const BUILTIN_INSPECTION_TYPES = [
+    'Fire Safety',
+    'Room Inspection',
+    'Welfare Check',
+    'Routine',
+    'Emergency',
+  ];
+
+  const [customInspectionTypes, setCustomInspectionTypes] = useState([]);
+  const [showCustomInspectionTypeInput, setShowCustomInspectionTypeInput] = useState(false);
+  const [customInspectionTypeValue, setCustomInspectionTypeValue] = useState('');
+
+  useEffect(() => {
+    if (!showModal) {
+      setShowCustomInspectionTypeInput(false);
+      setCustomInspectionTypeValue('');
+    }
+  }, [showModal]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(INSPECTION_TYPE_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setCustomInspectionTypes(parsed.filter(Boolean).map(String));
+      }
+    } catch {
+      setCustomInspectionTypes([]);
+    }
+  }, []);
+
+  const persistCustomInspectionTypes = (list) => {
+    try {
+      localStorage.setItem(INSPECTION_TYPE_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const handleInspectionTypeChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      setShowCustomInspectionTypeInput(true);
+      setCustomInspectionTypeValue('');
+      setFormData((p) => ({ ...p, inspectionType: '' }));
+      return;
+    }
+    setShowCustomInspectionTypeInput(false);
+    setCustomInspectionTypeValue('');
+    setFormData((p) => ({ ...p, inspectionType: value }));
+  };
+
+  const saveCustomInspectionType = () => {
+    const next = String(customInspectionTypeValue || '').trim();
+    if (!next) return;
+
+    const builtinLower = new Set(BUILTIN_INSPECTION_TYPES.map((t) => String(t).toLowerCase()));
+    const merged = [...customInspectionTypes];
+    if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
+      merged.push(next);
+      setCustomInspectionTypes(merged);
+      persistCustomInspectionTypes(merged);
+    }
+
+    setFormData((p) => ({ ...p, inspectionType: next }));
+    setShowCustomInspectionTypeInput(false);
+    setCustomInspectionTypeValue('');
+  };
+
   // When customColumns change, add new fields to form state
   useEffect(() => {
     setFormData(prev => {
@@ -1694,16 +1765,47 @@ export default function Inspections({ user }) {
                     name="inspectionType" 
                     required 
                     value={formData.inspectionType} 
-                    onChange={handleInputChange} 
+                    onChange={handleInspectionTypeChange} 
                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
                   >
                     <option value="">Select inspection type</option>
-                    <option value="Fire Safety">Fire Safety</option>
-                    <option value="Room Inspection">Room Inspection</option>
-                    <option value="Welfare Check">Welfare Check</option>
-                    <option value="Routine">Routine</option>
-                    <option value="Emergency">Emergency</option>
+                    {[...BUILTIN_INSPECTION_TYPES, ...customInspectionTypes].map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                    {!!formData.inspectionType &&
+                      ![...BUILTIN_INSPECTION_TYPES, ...customInspectionTypes].some((t) => String(t) === String(formData.inspectionType)) && (
+                        <option value={formData.inspectionType}>{formData.inspectionType}</option>
+                      )}
+                    <option value="__add_new__">+ Add new...</option>
                   </select>
+                  {showCustomInspectionTypeInput && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={customInspectionTypeValue}
+                        onChange={(e) => setCustomInspectionTypeValue(e.target.value)}
+                        placeholder="Enter new inspection type"
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={saveCustomInspectionType}
+                        className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomInspectionTypeInput(false);
+                          setCustomInspectionTypeValue('');
+                        }}
+                        className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="col-span-1">
