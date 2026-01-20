@@ -15,7 +15,9 @@ services:
     restart: always
 
   backend:
-    build: ./Backend
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
     container_name: hr-crm-backend
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres_password}@db:5432/${DB_NAME:-hr_crm}
@@ -30,7 +32,9 @@ services:
     restart: always
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: hr-crm-frontend
     ports:
       - "80:80"
