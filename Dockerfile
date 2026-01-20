@@ -11,10 +11,11 @@ RUN npm run build
 # --- Backend Shared Stage ---
 FROM node:18-alpine AS backend
 WORKDIR /app
-COPY Backend/package*.json ./
-RUN npm install && npm list pg-query-stream
+COPY Backend/package.json ./
+# Add build tools for native modules if needed
+RUN apk add --no-cache python3 make g++
+RUN npm install --no-audit --no-fund
 COPY Backend/ ./
-RUN ls -d node_modules/pg-query-stream || echo "MISSING MODULE"
 EXPOSE 4000
 CMD ["node", "server.js"]
 
