@@ -8,6 +8,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
@@ -55,6 +56,9 @@ import emailNotificationRoutes from "./routes/email-notifications.js";
 import emailConfigRoutes from "./routes/email-config.js";
 import orgChartRoutes from "./routes/org-chart.js";
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -252,6 +256,27 @@ mountRoute("/api/org-chart", orgChartRoutes, "orgChartRoutes");
 
 // profile (keep last)
 mountRoute("/api/profile", profileRoutes, "profileRoutes");
+
+/* ----------------------------
+   Serve frontend build (production)
+   ---------------------------- */
+if (process.env.NODE_ENV === "production") {
+  const frontendDist = path.resolve(__dirname, "..", "frontend", "dist");
+  const indexHtml = path.join(frontendDist, "index.html");
+
+  if (fs.existsSync(frontendDist) && fs.existsSync(indexHtml)) {
+    app.use(express.static(frontendDist));
+
+    // SPA fallback: serve index.html for non-API routes
+    app.get(/^\/(?!api\/).*/, (req, res) => {
+      res.sendFile(indexHtml);
+    });
+
+    console.log("✅ Serving frontend from:", frontendDist);
+  } else {
+    console.warn("⚠️  Frontend build not found at", frontendDist, "(did you run frontend build?)");
+  }
+}
 
 /* ----------------------------
    Health check & 404

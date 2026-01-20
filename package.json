@@ -2,12 +2,18 @@
   "name": "sdc-praneeth-root",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "Backend",
+    "frontend"
+  ],
   "scripts": {
-    "postinstall": "echo \"Skipping automatic subpackage installs. Run 'npm run bootstrap' to install Backend and frontend dependencies.\"",
-    "bootstrap": "npm --prefix Backend install && npm --prefix frontend install",
+    "postinstall": "echo \"Root install complete. If your platform does not install workspaces automatically, run: npm run bootstrap\"",
+    "bootstrap": "npm install --workspaces",
+    "build": "npm run bootstrap && npm --workspace frontend run build",
+    "start": "npm --workspace Backend start",
     "dev": "concurrently --kill-others \"npm run backend\" \"npm run frontend\"",
-    "backend": "cd Backend && npm start",
-    "frontend": "cd frontend && npm run dev",
+    "backend": "npm --workspace Backend start",
+    "frontend": "npm --workspace frontend run dev",
     "install-all": "npm install --force && npm install concurrently pg-query-stream --save && npm --prefix frontend install --force && npm --prefix Backend install --force && npm --prefix frontend install react-router-dom @vitejs/plugin-react --force",
     "init-project": "npm run install-all && npm run dev"
   },
