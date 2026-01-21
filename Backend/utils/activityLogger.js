@@ -19,6 +19,11 @@ export async function logActivity({
   status = 'success'
 }) {
   try {
+    // Skip logging for synthetic admin users
+    if (userId === "admin-synthetic" || typeof userId !== 'number') {
+      return;
+    }
+
     // Parse user agent if provided
     let browser = null, os = null, deviceType = null;
     if (userAgent) {
@@ -59,6 +64,11 @@ export async function logActivity({
  */
 export async function getActivityLogs(userId, options = {}) {
   try {
+    // Skip logs for synthetic admin users
+    if (userId === "admin-synthetic" || typeof userId !== 'number') {
+      return [];
+    }
+
     const {
       limit = 100,
       offset = 0,
@@ -119,6 +129,11 @@ export async function getActivityLogs(userId, options = {}) {
  */
 export async function getActivityStats(userId, days = 30) {
   try {
+    // Skip stats for synthetic admin users
+    if (userId === "admin-synthetic" || typeof userId !== 'number') {
+      return [];
+    }
+
     const result = await pool.query(
       `SELECT 
          action_type,
@@ -131,7 +146,7 @@ export async function getActivityStats(userId, days = 30) {
        ORDER BY count DESC`,
       [userId]
     );
-    
+
     return result.rows;
   } catch (error) {
     console.error('Error getting activity stats:', error);
@@ -148,7 +163,7 @@ export async function cleanupOldLogs(daysToKeep = 90) {
       `DELETE FROM activity_logs 
        WHERE created_at < NOW() - INTERVAL '${daysToKeep} days'`
     );
-    
+
     return result.rowCount;
   } catch (error) {
     console.error('Error cleaning up old logs:', error);

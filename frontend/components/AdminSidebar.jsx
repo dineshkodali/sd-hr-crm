@@ -333,6 +333,7 @@ export default function AdminSidebar(props) {
       label: "System",
       items: [
         { path: "/profile", label: "Profile", icon: <Icons.SubItemDot /> },
+        { path: "/activity", label: "Activity", icon: <Icons.SubItemDot /> },
         { path: "/notifications", label: "Notifications", icon: <Icons.SubItemDot /> },
         ...(user?.role === 'admin' ? [{ path: "/admin/settings/users", label: "User Management", icon: <Icons.UserGroup /> }] : []),
         { path: "/admin/settings", label: "Settings", icon: <Icons.SubItemDot /> },

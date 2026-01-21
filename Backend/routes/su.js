@@ -1,6 +1,8 @@
 // File: routes/su.js
 import express from "express";
 import poolImport from "../config/db.js"; // adjust path if needed
+import { protect } from "../middleware/auth.js"; // Add authentication middleware
+import { logActivity } from "../utils/activityLogger.js"; // Add activity logging
 
 const router = express.Router();
 const pool = poolImport && poolImport.default ? poolImport.default : poolImport;
@@ -358,7 +360,7 @@ router.get("/", async (req, res) => {
 
     const params = filterHotelId && hotelFilterCol ? [filterHotelId] : [];
     const { rows } = await pool.query(q, params);
-    
+
     // Normalize data for consistent frontend consumption
     const normalizedRows = rows.map((row) => {
       // Ensure property/hotel_name is available
@@ -368,17 +370,17 @@ router.get("/", async (req, res) => {
       if (!row.property_name && row.hotel_name) {
         row.property_name = row.hotel_name;
       }
-      
+
       // Ensure number_of_dependents is a number
       if (row.number_of_dependents === null || row.number_of_dependents === undefined) {
         row.number_of_dependents = 0;
       } else {
         row.number_of_dependents = Number(row.number_of_dependents) || 0;
       }
-      
+
       return row;
     });
-    
+
     return res.json(normalizedRows);
   } catch (err) {
     console.error(
@@ -471,7 +473,7 @@ router.get("/rooms/:hotelId", async (req, res) => {
  * GET /api/su/users
  * List service users with hotel_name and room_number if available
  */
-router.get("/users", async (req, res) => {
+router.get("/users", protect, async (req, res) => {
   try {
     if (!pool || typeof pool.query !== "function")
       return res.status(500).json({ error: "DB not initialized" });
@@ -587,7 +589,7 @@ router.get("/users", async (req, res) => {
 
     const params = filterHotelId ? [filterHotelId] : [];
     const { rows } = await pool.query(q, params);
-    
+
     // Normalize data for consistent frontend consumption
     const normalizedRows = rows.map((row) => {
       // Ensure property/hotel_name is available
@@ -597,7 +599,7 @@ router.get("/users", async (req, res) => {
       if (!row.property_name && row.hotel_name) {
         row.property_name = row.hotel_name;
       }
-      
+
       // Normalize array fields to strings
       if (Array.isArray(row.family_type)) {
         row.family_type = row.family_type[0] || row.family_type.join(", ");
@@ -608,17 +610,17 @@ router.get("/users", async (req, res) => {
       if (Array.isArray(row.emergency_contact_phone)) {
         row.emergency_contact_phone = row.emergency_contact_phone[0] || row.emergency_contact_phone.join(", ");
       }
-      
+
       // Ensure number_of_dependents is a number
       if (row.number_of_dependents === null || row.number_of_dependents === undefined) {
         row.number_of_dependents = 0;
       } else {
         row.number_of_dependents = Number(row.number_of_dependents) || 0;
       }
-      
+
       return row;
     });
-    
+
     return res.json(normalizedRows);
   } catch (err) {
     console.error(
@@ -653,7 +655,7 @@ router.get("/meals", async (req, res) => {
 /**
  * GET /api/su/users/:id
  */
-router.get("/users/:id", async (req, res) => {
+router.get("/users/:id", protect, async (req, res) => {
   try {
     const rawId = req.params.id;
     const id = Number(rawId);
@@ -750,10 +752,10 @@ router.get("/users/:id", async (req, res) => {
     `;
     const { rows } = await pool.query(q, [id]);
     if (!rows.length) return res.status(404).json({ error: "Not found" });
-    
+
     // Ensure all fields are properly formatted and present
     const userData = rows[0];
-    
+
     // Normalize property/hotel name
     if (!userData.property && userData.hotel_name) {
       userData.property = userData.hotel_name;
@@ -761,7 +763,7 @@ router.get("/users/:id", async (req, res) => {
     if (!userData.property_name && userData.hotel_name) {
       userData.property_name = userData.hotel_name;
     }
-    
+
     // Ensure string fields are strings (not arrays)
     if (Array.isArray(userData.family_type)) {
       userData.family_type = userData.family_type[0] || userData.family_type.join(", ");
@@ -772,14 +774,14 @@ router.get("/users/:id", async (req, res) => {
     if (Array.isArray(userData.emergency_contact_phone)) {
       userData.emergency_contact_phone = userData.emergency_contact_phone[0] || userData.emergency_contact_phone.join(", ");
     }
-    
+
     // Ensure number_of_dependents is a number
     if (userData.number_of_dependents === null || userData.number_of_dependents === undefined) {
       userData.number_of_dependents = 0;
     } else {
       userData.number_of_dependents = Number(userData.number_of_dependents) || 0;
     }
-    
+
     return res.json(userData);
   } catch (err) {
     console.error(
@@ -799,7 +801,7 @@ router.get("/users/:id", async (req, res) => {
  * - Only inserts columns that actually exist on service_users
  * - Stores vulnerabilities/medical/dietary as plain TEXT (comma-separated if array)
  */
-router.post("/users", async (req, res) => {
+router.post("/users", protect, async (req, res) => {
   try {
     const ready = await ensureServiceUsersTable();
     if (!ready) {
@@ -825,12 +827,12 @@ router.post("/users", async (req, res) => {
 
     const normalizedDependents =
       body.number_of_dependents === undefined ||
-      body.number_of_dependents === null ||
-      body.number_of_dependents === ""
+        body.number_of_dependents === null ||
+        body.number_of_dependents === ""
         ? null
         : isNaN(Number(body.number_of_dependents))
-        ? null
-        : Number(body.number_of_dependents);
+          ? null
+          : Number(body.number_of_dependents);
 
     // Get existing columns on service_users
     const { rows: suColsRows } = await pool.query(`
@@ -874,8 +876,8 @@ router.post("/users", async (req, res) => {
     const roomCol = suCols.includes("room_number")
       ? "room_number"
       : suCols.includes("room")
-      ? "room"
-      : null;
+        ? "room"
+        : null;
 
     if (roomCol) {
       pushIfExists(roomCol, body.room_number || body.room || null);
@@ -947,6 +949,26 @@ router.post("/users", async (req, res) => {
         .json({ error: "Failed to create service user" });
     }
 
+    // Log the creation activity
+    try {
+      await logActivity({
+        userId: req.user.id,
+        action: 'create_service_user',
+        actionType: 'crud',
+        resource: 'service_users',
+        resourceId: rows[0].id,
+        description: `Created service user: ${body.first_name} ${body.last_name}`,
+        metadata: {
+          user_name: `${body.first_name} ${body.last_name}`,
+          status: body.status || 'Active'
+        },
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
+    } catch (logError) {
+      console.error('Failed to log service user creation:', logError);
+    }
+
     return res.status(201).json(rows[0]);
   } catch (error) {
     console.error("Error creating service user:", error);
@@ -962,7 +984,7 @@ router.post("/users", async (req, res) => {
 /**
  * PUT /api/su/users/:id
  */
-router.put("/users/:id", async (req, res) => {
+router.put("/users/:id", protect, async (req, res) => {
   try {
     const ready = await ensureServiceUsersTable();
     if (!ready) {
@@ -1149,6 +1171,26 @@ router.put("/users/:id", async (req, res) => {
       return res.status(404).json({ error: "Service user not found" });
     }
 
+    // Log the update activity
+    try {
+      await logActivity({
+        userId: req.user.id,
+        action: 'update_service_user',
+        actionType: 'crud',
+        resource: 'service_users',
+        resourceId: id,
+        description: `Updated service user: ${rows[0].first_name} ${rows[0].last_name}`,
+        metadata: {
+          user_name: `${rows[0].first_name} ${rows[0].last_name}`,
+          updated_fields: sets.map(s => s.split(' = ')[0]).join(', ')
+        },
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
+    } catch (logError) {
+      console.error('Failed to log service user update:', logError);
+    }
+
     return res.json(rows[0]);
   } catch (error) {
     console.error("Error updating service user:", error);
@@ -1161,7 +1203,7 @@ router.put("/users/:id", async (req, res) => {
 
 /* -------------------- DELETE -------------------- */
 
-router.delete("/users/:id", async (req, res) => {
+router.delete("/users/:id", protect, async (req, res) => {
   try {
     const rawId = req.params.id;
     const id = Number(rawId);
@@ -1171,11 +1213,39 @@ router.delete("/users/:id", async (req, res) => {
         .json({ error: "Invalid id - must be a positive integer" });
     }
 
+    // Get user info before deleting for activity logging
+    const { rows: userRows } = await pool.query(
+      `SELECT first_name, last_name FROM service_users WHERE id = $1`,
+      [id]
+    );
+    
     const { rowCount } = await pool.query(
       `DELETE FROM service_users WHERE id = $1`,
       [id]
     );
     if (!rowCount) return res.status(404).json({ error: "Not found" });
+
+    // Log the deletion activity
+    try {
+      const deletedUser = userRows[0];
+      await logActivity({
+        userId: req.user.id,
+        action: 'delete_service_user',
+        actionType: 'crud',
+        resource: 'service_users',
+        resourceId: id,
+        description: `Deleted service user: ${deletedUser?.first_name || 'Unknown'} ${deletedUser?.last_name || 'User'}`,
+        metadata: {
+          user_name: `${deletedUser?.first_name || 'Unknown'} ${deletedUser?.last_name || 'User'}`,
+          deleted_id: id
+        },
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
+    } catch (logError) {
+      console.error('Failed to log service user deletion:', logError);
+    }
+
     return res.json({ ok: true, deletedId: id });
   } catch (err) {
     console.error(
@@ -1196,7 +1266,7 @@ router.delete("/users/:id", async (req, res) => {
 router.get("/:hotelId", async (req, res) => {
   try {
     const { hotelId } = req.params;
-    
+
     if (!hotelId) {
       return res.status(400).json({ error: "hotelId is required" });
     }
@@ -1312,7 +1382,7 @@ router.get("/:hotelId", async (req, res) => {
 
     const params = [hotelId];
     const { rows } = await pool.query(q, params);
-    
+
     // Normalize data for consistent frontend consumption
     const normalizedRows = rows.map((row) => {
       // Ensure property/hotel_name is available
@@ -1322,7 +1392,7 @@ router.get("/:hotelId", async (req, res) => {
       if (!row.property_name && row.hotel_name) {
         row.property_name = row.hotel_name;
       }
-      
+
       // Normalize array fields to strings
       if (Array.isArray(row.family_type)) {
         row.family_type = row.family_type[0] || row.family_type.join(", ");
@@ -1333,17 +1403,17 @@ router.get("/:hotelId", async (req, res) => {
       if (Array.isArray(row.emergency_contact_phone)) {
         row.emergency_contact_phone = row.emergency_contact_phone[0] || row.emergency_contact_phone.join(", ");
       }
-      
+
       // Ensure number_of_dependents is a number
       if (row.number_of_dependents === null || row.number_of_dependents === undefined) {
         row.number_of_dependents = 0;
       } else {
         row.number_of_dependents = Number(row.number_of_dependents) || 0;
       }
-      
+
       return row;
     });
-    
+
     return res.json(normalizedRows);
   } catch (err) {
     console.error(

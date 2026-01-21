@@ -1196,18 +1196,20 @@ router.get("/activity-logs", protect, async (req, res) => {
       endDate
     });
 
-    // Log this activity view
-    const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0];
-    const userAgent = req.headers['user-agent'];
-    await logActivity({
-      userId,
-      action: 'view_activity_logs',
-      actionType: 'view',
-      resource: 'activity_logs',
-      description: 'Viewed activity logs',
-      ipAddress,
-      userAgent
-    });
+    // Log this activity view (skip for synthetic admin)
+    if (userId !== "admin-synthetic") {
+      const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0];
+      const userAgent = req.headers['user-agent'];
+      await logActivity({
+        userId,
+        action: 'view_activity_logs',
+        actionType: 'view',
+        resource: 'activity_logs',
+        description: 'Viewed activity logs',
+        ipAddress,
+        userAgent
+      });
+    }
 
     return res.json({ logs });
   } catch (err) {

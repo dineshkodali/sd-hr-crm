@@ -1,5 +1,6 @@
 // middleware/auth.js
 import jwt from "jsonwebtoken";
+import { logActivity } from "../utils/activityLogger.js";
 
 /**
  * Robust DB pool loader.
@@ -169,6 +170,82 @@ export const protect = async (req, res, next) => {
     }
 
     req.user = user;
+
+    // Centralized activity logging for the whole website.
+    // Can be disabled with: ACTIVITY_LOGS_ENABLED=false
+    if (process.env.ACTIVITY_LOGS_ENABLED !== "false") {
+      if (!req._activityHooked) {
+        req._activityHooked = true;
+        const startedAt = Date.now();
+
+        const sanitize = (obj) => {
+          try {
+            if (!obj || typeof obj !== "object") return obj;
+            const out = Array.isArray(obj) ? [] : {};
+            for (const [k, v] of Object.entries(obj)) {
+              if (/password|token|authorization/i.test(k)) continue;
+              out[k] = v;
+            }
+            return out;
+          } catch {
+            return null;
+          }
+        };
+
+        res.on("finish", async () => {
+          try {
+            const url = String(req.originalUrl || "");
+            // prevent recursion/noise
+            if (url.startsWith("/api/auth/activity-logs") || url.startsWith("/api/auth/activity-stats")) {
+              return;
+            }
+
+            const method = String(req.method || "GET").toUpperCase();
+            const isWrite = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+            const actionType = isWrite ? "crud" : "view";
+            const action = `${actionType}_${method.toLowerCase()}`;
+
+            const resource = (() => {
+              const base = String(req.baseUrl || "");
+              const p = base || url;
+              return p.replace(/^\/api\//, "").split("?")[0].split("/")[0] || "api";
+            })();
+
+            const ipAddress = req.ip || req.connection?.remoteAddress || req.headers["x-forwarded-for"]?.split(",")[0];
+            const userAgent = req.headers["user-agent"];
+            const status = res.statusCode >= 400 ? "failed" : "success";
+
+            const meta = {
+              method,
+              url,
+              statusCode: res.statusCode,
+              durationMs: Date.now() - startedAt,
+              params: sanitize(req.params),
+              query: sanitize(req.query),
+              body: isWrite ? sanitize(req.body) : undefined,
+            };
+
+            // Skip activity logging for synthetic admin users
+            if (req.user?.id !== "admin-synthetic") {
+              await logActivity({
+                userId: req.user?.id,
+                action,
+                actionType,
+                resource,
+                resourceId: req.params?.id || req.params?.roomId || req.params?.hotelId || null,
+                description: `${method} ${url}`,
+                metadata: meta,
+                ipAddress,
+                userAgent,
+                status,
+              });
+            }
+          } catch (e) {
+            console.error("Auto activity log error:", e && e.message ? e.message : e);
+          }
+        });
+      }
+    }
     next();
   } catch (err) {
     console.error("Auth protect unexpected error:", err && err.stack ? err.stack : err);

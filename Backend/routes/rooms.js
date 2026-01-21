@@ -44,6 +44,50 @@ async function getRoomsColumns() {
   return (rows || []).map(r => r.column_name);
 }
 
+async function getRoomsColumnsMeta() {
+  const { rows } = await pool.query(
+    `SELECT column_name, data_type
+     FROM information_schema.columns
+     WHERE table_name = 'rooms'`
+  );
+  return rows || [];
+}
+
+function coerceRoomColumnValueByType(value, dataType) {
+  if (value === null || value === undefined) return null;
+
+  if (!dataType) return value;
+
+  const dt = String(dataType).toLowerCase();
+
+  // Handle numeric types
+  if (dt.includes('int') || dt.includes('numeric') || dt.includes('decimal') || dt.includes('float') || dt.includes('double')) {
+    const num = Number(value);
+    return Number.isNaN(num) ? null : num;
+  }
+
+  // Handle boolean types
+  if (dt.includes('bool')) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const lower = value.toLowerCase();
+      if (lower === 'true' || lower === '1' || lower === 'yes') return true;
+      if (lower === 'false' || lower === '0' || lower === 'no') return false;
+    }
+    return Boolean(value);
+  }
+
+  // Handle date/timestamp types
+  if (dt.includes('date') || dt.includes('timestamp')) {
+    if (value instanceof Date) return value;
+    if (typeof value === 'string' && value.trim() !== '') return value;
+    return null;
+  }
+
+  // Default: return as string
+  return String(value);
+}
+
 /**
  * Helper: check whether the current authenticated user may manage rooms
  * for the provided hotelId.
@@ -215,7 +259,7 @@ router.post("/", protect, async (req, res) => {
       await client.query("COMMIT");
       return res.status(201).json({ message: "Room created", room: r.rows[0] });
     } catch (e) {
-      try { await client.query("ROLLBACK"); } catch {}
+      try { await client.query("ROLLBACK"); } catch { }
       throw e;
     } finally {
       client.release();
@@ -444,7 +488,7 @@ router.put("/:roomId", protect, async (req, res) => {
       await client.query("COMMIT");
       return res.json({ message: "Room updated", room: u.rows[0] });
     } catch (e) {
-      try { await client.query("ROLLBACK"); } catch {}
+      try { await client.query("ROLLBACK"); } catch { }
       throw e;
     } finally {
       client.release();
@@ -507,7 +551,7 @@ router.delete("/:roomId", protect, async (req, res) => {
       await client.query("COMMIT");
       return res.json({ message: "Room deleted" });
     } catch (e) {
-      try { await client.query("ROLLBACK"); } catch {}
+      try { await client.query("ROLLBACK"); } catch { }
       throw e;
     } finally {
       client.release();

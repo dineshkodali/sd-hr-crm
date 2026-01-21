@@ -23,6 +23,7 @@ import Reports from "../pages/Reports";
 
 import AdminAddMember from "../pages/AdminAddMember";
 import Profile from "../pages/Profile";
+import Activity from "../pages/Activity";
 import Users from "../pages/Users"; // admin / employee users
 import ServiceUsers from "../pages/ServiceUsersList"; // service users (SU domain)
 import ServiceUserProfile from "../pages/ServiceUserProfile";
@@ -128,6 +129,7 @@ const NotificationsSafe = makeSafe(Notifications, "Notifications");
 const ReportsSafe = makeSafe(Reports, "Reports");
 const AdminAddMemberSafe = makeSafe(AdminAddMember, "AdminAddMember");
 const ProfileSafe = makeSafe(Profile, "Profile");
+const ActivitySafe = makeSafe(Activity, "Activity");
 const UsersSafe = makeSafe(Users, "Users"); // admin/employee users
 const ServiceUsersSafe = makeSafe(ServiceUsers, "ServiceUsers"); // service users
 const ServiceUserProfileSafe = makeSafe(ServiceUserProfile, "ServiceUserProfile");
@@ -416,6 +418,12 @@ export default function App() {
               <Route path="/profile" element={
                 <GeneralLayoutWrapper>
                   <ProfileSafe user={user} />
+                </GeneralLayoutWrapper>
+              } />
+
+              <Route path="/activity" element={
+                <GeneralLayoutWrapper>
+                  <ActivitySafe />
                 </GeneralLayoutWrapper>
               } />
 
