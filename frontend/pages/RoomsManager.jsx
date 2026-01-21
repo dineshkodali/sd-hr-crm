@@ -17,6 +17,10 @@ export default function RoomsManager({ user }) {
   const [saving, setSaving] = useState(false);
   const [extraColumns, setExtraColumns] = useState([]);
 
+  const totalBeds = Number(hotel?.total_beds ?? hotel?.total_bed ?? 0);
+  const occupiedBeds = Number(hotel?.occupied_beds ?? hotel?.occupied ?? 0);
+  const remainingBeds = Math.max(0, totalBeds - occupiedBeds);
+
   // Determine if current user is allowed to manage rooms for this hotel
   const computeCanManage = (userObj, hotelObj) => {
     if (!userObj) return false;
@@ -89,13 +93,25 @@ export default function RoomsManager({ user }) {
       };
       // Add extra columns
       extraColumns.forEach(col => {
-        if (form[col.column_name] !== undefined) {
-          payload[col.column_name] = form[col.column_name];
+        if (form[col.column_name] === undefined) return;
+        const t = String(col.input_type || '').toLowerCase();
+        const v = form[col.column_name];
+        if (t === 'checkbox' || t === 'switch') {
+          const boolVal = (typeof v === 'boolean')
+            ? v
+            : (String(v) === 'true' || String(v) === 'false')
+              ? String(v) === 'true'
+              : !!v;
+          const isBoolColumn = String(col.data_type || '').toUpperCase() === 'BOOLEAN';
+          payload[col.column_name] = isBoolColumn ? boolVal : (boolVal ? 'true' : 'false');
+        } else {
+          payload[col.column_name] = v;
         }
       });
       const res = await axios.post(`/api/hotels/${hotelId}/rooms`, payload);
       setForm({ room_number: "", type: "", rate: "", floor: "" });
       await fetch();
+      await fetchHotel();
       // optionally show server message
       if (res.data && res.data.message) {
         // lightweight non-blocking feedback
@@ -118,7 +134,13 @@ export default function RoomsManager({ user }) {
       floor: (r.floor !== undefined && r.floor !== null) ? String(r.floor) : "",
     };
     extraColumns.forEach(col => {
-      nextForm[col.column_name] = r[col.column_name] || "";
+      const t = String(col.input_type || '').toLowerCase();
+      const raw = r[col.column_name];
+      if (t === 'checkbox' || t === 'switch') {
+        nextForm[col.column_name] = raw === true || String(raw) === 'true';
+      } else {
+        nextForm[col.column_name] = (raw !== undefined && raw !== null) ? String(raw) : "";
+      }
     });
     setForm(nextForm);
     // scroll into view or focus can be added here if desired
@@ -137,8 +159,19 @@ export default function RoomsManager({ user }) {
         floor: form.floor !== "" ? form.floor : null,
       };
       extraColumns.forEach(col => {
-        if (form[col.column_name] !== undefined) {
-          payload[col.column_name] = form[col.column_name];
+        if (form[col.column_name] === undefined) return;
+        const t = String(col.input_type || '').toLowerCase();
+        const v = form[col.column_name];
+        if (t === 'checkbox' || t === 'switch') {
+          const boolVal = (typeof v === 'boolean')
+            ? v
+            : (String(v) === 'true' || String(v) === 'false')
+              ? String(v) === 'true'
+              : !!v;
+          const isBoolColumn = String(col.data_type || '').toUpperCase() === 'BOOLEAN';
+          payload[col.column_name] = isBoolColumn ? boolVal : (boolVal ? 'true' : 'false');
+        } else {
+          payload[col.column_name] = v;
         }
       });
       // IMPORTANT: use the hotel-scoped route for editing
@@ -146,6 +179,7 @@ export default function RoomsManager({ user }) {
       setEditing(null);
       setForm({ room_number: "", type: "", rate: "", floor: "" });
       await fetch();
+      await fetchHotel();
     } catch (err) {
       console.error("Save edit error:", err);
       const detail = err?.response?.data?.detail ? `\n\nDetails: ${err.response.data.detail}` : "";
@@ -162,6 +196,7 @@ export default function RoomsManager({ user }) {
       // IMPORTANT: use the hotel-scoped route for delete
       await axios.delete(`/api/hotels/${hotelId}/rooms/${id}`);
       await fetch();
+      await fetchHotel();
     } catch (err) {
       console.error("Delete room error:", err);
       alert(err?.response?.data?.message || "Failed to delete room");
@@ -328,16 +363,72 @@ export default function RoomsManager({ user }) {
                     <label className="block text-sm font-semibold text-slate-700 capitalize">
                       {col.column_name.replace(/_/g, " ")}
                     </label>
-                    {col.data_type === 'BOOLEAN' ? (
+                    {String(col.column_name).toLowerCase() === "bedspaces" ? (
+                      (() => {
+                        const current = form[col.column_name];
+                        const hasCurrent = current !== undefined && current !== null && String(current) !== "";
+
+                        // If there are no remaining beds, do not allow selecting bedspaces.
+                        // Still show current value when editing.
+                        if (remainingBeds <= 0) {
+                          return (
+                            <select
+                              value={hasCurrent ? String(current) : ""}
+                              disabled
+                              className="w-full px-4 py-3 bg-[#f0faf9] border border-[#d3f1ec] rounded-xl text-slate-700 transition-all outline-none opacity-70 cursor-not-allowed"
+                            >
+                              <option value={hasCurrent ? String(current) : ""}>
+                                {hasCurrent ? String(current) : "No remaining beds"}
+                              </option>
+                            </select>
+                          );
+                        }
+
+                        const options = [];
+                        for (let i = 1; i <= remainingBeds; i++) options.push(String(i));
+                        return (
+                          <select
+                            value={hasCurrent ? String(current) : ""}
+                            onChange={(e) => setForm({ ...form, [col.column_name]: e.target.value })}
+                            className="w-full px-4 py-3 bg-[#f0faf9] border border-[#d3f1ec] rounded-xl focus:border-teal-500 focus:ring-2 focus:ring-[#d3f1ec] text-slate-700 transition-all outline-none"
+                          >
+                            <option value="">Select bedspaces</option>
+                            {options.map((v) => (
+                              <option key={v} value={v}>
+                                {v}
+                              </option>
+                            ))}
+                          </select>
+                        );
+                      })()
+                    ) : String(col.input_type || '').toLowerCase() === 'dropdown' ? (
                       <select
-                        value={form[col.column_name] || ""}
+                        value={form[col.column_name] ?? ""}
                         onChange={(e) => setForm({ ...form, [col.column_name]: e.target.value })}
                         className="w-full px-4 py-3 bg-[#f0faf9] border border-[#d3f1ec] rounded-xl focus:border-teal-500 focus:ring-2 focus:ring-[#d3f1ec] text-slate-700 transition-all outline-none"
                       >
                         <option value="">Select...</option>
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
+                        {(Array.isArray(col.input_options) ? col.input_options : []).map((opt, i) => {
+                          const v = typeof opt === 'string' ? opt : (opt?.value ?? opt?.label ?? '');
+                          const label = typeof opt === 'string' ? opt : (opt?.label ?? opt?.value ?? '');
+                          if (!String(v).trim()) return null;
+                          return (
+                            <option key={`${v}-${i}`} value={v}>
+                              {label}
+                            </option>
+                          );
+                        })}
                       </select>
+                    ) : (String(col.input_type || '').toLowerCase() === 'checkbox' || String(col.input_type || '').toLowerCase() === 'switch') ? (
+                      <label className="inline-flex items-center gap-3 select-none">
+                        <input
+                          type="checkbox"
+                          checked={!!form[col.column_name]}
+                          onChange={(e) => setForm({ ...form, [col.column_name]: e.target.checked })}
+                          className="h-5 w-5 accent-teal-600"
+                        />
+                        <span className="text-slate-700">{form[col.column_name] ? 'Yes' : 'No'}</span>
+                      </label>
                     ) : (col.data_type === 'INTEGER' || col.data_type === 'NUMERIC' || col.data_type === 'DECIMAL' || col.data_type === 'BIGINT') ? (
                       <input
                         type="number"
@@ -446,7 +537,16 @@ export default function RoomsManager({ user }) {
                   {rooms.map(r => (
                     <div
                       key={r.id}
-                      className="group bg-white rounded-xl border border-[#d3f1ec] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-teal-200 transition-all duration-200"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(`/hotels/${hotelId}/rooms/${r.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/hotels/${hotelId}/rooms/${r.id}`);
+                        }
+                      }}
+                      className="group bg-white rounded-xl border border-[#d3f1ec] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -462,10 +562,36 @@ export default function RoomsManager({ user }) {
 
                       <div className="space-y-3 mb-5">
                         <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Bedspaces</span>
+                          <span className="font-bold text-slate-700">{Number(r.bedspaces ?? 0) || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
                           <span className="text-slate-500 flex items-center gap-2">
                             Rate
                           </span>
                           <span className="font-bold text-slate-700">₹{Number(r.rate || 0).toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Dimensions</span>
+                          <span className="font-bold text-slate-700">
+                            {r.length && r.width ? `${r.length} × ${r.width}` : '—'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Bathroom</span>
+                          <span className="font-bold text-slate-700">{r.bathroom_type || '—'}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Kitchen</span>
+                          <span className="font-bold text-slate-700">
+                            {(() => {
+                              const v = r.has_kitchen;
+                              const s = String(v).toLowerCase();
+                              if (v === true || s === 'true' || s === 't' || s === '1' || s === 'yes') return 'Yes';
+                              if (v === false || s === 'false' || s === 'f' || s === '0' || s === 'no') return 'No';
+                              return '—';
+                            })()}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-slate-500">Status</span>
@@ -483,7 +609,10 @@ export default function RoomsManager({ user }) {
                       {canManage ? (
                         <div className="grid grid-cols-2 gap-3">
                           <button
-                            onClick={() => startEdit(r)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEdit(r);
+                            }}
                             className="flex items-center justify-center gap-2 px-3 py-2 bg-[#f0faf9] hover:bg-[#d3f1ec] text-teal-800 rounded-lg font-medium text-sm transition-colors"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -492,7 +621,10 @@ export default function RoomsManager({ user }) {
                             Edit
                           </button>
                           <button
-                            onClick={() => remove(r.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              remove(r.id);
+                            }}
                             className="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 text-slate-600 rounded-lg font-medium text-sm transition-colors"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

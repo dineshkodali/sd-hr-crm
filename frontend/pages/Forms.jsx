@@ -92,11 +92,15 @@ export default function Forms() {
   const [columnForm, setColumnForm] = useState({
     column_name: '',
     data_type: 'VARCHAR',
+    input_type: 'text',
+    input_options: [],
     max_length: '255',
     nullable: true,
     default_value: '',
     unique: false
   });
+
+  const inputTypes = ['text', 'dropdown', 'checkbox', 'switch'];
 
   const dataTypes = [
     'VARCHAR', 'TEXT', 'INTEGER', 'BIGINT', 'DECIMAL', 'NUMERIC',
@@ -142,7 +146,15 @@ export default function Forms() {
 
   const handleAddColumn = async () => {
     try {
-      await axios.post(`/api/forms-builder/tables/${selectedTable}/columns`, columnForm, {
+      const cleanedOptions = (columnForm.input_options || [])
+        .map(v => String(v ?? '').trim())
+        .filter(Boolean);
+      const payload = {
+        ...columnForm,
+        input_options: columnForm.input_type === 'dropdown' ? cleanedOptions : null,
+      };
+
+      await axios.post(`/api/forms-builder/tables/${selectedTable}/columns`, payload, {
         withCredentials: true
       });
 
@@ -160,9 +172,14 @@ export default function Forms() {
 
   const handleEditColumn = async () => {
     try {
+      const cleanedOptions = (columnForm.input_options || [])
+        .map(v => String(v ?? '').trim())
+        .filter(Boolean);
       const payload = {
         new_column_name: columnForm.column_name !== editingColumn.column_name ? columnForm.column_name : undefined,
         data_type: columnForm.data_type,
+        input_type: columnForm.input_type,
+        input_options: columnForm.input_type === 'dropdown' ? cleanedOptions : null,
         max_length: columnForm.max_length,
         nullable: columnForm.nullable,
         default_value: columnForm.default_value
@@ -214,6 +231,8 @@ export default function Forms() {
     setColumnForm({
       column_name: column.column_name,
       data_type: column.data_type,
+      input_type: column.input_type || 'text',
+      input_options: Array.isArray(column.input_options) ? column.input_options : [],
       max_length: column.character_maximum_length || '',
       nullable: column.is_nullable === 'YES',
       default_value: column.column_default || '',
@@ -226,11 +245,35 @@ export default function Forms() {
     setColumnForm({
       column_name: '',
       data_type: 'VARCHAR',
+      input_type: 'text',
+      input_options: [],
       max_length: '255',
       nullable: true,
       default_value: '',
       unique: false
     });
+  };
+
+  const addDropdownOption = () => {
+    setColumnForm((prev) => ({
+      ...prev,
+      input_options: [...(prev.input_options || []), ""]
+    }));
+  };
+
+  const updateDropdownOption = (idx, value) => {
+    setColumnForm((prev) => {
+      const next = [...(prev.input_options || [])];
+      next[idx] = value;
+      return { ...prev, input_options: next };
+    });
+  };
+
+  const removeDropdownOption = (idx) => {
+    setColumnForm((prev) => ({
+      ...prev,
+      input_options: (prev.input_options || []).filter((_, i) => i !== idx)
+    }));
   };
 
   const filteredTables = tables.filter(t =>
@@ -291,6 +334,71 @@ export default function Forms() {
                 ))}
               </select>
             </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Input Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={columnForm.input_type}
+                onChange={(e) => {
+                  const nextType = e.target.value;
+                  setColumnForm((prev) => ({
+                    ...prev,
+                    input_type: nextType,
+                    input_options: nextType === 'dropdown'
+                      ? (Array.isArray(prev.input_options) ? prev.input_options : [])
+                      : []
+                  }));
+                }}
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+              >
+                {inputTypes.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            {columnForm.input_type === 'dropdown' && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Dropdown Options
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addDropdownOption}
+                    className="px-3 py-1.5 bg-teal-50 text-teal-700 border border-teal-100 rounded-lg text-sm font-semibold hover:bg-teal-100 transition-colors"
+                  >
+                    Add Option
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {(Array.isArray(columnForm.input_options) ? columnForm.input_options : []).map((opt, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={opt}
+                        onChange={(e) => updateDropdownOption(idx, e.target.value)}
+                        className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                        placeholder={`Option ${idx + 1}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeDropdownOption(idx)}
+                        className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                        title="Remove option"
+                      >
+                        <Icons.Trash />
+                      </button>
+                    </div>
+                  ))}
+                  {(!columnForm.input_options || columnForm.input_options.length === 0) && (
+                    <div className="text-sm text-slate-500">No options added yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Max Length (for VARCHAR) */}
             {(columnForm.data_type === 'VARCHAR' || columnForm.data_type === 'CHAR') && (

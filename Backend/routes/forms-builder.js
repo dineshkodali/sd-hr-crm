@@ -8,6 +8,40 @@ const router = express.Router();
 // Use 'protect' consistently instead of 'authenticateToken'
 const authenticateToken = protect;
 
+async function ensureColumnsMetaTableExists(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS public.forms_builder_column_meta (
+      id SERIAL PRIMARY KEY,
+      table_name VARCHAR(255) NOT NULL,
+      column_name VARCHAR(255) NOT NULL,
+      input_type VARCHAR(50) NOT NULL DEFAULT 'text',
+      options JSONB NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (table_name, column_name)
+    );
+  `);
+  await client.query(
+    `CREATE INDEX IF NOT EXISTS idx_forms_builder_column_meta_table_col
+     ON public.forms_builder_column_meta (table_name, column_name)`
+  );
+}
+
+function normalizeOptionsToJson(options) {
+  if (options === null || typeof options === 'undefined') return null;
+  if (typeof options === 'string') {
+    const trimmed = options.trim();
+    if (!trimmed) return null;
+    try {
+      JSON.parse(trimmed);
+      return trimmed;
+    } catch (e) {
+      return JSON.stringify(trimmed);
+    }
+  }
+  return JSON.stringify(options);
+}
+
 // Field type to SQL type mapping
 const getFieldSQLType = (fieldType) => {
   const typeMap = {
@@ -424,6 +458,28 @@ router.get('/tables/:tableName/columns', authenticateToken, async (req, res) => 
       return res.status(400).json({ error: 'Invalid table name' });
     }
     
+    // Load metadata (input_type) if meta table exists
+    let metaMap = new Map();
+    try {
+      const metaCheck = await pool.query(
+        `SELECT EXISTS (
+           SELECT FROM information_schema.tables
+           WHERE table_schema = 'public' AND table_name = 'forms_builder_column_meta'
+         ) AS exists`
+      );
+      if (metaCheck.rows?.[0]?.exists) {
+        const metaRes = await pool.query(
+          `SELECT column_name, input_type, options
+           FROM public.forms_builder_column_meta
+           WHERE table_name = $1`,
+          [tableName]
+        );
+        metaMap = new Map((metaRes.rows || []).map(r => [String(r.column_name), r]));
+      }
+    } catch (e) {
+      metaMap = new Map();
+    }
+
     // Check if table exists in maintenance schema
     const { rows: maintenanceRows } = await pool.query(`
       SELECT column_name, data_type, character_maximum_length, is_nullable, column_default, ordinal_position, table_schema
@@ -432,7 +488,11 @@ router.get('/tables/:tableName/columns', authenticateToken, async (req, res) => 
       ORDER BY ordinal_position
     `, [tableName]);
     if (maintenanceRows.length > 0) {
-      return res.json({ columns: maintenanceRows });
+      const merged = maintenanceRows.map(c => {
+        const m = metaMap.get(String(c.column_name));
+        return { ...c, input_type: m?.input_type ?? 'text', input_options: m?.options ?? null };
+      });
+      return res.json({ columns: merged });
     }
     // Fallback to public schema
     const { rows: publicRows } = await pool.query(`
@@ -441,7 +501,11 @@ router.get('/tables/:tableName/columns', authenticateToken, async (req, res) => 
       WHERE table_name = $1 AND table_schema = 'public'
       ORDER BY ordinal_position
     `, [tableName]);
-    return res.json({ columns: publicRows });
+    const merged = publicRows.map(c => {
+      const m = metaMap.get(String(c.column_name));
+      return { ...c, input_type: m?.input_type ?? 'text', input_options: m?.options ?? null };
+    });
+    return res.json({ columns: merged });
   } catch (err) {
     console.error('Error fetching columns:', err);
     res.status(500).json({ error: 'Failed to fetch columns' });
@@ -453,7 +517,7 @@ router.post('/tables/:tableName/columns', authenticateToken, async (req, res) =>
   const client = await pool.connect();
   try {
     const { tableName } = req.params;
-    const { column_name, data_type, max_length, nullable, default_value, unique } = req.body;
+    const { column_name, data_type, max_length, nullable, default_value, unique, input_type, input_options } = req.body;
     
     // Validate inputs
     if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
@@ -464,6 +528,8 @@ router.post('/tables/:tableName/columns', authenticateToken, async (req, res) =>
     }
     
     await client.query('BEGIN');
+
+    await ensureColumnsMetaTableExists(client);
     
     // Build ALTER TABLE query
     let columnDef = `${column_name} ${data_type}`;
@@ -487,6 +553,17 @@ router.post('/tables/:tableName/columns', authenticateToken, async (req, res) =>
     
     // Execute ALTER TABLE
     await client.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnDef}`);
+
+    // Upsert metadata
+    const inputType = (input_type && String(input_type).trim()) ? String(input_type).trim() : 'text';
+    const options = normalizeOptionsToJson(input_options);
+    await client.query(
+      `INSERT INTO public.forms_builder_column_meta (table_name, column_name, input_type, options, updated_at)
+       VALUES ($1,$2,$3,$4::jsonb, CURRENT_TIMESTAMP)
+       ON CONFLICT (table_name, column_name)
+       DO UPDATE SET input_type = EXCLUDED.input_type, options = EXCLUDED.options, updated_at = CURRENT_TIMESTAMP`,
+      [tableName, column_name, inputType, options]
+    );
     
     // Add unique constraint if requested
     if (unique) {
@@ -509,7 +586,7 @@ router.put('/tables/:tableName/columns/:columnName', authenticateToken, async (r
   const client = await pool.connect();
   try {
     const { tableName, columnName } = req.params;
-    const { new_column_name, data_type, max_length, nullable, default_value } = req.body;
+    const { new_column_name, data_type, max_length, nullable, default_value, input_type, input_options } = req.body;
     
     // Validate inputs
     if (!/^[a-zA-Z0-9_]+$/.test(tableName) || !/^[a-zA-Z0-9_]+$/.test(columnName)) {
@@ -558,6 +635,31 @@ router.put('/tables/:tableName/columns/:columnName', authenticateToken, async (r
     }
     
     await client.query('COMMIT');
+
+    // Update metadata (best-effort)
+    try {
+      const inputType = (input_type && String(input_type).trim()) ? String(input_type).trim() : null;
+      const options = normalizeOptionsToJson(input_options);
+      if (inputType !== null || typeof input_options !== 'undefined') {
+        await pool.query(
+          `INSERT INTO public.forms_builder_column_meta (table_name, column_name, input_type, options, updated_at)
+           VALUES ($1,$2,$3,$4::jsonb, CURRENT_TIMESTAMP)
+           ON CONFLICT (table_name, column_name)
+           DO UPDATE SET input_type = EXCLUDED.input_type, options = EXCLUDED.options, updated_at = CURRENT_TIMESTAMP`,
+          [tableName, currentColumnName, inputType ?? 'text', options]
+        );
+      }
+      if (currentColumnName !== columnName) {
+        await pool.query(
+          `UPDATE public.forms_builder_column_meta
+           SET column_name = $1, updated_at = CURRENT_TIMESTAMP
+           WHERE table_name = $2 AND column_name = $3`,
+          [currentColumnName, tableName, columnName]
+        );
+      }
+    } catch (e) {
+      // ignore
+    }
     res.json({ message: 'Column updated successfully', column_name: currentColumnName });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -580,6 +682,15 @@ router.delete('/tables/:tableName/columns/:columnName', authenticateToken, async
     }
     
     await client.query('BEGIN');
+    try {
+      await ensureColumnsMetaTableExists(client);
+      await client.query(
+        `DELETE FROM public.forms_builder_column_meta WHERE table_name = $1 AND column_name = $2`,
+        [tableName, columnName]
+      );
+    } catch (e) {
+      // ignore
+    }
     await client.query(`ALTER TABLE ${tableName} DROP COLUMN ${columnName}`);
     await client.query('COMMIT');
     

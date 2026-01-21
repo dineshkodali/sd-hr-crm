@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Home, Building, BedDouble, Users, MapPin } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function PropertyDetails({ property }) {
   const {
@@ -13,10 +14,51 @@ export default function PropertyDetails({ property }) {
     occupiedBeds = 0,
   } = property || {};
 
+  const [liveHotel, setLiveHotel] = useState(null);
+
   const hotelId = useMemo(() => {
     const raw = property?._raw;
     return raw?.id ?? raw?.hotel_id ?? raw?.property_id ?? null;
   }, [property]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!hotelId) {
+      setLiveHotel(null);
+      return;
+    }
+    axios
+      .get(`/api/hotels/${hotelId}`)
+      .then((res) => {
+        if (!mounted) return;
+        setLiveHotel(res?.data?.hotel ?? res?.data ?? null);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setLiveHotel(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [hotelId]);
+
+  const liveTotalBedspaces = useMemo(() => {
+    const v =
+      liveHotel?.total_beds ??
+      liveHotel?.total_bed ??
+      liveHotel?.beds ??
+      null;
+    return Number(v ?? totalBedspaces) || 0;
+  }, [liveHotel, totalBedspaces]);
+
+  const liveOccupiedBeds = useMemo(() => {
+    const v =
+      liveHotel?.occupied_beds ??
+      liveHotel?.occupied ??
+      liveHotel?.occupied_bed ??
+      null;
+    return Number(v ?? occupiedBeds) || 0;
+  }, [liveHotel, occupiedBeds]);
 
   const hotelName = useMemo(() => {
     return name || property?._raw?.name || "";
@@ -25,6 +67,7 @@ export default function PropertyDetails({ property }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [realTotalRooms, setRealTotalRooms] = useState(totalRooms);
+  const [statsBeds, setStatsBeds] = useState({ total: totalBedspaces, occupied: occupiedBeds });
 
   useEffect(() => {
     if (hotelId) {
@@ -42,6 +85,40 @@ export default function PropertyDetails({ property }) {
         .catch((err) => console.error("Failed to fetch room count", err));
     }
   }, [hotelId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!hotelId) return;
+
+    const loadStats = async () => {
+      try {
+        const roomsRes = await axios.get(`/api/hotels/${hotelId}/rooms`, { withCredentials: true });
+
+        const rooms = Array.isArray(roomsRes.data?.rooms)
+          ? roomsRes.data.rooms
+          : Array.isArray(roomsRes.data)
+            ? roomsRes.data
+            : [];
+
+        // New semantics: the selected room.bedspaces represent OCCUPIED bedspaces.
+        const occupied = rooms.reduce((sum, r) => {
+          const n = Number(r?.bedspaces ?? r?.bedspace ?? r?.beds ?? 0);
+          return sum + (Number.isFinite(n) ? n : 0);
+        }, 0);
+
+        const total = Number(liveTotalBedspaces ?? totalBedspaces) || 0;
+
+        if (!cancelled) setStatsBeds({ total, occupied });
+      } catch {
+        if (!cancelled) setStatsBeds({ total: Number(liveTotalBedspaces ?? totalBedspaces) || 0, occupied: occupiedBeds });
+      }
+    };
+
+    loadStats();
+    return () => {
+      cancelled = true;
+    };
+  }, [hotelId, totalBedspaces, occupiedBeds, liveTotalBedspaces]);
   // const [creating, setCreating] = useState(false);
 
   // Form State
@@ -64,9 +141,9 @@ export default function PropertyDetails({ property }) {
   const [errorMsg, setErrorMsg] = useState("");
 
   const occupancyRate =
-    totalBedspaces === 0
+    (Number(statsBeds.total) || 0) === 0
       ? 0
-      : Math.round((occupiedBeds / totalBedspaces) * 100);
+      : Math.round(((Number(statsBeds.occupied) || 0) / (Number(statsBeds.total) || 0)) * 100);
 
 
   // --- CREATE PROPERTY ---
@@ -219,15 +296,15 @@ export default function PropertyDetails({ property }) {
           <StatCard
             icon={<BedDouble className="w-5 h-5" />}
             title="Total Bedspaces"
-            value={totalBedspaces}
-            subtitle={`${occupiedBeds} occupied`}
+            value={statsBeds.total}
+            subtitle={`${statsBeds.occupied} occupied`}
           />
 
           <StatCard
             icon={<Users className="w-5 h-5" />}
             title="Occupancy Rate"
             value={`${occupancyRate}%`}
-            subtitle={`${occupiedBeds} / ${totalBedspaces} beds`}
+            subtitle={`${statsBeds.occupied} / ${statsBeds.total} beds`}
           />
         </div>
 
@@ -629,6 +706,7 @@ function OverviewCard({ totalFloors, totalRooms }) {
 }
 
 function FloorsRoomsCard({ hotelId, viewMode = "list" }) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [floors, setFloors] = useState([]);
@@ -678,6 +756,9 @@ function FloorsRoomsCard({ hotelId, viewMode = "list" }) {
         const bedspaceCountsEntries = await Promise.all(
           rooms.map(async (room) => {
             if (!room?.id) return [room?.id, null];
+            const direct = room?.bedspaces ?? room?.bedspace ?? room?.beds ?? null;
+            const directNum = Number(direct);
+            if (Number.isFinite(directNum)) return [room.id, directNum];
             try {
               const res = await axios.get(
                 `/api/hotels/${hotelId}/rooms/${room.id}/bedspaces`,
@@ -828,7 +909,19 @@ function FloorsRoomsCard({ hotelId, viewMode = "list" }) {
               {viewMode === "grid" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {floor.rooms.map((room) => (
-                    <div key={room.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
+                    <div
+                      key={room.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(`/hotels/${hotelId}/rooms/${room.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/hotels/${hotelId}/rooms/${room.id}`);
+                        }
+                      }}
+                      className="bg-white border border-gray-200 rounded-xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow cursor-pointer"
+                    >
                       <div className="flex justify-between items-start mb-4">
                         <div className="font-bold text-gray-900 text-lg">Room {room.room_number || "000"}</div>
                         <span className="px-2 py-1 rounded text-[10px] uppercase font-bold tracking-wide bg-gray-100 text-gray-500">

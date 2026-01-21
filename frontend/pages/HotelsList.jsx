@@ -16,6 +16,9 @@ export default function HotelsList({ user: userProp }) {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
+  const [roomsOccupiedByHotel, setRoomsOccupiedByHotel] = useState({});
+  const roomsOccupiedCacheRef = useRef({});
+
   // Form State
   const [form, setForm] = useState({
     name: "",
@@ -83,6 +86,70 @@ export default function HotelsList({ user: userProp }) {
 
   useEffect(() => {
     fetchHotels();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ids = (hotels || [])
+      .map((h) => h?.id)
+      .filter((id) => id !== undefined && id !== null);
+
+    const missing = ids.filter((id) => roomsOccupiedCacheRef.current[String(id)] === undefined);
+    if (missing.length === 0) return;
+
+    const load = async () => {
+      try {
+        const entries = await Promise.all(
+          missing.map(async (id) => {
+            try {
+              const res = await axios.get(`/api/hotels/${id}/rooms`, { withCredentials: true });
+              const rooms = Array.isArray(res.data?.rooms)
+                ? res.data.rooms
+                : Array.isArray(res.data)
+                  ? res.data
+                  : [];
+
+              const occupied = rooms.reduce((sum, r) => {
+                const n = Number(r?.bedspaces ?? r?.bedspace ?? r?.beds ?? 0);
+                return sum + (Number.isFinite(n) ? n : 0);
+              }, 0);
+
+              return [String(id), occupied];
+            } catch {
+              return [String(id), null];
+            }
+          })
+        );
+
+        if (cancelled) return;
+        const next = { ...roomsOccupiedCacheRef.current };
+        for (const [id, v] of entries) next[id] = v;
+        roomsOccupiedCacheRef.current = next;
+        setRoomsOccupiedByHotel(next);
+      } catch {
+        // ignore; fallback behavior will apply
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [hotels]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      fetchHotels();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") fetchHotels();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   // Close menus on outside click
@@ -423,7 +490,7 @@ export default function HotelsList({ user: userProp }) {
       );
       setIfChanged(
         "occupied_beds",
-        Number(editingHotel.occupied_beds ?? 0),
+        undefined,
         "occupied_beds"
       );
       setIfChanged("postcode", editingHotel.zipcode ?? null, "postcode");
@@ -868,9 +935,11 @@ export default function HotelsList({ user: userProp }) {
             filteredHotels.map((h) => {
               const id = h.id ?? h._id ?? h.name;
               // Calculate Occupancy for UI
-              const total = Number(h.total_beds ?? h.total_bed ?? 30); // Default 30 when not provided
-              const occ = Number(h.occupied_beds ?? h.occupied ?? 0);
-              const percent = total > 0 ? Math.round((occ / total) * 100) : 0;
+              const total = Number(h.total_beds ?? h.total_bed ?? 0);
+              const occFromRooms = roomsOccupiedByHotel[String(h.id)] ?? roomsOccupiedByHotel[String(id)] ?? null;
+              const occ = Number(occFromRooms ?? 0);
+              const overcrowded = total > 0 && occ > total;
+              const percent = total > 0 ? Math.min(100, Math.round((occ / total) * 100)) : 0;
               const typeName =
                 h.property_type === "Hotel Style"
                   ? "Hotel"
@@ -1017,17 +1086,18 @@ export default function HotelsList({ user: userProp }) {
                       <span>Capacity:</span>
                       <span className="text-slate-900">
                         {occ}/{total}
+                        {overcrowded && <span className="text-red-600 text-xs font-bold ml-1">(Overcrowded)</span>}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs text-gray-500">
                       <span>Occupancy</span>
-                      <span className="text-green-600 font-bold">
+                      <span className={`${overcrowded ? "text-red-600" : "text-green-600"} font-bold`}>
                         {percent}%
                       </span>
                     </div>
                     <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-green-500 rounded-full transition-all duration-500"
+                        className={`h-full ${overcrowded ? "bg-red-500" : "bg-green-500"} rounded-full transition-all duration-500`}
                         style={{ width: `${percent}%` }}
                       ></div>
                     </div>
@@ -1226,22 +1296,7 @@ export default function HotelsList({ user: userProp }) {
                       className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm text-gray-700 font-medium mb-1">
-                      Occupied Beds
-                    </label>
-                    <input
-                      type="number"
-                      value={form.occupied_beds}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          occupied_beds: Number(e.target.value),
-                        })
-                      }
-                      className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                    />
-                  </div>
+                  <input type="hidden" value={form.occupied_beds} readOnly />
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-1">
                       Total Floors
@@ -1473,22 +1528,7 @@ export default function HotelsList({ user: userProp }) {
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">
-                          Occupied Beds
-                        </label>
-                        <input
-                          type="number"
-                          value={editingHotel.occupied_beds ?? 0}
-                          onChange={(e) =>
-                            handleEditChange(
-                              "occupied_beds",
-                              Number(e.target.value)
-                            )
-                          }
-                          className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                        />
-                      </div>
+                      <input type="hidden" value={editingHotel.occupied_beds ?? 0} readOnly />
 
                       <div>
                         <label className="block text-sm text-gray-700 mb-1">

@@ -6,6 +6,35 @@ import fs from "fs";
 
 const router = express.Router({ mergeParams: true }); // <- important: reads :hotelId from parent mount
 
+function parseBedspacesValue(v) {
+  if (v === undefined || v === null || v === "") return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  const asInt = Math.floor(n);
+  if (asInt <= 0) return 0;
+  return asInt;
+}
+
+async function applyHotelOccupiedBedsDelta(client, hotelId, delta) {
+  const d = Number(delta);
+  if (!Number.isFinite(d) || d === 0) return;
+
+  const lock = await client.query(
+    "SELECT total_beds, occupied_beds FROM hotels WHERE id = $1 FOR UPDATE",
+    [hotelId]
+  );
+  if (!lock.rows.length) return;
+
+  const total = Number(lock.rows[0].total_beds ?? 0) || 0;
+  const occupied = Number(lock.rows[0].occupied_beds ?? 0) || 0;
+
+  let next = occupied + d;
+  if (next < 0) next = 0;
+  if (total > 0 && next > total) next = total;
+
+  await client.query("UPDATE hotels SET occupied_beds = $1, updated_at = NOW() WHERE id = $2", [next, hotelId]);
+}
+
 async function getRoomsColumns() {
   const { rows } = await pool.query(
     `SELECT column_name
@@ -172,8 +201,25 @@ router.post("/", protect, async (req, res) => {
     const q = `INSERT INTO rooms (${columnsToInsert.join(", ")}, created_at, updated_at)
                VALUES (${placeholders}, now(), now())
                RETURNING *`;
-    const r = await pool.query(q, valuesToInsert);
-    return res.status(201).json({ message: "Room created", room: r.rows[0] });
+
+    const bedspacesColExists = existingCols.includes("bedspaces");
+    const bedspacesToOccupy = bedspacesColExists ? parseBedspacesValue(req.body?.bedspaces) : null;
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const r = await client.query(q, valuesToInsert);
+      if (bedspacesToOccupy !== null && bedspacesToOccupy > 0) {
+        await applyHotelOccupiedBedsDelta(client, hotelId, bedspacesToOccupy);
+      }
+      await client.query("COMMIT");
+      return res.status(201).json({ message: "Room created", room: r.rows[0] });
+    } catch (e) {
+      try { await client.query("ROLLBACK"); } catch {}
+      throw e;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error("create room:", err && err.stack ? err.stack : err);
     return res.status(500).json({ message: "Server error", detail: err?.message });
@@ -295,12 +341,10 @@ router.put("/:roomId", protect, async (req, res) => {
     const { hotelId, roomId } = req.params;
     if (!hotelId) return res.status(400).json({ message: "hotelId required in URL" });
 
-    // ensure room belongs to this hotel
-    const rr = await pool.query("SELECT hotel_id FROM rooms WHERE id = $1 LIMIT 1", [roomId]);
-    if (!rr.rows.length) return res.status(404).json({ message: "Room not found" });
-    if (String(rr.rows[0].hotel_id) !== String(hotelId)) {
-      return res.status(400).json({ message: "Room not associated with this hotel" });
-    }
+    const existingCols = await getRoomsColumns();
+    const colsMeta = await getRoomsColumnsMeta();
+    const metaByName = new Map(colsMeta.map(r => [r.column_name, r.data_type]));
+    const bedspacesColExists = existingCols.includes("bedspaces");
 
     const allowed = await canManageHotel(req.user, hotelId);
     if (!allowed) return res.status(403).json({ message: "Forbidden — not allowed to manage rooms for this hotel" });
@@ -309,8 +353,6 @@ router.put("/:roomId", protect, async (req, res) => {
     const fields = [];
     const params = [];
     let idx = 1;
-
-    const existingCols = await getRoomsColumns();
 
     if (room_number !== undefined) { fields.push(`room_number = $${idx++}`); params.push(String(room_number)); }
     if (type !== undefined) { fields.push(`type = $${idx++}`); params.push(String(type)); }
@@ -336,7 +378,7 @@ router.put("/:roomId", protect, async (req, res) => {
       if (standardCols.includes(col)) continue;
       if (req.body?.[col] !== undefined) {
         fields.push(`${col} = $${idx++}`);
-        params.push(req.body[col]);
+        params.push(coerceRoomColumnValueByType(req.body[col], metaByName.get(col)));
       }
     }
 
@@ -348,9 +390,65 @@ router.put("/:roomId", protect, async (req, res) => {
     const sql = `UPDATE rooms SET ${fields.join(", ")}, updated_at = NOW()
                  WHERE id = $${idx++} AND CAST(hotel_id AS text) = $${idx}
                  RETURNING *`;
-    const u = await pool.query(sql, params);
-    if (!u.rows.length) return res.status(404).json({ message: "Room not found or update failed" });
-    return res.json({ message: "Room updated", room: u.rows[0] });
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // lock the room row to safely compute delta
+      const locked = await client.query(
+        `SELECT hotel_id${bedspacesColExists ? ", bedspaces" : ""}
+         FROM rooms
+         WHERE id = $1
+         FOR UPDATE`,
+        [roomId]
+      );
+
+      if (!locked.rows.length) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ message: "Room not found" });
+      }
+
+      const roomHotelId = locked.rows[0].hotel_id;
+      if (String(roomHotelId) !== String(hotelId)) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: "Room not associated with this hotel" });
+      }
+
+      const oldBedspaces = bedspacesColExists
+        ? parseBedspacesValue(locked.rows[0].bedspaces)
+        : null;
+      const newBedspaces = bedspacesColExists
+        ? parseBedspacesValue(req.body?.bedspaces)
+        : null;
+
+      const u = await client.query(sql, params);
+      if (!u.rows.length) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ message: "Room not found or update failed" });
+      }
+
+      let delta = 0;
+      if (bedspacesColExists) {
+        const oldN = oldBedspaces === null ? 0 : Number(oldBedspaces);
+        const newN = newBedspaces === null ? oldN : Number(newBedspaces);
+        if (Number.isFinite(oldN) && Number.isFinite(newN)) {
+          delta = newN - oldN;
+        }
+      }
+
+      if (Number.isFinite(Number(delta)) && Number(delta) !== 0) {
+        await applyHotelOccupiedBedsDelta(client, hotelId, delta);
+      }
+
+      await client.query("COMMIT");
+      return res.json({ message: "Room updated", room: u.rows[0] });
+    } catch (e) {
+      try { await client.query("ROLLBACK"); } catch {}
+      throw e;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     try {
       fs.writeFileSync("rooms_put_error.log", `${new Date().toISOString()} - Update Room Error: ${err.message}\n${err.stack}\n`);
@@ -369,18 +467,51 @@ router.delete("/:roomId", protect, async (req, res) => {
     const { hotelId, roomId } = req.params;
     if (!hotelId) return res.status(400).json({ message: "hotelId required in URL" });
 
-    const rr = await pool.query("SELECT hotel_id FROM rooms WHERE id = $1 LIMIT 1", [roomId]);
-    if (!rr.rows.length) return res.status(404).json({ message: "Room not found" });
-    const roomHotelId = rr.rows[0].hotel_id;
-    if (String(roomHotelId) !== String(hotelId)) {
-      return res.status(400).json({ message: "Room not associated with this hotel" });
-    }
+    const existingCols = await getRoomsColumns();
+    const bedspacesColExists = existingCols.includes("bedspaces");
 
     const allowed = await canManageHotel(req.user, hotelId);
     if (!allowed) return res.status(403).json({ message: "Forbidden — not allowed to delete rooms for this hotel" });
 
-    await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
-    return res.json({ message: "Room deleted" });
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const locked = await client.query(
+        `SELECT hotel_id${bedspacesColExists ? ", bedspaces" : ""}
+         FROM rooms
+         WHERE id = $1
+         FOR UPDATE`,
+        [roomId]
+      );
+      if (!locked.rows.length) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ message: "Room not found" });
+      }
+
+      const roomHotelId = locked.rows[0].hotel_id;
+      if (String(roomHotelId) !== String(hotelId)) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: "Room not associated with this hotel" });
+      }
+
+      const bedspacesToRelease = bedspacesColExists
+        ? parseBedspacesValue(locked.rows[0].bedspaces)
+        : null;
+
+      await client.query("DELETE FROM rooms WHERE id = $1", [roomId]);
+      if (bedspacesToRelease !== null && bedspacesToRelease > 0) {
+        await applyHotelOccupiedBedsDelta(client, hotelId, -bedspacesToRelease);
+      }
+
+      await client.query("COMMIT");
+      return res.json({ message: "Room deleted" });
+    } catch (e) {
+      try { await client.query("ROLLBACK"); } catch {}
+      throw e;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error("delete room:", err && err.stack ? err.stack : err);
     return res.status(500).json({ message: "Server error", detail: err?.message });

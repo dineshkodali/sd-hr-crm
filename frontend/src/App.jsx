@@ -16,7 +16,7 @@ import StaffDashboard from "../pages/StaffDashboard";
 import HotelsList from "../pages/HotelsList";
 import HotelDetails from "../pages/HotelDetails";
 import RoomsManager from "../pages/RoomsManager";
-
+import RoomDetails from "../pages/RoomDetails";
 import Tasks from "../pages/Tasks";
 import Notifications from "../pages/Notifications";
 import Reports from "../pages/Reports";
@@ -122,6 +122,7 @@ const StaffDashboardSafe = makeSafe(StaffDashboard, "StaffDashboard");
 const HotelsListSafe = makeSafe(HotelsList, "HotelsList");
 const HotelDetailsSafe = makeSafe(HotelDetails, "HotelDetails");
 const RoomsManagerSafe = makeSafe(RoomsManager, "RoomsManager");
+const RoomDetailsSafe = makeSafe(RoomDetails, "RoomDetails");
 const TasksSafe = makeSafe(Tasks, "Tasks");
 const NotificationsSafe = makeSafe(Notifications, "Notifications");
 const ReportsSafe = makeSafe(Reports, "Reports");
@@ -1059,6 +1060,12 @@ export default function App() {
               <Route path="/hotels/:hotelId/rooms" element={
                 <RoleRoute user={user} allowed={["admin", "manager", "staff"]}>
                   <RoomsManagerSafe user={user} />
+                </RoleRoute>
+              } />
+
+              <Route path="/hotels/:hotelId/rooms/:roomId" element={
+                <RoleRoute user={user} allowed={["admin", "manager", "staff"]}>
+                  <RoomDetailsSafe />
                 </RoleRoute>
               } />
 
