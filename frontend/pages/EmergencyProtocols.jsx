@@ -107,9 +107,8 @@ const DetailField = ({ label, value }) => (
 
 /* --- MAIN COMPONENT --- */
 export default function EmergencyProtocols() {
-  // Custom columns state (AIRETasks pattern)
-  const [customColumns, setCustomColumns] = useState([]);
-  const defaultColumns = [
+  // Default visible columns for Emergency Protocols (must match other pages)
+  const DEFAULT_COLUMNS = [
     "checkbox",
     "type",
     "reference",
@@ -120,7 +119,10 @@ export default function EmergencyProtocols() {
     "date",
     "actions",
   ];
-  const [availableColumns, setAvailableColumns] = useState(defaultColumns);
+
+  // Custom columns state (AIRETasks pattern)
+  const [customColumns, setCustomColumns] = useState([]);
+  const [availableColumns, setAvailableColumns] = useState(DEFAULT_COLUMNS);
 
   // Poll columns from backend and update visibility state
   const fetchAvailableColumns = useCallback(async () => {
@@ -133,10 +135,10 @@ export default function EmergencyProtocols() {
         'status', 'created_by_id', 'created_at', 'updated_at', 'deleted', 'completed_date', 'notes'
       ];
       const columnNames = columns.map(col => typeof col === 'string' ? col : (col.column_name || col.name || String(col)));
-      const customCols = columnNames.filter(col => !systemColumns.includes(col) && !defaultColumns.includes(col));
+      const customCols = columnNames.filter(col => !systemColumns.includes(col) && !DEFAULT_COLUMNS.includes(col));
 
       // Logic to insert custom columns right before the last column ("actions")
-      const newColumns = [...defaultColumns.slice(0, -1), ...customCols, defaultColumns[defaultColumns.length - 1]];
+      const newColumns = [...DEFAULT_COLUMNS.slice(0, -1), ...customCols, DEFAULT_COLUMNS[DEFAULT_COLUMNS.length - 1]];
 
       if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
         setCustomColumns(customCols);
@@ -223,14 +225,16 @@ export default function EmergencyProtocols() {
   // ALL_COLUMNS is now derived from availableColumns
   const ALL_COLUMNS = availableColumns;
 
-  // Column visibility state - persisted in localStorage
+  // Column visibility state - default columns visible, custom columns from localStorage or hidden
   const [visibleColumns, setVisibleColumns] = useState(() => {
     try {
       const saved = localStorage.getItem('emergencyProtocolsVisibleColumns');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), ...parsed };
+      }
     } catch { }
-    // Default: all visible except custom columns (hidden by default)
-    return availableColumns.reduce((a, c) => ({ ...a, [c]: c === 'checkbox' || c === 'actions' ? true : c === 'type' || c === 'reference' || c === 'description' || c === 'priority' || c === 'status' || c === 'assigned' || c === 'date' }), {});
+    return DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
   });
 
   // Persist visibleColumns to localStorage
@@ -434,49 +438,95 @@ export default function EmergencyProtocols() {
     return list;
   }, [tasks, query, priorityFilter, statusFilter, propertyFilter, sortBy]);
 
-  // Handle PDF download
-  const handleDownloadPDF = () => {
-    const columns = [
+  // Export modal state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null);
+  const [selectedExportKeys, setSelectedExportKeys] = useState([]);
+
+  // Define BASE_EXPORT_COLUMNS and exportColumns
+  const BASE_EXPORT_COLUMNS = useMemo(
+    () => [
       { header: 'Reference', key: 'reference' },
       { header: 'Title', key: 'title' },
       { header: 'Priority', key: 'priority' },
       { header: 'Status', key: 'status' },
+      { header: 'Assigned To', key: 'assignedTo' },
       { header: 'Date', key: 'date' },
-      { header: 'Assigned To', key: 'assignedTo' }
-    ];
+      { header: 'Property', key: 'property' }
+    ],
+    []
+  );
 
-    const data = filtered.map(task => ({
+  const exportColumns = useMemo(() => {
+    const custom = (customColumns || []).map((col) => ({
+      header: String(col).replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+      key: col,
+    }));
+    return [...BASE_EXPORT_COLUMNS, ...custom];
+  }, [BASE_EXPORT_COLUMNS, customColumns]);
+
+  // Initialize selectedExportKeys when exportColumns changes
+  useEffect(() => {
+    const nextKeys = exportColumns.map((c) => c.key);
+    setSelectedExportKeys((prev) => {
+      const prevSet = new Set(prev);
+      const merged = nextKeys.filter((k) => prevSet.has(k));
+      if (merged.length === 0) return nextKeys;
+      for (const k of nextKeys) {
+        if (!prevSet.has(k)) merged.push(k);
+      }
+      return merged;
+    });
+  }, [exportColumns]);
+
+  // Normalize protocol for export
+  const normalizeProtocolExportRow = (task) => {
+    const base = {
       reference: task.reference || 'N/A',
       title: task.title || 'N/A',
       priority: task.priority || 'N/A',
       status: task.status || 'N/A',
+      assignedTo: task.assignedTo || 'N/A',
       date: task.date ? new Date(task.date).toLocaleDateString() : 'N/A',
-      assignedTo: task.assignedTo || 'Unassigned'
-    }));
+      property: task.property || 'N/A'
+    };
 
-    generatePDF(data, columns, 'Emergency Protocols', 'emergency-protocols');
+    for (const col of customColumns || []) {
+      base[col] = task?.raw?.[col] ?? '';
+    }
+
+    return base;
   };
 
-  const handleDownloadCSV = () => {
-    const columns = [
-      { header: 'Reference', key: 'reference' },
-      { header: 'Title', key: 'title' },
-      { header: 'Priority', key: 'priority' },
-      { header: 'Status', key: 'status' },
-      { header: 'Date', key: 'date' },
-      { header: 'Assigned To', key: 'assignedTo' }
-    ];
+  // Export modal handlers
+  const openExport = (format) => {
+    setExportFormat(format);
+    setShowExportModal(true);
+    setSelectedExportKeys((prev) => (prev && prev.length ? prev : exportColumns.map((c) => c.key)));
+  };
 
-    const data = filtered.map(task => ({
-      reference: task.reference || 'N/A',
-      title: task.title || 'N/A',
-      priority: task.priority || 'N/A',
-      status: task.status || 'N/A',
-      date: task.date ? new Date(task.date).toLocaleDateString() : 'N/A',
-      assignedTo: task.assignedTo || 'Unassigned'
-    }));
+  const closeExport = () => {
+    setShowExportModal(false);
+    setExportFormat(null);
+  };
 
-    generateCSV(data, columns, 'emergency-protocols');
+  const runExport = () => {
+    const columnsToExport = exportColumns.filter((c) => selectedExportKeys.includes(c.key));
+    const data = filtered.map(normalizeProtocolExportRow).map((row) => {
+      const filteredRow = {};
+      columnsToExport.forEach((col) => {
+        filteredRow[col.key] = row[col.key];
+      });
+      return filteredRow;
+    });
+
+    if (exportFormat === 'pdf') {
+      generatePDF(data, columnsToExport, 'Emergency Protocols', 'emergency-protocols');
+    } else if (exportFormat === 'csv') {
+      generateCSV(data, columnsToExport, 'emergency-protocols');
+    }
+
+    closeExport();
   };
 
   const stats = useMemo(() => {
@@ -491,6 +541,7 @@ export default function EmergencyProtocols() {
       completed: list.filter(t => t.status?.toLowerCase() === "completed").length,
     };
   }, [tasks]);
+
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -637,7 +688,7 @@ export default function EmergencyProtocols() {
           </div>
           {hasCreate && (
             <div className="flex items-center gap-3">
-              <DownloadDropdown onDownloadPDF={handleDownloadPDF} onDownloadCSV={handleDownloadCSV} />
+              <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
               <button
                 onClick={() => setShowCreate(true)}
                 className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2 px-4 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
@@ -689,7 +740,91 @@ export default function EmergencyProtocols() {
           </div>
         </div>
 
-        {/* Main Content Area - Work Orders Table */}
+        {/* Export Column Selection Modal */}
+        {showExportModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Select columns you want to include</div>
+                </div>
+                <button
+                  onClick={closeExport}
+                  className="p-2 rounded-lg hover:bg-gray-50 text-gray-500"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="px-5 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium text-gray-700">Columns</div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <button
+                      onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
+                      className="text-teal-600 hover:text-teal-700 font-medium"
+                    >
+                      Select all
+                    </button>
+                    <button
+                      onClick={() => setSelectedExportKeys([])}
+                      className="text-gray-600 hover:text-gray-700 font-medium"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
+                  {exportColumns.map((col) => {
+                    const checked = (selectedExportKeys || []).includes(col.key);
+                    return (
+                      <label
+                        key={col.key}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setSelectedExportKeys((prev) => {
+                              const set = new Set(prev || []);
+                              if (isChecked) set.add(col.key);
+                              else set.delete(col.key);
+                              return Array.from(set);
+                            });
+                          }}
+                          className="h-4 w-4 accent-teal-600"
+                        />
+                        <span className="text-sm text-gray-800">{col.header}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                <button
+                  onClick={closeExport}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-white border border-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={runExport}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-teal-600 hover:bg-teal-700"
+                >
+                  Download
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content Area - Emergency Protocols Table */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
 
           {/* Table Header Section */}
@@ -771,52 +906,119 @@ export default function EmergencyProtocols() {
                               </div>
                             </button>
 
-                            {/* Property Visibility Panel */}
+                            {/* Column Visibility Panel */}
                             {showPropertyVisibility && (
-                              <div className="mt-2 border-t border-gray-200 pt-3">
-                                <div className="mb-3">
+                              <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
+                                {/* Default Columns Section */}
+                                <div className="mb-4">
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Shown in table</span>
-                                    <button
-                                      onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: false }), {}))}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Hide all
-                                    </button>
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Show all
+                                      </button>
+                                      <span className="text-gray-300">|</span>
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Hide all
+                                      </button>
+                                    </div>
                                   </div>
+                                  <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
                                   <div className="space-y-1">
-                                    {ALL_COLUMNS.filter(col => visibleColumns[col]).map(col => (
+                                    {DEFAULT_COLUMNS.map(col => (
                                       <button
                                         key={col}
-                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
-                                        className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
+                                          visibleColumns[col] 
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                        }`}
                                       >
-                                        <span className="capitalize">{col}</span>
-                                        <Eye className="w-4 h-4 text-teal-600" />
+                                        <span className="capitalize font-medium">{col}</span>
+                                        <div className="flex items-center gap-2">
+                                          {visibleColumns[col] ? (
+                                            <Eye className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </div>
                                       </button>
                                     ))}
                                   </div>
                                 </div>
 
-                                {Object.values(visibleColumns).some(v => !v) && (
-                                  <div>
+                                {/* Custom Columns Section - All custom columns */}
+                                {customColumns.length > 0 && (
+                                  <div className="pt-4 border-t border-gray-200">
                                     <div className="flex items-center justify-between mb-2">
-                                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hidden in table</span>
-                                      <button
-                                        onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))}
-                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                      >
-                                        Show all
-                                      </button>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                          {customColumns.length}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = true);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Show all
+                                        </button>
+                                        <span className="text-gray-300">|</span>
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = false);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Hide all
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mb-2">
+                                      Custom columns from Forms Builder 
+                                      <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
                                     </div>
                                     <div className="space-y-1">
-                                      {ALL_COLUMNS.filter(col => !visibleColumns[col]).map(col => (
+                                      {customColumns.map(col => (
                                         <button
                                           key={col}
-                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
-                                          className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
+                                            visibleColumns[col] 
+                                              ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                              : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                          }`}
                                         >
-                                          <span className="capitalize">{col}</span>
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          <div className="flex items-center gap-2">
+                                            {visibleColumns[col] ? (
+                                              <Eye className="w-4 h-4 text-teal-600" />
+                                            ) : (
+                                              <EyeOff className="w-4 h-4 text-gray-400" />
+                                            )}
+                                          </div>
                                         </button>
                                       ))}
                                     </div>

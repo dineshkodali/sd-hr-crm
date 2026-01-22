@@ -158,27 +158,38 @@ export default function MultiAgency({ user }) {
     status: 'New',
   });
 
-  // Define all available columns
-  const ALL_COLUMNS = [
-    "checkbox", "type", "reference", "description", "priority",
-    "status", "assigned", "date", "actions"
+  // Default visible columns for Multi Agency (must match other pages)
+  const DEFAULT_COLUMNS = [
+    "checkbox",
+    "type",
+    "reference",
+    "description",
+    "priority",
+    "status",
+    "assigned",
+    "date",
+    "actions",
   ];
 
-  // Column visibility state - all visible by default
+  const [customColumns, setCustomColumns] = useState([]);
+  const [availableColumns, setAvailableColumns] = useState([]);
+
+  // Define all available columns
+  const ALL_COLUMNS = availableColumns;
+
+  // Column visibility state - default columns visible, custom columns from localStorage or hidden
   const [visibleColumns, setVisibleColumns] = useState(() => {
     try {
       const saved = localStorage.getItem('multiAgencyVisibleColumns');
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), ...parsed };
       }
     } catch (e) {
       console.warn('Failed to parse saved columns:', e);
     }
-    return ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
+    return DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
   });
-
-  const [customColumns, setCustomColumns] = useState([]);
-  const [availableColumns, setAvailableColumns] = useState([]);
 
   const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true, timeout: 15000 }), []);
 
@@ -459,49 +470,92 @@ export default function MultiAgency({ user }) {
     return list;
   }, [records, query, filterPriority, filterStatus, propertyFilter, sortBy]);
 
-  // Handle PDF download
-  const handleDownloadPDF = () => {
-    const columns = [
+  // Export modal state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null);
+  const [selectedExportKeys, setSelectedExportKeys] = useState([]);
+
+  // Define BASE_EXPORT_COLUMNS and exportColumns
+  const BASE_EXPORT_COLUMNS = useMemo(
+    () => [
       { header: 'Reference', key: 'reference' },
       { header: 'Title', key: 'title' },
       { header: 'Priority', key: 'priority' },
       { header: 'Status', key: 'status' },
       { header: 'Scheduled Date', key: 'scheduled_date' },
       { header: 'Property', key: 'property' }
-    ];
+    ],
+    []
+  );
 
-    const data = filteredRecords.map(record => ({
+  const exportColumns = useMemo(() => {
+    const custom = (customColumns || []).map((col) => ({
+      header: String(col).replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+      key: col,
+    }));
+    return [...BASE_EXPORT_COLUMNS, ...custom];
+  }, [BASE_EXPORT_COLUMNS, customColumns]);
+
+  // Initialize selectedExportKeys when exportColumns changes
+  useEffect(() => {
+    const nextKeys = exportColumns.map((c) => c.key);
+    setSelectedExportKeys((prev) => {
+      const prevSet = new Set(prev);
+      const merged = nextKeys.filter((k) => prevSet.has(k));
+      if (merged.length === 0) return nextKeys;
+      for (const k of nextKeys) {
+        if (!prevSet.has(k)) merged.push(k);
+      }
+      return merged;
+    });
+  }, [exportColumns]);
+
+  // Normalize record for export
+  const normalizeMultiAgencyExportRow = (record) => {
+    const base = {
       reference: record.reference || 'N/A',
       title: record.title || 'N/A',
       priority: record.priority || 'N/A',
       status: record.status || 'N/A',
       scheduled_date: record.scheduled_date ? new Date(record.scheduled_date).toLocaleDateString() : 'N/A',
       property: record.property_name || record.hotel_name || 'N/A'
-    }));
+    };
 
-    generatePDF(data, columns, 'Multi-Agency Records', 'multi-agency');
+    for (const col of customColumns || []) {
+      base[col] = record?.[col] ?? '';
+    }
+
+    return base;
   };
 
-  const handleDownloadCSV = () => {
-    const columns = [
-      { header: 'Reference', key: 'reference' },
-      { header: 'Title', key: 'title' },
-      { header: 'Priority', key: 'priority' },
-      { header: 'Status', key: 'status' },
-      { header: 'Scheduled Date', key: 'scheduled_date' },
-      { header: 'Property', key: 'property' }
-    ];
+  // Export modal handlers
+  const openExport = (format) => {
+    setExportFormat(format);
+    setShowExportModal(true);
+  };
 
-    const data = filteredRecords.map(record => ({
-      reference: record.reference || 'N/A',
-      title: record.title || 'N/A',
-      priority: record.priority || 'N/A',
-      status: record.status || 'N/A',
-      scheduled_date: record.scheduled_date ? new Date(record.scheduled_date).toLocaleDateString() : 'N/A',
-      property: record.property_name || record.hotel_name || 'N/A'
-    }));
+  const closeExport = () => {
+    setShowExportModal(false);
+    setExportFormat(null);
+  };
 
-    generateCSV(data, columns, 'multi-agency');
+  const runExport = () => {
+    const columnsToExport = exportColumns.filter((c) => selectedExportKeys.includes(c.key));
+    const data = filteredRecords.map(normalizeMultiAgencyExportRow).map((row) => {
+      const filteredRow = {};
+      columnsToExport.forEach((col) => {
+        filteredRow[col.key] = row[col.key];
+      });
+      return filteredRow;
+    });
+
+    if (exportFormat === 'pdf') {
+      generatePDF(data, columnsToExport, 'Multi-Agency Records', 'multi-agency');
+    } else if (exportFormat === 'csv') {
+      generateCSV(data, columnsToExport, 'multi-agency');
+    }
+
+    closeExport();
   };
 
   // Calculate stats
@@ -530,7 +584,7 @@ export default function MultiAgency({ user }) {
           </div>
           {hasCreate && (
             <div className="flex items-center gap-3">
-              <DownloadDropdown onDownloadPDF={handleDownloadPDF} onDownloadCSV={handleDownloadCSV} />
+              <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
               <button
                 onClick={() => handleOpenModal('create')}
                 className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2 px-4 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
@@ -581,6 +635,90 @@ export default function MultiAgency({ user }) {
             </div>
           </div>
         </div>
+
+        {/* Export Column Selection Modal */}
+        {showExportModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Select columns you want to include</div>
+                </div>
+                <button
+                  onClick={closeExport}
+                  className="p-2 rounded-lg hover:bg-gray-50 text-gray-500"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="px-5 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium text-gray-700">Columns</div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <button
+                      onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
+                      className="text-teal-600 hover:text-teal-700 font-medium"
+                    >
+                      Select all
+                    </button>
+                    <button
+                      onClick={() => setSelectedExportKeys([])}
+                      className="text-gray-600 hover:text-gray-700 font-medium"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
+                  {exportColumns.map((col) => {
+                    const checked = (selectedExportKeys || []).includes(col.key);
+                    return (
+                      <label
+                        key={col.key}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setSelectedExportKeys((prev) => {
+                              const set = new Set(prev || []);
+                              if (isChecked) set.add(col.key);
+                              else set.delete(col.key);
+                              return Array.from(set);
+                            });
+                          }}
+                          className="h-4 w-4 accent-teal-600"
+                        />
+                        <span className="text-sm text-gray-800">{col.header}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                <button
+                  onClick={closeExport}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-white border border-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={runExport}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-teal-600 hover:bg-teal-700"
+                >
+                  Download
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Area - Multi-Agency Table */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
@@ -665,69 +803,117 @@ export default function MultiAgency({ user }) {
 
                             {/* Column Visibility Panel */}
                             {showPropertyVisibility && (
-                              <div className="mt-2 border-t border-gray-200 pt-3">
+                              <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
                                 {/* Default Columns Section */}
-                                <div className="mb-3">
+                                <div className="mb-4">
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Default Columns</span>
-                                    <button
-                                      onClick={() => {
-                                        const updated = { ...visibleColumns };
-                                        ALL_COLUMNS.forEach(col => { updated[col] = false; });
-                                        setVisibleColumns(updated);
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Hide all
-                                    </button>
-                                  </div>
-                                  <div className="space-y-1">
-                                    {ALL_COLUMNS.map(col => (
-                                      <button
-                                        key={col}
-                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                        className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                                      >
-                                        <span className="capitalize">{col}</span>
-                                        {visibleColumns[col] ? (
-                                          <Eye className="w-4 h-4 text-teal-600" />
-                                        ) : (
-                                          <EyeOff className="w-4 h-4 text-gray-400" />
-                                        )}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Custom Columns Section */}
-                                {customColumns.length > 0 && (
-                                  <div className="mb-3 pt-3 border-t border-gray-200">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Custom Columns</span>
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
+                                    <div className="flex items-center gap-2">
                                       <button
                                         onClick={() => {
-                                          const updated = { ...visibleColumns };
-                                          customColumns.forEach(col => { updated[col] = false; });
-                                          setVisibleColumns(updated);
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Show all
+                                      </button>
+                                      <span className="text-gray-300">|</span>
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
                                         }}
                                         className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                                       >
                                         Hide all
                                       </button>
                                     </div>
-                                    <div className="space-y-1">
-                                      {customColumns.map(col => (
-                                        <button
-                                          key={col}
-                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                          className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                                        >
-                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                  </div>
+                                  <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
+                                  <div className="space-y-1">
+                                    {DEFAULT_COLUMNS.map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
+                                          visibleColumns[col] 
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                        }`}
+                                      >
+                                        <span className="capitalize font-medium">{col}</span>
+                                        <div className="flex items-center gap-2">
                                           {visibleColumns[col] ? (
                                             <Eye className="w-4 h-4 text-teal-600" />
                                           ) : (
                                             <EyeOff className="w-4 h-4 text-gray-400" />
                                           )}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Custom Columns Section - All custom columns */}
+                                {customColumns.length > 0 && (
+                                  <div className="pt-4 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                          {customColumns.length}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = true);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Show all
+                                        </button>
+                                        <span className="text-gray-300">|</span>
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = false);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Hide all
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mb-2">
+                                      Custom columns from Forms Builder 
+                                      <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
+                                            visibleColumns[col] 
+                                              ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                              : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                          }`}
+                                        >
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          <div className="flex items-center gap-2">
+                                            {visibleColumns[col] ? (
+                                              <Eye className="w-4 h-4 text-teal-600" />
+                                            ) : (
+                                              <EyeOff className="w-4 h-4 text-gray-400" />
+                                            )}
+                                          </div>
                                         </button>
                                       ))}
                                     </div>

@@ -4,23 +4,24 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import axios from "axios";
 import { usePermissions } from "../hooks/usePermissions";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
-import { 
-  Home, 
-  ClipboardList, 
-  Search, 
-  ChevronDown, 
-  Filter, 
-  Columns, 
-  Download, 
-  X, 
-  Edit, 
-  Trash2, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  Zap, 
-  Check, 
-  Eye
+import {
+  Home,
+  ClipboardList,
+  Search,
+  ChevronDown,
+  Filter,
+  Columns,
+  Download,
+  X,
+  Edit,
+  Trash2,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Zap,
+  Check,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -53,7 +54,7 @@ function getPriorityColor(p) {
   const low = String(p).toLowerCase();
   if (low === "urgent" || low === "high") return { dot: "bg-red-500", text: "text-red-700" };
   if (low === "medium") return { dot: "bg-orange-500", text: "text-orange-700" };
-  return { dot: "bg-green-500", text: "text-green-700" }; 
+  return { dot: "bg-green-500", text: "text-green-700" };
 }
 
 function getStatusColor(s) {
@@ -123,14 +124,14 @@ export default function Incidents({ user }) {
       return null;
     }
   })();
-  
+
   // Get permissions for inspections module
   const { canRead, canCreate, canUpdate, canDelete } = usePermissions(currentUser);
   const hasRead = canRead("incidents");
   const hasCreate = canCreate("incidents");
   const hasUpdate = canUpdate("incidents");
   const hasDelete = canDelete("incidents");
-  
+
   const [rows, setRows] = useState([]);
   const [hotels, setHotels] = useState([]);
   const [serviceUsers, setServiceUsers] = useState([]);
@@ -138,23 +139,27 @@ export default function Incidents({ user }) {
   const [staffLoading, setStaffLoading] = useState(false);
   const [hotelsLoading, setHotelsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   // Modal States
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingIncident, setViewingIncident] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null);
+  const [selectedExportKeys, setSelectedExportKeys] = useState([]);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [query, setQuery] = useState("");
-  
+
   // Filter and Sort State
   const [severityFilter, setSeverityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [propertyFilter, setPropertyFilter] = useState("");
   const [sortBy, setSortBy] = useState("");
-  
+
   // View Dropdown States
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
@@ -167,7 +172,7 @@ export default function Incidents({ user }) {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'warning'
   });
 
@@ -275,6 +280,40 @@ export default function Incidents({ user }) {
   ]);
   const [customColumns, setCustomColumns] = useState([]); // Columns from Forms Builder
   const [lastColumnCheck, setLastColumnCheck] = useState(Date.now());
+
+  const BASE_EXPORT_COLUMNS = useMemo(
+    () => [
+      { header: 'Title', key: 'title' },
+      { header: 'Type', key: 'incidentType' },
+      { header: 'Severity', key: 'severity' },
+      { header: 'Property', key: 'propertyName' },
+      { header: 'Status', key: 'status' },
+      { header: 'Reported Date', key: 'reportedDate' },
+      { header: 'Reported By', key: 'reportedBy' }
+    ],
+    []
+  );
+
+  const exportColumns = useMemo(() => {
+    const custom = (customColumns || []).map((col) => ({
+      header: String(col).replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+      key: col,
+    }));
+    return [...BASE_EXPORT_COLUMNS, ...custom];
+  }, [BASE_EXPORT_COLUMNS, customColumns]);
+
+  useEffect(() => {
+    const nextKeys = exportColumns.map((c) => c.key);
+    setSelectedExportKeys((prev) => {
+      const prevSet = new Set(prev);
+      const merged = nextKeys.filter((k) => prevSet.has(k));
+      if (merged.length === 0) return nextKeys;
+      for (const k of nextKeys) {
+        if (!prevSet.has(k)) merged.push(k);
+      }
+      return merged;
+    });
+  }, [exportColumns]);
 
   const DEFAULT_COLUMNS = [
     "checkbox",
@@ -402,7 +441,7 @@ export default function Incidents({ user }) {
   const filtered = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
     let list = rows || [];
-    
+
     // Apply search filter - improved to search multiple fields
     if (q) {
       list = list.filter((r) => {
@@ -415,40 +454,40 @@ export default function Incidents({ user }) {
         const reportedBy = (r.reportedBy || r.reported_by || "").toLowerCase();
         const assignedTo = (r.assignedTo || r.assigned_to || r.assigned_to_name || "").toLowerCase();
         const severity = (r.severity || "").toLowerCase();
-        
-        return title.includes(q) || 
-               description.includes(q) || 
-               propertyName.includes(q) || 
-               status.includes(q) ||
-               incidentType.includes(q) ||
-               reference.includes(q) ||
-               reportedBy.includes(q) ||
-               assignedTo.includes(q) ||
-               severity.includes(q);
+
+        return title.includes(q) ||
+          description.includes(q) ||
+          propertyName.includes(q) ||
+          status.includes(q) ||
+          incidentType.includes(q) ||
+          reference.includes(q) ||
+          reportedBy.includes(q) ||
+          assignedTo.includes(q) ||
+          severity.includes(q);
       });
     }
-    
+
     // Apply severity filter
     if (severityFilter) {
-      list = list.filter((r) => 
+      list = list.filter((r) =>
         (r.severity || "").toLowerCase() === severityFilter.toLowerCase()
       );
     }
-    
+
     // Apply status filter
     if (statusFilter) {
-      list = list.filter((r) => 
+      list = list.filter((r) =>
         (r.status || "").toLowerCase() === statusFilter.toLowerCase()
       );
     }
-    
+
     // Apply property filter
     if (propertyFilter) {
-      list = list.filter((r) => 
+      list = list.filter((r) =>
         String(r.propertyId || r.property_id || "") === String(propertyFilter)
       );
     }
-    
+
     // Apply sorting
     if (sortBy) {
       list = [...list].sort((a, b) => {
@@ -476,57 +515,61 @@ export default function Incidents({ user }) {
         return 0;
       });
     }
-    
+
     return list;
   }, [rows, query, severityFilter, statusFilter, propertyFilter, sortBy]);
 
-  const handleDownloadPDF = () => {
-    const columns = [
-      { header: 'Title', key: 'title' },
-      { header: 'Type', key: 'incidentType' },
-      { header: 'Severity', key: 'severity' },
-      { header: 'Property', key: 'propertyName' },
-      { header: 'Status', key: 'status' },
-      { header: 'Reported Date', key: 'reportedDate' },
-      { header: 'Reported By', key: 'reportedBy' }
-    ];
-    
-    const data = filtered.map(incident => ({
+  const normalizeIncidentExportRow = (incident) => {
+    const base = {
       title: incident.title || '-',
-      incidentType: incident.incidentType || '-',
+      incidentType: incident.incidentType || incident.incident_type || '-',
       severity: incident.severity || '-',
-      propertyName: incident.propertyName || '-',
+      propertyName: incident.propertyName || incident.property_name || incident.property || '-',
       status: incident.status || '-',
-      reportedDate: incident.reportedDate || '-',
-      reportedBy: incident.reportedBy || '-'
-    }));
-    
-    generatePDF(data, columns, 'Incidents Report', 'incidents-report');
+      reportedDate: incident.reportedDate || incident.reported_date || '-',
+      reportedBy: incident.reportedBy || incident.reported_by || '-',
+    };
+
+    for (const col of customColumns || []) {
+      base[col] = incident?.[col] ?? '';
+    }
+
+    return base;
   };
 
-  // CSV Download Handler
-  const handleDownloadCSV = () => {
-    const columns = [
-      { header: 'Title', key: 'title' },
-      { header: 'Type', key: 'incidentType' },
-      { header: 'Severity', key: 'severity' },
-      { header: 'Property', key: 'propertyName' },
-      { header: 'Status', key: 'status' },
-      { header: 'Reported Date', key: 'reportedDate' },
-      { header: 'Reported By', key: 'reportedBy' }
-    ];
-    
-    const data = filtered.map(incident => ({
-      title: incident.title || '-',
-      incidentType: incident.incidentType || '-',
-      severity: incident.severity || '-',
-      propertyName: incident.propertyName || '-',
-      status: incident.status || '-',
-      reportedDate: incident.reportedDate || '-',
-      reportedBy: incident.reportedBy || '-'
-    }));
-    
-    generateCSV(data, columns, 'incidents-report');
+  const openExport = (format) => {
+    setExportFormat(format);
+    setShowExportModal(true);
+    setSelectedExportKeys((prev) => (prev && prev.length ? prev : exportColumns.map((c) => c.key)));
+  };
+
+  const closeExport = () => {
+    setShowExportModal(false);
+    setExportFormat(null);
+  };
+
+  const runExport = () => {
+    try {
+      const keySet = new Set(selectedExportKeys || []);
+      const columns = (exportColumns || []).filter((c) => keySet.has(c.key));
+      if (!columns.length) {
+        alert('Please select at least one column to download.');
+        return;
+      }
+
+      const data = (filtered || []).map(normalizeIncidentExportRow);
+
+      if (exportFormat === 'pdf') {
+        generatePDF(data, columns, 'Incidents Report', 'incidents-report');
+      } else if (exportFormat === 'csv') {
+        generateCSV(data, columns, 'incidents-report');
+      }
+
+      closeExport();
+    } catch (error) {
+      console.error('Error exporting incidents:', error);
+      alert('Failed to download: ' + error.message);
+    }
   };
 
   useEffect(() => {
@@ -535,7 +578,7 @@ export default function Incidents({ user }) {
     fetchHotels(ctrl.signal);
     fetchIncidents();
     return () => {
-      try { ctrl.abort(); } catch {}
+      try { ctrl.abort(); } catch { }
       hotelsControllerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -732,7 +775,7 @@ export default function Incidents({ user }) {
       serviceUserId: record.service_user_id ?? record.serviceUserId ?? '',
       description: record.description ?? '',
       reportedBy: record.reported_by ?? record.reportedBy ?? '',
-      reportedDate: record.reported_date ? String(record.reported_date).substring(0,10) : '',
+      reportedDate: record.reported_date ? String(record.reported_date).substring(0, 10) : '',
       assignedTo: record.assigned_to ?? record.assignedTo ?? '',
       status: record.status ?? 'Open',
     };
@@ -826,14 +869,14 @@ export default function Incidents({ user }) {
       // Add custom columns to payload - use snake_case for database columns
       const customPayload = customColumns && customColumns.length > 0
         ? customColumns.reduce((acc, col) => {
-            const value = formData[col];
-            // Send both snake_case (for DB) and camelCase (for compatibility)
-            acc[col] = value !== undefined && value !== null && value !== '' ? value : null;
-            return acc;
-          }, {})
+          const value = formData[col];
+          // Send both snake_case (for DB) and camelCase (for compatibility)
+          acc[col] = value !== undefined && value !== null && value !== '' ? value : null;
+          return acc;
+        }, {})
         : {};
       const payload = { ...basePayload, ...customPayload };
-      
+
       let res;
       if (editingId) {
         // Update existing incident
@@ -848,18 +891,18 @@ export default function Incidents({ user }) {
           throw new Error(res?.data?.message || 'Failed to create incident');
         }
       }
-      
+
       // Refresh the incidents list from server
       await fetchIncidents();
-      
+
       // Capture editingId before resetting for success message
       const wasEditing = !!editingId;
-      
+
       // Close modal and reset state
       setShowModal(false);
       setEditingId(null);
       setError(null);
-      
+
       // Show success message
       setAlertDialog({
         isOpen: true,
@@ -888,16 +931,16 @@ export default function Incidents({ user }) {
   const openReportModal = () => {
     setEditingId(null);
     const baseFormData = {
-        incidentType: '',
-        severity: 'Medium',
-        propertyId: '',
-        propertyName: '',
-        serviceUserId: '',
-        description: '',
-        reportedBy: '',
-        reportedDate: '',
-        assignedTo: '',
-        status: 'Open',
+      incidentType: '',
+      severity: 'Medium',
+      propertyId: '',
+      propertyName: '',
+      serviceUserId: '',
+      description: '',
+      reportedBy: '',
+      reportedDate: '',
+      assignedTo: '',
+      status: 'Open',
     };
     // Reset custom columns to empty strings
     const customFormData = customColumns && customColumns.length > 0
@@ -924,7 +967,7 @@ export default function Incidents({ user }) {
             </div>
           </div>
           {hasCreate && (
-            <button 
+            <button
               onClick={openReportModal}
               className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
             >
@@ -995,7 +1038,7 @@ export default function Incidents({ user }) {
                     className="bg-white border-2 border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 w-72 transition-all shadow-sm hover:shadow-md"
                   />
                 </div>
-                
+
                 {/* View Dropdown */}
                 <div className="relative" ref={viewRef}>
                   <button
@@ -1012,117 +1055,185 @@ export default function Incidents({ user }) {
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
                       <div className="p-4">
                         <h3 className="text-sm font-semibold text-gray-900 mb-3">View Settings</h3>
-                        
+
                         {/* View Mode Selector */}
                         <div className="mb-3 pb-3 border-b border-gray-200">
                           <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => setViewMode('table')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'table'
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
                                   ? 'bg-teal-500 text-white shadow-sm'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                                }`}
                             >
                               <Columns className="w-4 h-4" />
                               <span>Table</span>
                             </button>
                             <button
                               onClick={() => setViewMode('board')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'board'
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
                                   ? 'bg-teal-500 text-white shadow-sm'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                                }`}
                             >
                               <ClipboardList className="w-4 h-4" />
                               <span>Board</span>
                             </button>
                           </div>
                         </div>
-                        
+
                         {viewMode === 'table' && (
-                          <button
-                            onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
-                            className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                          >
-                            <span>Column visibility</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">
-                                {Object.values(visibleColumns).filter(Boolean).length} shown
-                              </span>
-                              <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
-                            </div>
-                          </button>
-                        )}
-                        
-                        {/* Column Visibility Panel */}
-                        {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3">
-                            <div className="mb-3">
+                          <>
+                            <button
+                              onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
+                              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                            >
+                              <span>Column visibility</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {Object.values(visibleColumns).filter(Boolean).length} shown
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
+                              </div>
+                            </button>
+                            
+                            {/* Column Visibility Panel */}
+                            {showPropertyVisibility && (
+                          <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
+                            {/* Default Columns Section */}
+                            <div className="mb-4">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Shown in table</span>
-                                <button
-                                  onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: false }), {}))}
-                                  className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                >
-                                  Hide all
-                                </button>
-                              </div>
-                              <div className="space-y-1">
-                                {ALL_COLUMNS.filter(col => visibleColumns[col]).map(col => (
+                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
+                                <div className="flex items-center gap-2">
                                   <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
-                                    className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                                  >
-                                    <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                    <Eye className="w-4 h-4 text-teal-600" />
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            {ALL_COLUMNS.some(col => !visibleColumns[col]) && (
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hidden in table</span>
-                                  <button
-                                    onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))}
+                                    onClick={() => {
+                                      const updates = {};
+                                      DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                    }}
                                     className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                                   >
                                     Show all
                                   </button>
+                                  <span className="text-gray-300">|</span>
+                                  <button
+                                    onClick={() => {
+                                      const updates = {};
+                                      DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                    }}
+                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                  >
+                                    Hide all
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
+                              <div className="space-y-1">
+                                {DEFAULT_COLUMNS.map(col => (
+                                  <button
+                                    key={col}
+                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
+                                      visibleColumns[col] 
+                                        ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                        : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                    }`}
+                                  >
+                                    <span className="capitalize font-medium">{col}</span>
+                                    <div className="flex items-center gap-2">
+                                      {visibleColumns[col] ? (
+                                        <Eye className="w-4 h-4 text-teal-600" />
+                                      ) : (
+                                        <EyeOff className="w-4 h-4 text-gray-400" />
+                                      )}
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Custom Columns Section - All custom columns */}
+                            {customColumns.length > 0 && (
+                              <div className="pt-4 border-t border-gray-200">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                      {customColumns.length}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => {
+                                        const updates = {};
+                                        customColumns.forEach(c => updates[c] = true);
+                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                      }}
+                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                    >
+                                      Show all
+                                    </button>
+                                    <span className="text-gray-300">|</span>
+                                    <button
+                                      onClick={() => {
+                                        const updates = {};
+                                        customColumns.forEach(c => updates[c] = false);
+                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                      }}
+                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                    >
+                                      Hide all
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="text-xs text-gray-500 mb-2">
+                                  Custom columns from Forms Builder 
+                                  <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
                                 </div>
                                 <div className="space-y-1">
-                                  {ALL_COLUMNS.filter(col => !visibleColumns[col]).map(col => (
+                                  {customColumns.map(col => (
                                     <button
                                       key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
-                                      className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
+                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
+                                        visibleColumns[col] 
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                          : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                      }`}
                                     >
                                       <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                      <div className="flex items-center gap-2">
+                                        {visibleColumns[col] ? (
+                                          <Eye className="w-4 h-4 text-teal-600" />
+                                        ) : (
+                                          <EyeOff className="w-4 h-4 text-gray-400" />
+                                        )}
+                                      </div>
                                     </button>
                                   ))}
                                 </div>
                               </div>
                             )}
                           </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
                   )}
                 </div>
 
-                
+
                 {hasCreate && (
                   <>
-                    <DownloadDropdown 
-                      onDownloadPDF={handleDownloadPDF}
-                      onDownloadCSV={handleDownloadCSV}
+                    <DownloadDropdown
+                      onDownloadPDF={() => openExport('pdf')}
+                      onDownloadCSV={() => openExport('csv')}
                     />
-                    <button 
-                      onClick={openReportModal} 
+                    <button
+                      onClick={openReportModal}
                       className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
                     >
                       <ClipboardList className="w-4 h-4" />
@@ -1133,12 +1244,95 @@ export default function Incidents({ user }) {
               </div>
             </div>
 
+            {showExportModal && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+                <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                    <div>
+                      <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">Select the columns you want to include</div>
+                    </div>
+                    <button
+                      onClick={closeExport}
+                      className="p-2 rounded-lg hover:bg-gray-50 text-gray-500"
+                      aria-label="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="px-5 py-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-sm font-medium text-gray-700">Columns</div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <button
+                          onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
+                          className="text-teal-600 hover:text-teal-700 font-medium"
+                        >
+                          Select all
+                        </button>
+                        <button
+                          onClick={() => setSelectedExportKeys([])}
+                          className="text-gray-600 hover:text-gray-700 font-medium"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
+                      {exportColumns.map((col) => {
+                        const checked = (selectedExportKeys || []).includes(col.key);
+                        return (
+                          <label
+                            key={col.key}
+                            className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                setSelectedExportKeys((prev) => {
+                                  const set = new Set(prev || []);
+                                  if (isChecked) set.add(col.key);
+                                  else set.delete(col.key);
+                                  return Array.from(set);
+                                });
+                              }}
+                              className="h-4 w-4 accent-teal-600"
+                            />
+                            <span className="text-sm text-gray-800">{col.header}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                    <button
+                      onClick={closeExport}
+                      className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-white border border-gray-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={runExport}
+                      className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-teal-600 hover:bg-teal-700"
+                    >
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Filter Row */}
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={severityFilter} 
+                <select
+                  value={severityFilter}
                   onChange={(e) => setSeverityFilter(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -1150,11 +1344,11 @@ export default function Incidents({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={statusFilter} 
+                <select
+                  value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -1165,11 +1359,11 @@ export default function Incidents({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={propertyFilter} 
+                <select
+                  value={propertyFilter}
                   onChange={(e) => setPropertyFilter(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -1178,11 +1372,11 @@ export default function Incidents({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={sortBy} 
+                <select
+                  value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
@@ -1194,7 +1388,7 @@ export default function Incidents({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               {/* Clear Filters Button */}
               {(severityFilter || statusFilter || propertyFilter || sortBy) && (
                 <button
@@ -1217,62 +1411,62 @@ export default function Incidents({ user }) {
           {viewMode === 'table' ? (
             <div className="overflow-x-auto">
               <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  {/* Removed duplicate manual checkbox block */}
-                  {ALL_COLUMNS.map(col => (
-                    visibleColumns[col] && (
-                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        {col === 'checkbox' ? (
-                          <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                        ) : col === 'actions' ? 'ACTIONS' : col.replace(/_/g, ' ').toUpperCase()}
-                      </th>
-                    )
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {loading ? (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    {/* Removed duplicate manual checkbox block */}
+                    {ALL_COLUMNS.map(col => (
+                      visibleColumns[col] && (
+                        <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          {col === 'checkbox' ? (
+                            <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                          ) : col === 'actions' ? 'ACTIONS' : col.replace(/_/g, ' ').toUpperCase()}
+                        </th>
+                      )
+                    ))}
                   </tr>
-                ) : filtered.length > 0 ? filtered.map((row) => {
-                  const priorityStyle = getPriorityColor(row.priority || "Medium");
-                  const statusStyle = getStatusColor(row.status || "pending");
-                  
-                  return (
-                    <tr key={row.ref} className="hover:bg-gray-50 transition-colors">
-                      {/* Removed duplicate manual checkbox block */}
-                      {ALL_COLUMNS.map(col => (
-                        visibleColumns[col] && (
-                          <td key={col} className="py-4 px-4">
-                            {(() => {
-                              if (col === 'checkbox') return <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />;
-                              if (col === 'type') return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">{row.title || "Incident"}</span>;
-                              if (col === 'reference') return <span className="text-gray-700 font-medium">{row.ref}</span>;
-                              if (col === 'description') return <div><div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`} onClick={hasUpdate ? () => handleEdit(row) : undefined}>{row.propertyName || "Unknown Property"}</div><div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">{row.desc || "No description recorded."}</div></div>;
-                              if (col === 'priority') { const priorityStyle = getPriorityColor(row.priority || "Medium"); return <div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span><span className={`text-sm ${priorityStyle.text}`}>{row.priority || "Medium"}</span></div>; }
-                              if (col === 'status') { const statusStyle = getStatusColor(row.status || "pending"); return <div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span><span className={`text-sm ${statusStyle.text}`}>{row.status || "Pending"}</span></div>; }
-                              if (col === 'assigned') return !row.assigned || row.assigned === 'Unassigned' ? <span className="text-gray-500 text-sm">Unassigned</span> : <div className="flex items-center gap-2"><div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned)} flex items-center justify-center text-xs font-semibold`}>{getInitials(row.assigned)}</div><span className="text-gray-900 text-sm">{row.assigned}</span></div>;
-                              if (col === 'date') return <span className="text-gray-700 text-sm">{formatDate(row.date)}</span>;
-                              if (col === 'actions') return <div className="flex items-center gap-2"><button onClick={() => handleView(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="View"><Eye className="w-4 h-4" /></button>{hasUpdate && (<button onClick={() => handleEdit(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="Edit"><Edit className="w-4 h-4" /></button>)}{hasDelete && (<button onClick={() => handleDelete(row)} className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>)}</div>;
-                              // Render custom columns
-                              if (customColumns.includes(col)) return <span className="text-gray-700 text-sm">{row.raw?.[col] ?? ''}</span>;
-                              return null;
-                            })()}
-                          </td>
-                        )
-                      ))}
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
                     </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">No incidents found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : filtered.length > 0 ? filtered.map((row) => {
+                    const priorityStyle = getPriorityColor(row.priority || "Medium");
+                    const statusStyle = getStatusColor(row.status || "pending");
+
+                    return (
+                      <tr key={row.ref} className="hover:bg-gray-50 transition-colors">
+                        {/* Removed duplicate manual checkbox block */}
+                        {ALL_COLUMNS.map(col => (
+                          visibleColumns[col] && (
+                            <td key={col} className="py-4 px-4">
+                              {(() => {
+                                if (col === 'checkbox') return <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />;
+                                if (col === 'type') return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">{row.title || "Incident"}</span>;
+                                if (col === 'reference') return <span className="text-gray-700 font-medium">{row.ref}</span>;
+                                if (col === 'description') return <div><div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`} onClick={hasUpdate ? () => handleEdit(row) : undefined}>{row.propertyName || "Unknown Property"}</div><div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">{row.desc || "No description recorded."}</div></div>;
+                                if (col === 'priority') { const priorityStyle = getPriorityColor(row.priority || "Medium"); return <div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span><span className={`text-sm ${priorityStyle.text}`}>{row.priority || "Medium"}</span></div>; }
+                                if (col === 'status') { const statusStyle = getStatusColor(row.status || "pending"); return <div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span><span className={`text-sm ${statusStyle.text}`}>{row.status || "Pending"}</span></div>; }
+                                if (col === 'assigned') return !row.assigned || row.assigned === 'Unassigned' ? <span className="text-gray-500 text-sm">Unassigned</span> : <div className="flex items-center gap-2"><div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned)} flex items-center justify-center text-xs font-semibold`}>{getInitials(row.assigned)}</div><span className="text-gray-900 text-sm">{row.assigned}</span></div>;
+                                if (col === 'date') return <span className="text-gray-700 text-sm">{formatDate(row.date)}</span>;
+                                if (col === 'actions') return <div className="flex items-center gap-2"><button onClick={() => handleView(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="View"><Eye className="w-4 h-4" /></button>{hasUpdate && (<button onClick={() => handleEdit(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="Edit"><Edit className="w-4 h-4" /></button>)}{hasDelete && (<button onClick={() => handleDelete(row)} className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>)}</div>;
+                                // Render custom columns
+                                if (customColumns.includes(col)) return <span className="text-gray-700 text-sm">{row.raw?.[col] ?? ''}</span>;
+                                return null;
+                              })()}
+                            </td>
+                          )
+                        ))}
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">No incidents found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           ) : (
             /* Board/Kanban View */
             <div className="overflow-x-auto -mx-6 px-6">
@@ -1281,7 +1475,7 @@ export default function Incidents({ user }) {
                   const statusItems = filtered.filter(
                     (row) => (row.status || '').toLowerCase() === status.toLowerCase()
                   );
-                  
+
                   const getStatusStyle = (status) => {
                     if (status === 'Open') return {
                       bg: 'bg-orange-50',
@@ -1332,7 +1526,7 @@ export default function Incidents({ user }) {
                             </span>
                           </div>
                         </div>
-                        
+
                         {/* Cards Container */}
                         <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                           {statusItems.length === 0 ? (
@@ -1343,7 +1537,7 @@ export default function Incidents({ user }) {
                           ) : (
                             statusItems.map((row) => {
                               const priorityStyle = getPriorityColor(row.priority || "Medium");
-                              
+
                               return (
                                 <div
                                   key={row.ref}
@@ -1360,12 +1554,12 @@ export default function Incidents({ user }) {
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   {/* Title */}
                                   <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
                                     {row.title || "Incident"}
                                   </h4>
-                                  
+
                                   {/* Property */}
                                   <div className="flex items-center gap-1.5 text-gray-600 text-xs mb-2">
                                     <Home className="w-3 h-3" />
@@ -1373,14 +1567,14 @@ export default function Incidents({ user }) {
                                       {row.propertyName || "Unknown Property"}
                                     </span>
                                   </div>
-                                  
+
                                   {/* Description */}
                                   {row.desc && (
                                     <p className="text-xs text-gray-500 mb-3 line-clamp-2">
                                       {row.desc}
                                     </p>
                                   )}
-                                  
+
                                   {/* Card Footer */}
                                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
                                     {/* Assigned */}
@@ -1398,13 +1592,13 @@ export default function Incidents({ user }) {
                                         <span className="text-xs text-gray-400">Unassigned</span>
                                       )}
                                     </div>
-                                    
+
                                     {/* Date */}
                                     <span className="text-xs text-gray-500">
                                       {formatDate(row.date)}
                                     </span>
                                   </div>
-                                  
+
                                   {/* Action Buttons */}
                                   <div className="flex items-center gap-1">
                                     <button
@@ -1459,23 +1653,23 @@ export default function Incidents({ user }) {
       </div>
 
       {/* ----------------- MODAL SECTION ----------------- */}
-      
+
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingId ? "Edit Incident" : "Report Incident"}
               </h3>
-              <button 
-                onClick={() => { 
-                  setShowModal(false); 
-                  setError(null); 
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setError(null);
                   setEditingId(null);
-                }} 
+                }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -1494,11 +1688,11 @@ export default function Incidents({ user }) {
                 {/* Form fields same as original */}
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Incident Type <span className="text-red-500">*</span></label>
-                  <select 
-                    name="incidentType" 
-                    required 
-                    value={formData.incidentType} 
-                    onChange={handleIncidentTypeChange} 
+                  <select
+                    name="incidentType"
+                    required
+                    value={formData.incidentType}
+                    onChange={handleIncidentTypeChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                   >
                     <option value="">Select type</option>
@@ -1554,11 +1748,11 @@ export default function Incidents({ user }) {
                 ))}
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Severity <span className="text-red-500">*</span></label>
-                  <select 
-                    name="severity" 
-                    required 
-                    value={formData.severity} 
-                    onChange={handleInputChange} 
+                  <select
+                    name="severity"
+                    required
+                    value={formData.severity}
+                    onChange={handleInputChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                   >
                     <option value="Low">Low</option>
@@ -1570,11 +1764,11 @@ export default function Incidents({ user }) {
 
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
-                  <select 
-                    name="propertyId" 
-                    required 
-                    value={formData.propertyId} 
-                    onChange={handlePropertyChange} 
+                  <select
+                    name="propertyId"
+                    required
+                    value={formData.propertyId}
+                    onChange={handlePropertyChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                   >
                     <option value="">Select property</option>
@@ -1584,10 +1778,10 @@ export default function Incidents({ user }) {
                 </div>
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Service User</label>
-                  <select 
-                    name="serviceUserId" 
-                    value={formData.serviceUserId} 
-                    onChange={handleInputChange} 
+                  <select
+                    name="serviceUserId"
+                    value={formData.serviceUserId}
+                    onChange={handleInputChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                   >
                     <option value="">Select service user</option>
@@ -1597,14 +1791,14 @@ export default function Incidents({ user }) {
 
                 <div className="col-span-1 md:col-span-2">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
-                  <textarea 
-                    name="description" 
-                    required 
+                  <textarea
+                    name="description"
+                    required
                     rows={3}
-                    value={formData.description} 
-                    onChange={handleInputChange} 
-                    placeholder="Detailed description of the incident..." 
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" 
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="Detailed description of the incident..."
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
                   />
                 </div>
 
@@ -1622,8 +1816,8 @@ export default function Incidents({ user }) {
                       {!formData.propertyId
                         ? "Select property first"
                         : staffLoading
-                        ? "Loading staff..."
-                        : "Select staff"}
+                          ? "Loading staff..."
+                          : "Select staff"}
                     </option>
                     {!!formData.reportedBy && !staffUsers.some((u) => String(u.name) === String(formData.reportedBy)) && (
                       <option value={formData.reportedBy}>{formData.reportedBy}</option>
@@ -1637,13 +1831,13 @@ export default function Incidents({ user }) {
                 </div>
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Reported Date <span className="text-red-500">*</span></label>
-                  <input 
-                    type="date" 
-                    name="reportedDate" 
-                    required 
-                    value={formatDateISO(formData.reportedDate)} 
-                    onChange={handleInputChange} 
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                  <input
+                    type="date"
+                    name="reportedDate"
+                    required
+                    value={formatDateISO(formData.reportedDate)}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                   />
                 </div>
 
@@ -1660,8 +1854,8 @@ export default function Incidents({ user }) {
                       {!formData.propertyId
                         ? "Select property first"
                         : staffLoading
-                        ? "Loading staff..."
-                        : "Select staff"}
+                          ? "Loading staff..."
+                          : "Select staff"}
                     </option>
                     {!!formData.assignedTo && !staffUsers.some((u) => String(u.name) === String(formData.assignedTo)) && (
                       <option value={formData.assignedTo}>{formData.assignedTo}</option>
@@ -1675,11 +1869,11 @@ export default function Incidents({ user }) {
                 </div>
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Status <span className="text-red-500">*</span></label>
-                  <select 
-                    name="status" 
-                    required 
-                    value={formData.status} 
-                    onChange={handleInputChange} 
+                  <select
+                    name="status"
+                    required
+                    value={formData.status}
+                    onChange={handleInputChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                   >
                     <option value="Open">Open</option>
@@ -1691,19 +1885,19 @@ export default function Incidents({ user }) {
 
               {/* Footer Buttons */}
               <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     setShowModal(false);
                     setError(null);
                     setEditingId(null);
-                  }} 
+                  }}
                   className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={submitting}
                   className="px-4 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 font-medium shadow-sm transition-colors text-sm"
                 >
@@ -1721,8 +1915,8 @@ export default function Incidents({ user }) {
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg relative">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-900">Incident Details</h3>
-              <button 
-                onClick={() => setShowViewModal(false)} 
+              <button
+                onClick={() => setShowViewModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -1734,7 +1928,7 @@ export default function Incidents({ user }) {
                 <div className="text-gray-500 font-mono text-sm mb-1">{viewingIncident.ref}</div>
                 <div className="text-xl font-bold text-gray-800">{viewingIncident.title}</div>
               </div>
-              
+
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">DESCRIPTION</div>
                 <p className="text-gray-600 text-sm leading-relaxed">{viewingIncident.desc || "No description provided."}</p>
@@ -1743,20 +1937,20 @@ export default function Incidents({ user }) {
               <div className="grid grid-cols-2 gap-y-6 gap-x-8">
                 <DetailField label="PROPERTY" value={viewingIncident.propertyName} />
                 <DetailField label="TYPE" value={viewingIncident.title} />
-                
+
                 <DetailField label="PRIORITY" value={viewingIncident.priority} />
                 <DetailField label="STATUS" value={viewingIncident.status} />
-                
+
                 <DetailField label="REPORTED BY" value={viewingIncident.raw.reported_by || viewingIncident.raw.reportedBy} />
                 <DetailField label="ASSIGNED TO" value={viewingIncident.assigned} />
-                
+
                 <DetailField label="REPORTED DATE" value={formatDate(viewingIncident.date)} />
                 <DetailField label="SERVICE USER" value={viewingIncident.serviceUserId || '-'} />
               </div>
 
               <div className="flex justify-end pt-4 border-t border-gray-200">
-                <button 
-                  onClick={() => setShowViewModal(false)} 
+                <button
+                  onClick={() => setShowViewModal(false)}
                   className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
                 >
                   Close

@@ -76,6 +76,10 @@ export default function AIRETasks({ user }) {
   const [modalError, setModalError] = useState(null);
   const [modalSubmitting, setModalSubmitting] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null);
+  const [selectedExportKeys, setSelectedExportKeys] = useState([]);
   
   // State to track if we are in "View Only" mode
   const [isViewing, setIsViewing] = useState(false);
@@ -106,6 +110,40 @@ export default function AIRETasks({ user }) {
   ]);
   const [customColumns, setCustomColumns] = useState([]); // Columns from Forms Builder
   const [lastColumnCheck, setLastColumnCheck] = useState(Date.now());
+
+  const BASE_EXPORT_COLUMNS = useMemo(
+    () => [
+      { header: 'Reference', key: 'reference' },
+      { header: 'Title', key: 'title' },
+      { header: 'Category', key: 'category' },
+      { header: 'Priority', key: 'priority' },
+      { header: 'Status', key: 'status' },
+      { header: 'Property', key: 'propertyName' },
+      { header: 'Deadline', key: 'deadline' },
+    ],
+    []
+  );
+
+  const exportColumns = useMemo(() => {
+    const custom = (customColumns || []).map((col) => ({
+      header: String(col).replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+      key: col,
+    }));
+    return [...BASE_EXPORT_COLUMNS, ...custom];
+  }, [BASE_EXPORT_COLUMNS, customColumns]);
+
+  useEffect(() => {
+    const nextKeys = exportColumns.map((c) => c.key);
+    setSelectedExportKeys((prev) => {
+      const prevSet = new Set(prev);
+      const merged = nextKeys.filter((k) => prevSet.has(k));
+      if (merged.length === 0) return nextKeys;
+      for (const k of nextKeys) {
+        if (!prevSet.has(k)) merged.push(k);
+      }
+      return merged;
+    });
+  }, [exportColumns]);
 
   // Default columns shown in frontend
   const DEFAULT_COLUMNS = [
@@ -478,53 +516,57 @@ export default function AIRETasks({ user }) {
     return list;
   }, [tasks, selectedPriority, selectedStatus, selectedProperty, query, sortBy]);
 
-  const handleDownloadPDF = () => {
-    const columns = [
-      { header: 'Reference', key: 'reference' },
-      { header: 'Title', key: 'title' },
-      { header: 'Category', key: 'category' },
-      { header: 'Priority', key: 'priority' },
-      { header: 'Status', key: 'status' },
-      { header: 'Property', key: 'propertyName' },
-      { header: 'Deadline', key: 'deadline' }
-    ];
-    
-    const data = filteredTasks.map(task => ({
+  const normalizeAireTaskExportRow = (task) => {
+    const base = {
       reference: task.reference || '-',
       title: task.title || '-',
       category: task.category || '-',
       priority: task.priority || '-',
       status: task.status || '-',
-      propertyName: task.propertyName || '-',
-      deadline: task.deadline || '-'
-    }));
-    
-    generatePDF(data, columns, 'AIRE Tasks Report', 'aire-tasks-report');
+      propertyName: task.propertyName || task.property_name || '-',
+      deadline: task.deadline || task.due_date || task.dueDate || '-',
+    };
+
+    for (const col of customColumns || []) {
+      base[col] = task?.[col] ?? '';
+    }
+
+    return base;
   };
 
-  // CSV Download Handler
-  const handleDownloadCSV = () => {
-    const columns = [
-      { header: 'Reference', key: 'reference' },
-      { header: 'Title', key: 'title' },
-      { header: 'Category', key: 'category' },
-      { header: 'Priority', key: 'priority' },
-      { header: 'Status', key: 'status' },
-      { header: 'Property', key: 'propertyName' },
-      { header: 'Deadline', key: 'deadline' }
-    ];
-    
-    const data = filteredTasks.map(task => ({
-      reference: task.reference || '-',
-      title: task.title || '-',
-      category: task.category || '-',
-      priority: task.priority || '-',
-      status: task.status || '-',
-      propertyName: task.propertyName || '-',
-      deadline: task.deadline || '-'
-    }));
-    
-    generateCSV(data, columns, 'aire-tasks-report');
+  const openExport = (format) => {
+    setExportFormat(format);
+    setShowExportModal(true);
+    setSelectedExportKeys((prev) => (prev && prev.length ? prev : exportColumns.map((c) => c.key)));
+  };
+
+  const closeExport = () => {
+    setShowExportModal(false);
+    setExportFormat(null);
+  };
+
+  const runExport = () => {
+    try {
+      const keySet = new Set(selectedExportKeys || []);
+      const columns = (exportColumns || []).filter((c) => keySet.has(c.key));
+      if (!columns.length) {
+        alert('Please select at least one column to download.');
+        return;
+      }
+
+      const data = (filteredTasks || []).map(normalizeAireTaskExportRow);
+
+      if (exportFormat === 'pdf') {
+        generatePDF(data, columns, 'AIRE Tasks Report', 'aire-tasks-report');
+      } else if (exportFormat === 'csv') {
+        generateCSV(data, columns, 'aire-tasks-report');
+      }
+
+      closeExport();
+    } catch (error) {
+      console.error('Error exporting AIRE tasks:', error);
+      alert('Failed to download: ' + error.message);
+    }
   };
 
 
@@ -933,8 +975,8 @@ export default function AIRETasks({ user }) {
                 {hasCreate && (
                   <>
                     <DownloadDropdown 
-                      onDownloadPDF={handleDownloadPDF}
-                      onDownloadCSV={handleDownloadCSV}
+                      onDownloadPDF={() => openExport('pdf')}
+                      onDownloadCSV={() => openExport('csv')}
                     />
                     <button 
                       onClick={() => { setEditingTask(null); setIsViewing(false); setShowModal(true); }}
@@ -947,6 +989,89 @@ export default function AIRETasks({ user }) {
                 )}
               </div>
             </div>
+
+            {showExportModal && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+                <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                    <div>
+                      <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">Select the columns you want to include</div>
+                    </div>
+                    <button
+                      onClick={closeExport}
+                      className="p-2 rounded-lg hover:bg-gray-50 text-gray-500"
+                      aria-label="Close"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="px-5 py-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-sm font-medium text-gray-700">Columns</div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <button
+                          onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
+                          className="text-teal-600 hover:text-teal-700 font-medium"
+                        >
+                          Select all
+                        </button>
+                        <button
+                          onClick={() => setSelectedExportKeys([])}
+                          className="text-gray-600 hover:text-gray-700 font-medium"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
+                      {exportColumns.map((col) => {
+                        const checked = (selectedExportKeys || []).includes(col.key);
+                        return (
+                          <label
+                            key={col.key}
+                            className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                setSelectedExportKeys((prev) => {
+                                  const set = new Set(prev || []);
+                                  if (isChecked) set.add(col.key);
+                                  else set.delete(col.key);
+                                  return Array.from(set);
+                                });
+                              }}
+                              className="h-4 w-4 accent-teal-600"
+                            />
+                            <span className="text-sm text-gray-800">{col.header}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                    <button
+                      onClick={closeExport}
+                      className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-white border border-gray-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={runExport}
+                      className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-teal-600 hover:bg-teal-700"
+                    >
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Filter Row */}
             <div className="flex items-center gap-3 flex-wrap">
