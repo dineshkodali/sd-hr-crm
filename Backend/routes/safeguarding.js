@@ -1,10 +1,14 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { protect } from '../middleware/auth.js';
+import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 import { buildRoleWhere } from '../middleware/roleFilter.js';
 
 const router = express.Router();
 
+
+// Apply CRUD logging to all operations
+applyCrudLogging(router, 'safeguarding_referrals', 'safeguarding_referrals');
 // Helper: Generate reference number (e.g., SFG-2025-xxxxx)
 function genRef() {
   const year = new Date().getFullYear();

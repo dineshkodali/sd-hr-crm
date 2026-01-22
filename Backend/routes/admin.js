@@ -6,6 +6,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import pool from "../config/db.js";
 import { protect } from "../middleware/auth.js"; // keep protect; role checks are inside handlers
+import { logActivityWithComparison } from "../utils/activityLogger.js"; // Add enhanced activity logging
 
 // new imports for file uploads
 import multer from "multer";
@@ -1229,7 +1230,32 @@ router.put("/users/:id", protect, upload.single("avatar"), async (req, res) => {
     const sql = `UPDATE users SET ${updates.join(", ")}, updated_at = NOW() WHERE id = $${idx} RETURNING id, name, email, role, branch, status, phone, avatar, city, country`;
     const result = await pool.query(sql, values);
     if (!result.rows.length) return res.status(404).json({ message: "User not found after update" });
-    return res.json({ user: result.rows[0], message: "User updated" });
+    
+    const updatedUser = result.rows[0];
+    
+    // Log the update activity with before/after comparison
+    try {
+      await logActivityWithComparison({
+        userId: req.user.id,
+        action: 'update_user',
+        actionType: 'crud',
+        resource: 'users',
+        resourceId: id,
+        description: `Updated user: ${updatedUser.name}`,
+        beforeData: existing,
+        afterData: updatedUser,
+        metadata: {
+          user_name: updatedUser.name,
+          updated_by: req.user.name
+        },
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        userAgent: req.headers['user-agent']
+      });
+    } catch (logError) {
+      console.error('Failed to log user update:', logError);
+    }
+    
+    return res.json({ user: updatedUser, message: "User updated" });
   } catch (err) {
     console.error("PUT /api/admin/users/:id error:", err && err.stack ? err.stack : err);
     return res.status(500).json({ message: "Server error" });

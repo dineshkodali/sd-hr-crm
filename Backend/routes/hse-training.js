@@ -51,7 +51,7 @@ router.post('/training', protect, async (req, res) => {
     // Standard columns
     // Note: Can include created_at/updated_at here using JS Date for values
     const cols = ['reference', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'reported_by', 'assigned_to', 'scheduled_date', 'status', 'created_at', 'updated_at'];
-    
+
     const now = new Date();
 
     const params = [

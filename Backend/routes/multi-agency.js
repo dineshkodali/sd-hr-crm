@@ -1,9 +1,13 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
+import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 import pool from '../config/db.js';
 
 const router = express.Router();
 
+
+// Apply CRUD logging to all operations
+applyCrudLogging(router, 'multi_agency', 'multi_agency');
 function genRef() {
   const year = new Date().getFullYear();
   const random = Math.random().toString(16).slice(2, 10);

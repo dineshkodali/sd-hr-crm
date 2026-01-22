@@ -2,7 +2,7 @@
 import express from "express";
 import poolImport from "../config/db.js"; // adjust path if needed
 import { protect } from "../middleware/auth.js"; // Add authentication middleware
-import { logActivity } from "../utils/activityLogger.js"; // Add activity logging
+import { logActivity, logActivityWithComparison } from "../utils/activityLogger.js"; // Add activity logging
 
 const router = express.Router();
 const pool = poolImport && poolImport.default ? poolImport.default : poolImport;
@@ -958,6 +958,7 @@ router.post("/users", protect, async (req, res) => {
         resource: 'service_users',
         resourceId: rows[0].id,
         description: `Created service user: ${body.first_name} ${body.last_name}`,
+        afterData: rows[0], // Store the created data
         metadata: {
           user_name: `${body.first_name} ${body.last_name}`,
           status: body.status || 'Active'
@@ -1159,6 +1160,18 @@ router.put("/users/:id", protect, async (req, res) => {
     }
 
     params.push(id);
+    // Get the current data before updating (for before/after comparison)
+    const { rows: beforeRows } = await pool.query(
+      `SELECT * FROM service_users WHERE id = $1`,
+      [id]
+    );
+    
+    if (!beforeRows.length) {
+      return res.status(404).json({ error: "Service user not found" });
+    }
+    
+    const beforeData = beforeRows[0];
+    
     const updateQ = `
       UPDATE service_users
       SET ${sets.join(", ")}
@@ -1171,18 +1184,21 @@ router.put("/users/:id", protect, async (req, res) => {
       return res.status(404).json({ error: "Service user not found" });
     }
 
-    // Log the update activity
+    const afterData = rows[0];
+
+    // Log the update activity with before/after comparison
     try {
-      await logActivity({
+      await logActivityWithComparison({
         userId: req.user.id,
         action: 'update_service_user',
         actionType: 'crud',
         resource: 'service_users',
         resourceId: id,
-        description: `Updated service user: ${rows[0].first_name} ${rows[0].last_name}`,
+        description: `Updated service user: ${afterData.first_name} ${afterData.last_name}`,
+        beforeData,
+        afterData,
         metadata: {
-          user_name: `${rows[0].first_name} ${rows[0].last_name}`,
-          updated_fields: sets.map(s => s.split(' = ')[0]).join(', ')
+          user_name: `${afterData.first_name} ${afterData.last_name}`
         },
         ipAddress: req.ip || req.connection?.remoteAddress,
         userAgent: req.headers['user-agent']
@@ -1191,7 +1207,7 @@ router.put("/users/:id", protect, async (req, res) => {
       console.error('Failed to log service user update:', logError);
     }
 
-    return res.json(rows[0]);
+    return res.json(afterData);
   } catch (error) {
     console.error("Error updating service user:", error);
     return res.status(500).json({
@@ -1218,7 +1234,7 @@ router.delete("/users/:id", protect, async (req, res) => {
       `SELECT first_name, last_name FROM service_users WHERE id = $1`,
       [id]
     );
-    
+
     const { rowCount } = await pool.query(
       `DELETE FROM service_users WHERE id = $1`,
       [id]

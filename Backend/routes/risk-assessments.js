@@ -1,9 +1,13 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { protect } from '../middleware/auth.js';
+import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 
 const router = express.Router();
 
+
+// Apply CRUD logging to all operations
+applyCrudLogging(router, 'risk_assessments', 'risk_assessments');
 // Helper: Generate reference number (e.g., RAST-2025-xxxxx)
 function genRef() {
   const year = new Date().getFullYear();

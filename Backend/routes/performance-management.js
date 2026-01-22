@@ -9,9 +9,13 @@ import {
 } from "../controllers/performanceManagementController.js";
 
 import { protect } from "../middleware/auth.js";
+import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 
 const router = express.Router();
 
+
+// Apply CRUD logging to all operations
+applyCrudLogging(router, 'performance_management', 'performance_management');
 /* -----------------------------------------------------
    UNIVERSAL SAFE HANDLER
    - Wraps all controllers so they ALWAYS return proper

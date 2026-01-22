@@ -12,9 +12,13 @@ import {
 } from "../controllers/maintenanceController.js";
 
 import { protect } from "../middleware/auth.js";
+import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 
 const router = express.Router();
 
+
+// Apply CRUD logging to all operations
+applyCrudLogging(router, 'maintenance', 'maintenance');
 /* -----------------------------------------------------
    UNIVERSAL SAFE HANDLER
    - Wraps all controllers so they ALWAYS return proper

@@ -2,8 +2,12 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { protect as authProtect } from '../middleware/auth.js';
+import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 
 const router = express.Router();
+
+// Apply CRUD logging to all operations
+applyCrudLogging(router, 'litigation', 'litigation');
 const protect = typeof authProtect === 'function' ? authProtect : (req, res, next) => next();
 
 function toText(v) {

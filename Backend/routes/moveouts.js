@@ -2,8 +2,12 @@
 import express from "express";
 import pool from "../config/db.js";
 
+import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 const router = express.Router();
 
+
+// Apply CRUD logging to all operations
+applyCrudLogging(router, 'move_outs', 'move_outs');
 function coalesceCamelSnake(body, camel, snake) {
   if (body == null) return undefined;
   if (body[camel] !== undefined) return body[camel];

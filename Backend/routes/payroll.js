@@ -9,9 +9,13 @@ import {
 } from "../controllers/payrollController.js";
 
 import { protect } from "../middleware/auth.js";
+import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 
 const router = express.Router();
 
+
+// Apply CRUD logging to all operations
+applyCrudLogging(router, 'payroll', 'payroll');
 // safe wrapper
 const safe = (fn) => async (req, res, next) => {
   try {

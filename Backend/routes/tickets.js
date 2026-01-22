@@ -5,9 +5,13 @@
 import express from "express";
 import pool from "../config/db.js";
 import { protect as authProtect } from "../middleware/auth.js"; // optional, fallback used below
+import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 
 const router = express.Router();
 const protect = typeof authProtect === "function" ? authProtect : (req, res, next) => next();
+
+// Apply CRUD logging to all ticket operations
+applyCrudLogging(router, 'tickets', 'tickets');
 
 /**
  * Helper: generate a readable ticket number

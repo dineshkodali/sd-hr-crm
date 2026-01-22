@@ -14,6 +14,9 @@ export async function logActivity({
   resourceId = null,
   description = null,
   metadata = null,
+  beforeData = null,
+  afterData = null,
+  changedFields = null,
   ipAddress = null,
   userAgent = null,
   status = 'success'
@@ -33,6 +36,15 @@ export async function logActivity({
       deviceType = parsed.deviceType;
     }
 
+    // Enhanced metadata with before/after comparison
+    const enhancedMetadata = {
+      ...(metadata || {}),
+      beforeData: beforeData || null,
+      afterData: afterData || null,
+      changedFields: changedFields || null,
+      hasChanges: !!(beforeData && afterData)
+    };
+
     await pool.query(
       `INSERT INTO activity_logs 
        (user_id, action, action_type, resource, resource_id, description, 
@@ -45,7 +57,7 @@ export async function logActivity({
         resource,
         resourceId,
         description,
-        metadata ? JSON.stringify(metadata) : null,
+        JSON.stringify(enhancedMetadata),
         ipAddress,
         userAgent,
         browser,
@@ -152,6 +164,114 @@ export async function getActivityStats(userId, days = 30) {
     console.error('Error getting activity stats:', error);
     return [];
   }
+}
+
+/**
+ * Compare two objects and return the differences
+ */
+export function compareData(beforeData, afterData, sensitiveFields = ['password', 'token', 'secret']) {
+  if (!beforeData || !afterData) return null;
+
+  const changes = {};
+  const changedFields = [];
+
+  // Get all unique keys from both objects
+  const allKeys = new Set([...Object.keys(beforeData), ...Object.keys(afterData)]);
+
+  for (const key of allKeys) {
+    // Skip sensitive fields
+    if (sensitiveFields.some(field => key.toLowerCase().includes(field.toLowerCase()))) {
+      continue;
+    }
+
+    const beforeValue = beforeData[key];
+    const afterValue = afterData[key];
+
+    // Check if values are different
+    if (JSON.stringify(beforeValue) !== JSON.stringify(afterValue)) {
+      changes[key] = {
+        before: beforeValue,
+        after: afterValue,
+        type: getChangeType(beforeValue, afterValue)
+      };
+      changedFields.push(key);
+    }
+  }
+
+  return {
+    changes,
+    changedFields,
+    totalChanges: changedFields.length
+  };
+}
+
+/**
+ * Determine the type of change
+ */
+function getChangeType(beforeValue, afterValue) {
+  if (beforeValue === null || beforeValue === undefined) return 'added';
+  if (afterValue === null || afterValue === undefined) return 'removed';
+  return 'modified';
+}
+
+/**
+ * Format field names for display
+ */
+export function formatFieldName(fieldName) {
+  return fieldName
+    .replace(/_/g, ' ')
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .trim();
+}
+
+/**
+ * Enhanced activity logging with before/after comparison
+ */
+export async function logActivityWithComparison({
+  userId,
+  action,
+  actionType,
+  resource,
+  resourceId,
+  description,
+  beforeData,
+  afterData,
+  metadata = {},
+  ipAddress,
+  userAgent,
+  status = 'success'
+}) {
+  let comparison = null;
+  let enhancedDescription = description;
+
+  // Generate comparison for update operations
+  if (beforeData && afterData && (action.includes('update') || action.includes('edit'))) {
+    comparison = compareData(beforeData, afterData);
+    
+    if (comparison && comparison.totalChanges > 0) {
+      enhancedDescription = `${description} (${comparison.totalChanges} field${comparison.totalChanges > 1 ? 's' : ''} changed: ${comparison.changedFields.map(formatFieldName).join(', ')})`;
+    }
+  }
+
+  await logActivity({
+    userId,
+    action,
+    actionType,
+    resource,
+    resourceId,
+    description: enhancedDescription,
+    beforeData,
+    afterData,
+    changedFields: comparison?.changedFields || null,
+    metadata: {
+      ...metadata,
+      comparison: comparison || null
+    },
+    ipAddress,
+    userAgent,
+    status
+  });
 }
 
 /**

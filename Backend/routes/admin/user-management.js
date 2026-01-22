@@ -98,7 +98,7 @@ router.get('/users/:id', protect, checkPermission('manage_users'), async (req, r
 // Create new user
 router.post('/users', protect, checkPermission('manage_users'), async (req, res) => {
   try {
-    const { 
+    const {
       name, email, password, role, phone, branch, status = 'active'
     } = req.body;
 
@@ -135,7 +135,7 @@ router.post('/users', protect, checkPermission('manage_users'), async (req, res)
       [name, email, hashedPassword, role, phone, branch, status]
     );
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'User created successfully',
       user: result.rows[0]
     });
@@ -152,9 +152,9 @@ router.post('/users', protect, checkPermission('manage_users'), async (req, res)
 router.put('/users/:id', protect, checkPermission('manage_users'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      username, email, first_name, last_name, 
-      role, phone_number, hotel_id, is_active 
+    const {
+      username, email, first_name, last_name,
+      role, phone_number, hotel_id, is_active
     } = req.body;
 
     // Check if user exists
@@ -232,7 +232,7 @@ router.put('/users/:id', protect, checkPermission('manage_users'), async (req, r
       values
     );
 
-    res.json({ 
+    res.json({
       message: 'User updated successfully',
       user: result.rows[0]
     });
