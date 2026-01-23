@@ -129,55 +129,37 @@ router.get("/", requireAuth, async (req, res) => {
     const hotelNameParam = req.query.hotel_name ?? req.query.site;
     const { status, search } = req.query;
 
-    const hotelPkCol = await getHotelsPkColumn();
-
-    const where = ["c.is_active IS TRUE"];
+    // Always match stats logic: only is_active IS TRUE, and status filter if set. No join unless hotel filter is applied.
+    const where = ["is_active IS TRUE"];
     const params = [];
 
-    if (hotelParam) {
-      // we push the same param (string) and will compare against h.<pk>::text (if available), h.name ILIKE, or c.hotel_name ILIKE
-      params.push(String(hotelParam));
-      const idx = params.length;
-      const pkClause = hotelPkCol ? `h.${hotelPkCol}::text = $${idx} OR ` : "";
-      where.push(`(${pkClause}h.name ILIKE '%' || $${idx} || '%' OR c.hotel_name ILIKE '%' || $${idx} || '%')`);
-    }
+    if (status === "expired") where.push("expiry_date < current_date");
+    else if (status === "expiring") where.push("expiry_date BETWEEN current_date AND (current_date + INTERVAL '30 days')");
+    else if (status === "valid") where.push("expiry_date > (current_date + INTERVAL '30 days')");
 
-    if (hotelNameParam) {
-      params.push(String(hotelNameParam));
-      const idx = params.length;
-      where.push(`(h.name ILIKE '%' || $${idx} || '%' OR c.hotel_name ILIKE '%' || $${idx} || '%')`);
-    }
-
-    if (search) {
-      params.push(`%${search}%`);
-      const idx = params.length;
-      where.push(`(c.certificate_type ILIKE $${idx} OR c.issued_by ILIKE $${idx} OR c.notes ILIKE $${idx} OR c.hotel_name ILIKE $${idx})`);
-    }
-
-    if (status === "expired") where.push("c.expiry_date < current_date");
-    else if (status === "expiring") where.push("c.expiry_date BETWEEN current_date AND (current_date + INTERVAL '30 days')");
-    else if (status === "valid") where.push("c.expiry_date > (current_date + INTERVAL '30 days')");
-
-    // limit & offset (append after filters so parameter indexes are correct)
-    const limit = Math.max(parseInt(req.query.limit || "100", 10) || 100, 1);
+    // limit & offset
+    const limit = Math.max(Math.min(parseInt(req.query.limit || "50", 10) || 50, 100), 1);
     const offset = Math.max(parseInt(req.query.offset || "0", 10) || 0, 0);
     params.push(limit);
     params.push(offset);
 
-    const sql = `SELECT c.*,
-      COALESCE(h.name, c.hotel_name) AS hotel_name,
+    const sql = `SELECT *,
       CASE
-        WHEN c.expiry_date < current_date THEN 'expired'
-        WHEN c.expiry_date <= (current_date + INTERVAL '30 days') THEN 'expiring'
+        WHEN expiry_date < current_date THEN 'expired'
+        WHEN expiry_date <= (current_date + INTERVAL '30 days') THEN 'expiring'
         ELSE 'valid'
       END AS status
-    FROM certificates c
-    ${HOTEL_JOIN}
+    FROM certificates
     WHERE ${where.join(" AND ")}
-    ORDER BY c.expiry_date ASC
-    LIMIT $${params.length - 1} OFFSET $${params.length};`;
+    ORDER BY expiry_date ASC
+    LIMIT $1 OFFSET $2;`;
 
-    const r = await safeQuery(sql, params);
+    const start = Date.now();
+    const r = await safeQuery(sql, [limit, offset]);
+    const elapsed = Date.now() - start;
+    if (elapsed > 1000) {
+      console.warn(`[PERF] /api/compliance query took ${elapsed}ms (limit=${limit}, offset=${offset})`);
+    }
     if (!r.ok) {
       console.error("Compliance List Query Failed:", r.error);
       return res.status(500).json({ ok: false, error: r.error?.message || "Database Query Warning" });
@@ -188,6 +170,7 @@ router.get("/", requireAuth, async (req, res) => {
       return row;
     });
 
+    console.log(`[Compliance] Returning ${out.length} certificates (stats showed data, list returning rows: ${out.length > 0})`);
     return res.json({ ok: true, data: out });
   } catch (err) {
     console.error("GET /api/compliance error:", err && (err.stack || err.message || err));
@@ -313,8 +296,8 @@ router.post("/", requireAuth, upload.single("document"), async (req, res) => {
       }
     }
 
-    const insertSql = `INSERT INTO certificates (certificate_type, property_id, hotel_name, issue_date, expiry_date, issued_by, file_path, document_name, document_mime, document_data, notes, created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id`;
+    const insertSql = `INSERT INTO certificates (certificate_type, property_id, hotel_name, issue_date, expiry_date, issued_by, file_path, document_name, document_mime, document_data, notes, created_by, is_active)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`;
     // property_id we keep as null unless user provided an actual property id that resolves to a properties.id
     let resolvedPropertyId = null;
     // try quick resolve if they provided a numeric property_id (backwards-compatible)
@@ -337,6 +320,7 @@ router.post("/", requireAuth, upload.single("document"), async (req, res) => {
       document_data,
       notes || null,
       (req.session?.user?.id || req.user?.id || null),
+      true, // is_active
     ];
 
     const r = await safeQuery(insertSql, params);

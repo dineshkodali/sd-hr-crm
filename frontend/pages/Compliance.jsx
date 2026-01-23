@@ -3,12 +3,12 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import axios from "axios";
 // Ensure you have these icons installed: npm install lucide-react
-import { 
-  Download, Eye, Trash2, Edit, Plus, Search, FileText, 
-  CheckCircle, AlertTriangle, XCircle, ChevronDown, Filter 
+import {
+  Download, Eye, Trash2, Edit, Plus, Search, FileText,
+  CheckCircle, AlertTriangle, XCircle, ChevronDown, Filter
 } from "lucide-react";
 // You can keep your utils imports if they exist, or mock them if needed for UI only
-import { generatePDF } from "../utils/pdfGenerator"; 
+import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 
 // --- Components from your project (Mocked or Inline for completeness) ---
@@ -66,7 +66,7 @@ const DownloadDropdown = ({ onDownloadPDF, onDownloadCSV }) => {
         <span>Download</span>
         <ChevronDown size={16} className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-      
+
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-100 py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
           <button
@@ -91,8 +91,8 @@ const DownloadDropdown = ({ onDownloadPDF, onDownloadCSV }) => {
 const API_BASE = import.meta.env.VITE_API_URL || axios.defaults.baseURL || "";
 const api = axios.create({
   baseURL: API_BASE,
-  withCredentials: true,
-  timeout: 15000,
+  withCredentials: true
+  // timeout removed: requests will not time out from frontend
 });
 
 const PROPERTY_FIELD = "property_id";
@@ -192,7 +192,7 @@ export default function Compliance() {
   const [documentFile, setDocumentFile] = useState(null);
 
   // Dialogs
-  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'warning' });
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: () => { }, type: 'warning' });
   const [alertDialog, setAlertDialog] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
   const [form, setForm] = useState({
@@ -236,9 +236,9 @@ export default function Compliance() {
   const normalizeHotelsResponse = (data) => {
     if (!data) return [];
     let items = Array.isArray(data) ? data : (data.data || data.rows || data.hotels || []);
-    return items.map((h) => ({ 
-        id: h?.id ?? h?.hotel_id ?? h?._id ?? null, 
-        name: h?.name ?? h?.title ?? h?.hotel_name ?? `${h?.id ?? ""}` 
+    return items.map((h) => ({
+      id: h?.id ?? h?.hotel_id ?? h?._id ?? null,
+      name: h?.name ?? h?.title ?? h?.hotel_name ?? `${h?.id ?? ""}`
     })).filter((x) => x.id && x.name);
   };
 
@@ -249,23 +249,85 @@ export default function Compliance() {
       const normalized = normalizeHotelsResponse(res?.data ?? {});
       setHotels(normalized);
       if (normalized.length === 1 && !form.property_id) setForm((f) => ({ ...f, property_id: normalized[0].id }));
-    } catch (err) { if (err?.name !== "CanceledError") setHotels([]); } finally { setHotelsLoading(false); }
+    } catch (err) {
+      if (axios.isCancel?.(err) || err?.name === "CanceledError") return;
+      if (err?.code === 'ECONNABORTED') {
+        setAlertDialog({
+          isOpen: true,
+          title: 'Timeout',
+          message: 'Fetching hotels took too long. Please try again.',
+          type: 'error'
+        });
+      }
+      setHotels([]);
+    } finally { setHotelsLoading(false); }
   };
 
   const fetchStats = async (signal) => {
     try {
+      console.log('Fetching compliance stats...');
       const res = await api.get("/api/compliance/stats/summary", { signal });
-      if (res?.data?.ok && res.data.data) setStats(res.data.data);
-    } catch (err) {}
+      console.log('Stats API response:', res.data);
+      if (res?.data?.ok && res.data.data) {
+        // Ensure counts are numbers to avoid string concatenation
+        const d = res.data.data;
+        setStats({
+          valid_count: Number(d.valid_count || 0),
+          expiring_count: Number(d.expiring_count || 0),
+          expired_count: Number(d.expired_count || 0)
+        });
+      }
+    } catch (err) {
+      if (axios.isCancel?.(err) || err?.name === "CanceledError") return;
+      if (err?.code === 'ECONNABORTED') {
+        setAlertDialog({
+          isOpen: true,
+          title: 'Timeout',
+          message: 'Fetching compliance stats took too long. Please try again.',
+          type: 'error'
+        });
+      }
+      console.error('Stats fetch error:', err);
+      // Reset stats on error
+      setStats({ valid_count: 0, expiring_count: 0, expired_count: 0 });
+    }
   };
 
   const fetchData = async (signal) => {
     try {
       setLoading(true);
+      console.log('Fetching compliance data...');
       const res = await api.get("/api/compliance", { params: { limit: 200, _t: Date.now() }, signal });
+      console.log('Compliance API response:', res.data);
+
       let items = res?.data?.ok ? res.data.data || [] : [];
+      console.log('Processed items:', items);
+
       setCertificates(items.map((c) => ({ ...c, hotel_name: (c?.hotel_name ?? c?.property_name ?? "").toString().trim() })));
-    } catch (err) { if (err?.name !== "CanceledError") setCertificates([]); } finally { setLoading(false); }
+      console.log(`[Compliance] Loaded ${items.length} certificates.`);
+    } catch (err) {
+      if (axios.isCancel?.(err) || err?.name === "CanceledError") return;
+      console.error('Compliance fetch error:', err);
+      setCertificates([]);
+      // Show user-friendly error message
+      if (err?.code === 'ECONNREFUSED' || err?.response?.status >= 500) {
+        setAlertDialog({
+          isOpen: true,
+          title: 'Database Connection Error',
+          message: 'Unable to connect to the database. Please ensure the database service is running.',
+          type: 'error'
+        });
+      } else if (err?.code === 'ECONNABORTED') {
+        setAlertDialog({
+          isOpen: true,
+          title: 'Timeout',
+          message: 'Fetching compliance data took too long. Please try again.',
+          type: 'error'
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -284,7 +346,7 @@ export default function Compliance() {
       const paths = [`/api/staff/for-hotel/${hotelId}`, `/staff/for-hotel/${hotelId}`];
       let data = null;
       for (const p of paths) {
-        try { const r = await api.get(p); if (r?.data) { data = r.data; break; } } catch {}
+        try { const r = await api.get(p); if (r?.data) { data = r.data; break; } } catch { }
       }
       const list = data?.staff ?? data?.users ?? data ?? [];
       setStaffUsers(Array.isArray(list) ? list.map(u => ({ id: u.id, name: u.name || u.email })).filter(u => u.id) : []);
@@ -294,11 +356,11 @@ export default function Compliance() {
   // --- Filtering ---
   const filteredCertificates = useMemo(() => {
     return certificates.filter(c => {
-      const matchSearch = !debouncedSearch || 
+      const matchSearch = !debouncedSearch ||
         (c.certificate_type || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         (c.hotel_name || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         (c.certificate_number || '').toLowerCase().includes(debouncedSearch.toLowerCase());
-      
+
       const computedStatus = c.status || computeStatusFromExpiry(c.expiry_date);
       const matchStatus = statusFilter === 'all' || (computedStatus || '').toLowerCase() === statusFilter.toLowerCase();
       const matchProperty = propertyFilter === 'all' || String(c[PROPERTY_FIELD]) === String(propertyFilter);
@@ -403,33 +465,68 @@ export default function Compliance() {
     setConfirmDialog({
       isOpen: true, title: 'Delete Certificate', message: `Delete ${c.certificate_type} for ${c.hotel_name}?`, type: 'danger',
       onConfirm: async () => {
-        try { await api.delete(`/api/compliance/${c.id}`); setCertificates((p) => p.filter((x) => x.id !== c.id)); fetchStats(); setConfirmDialog(p => ({ ...p, isOpen: false })); } 
+        try { await api.delete(`/api/compliance/${c.id}`); setCertificates((p) => p.filter((x) => x.id !== c.id)); fetchStats(); setConfirmDialog(p => ({ ...p, isOpen: false })); }
         catch (err) { setConfirmDialog(p => ({ ...p, isOpen: false })); setAlertDialog({ isOpen: true, title: 'Error', message: 'Could not delete', type: 'error' }); }
       }
     });
   };
 
-  const handleDownloadPDF = () => { /* Add your PDF logic here */ };
-  const handleDownloadCSV = () => { /* Add your CSV logic here */ };
+  const EXPORT_COLUMNS = useMemo(
+    () => [
+      { header: 'Certificate Type', key: 'certificate_type' },
+      { header: 'Property', key: 'hotel_name' },
+      { header: 'Certificate Number', key: 'certificate_number' },
+      { header: 'Issue Date', key: 'issue_date' },
+      { header: 'Expiry Date', key: 'expiry_date' },
+      { header: 'Status', key: 'status' },
+      { header: 'Issued By', key: 'issued_by' },
+      { header: 'Notes', key: 'notes' },
+    ],
+    []
+  );
+
+  const normalizeComplianceExportRow = (c) => {
+    const computedStatus = c?.status || computeStatusFromExpiry(c?.expiry_date);
+    return {
+      certificate_type: c?.certificate_type || 'N/A',
+      hotel_name: c?.hotel_name || c?.property_name || 'N/A',
+      certificate_number: c?.certificate_number || 'N/A',
+      issue_date: c?.issue_date || 'N/A',
+      expiry_date: c?.expiry_date || 'N/A',
+      status: computedStatus || 'N/A',
+      issued_by: c?.issued_by || 'N/A',
+      notes: c?.notes || '',
+    };
+  };
+
+  const handleDownloadPDF = () => {
+    const data = (filteredCertificates || []).map(normalizeComplianceExportRow);
+    generatePDF(data, EXPORT_COLUMNS, 'Compliance Certificates', 'compliance-certificates');
+  };
+
+  const handleDownloadCSV = () => {
+    const data = (filteredCertificates || []).map(normalizeComplianceExportRow);
+    generateCSV(data, EXPORT_COLUMNS, 'compliance-certificates');
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 font-sans text-slate-700">
       <div className="max-w-[1600px] mx-auto">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Compliance</h1>
             <div className="flex items-center gap-2 text-sm text-slate-500 mt-2 font-medium">
-              <span>Operations Hub</span> 
-              <span className="text-slate-300">›</span> 
+              <span>Operations Hub</span>
+              <span className="text-slate-300">›</span>
               <span className="text-slate-900">Compliance</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <DownloadDropdown onDownloadPDF={handleDownloadPDF} onDownloadCSV={handleDownloadCSV} />
-            <button 
-              onClick={() => openModal('create')} 
+            <button
+              onClick={() => openModal('create')}
               className="bg-teal-400 hover:bg-teal-500 text-white px-5 py-2.5 rounded-md font-medium shadow-sm flex items-center gap-2 transition-colors"
             >
               <Plus size={18} strokeWidth={2.5} /> Add Certificate
@@ -439,23 +536,23 @@ export default function Compliance() {
 
         {/* Stats Cards Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <StatCard 
-            colorBg="bg-emerald-500" 
-            icon={<CheckCircle />} 
-            title="Valid Certificates" 
-            value={stats.valid_count ?? 0} 
+          <StatCard
+            colorBg="bg-emerald-500"
+            icon={<CheckCircle />}
+            title="Valid Certificates"
+            value={stats.valid_count ?? 0}
           />
-          <StatCard 
+          <StatCard
             colorBg="bg-[#E88B5D]" // Matches the distinct orange in screenshot
-            icon={<AlertTriangle />} 
-            title="Expiring Soon" 
-            value={stats.expiring_count ?? 0} 
+            icon={<AlertTriangle />}
+            title="Expiring Soon"
+            value={stats.expiring_count ?? 0}
           />
-          <StatCard 
-            colorBg="bg-pink-500" 
-            icon={<XCircle />} 
-            title="Expired" 
-            value={stats.expired_count ?? 0} 
+          <StatCard
+            colorBg="bg-pink-500"
+            icon={<XCircle />}
+            title="Expired"
+            value={stats.expired_count ?? 0}
           />
         </div>
 
@@ -465,10 +562,10 @@ export default function Compliance() {
           <div className="px-5 py-3 font-bold text-slate-700 text-base hidden md:block whitespace-nowrap">
             Certificates
           </div>
-          
+
           {/* Divider */}
           <div className="h-8 w-px bg-slate-200 hidden md:block mx-1"></div>
-          
+
           {/* Search Bar */}
           <div className="flex-1 w-full relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors" size={18} />
@@ -483,9 +580,9 @@ export default function Compliance() {
           {/* Filters */}
           <div className="flex gap-2 w-full md:w-auto p-1.5 border-t md:border-t-0 border-slate-100">
             <div className="relative">
-              <select 
-                value={statusFilter} 
-                onChange={(e) => setStatusFilter(e.target.value)} 
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-sm font-medium rounded-md pl-4 pr-10 py-2.5 outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-all cursor-pointer min-w-[140px]"
               >
                 <option value="all">All Status</option>
@@ -497,9 +594,9 @@ export default function Compliance() {
             </div>
 
             <div className="relative">
-              <select 
-                value={propertyFilter} 
-                onChange={(e) => setPropertyFilter(e.target.value)} 
+              <select
+                value={propertyFilter}
+                onChange={(e) => setPropertyFilter(e.target.value)}
                 className="appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-sm font-medium rounded-md pl-4 pr-10 py-2.5 outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition-all cursor-pointer min-w-[160px]"
               >
                 <option value="all">All Properties</option>
@@ -520,6 +617,17 @@ export default function Compliance() {
           ) : filteredCertificates.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-slate-200 rounded-xl bg-white/50">
               <p className="text-slate-500 font-medium">No certificates found matching your criteria.</p>
+              {certificates.length > 0 && (
+                <p className="text-slate-400 text-sm mt-2">
+                  {certificates.length} total certificates exist but are filtered out by your current search/filter settings.
+                </p>
+              )}
+              {certificates.length === 0 && (Number(stats.valid_count) > 0 || Number(stats.expiring_count) > 0 || Number(stats.expired_count) > 0) && (
+                <div className="text-slate-400 text-sm mt-2 text-center">
+                  <p>Stats show {Number(stats.valid_count) + Number(stats.expiring_count) + Number(stats.expired_count)} certificates exist,</p>
+                  <p>but none were loaded. Check browser console for API errors.</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -540,7 +648,7 @@ export default function Compliance() {
                           <div className="flex items-center gap-2"><div className="p-1 bg-orange-50 text-orange-500 rounded"><AlertTriangle size={14} /></div> <span>Expires: {formatLongDate(c.expiry_date)}</span></div>
                         </div>
                       </div>
-                      
+
                       {/* Action Buttons */}
                       <div className="flex items-center gap-2 mt-4 md:mt-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
                         {hasDocument && (
@@ -581,7 +689,7 @@ export default function Compliance() {
               </div>
 
               <form onSubmit={submitCertificate} className="p-8 space-y-6 overflow-y-auto">
-                {formError && <div className="p-4 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2 border border-red-100"><AlertTriangle size={16}/> {formError}</div>}
+                {formError && <div className="p-4 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2 border border-red-100"><AlertTriangle size={16} /> {formError}</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Form fields here (same logic as provided code but consistent styling) */}
                   <div className="md:col-span-2">
@@ -631,7 +739,7 @@ export default function Compliance() {
                       {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
                     </select>
                   </div>
-                   <div>
+                  <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status</label>
                     <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} disabled={viewMode} className="w-full rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5">
                       <option value="valid">Valid</option>
@@ -649,16 +757,16 @@ export default function Compliance() {
                   </div>
                   {/* ... other fields ... */}
                 </div>
-                
+
                 {/* File Upload Section */}
-                 <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Document</label>
-                    <label className={`border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all ${viewMode ? 'bg-slate-50' : 'hover:border-teal-400 hover:bg-teal-50/30 cursor-pointer'}`}>
-                      <input type="file" className="hidden" disabled={viewMode} onChange={(e) => setDocumentFile(e.target.files?.[0])} accept="application/pdf,image/*" />
-                      <div className="bg-teal-100 text-teal-600 p-3 rounded-full mb-3"><Download size={24} /></div>
-                      <p className="text-sm font-medium text-slate-700">{documentFile ? documentFile.name : "Click to upload certificate (PDF/Image)"}</p>
-                      <p className="text-xs text-slate-400 mt-1">Max file size 10MB</p>
-                    </label>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Document</label>
+                  <label className={`border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all ${viewMode ? 'bg-slate-50' : 'hover:border-teal-400 hover:bg-teal-50/30 cursor-pointer'}`}>
+                    <input type="file" className="hidden" disabled={viewMode} onChange={(e) => setDocumentFile(e.target.files?.[0])} accept="application/pdf,image/*" />
+                    <div className="bg-teal-100 text-teal-600 p-3 rounded-full mb-3"><Download size={24} /></div>
+                    <p className="text-sm font-medium text-slate-700">{documentFile ? documentFile.name : "Click to upload certificate (PDF/Image)"}</p>
+                    <p className="text-xs text-slate-400 mt-1">Max file size 10MB</p>
+                  </label>
                 </div>
 
                 <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">

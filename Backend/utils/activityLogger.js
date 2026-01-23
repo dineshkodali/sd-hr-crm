@@ -146,6 +146,8 @@ export async function getActivityStats(userId, days = 30) {
       return [];
     }
 
+    const safeDays = Number.isFinite(Number(days)) ? Math.max(0, Math.floor(Number(days))) : 30;
+
     const result = await pool.query(
       `SELECT 
          action_type,
@@ -153,10 +155,10 @@ export async function getActivityStats(userId, days = 30) {
          MAX(created_at) as last_activity
        FROM activity_logs
        WHERE user_id = $1 
-         AND created_at >= NOW() - INTERVAL '${days} days'
+         AND created_at >= NOW() - make_interval(days => $2)
        GROUP BY action_type
        ORDER BY count DESC`,
-      [userId]
+      [userId, safeDays]
     );
 
     return result.rows;

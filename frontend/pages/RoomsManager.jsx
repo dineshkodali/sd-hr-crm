@@ -582,6 +582,18 @@ export default function RoomsManager({ user }) {
                           <span className="font-bold text-slate-700">{r.bathroom_type || '—'}</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-500">Has Bathroom</span>
+                          <span className="font-bold text-slate-700">
+                            {(() => {
+                              const v = r.has_bathroom;
+                              const s = String(v).toLowerCase();
+                              if (v === true || s === 'true' || s === 't' || s === '1' || s === 'yes') return 'Yes';
+                              if (v === false || s === 'false' || s === 'f' || s === '0' || s === 'no') return 'No';
+                              return '—';
+                            })()}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
                           <span className="text-slate-500">Kitchen</span>
                           <span className="font-bold text-slate-700">
                             {(() => {

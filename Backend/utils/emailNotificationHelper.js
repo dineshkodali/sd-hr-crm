@@ -50,6 +50,7 @@ export async function sendEmailFromTemplate({
   variables = {},
   metadata = {}
 }) {
+  let logId;
   try {
     // Get template
     const templateResult = await pool.query(
@@ -81,7 +82,7 @@ export async function sendEmailFromTemplate({
       [templateId, template.module, recipientEmail, recipientName, subject, body, 'pending', JSON.stringify(metadata)]
     );
 
-    const logId = logResult.rows[0].id;
+    logId = logResult.rows[0].id;
 
     // Send email
     const emailConfig = getEmailConfig();
@@ -117,10 +118,12 @@ export async function sendEmailFromTemplate({
     
     // Try to update log if we have logId
     try {
-      await pool.query(
-        'UPDATE email_notifications_log SET status = $1, error_message = $2 WHERE id = $3',
-        ['failed', error.message, logId]
-      );
+      if (logId) {
+        await pool.query(
+          'UPDATE email_notifications_log SET status = $1, error_message = $2 WHERE id = $3',
+          ['failed', error.message, logId]
+        );
+      }
     } catch (logError) {
       console.error('Failed to update log:', logError);
     }
