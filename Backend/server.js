@@ -9,7 +9,11 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import pool from "./config/db.js";
 
+import hseRoutes from "./routes/hse/index.js";
+import safeguardingRoutes from "./routes/safeguarding/index.js";
+import accessRoutes from "./routes/access/index.js";
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
 import managerRoutes from "./routes/manager.js";
@@ -31,15 +35,7 @@ import aireTasksRoutes from "./routes/aire-tasks.js";
 import litigationRoutes from "./routes/litigation.js";
 import payrollRoutes from "./routes/payroll.js";
 
-import safeguardingRoutes from "./routes/safeguarding.js";
 import dashboardPublicRoutes from "./routes/dashboard_public.js";
-import riskAssessmentsRoutes from "./routes/risk-assessments.js";
-import vulnerableUsersRoutes from "./routes/vulnerable-users.js";
-import multiAgencyRoutes from "./routes/multi-agency.js";
-import hseIncidentsRoutes from "./routes/hse-incidents.js";
-import hseRiskManagementRoutes from "./routes/hse-risk-management.js";
-import hseTrainingRoutes from "./routes/hse-training.js";
-import hseAuditsRoutes from "./routes/hse-audits.js";
 import complaintsRoutes from "./routes/complaints.js";
 import vcsOrganisationsRoutes from "./routes/vcs-organisations.js";
 import caseManagementRoutes from "./routes/case-management.js";
@@ -49,8 +45,6 @@ import performanceManagementRoutes from "./routes/performance-management.js";
 import employeeTrainingRoutes from "./routes/employeeTrainingRoutes.js";
 import formsRoutes from "./routes/forms.js";
 import formsBuilderRoutes from "./routes/forms-builder.js";
-import accessRoutes from "./routes/access.js";
-import groupsRolesRoutes from "./routes/groups-roles.js";
 import userManagementRoutes from "./routes/admin/user-management.js";
 import emailNotificationRoutes from "./routes/email-notifications.js";
 import emailConfigRoutes from "./routes/email-config.js";
@@ -163,9 +157,6 @@ mountRoute("/api/maintenance", maintenanceRoutes, "maintenanceRoutes");
 // Inspections
 mountRoute("/api/inspections", inspectionsRoutes, "inspectionsRoutes");
 
-// Inspections
-mountRoute("/api/inspections", inspectionsRoutes, "inspectionsRoutes");
-
 // Incidents
 mountRoute("/api/incidents", incidentsRoutes, "incidentsRoutes");
 
@@ -209,24 +200,18 @@ mountRoute("/api/litigation", litigationRoutes, "litigationRoutes");
 mountRoute("/api/payroll", payrollRoutes, "payrollRoutes");
 
 
-// Safeguarding
+// Safeguarding group
 mountRoute("/api/safeguarding", safeguardingRoutes, "safeguardingRoutes");
+
+// HSE group
+mountRoute("/api/hse", hseRoutes, "hseRoutes");
+
+// Access group
+mountRoute("/api/access", accessRoutes, "accessRoutes");
 
 // Public dashboard summaries for landing/login (lightweight)
 mountRoute("/api/dashboard", dashboardPublicRoutes, "dashboardPublicRoutes");
 
-// Risk Assessments
-mountRoute("/api/safeguarding", riskAssessmentsRoutes, "riskAssessmentsRoutes");
-
-// Vulnerable Users
-mountRoute("/api/safeguarding", vulnerableUsersRoutes, "vulnerableUsersRoutes");
-mountRoute("/api/hse", hseIncidentsRoutes, "hseIncidentsRoutes");
-mountRoute("/api/hse", hseRiskManagementRoutes, "hseRiskManagementRoutes");
-mountRoute("/api/hse", hseTrainingRoutes, "hseTrainingRoutes");
-mountRoute("/api/hse", hseAuditsRoutes, "hseAuditsRoutes");
-
-// Multi-Agency
-mountRoute("/api/safeguarding", multiAgencyRoutes, "multiAgencyRoutes");
 // Alias for older frontend endpoints that reference /api/meal-schedules
 mountRoute("/api/meal-schedules", mealsRoutes, "mealsRoutesAlias");
 
@@ -235,12 +220,6 @@ mountRoute("/api/forms", formsRoutes, "formsRoutes");
 
 // Forms Builder (Dynamic Form Management)
 mountRoute("/api/forms-builder", formsBuilderRoutes, "formsBuilderRoutes");
-
-// Access Management
-mountRoute("/api/access", accessRoutes, "accessRoutes");
-
-// Groups and Roles Management
-mountRoute("/api/access", groupsRolesRoutes, "groupsRolesRoutes");
 
 // User Management (Admin Settings)
 mountRoute("/api/admin", userManagementRoutes, "userManagementRoutes");
@@ -281,7 +260,33 @@ if (process.env.NODE_ENV === "production") {
 /* ----------------------------
    Health check & 404
    ---------------------------- */
-app.get("/api/health", (req, res) => res.json({ ok: true, ts: Date.now() }));
+
+// root-level health alias
+app.get("/health", (req, res) => res.redirect("/api/health"));
+
+app.get("/api/health", async (req, res) => {
+  const health = {
+    status: "UP",
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+    node_version: process.version,
+    memory_usage: process.memoryUsage(),
+    database: "DOWN"
+  };
+
+  try {
+    // Simple query to verify DB connection
+    const result = await pool.query("SELECT 1 as connected");
+    if (result.rows[0].connected === 1) {
+      health.database = "UP";
+    }
+  } catch (err) {
+    console.error("Health check DB error:", err.message);
+    health.status = "DEGRADED"; // Still up but DB is down
+  }
+
+  res.status(health.status === "UP" ? 200 : 503).json(health);
+});
 
 // explicit API 404 (logged)
 app.use("/api", (req, res) => {
