@@ -38,6 +38,8 @@ const UserManagement = () => {
     role: 'staff',
     phone: '',
     branch: '',
+    address: '',
+    city: '',
     status: 'active'
   });
 
@@ -47,10 +49,39 @@ const UserManagement = () => {
   const [pwFieldErrors, setPwFieldErrors] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Branch management state
+  const [branches, setBranches] = useState([]);
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const [branchInputFocused, setBranchInputFocused] = useState(false);
+  const [originalBranchValue, setOriginalBranchValue] = useState('');
+
   useEffect(() => {
     fetchUsers();
     fetchStats();
+    fetchBranches();
   }, [currentPage, search, roleFilter, statusFilter]);
+
+  const fetchBranches = async () => {
+    try {
+      // Get unique branches from existing users
+      const res = await axios.get('/api/admin/users', {
+        params: { limit: 1000 }, // Get all users to extract branches
+        withCredentials: true
+      });
+      
+      const allUsers = res.data.users || [];
+      const uniqueBranches = [...new Set(
+        allUsers
+          .map(user => user.branch)
+          .filter(branch => branch && branch.trim() !== '')
+      )].sort();
+      
+      setBranches(uniqueBranches);
+    } catch (err) {
+      console.error('Failed to fetch branches:', err);
+      setBranches([]);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -98,11 +129,16 @@ const UserManagement = () => {
       role: 'staff',
       phone: '',
       branch: '',
+      address: '',
+      city: '',
       status: 'active'
     });
     setPwStrengthLabelState('');
     setPwPercent(0);
     setPwFieldErrors([]);
+    setOriginalBranchValue(''); // Reset original branch value for create mode
+    setShowBranchDropdown(false);
+    setBranchInputFocused(false);
     setShowModal(true);
   };
 
@@ -115,8 +151,13 @@ const UserManagement = () => {
       role: user.role || 'staff',
       phone: user.phone || '',
       branch: user.branch || '',
+      address: user.address || user.addr || '',
+      city: user.city || '',
       status: user.status || 'active'
     });
+    setOriginalBranchValue(user.branch || ''); // Set original branch value for edit mode
+    setShowBranchDropdown(false);
+    setBranchInputFocused(false);
     setShowModal(true);
   };
 
@@ -124,6 +165,9 @@ const UserManagement = () => {
     setModalType('password');
     setSelectedUser(user);
     setFormData({ password: '', confirmPassword: '' });
+    setOriginalBranchValue(''); // Reset for password reset mode
+    setShowBranchDropdown(false);
+    setBranchInputFocused(false);
     setShowModal(true);
   };
 
@@ -596,25 +640,56 @@ const UserManagement = () => {
 
                             {formData.password && (
                               <div className="mt-3">
-                                <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                {/* Password Strength Bar */}
+                                <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
                                   <div
-                                    className={`h-full transition-all duration-300 ${pwStrengthLabelState === 'Weak' ? 'bg-red-500' :
-                                        pwStrengthLabelState === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
-                                      }`}
+                                    className={`h-full transition-all duration-300 ${
+                                      pwStrengthLabelState === 'Weak' ? 'bg-red-500' :
+                                      pwStrengthLabelState === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                    }`}
                                     style={{ width: `${pwPercent}%` }}
                                   />
                                 </div>
-                                <div className="flex justify-between items-center mt-1">
-                                  <span className="text-xs font-medium text-gray-500">{pwStrengthLabelState} Strength</span>
+                                <div className="flex justify-between items-center mt-2">
+                                  <span className="text-sm font-medium text-gray-600">{pwStrengthLabelState} Strength</span>
                                 </div>
-                                {pwFieldErrors.length > 0 && (
-                                  <ul className="mt-2 space-y-1">
-                                    {pwFieldErrors.map((err, i) => <li key={i} className="text-[10px] text-red-500 flex items-center gap-1">
-                                      <span className="w-1 h-1 bg-red-500 rounded-full"></span>
-                                      {err}
-                                    </li>)}
-                                  </ul>
-                                )}
+
+                                {/* Password Requirements */}
+                                <div className="mt-4 space-y-2">
+                                  {(() => {
+                                    const requirements = [
+                                      { 
+                                        text: 'Include at least one uppercase letter', 
+                                        met: /[A-Z]/.test(formData.password) 
+                                      },
+                                      { 
+                                        text: 'Include at least one lowercase letter', 
+                                        met: /[a-z]/.test(formData.password) 
+                                      },
+                                      { 
+                                        text: 'Include at least one number', 
+                                        met: /[0-9]/.test(formData.password) 
+                                      },
+                                      { 
+                                        text: 'Include at least one special character', 
+                                        met: /[^A-Za-z0-9]/.test(formData.password) 
+                                      },
+                                      { 
+                                        text: 'Password must be 8-14 characters long', 
+                                        met: formData.password.length >= 8 && formData.password.length <= 14 
+                                      }
+                                    ];
+
+                                    return requirements.map((req, index) => (
+                                      <div key={index} className="flex items-center gap-2">
+                                        <div className={`w-1.5 h-1.5 rounded-full ${req.met ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                        <span className={`text-xs ${req.met ? 'text-green-600' : 'text-red-500'}`}>
+                                          {req.text}
+                                        </span>
+                                      </div>
+                                    ));
+                                  })()}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -679,13 +754,117 @@ const UserManagement = () => {
 
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">Branch / Hotel</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="branch"
+                            value={formData.branch}
+                            onChange={handleFormChange}
+                            onFocus={() => {
+                              setBranchInputFocused(true);
+                              setShowBranchDropdown(true);
+                            }}
+                            onBlur={() => {
+                              // Delay hiding dropdown to allow clicking on options
+                              setTimeout(() => {
+                                setBranchInputFocused(false);
+                                setShowBranchDropdown(false);
+                              }, 200);
+                            }}
+                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none pr-10"
+                            placeholder="Select existing branch or type new one"
+                          />
+                          <ChevronDown 
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" 
+                          />
+                          
+                          {/* Branch Dropdown */}
+                          {showBranchDropdown && branches.length > 0 && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {branches
+                                .filter(branch => {
+                                  // For edit mode, if user hasn't modified the input from original value, show all branches
+                                  if (modalType === 'edit' && formData.branch === originalBranchValue) {
+                                    return true;
+                                  }
+                                  // Otherwise filter based on what user is typing
+                                  return branch.toLowerCase().includes(formData.branch.toLowerCase());
+                                })
+                                .map((branch, index) => (
+                                  <button
+                                    key={index}
+                                    type="button"
+                                    onClick={() => {
+                                      setFormData({ ...formData, branch });
+                                      setShowBranchDropdown(false);
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm border-b border-gray-100 last:border-b-0 flex items-center gap-2"
+                                  >
+                                    <Building className="w-4 h-4 text-gray-400" />
+                                    <span>{branch}</span>
+                                  </button>
+                                ))
+                              }
+                              
+                              {/* Show "Create new branch" option when typing */}
+                              {formData.branch && 
+                               (modalType !== 'edit' || formData.branch !== originalBranchValue) &&
+                               !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
+                                <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
+                                  <div className="flex items-center gap-2">
+                                    <UserPlus className="w-4 h-4 text-teal-500" />
+                                    <span>Create new branch: <strong className="text-teal-600">"{formData.branch}"</strong></span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* No matches found */}
+                              {formData.branch && 
+                               branches.filter(branch => 
+                                 branch.toLowerCase().includes(formData.branch.toLowerCase())
+                               ).length === 0 && 
+                               branches.some(b => b.toLowerCase() !== formData.branch.toLowerCase()) && (
+                                <div className="px-4 py-2.5 text-sm text-gray-400 text-center">
+                                  No existing branches match your search
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Helper text */}
+                        <div className="mt-1 text-xs text-gray-500">
+                          {branches.length > 0 ? (
+                            <>Select from {branches.length} existing branches or type a new one</>
+                          ) : (
+                            <>Type a branch name to create a new one</>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Address */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Address</label>
                         <input
                           type="text"
-                          name="branch"
-                          value={formData.branch}
+                          name="address"
+                          value={formData.address}
                           onChange={handleFormChange}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
-                          placeholder="Main Branch"
+                          placeholder="Full address"
+                        />
+                      </div>
+
+                      {/* City */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">City</label>
+                        <input
+                          type="text"
+                          name="city"
+                          value={formData.city}
+                          onChange={handleFormChange}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
+                          placeholder="City"
                         />
                       </div>
                     </div>
@@ -693,8 +872,11 @@ const UserManagement = () => {
                 ) : (
                   <div className="space-y-4">
                     <p className="text-sm text-gray-500">Updating password for <span className="font-semibold text-gray-700">{selectedUser?.name}</span></p>
+                    
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">New Password *</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        Password <span className="text-gray-400 text-xs font-normal ml-2">(Auto-generated if left blank)</span>
+                      </label>
                       <div className="relative">
                         <input
                           type={showPassword ? 'text' : 'password'}
@@ -703,7 +885,7 @@ const UserManagement = () => {
                           onChange={handleFormChange}
                           required
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none pr-10"
-                          placeholder="Min. 8 characters"
+                          placeholder="••••••••"
                         />
                         <button
                           type="button"
@@ -713,24 +895,65 @@ const UserManagement = () => {
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
+
                       {formData.password && (
                         <div className="mt-3">
-                          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                          {/* Password Strength Bar */}
+                          <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
                             <div
-                              className={`h-full transition-all duration-300 ${pwStrengthLabelState === 'Weak' ? 'bg-red-500' :
-                                  pwStrengthLabelState === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
-                                }`}
+                              className={`h-full transition-all duration-300 ${
+                                pwStrengthLabelState === 'Weak' ? 'bg-red-500' :
+                                pwStrengthLabelState === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                              }`}
                               style={{ width: `${pwPercent}%` }}
                             />
                           </div>
-                          <div className="flex justify-between items-center mt-1">
-                            <span className="text-xs font-medium text-gray-500">{pwStrengthLabelState} Strength</span>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="text-sm font-medium text-gray-600">{pwStrengthLabelState} Strength</span>
+                          </div>
+
+                          {/* Password Requirements */}
+                          <div className="mt-4 space-y-2">
+                            {(() => {
+                              const requirements = [
+                                { 
+                                  text: 'Include at least one uppercase letter', 
+                                  met: /[A-Z]/.test(formData.password) 
+                                },
+                                { 
+                                  text: 'Include at least one lowercase letter', 
+                                  met: /[a-z]/.test(formData.password) 
+                                },
+                                { 
+                                  text: 'Include at least one number', 
+                                  met: /[0-9]/.test(formData.password) 
+                                },
+                                { 
+                                  text: 'Include at least one special character', 
+                                  met: /[^A-Za-z0-9]/.test(formData.password) 
+                                },
+                                { 
+                                  text: 'Password must be 8-14 characters long', 
+                                  met: formData.password.length >= 8 && formData.password.length <= 14 
+                                }
+                              ];
+
+                              return requirements.map((req, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <div className={`w-1.5 h-1.5 rounded-full ${req.met ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                  <span className={`text-xs ${req.met ? 'text-green-600' : 'text-red-500'}`}>
+                                    {req.text}
+                                  </span>
+                                </div>
+                              ));
+                            })()}
                           </div>
                         </div>
                       )}
                     </div>
+
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Confirm New Password *</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Confirm Password *</label>
                       <input
                         type={showPassword ? 'text' : 'password'}
                         name="confirmPassword"
@@ -738,7 +961,7 @@ const UserManagement = () => {
                         onChange={handleFormChange}
                         required
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none"
-                        placeholder="Repeat new password"
+                        placeholder="Repeat password"
                       />
                     </div>
                   </div>

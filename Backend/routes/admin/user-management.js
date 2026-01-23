@@ -268,7 +268,7 @@ router.delete('/users/:id', protect, checkPermission('manage_users'), async (req
       res.json({ message: 'User permanently deleted' });
     } else {
       // Soft delete
-      await pool.query('UPDATE users SET is_active = false WHERE id = $1', [id]);
+      await pool.query('UPDATE users SET status = $1 WHERE id = $2', ['inactive', id]);
       res.json({ message: 'User deactivated' });
     }
   } catch (err) {
@@ -298,7 +298,7 @@ router.post('/users/:id/password', protect, checkPermission('manage_users'), asy
 
     // Update password
     await pool.query(
-      'UPDATE users SET password_hash = $1 WHERE id = $2',
+      'UPDATE users SET password = $1 WHERE id = $2',
       [hashedPassword, id]
     );
 

@@ -131,6 +131,78 @@ export default function Complaints({ user }) {
   });
   const [properties, setProperties] = useState([]);
 
+  // Custom Category Options Adder (similar to Inspections.jsx)
+  const CATEGORY_STORAGE_KEY = 'complaints.customCategories';
+  const BUILTIN_CATEGORIES = [
+    'Maintenance',
+    'Security', 
+    'Cleaning',
+    'Noise',
+    'Other',
+  ];
+
+  const [customCategories, setCustomCategories] = useState([]);
+  const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
+  const [customCategoryValue, setCustomCategoryValue] = useState('');
+
+  useEffect(() => {
+    if (!showForm) {
+      setShowCustomCategoryInput(false);
+      setCustomCategoryValue('');
+    }
+  }, [showForm]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CATEGORY_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setCustomCategories(parsed.filter(Boolean).map(String));
+      }
+    } catch {
+      setCustomCategories([]);
+    }
+  }, []);
+
+  const persistCustomCategories = (list) => {
+    try {
+      localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      setShowCustomCategoryInput(true);
+      setCustomCategoryValue('');
+      setFormData((p) => ({ ...p, category: '' }));
+      return;
+    }
+    setShowCustomCategoryInput(false);
+    setCustomCategoryValue('');
+    setFormData((p) => ({ ...p, category: value }));
+  };
+
+  const saveCustomCategory = () => {
+    const next = String(customCategoryValue || '').trim();
+    if (!next) return;
+
+    const builtinLower = new Set(BUILTIN_CATEGORIES.map((t) => String(t).toLowerCase()));
+    const merged = [...customCategories];
+    if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
+      merged.push(next);
+      setCustomCategories(merged);
+      persistCustomCategories(merged);
+    }
+
+    setFormData((p) => ({ ...p, category: next }));
+    setShowCustomCategoryInput(false);
+    setCustomCategoryValue('');
+  };
+
   // Custom columns from Forms Builder
   const [customColumns, setCustomColumns] = useState([]);
   const [availableColumns, setAvailableColumns] = useState([]);
@@ -1502,16 +1574,47 @@ export default function Complaints({ user }) {
                   <select 
                     required 
                     value={formData.category} 
-                    onChange={e => setFormData({...formData, category: e.target.value})} 
+                    onChange={handleCategoryChange}
                     className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                   >
                     <option value="">Select Category</option>
-                    <option value="Maintenance">Maintenance</option>
-                    <option value="Security">Security</option>
-                    <option value="Cleaning">Cleaning</option>
-                    <option value="Noise">Noise</option>
-                    <option value="Other">Other</option>
+                    {[...BUILTIN_CATEGORIES, ...customCategories].map((category) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                    {!!formData.category &&
+                      ![...BUILTIN_CATEGORIES, ...customCategories].some((c) => String(c) === String(formData.category)) && (
+                        <option value={formData.category}>{formData.category}</option>
+                      )}
+                    <option value="__add_new__">+ Add new...</option>
                   </select>
+                  {showCustomCategoryInput && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={customCategoryValue}
+                        onChange={(e) => setCustomCategoryValue(e.target.value)}
+                        placeholder="Enter new category"
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={saveCustomCategory}
+                        className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomCategoryInput(false);
+                          setCustomCategoryValue('');
+                        }}
+                        className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Row 3: Priority & Status */}

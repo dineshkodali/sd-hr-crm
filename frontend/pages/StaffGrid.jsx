@@ -5,7 +5,7 @@ import axios from "axios";
 import { useOutletContext } from "react-router-dom";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import { validatePassword, passwordStrengthLabel, passwordStrengthPercent } from '../src/utils/passwordUtils';
-import { ArrowLeft, Home, AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Home, AlertCircle, CheckCircle, XCircle, Building, ChevronDown, UserPlus } from "lucide-react";
 
 axios.defaults.withCredentials = true;
 
@@ -352,6 +352,8 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
     role: 'staff',
     phone: '',
     branch: '',
+    address: '',
+    city: '',
     status: 'active'
   });
   const [submitting, setSubmitting] = useState(false);
@@ -360,6 +362,41 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
   const [pwStrengthLabelState, setPwStrengthLabelState] = useState('');
   const [pwPercent, setPwPercent] = useState(0);
   const [pwFieldErrors, setPwFieldErrors] = useState([]);
+
+  // Branch management state
+  const [branches, setBranches] = useState([]);
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const [branchInputFocused, setBranchInputFocused] = useState(false);
+
+  // Fetch branches when modal opens
+  const fetchBranches = async () => {
+    try {
+      // Get unique branches from existing users
+      const res = await axios.get('/api/admin/users', {
+        params: { limit: 1000 }, // Get all users to extract branches
+        withCredentials: true
+      });
+      
+      const allUsers = res.data.users || [];
+      const uniqueBranches = [...new Set(
+        allUsers
+          .map(user => user.branch)
+          .filter(branch => branch && branch.trim() !== '')
+      )].sort();
+      
+      setBranches(uniqueBranches);
+    } catch (err) {
+      console.error('Failed to fetch branches:', err);
+      setBranches([]);
+    }
+  };
+
+  // Fetch branches when modal opens
+  React.useEffect(() => {
+    if (open) {
+      fetchBranches();
+    }
+  }, [open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -425,6 +462,8 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
         role: formData.role,
         phone: formData.phone?.trim() || null,
         branch: formData.branch?.trim() || null,
+        address: formData.address?.trim() || null,
+        city: formData.city?.trim() || null,
         status: formData.status || 'active'
       };
 
@@ -446,8 +485,12 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
           role: 'staff',
           phone: '',
           branch: '',
+          address: '',
+          city: '',
           status: 'active'
         });
+        setShowBranchDropdown(false);
+        setBranchInputFocused(false);
       }
     } catch (err) {
       console.error('Error creating employee:', err);
@@ -574,14 +617,66 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                 <label className="block text-sm font-medium text-slate-600 mb-1">
                   Branch
                 </label>
-                <input
-                  name="branch"
-                  value={formData.branch}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
-                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
-                  placeholder="Branch name"
-                />
+                <div className="relative">
+                  <input
+                    name="branch"
+                    value={formData.branch}
+                    onChange={handleChange}
+                    onFocus={() => {
+                      setBranchInputFocused(true);
+                      setShowBranchDropdown(true);
+                    }}
+                    onBlur={() => {
+                      // Delay hiding dropdown to allow clicking on options
+                      setTimeout(() => {
+                        setBranchInputFocused(false);
+                        setShowBranchDropdown(false);
+                      }, 200);
+                    }}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm pr-10
+                               focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                    placeholder="Select existing branch or type new one"
+                  />
+                  <ChevronDown 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" 
+                  />
+                  
+                  {/* Branch Dropdown */}
+                  {showBranchDropdown && branches.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {branches
+                        .filter(branch => 
+                          branch.toLowerCase().includes(formData.branch.toLowerCase())
+                        )
+                        .map((branch, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, branch });
+                              setShowBranchDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm border-b border-gray-100 last:border-b-0 flex items-center gap-2"
+                          >
+                            <Building className="w-4 h-4 text-gray-400" />
+                            <span>{branch}</span>
+                          </button>
+                        ))
+                      }
+                      
+                      {/* Show "Create new branch" option when typing */}
+                      {formData.branch && 
+                       !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
+                        <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
+                          <div className="flex items-center gap-2">
+                            <UserPlus className="w-4 h-4 text-teal-500" />
+                            <span>Create new branch: <strong className="text-teal-600">"{formData.branch}"</strong></span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Status */}
@@ -601,6 +696,36 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   <option value="pending">Pending</option>
                   <option value="inactive">Inactive</option>
                 </select>
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Address
+                </label>
+                <input
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="Full address"
+                />
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  City
+                </label>
+                <input
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="City"
+                />
               </div>
 
               {/* Password with strength and confirm */}
@@ -707,11 +832,49 @@ function EditEmployeeModal({ open, onClose, employee, onSuccess }) {
     role: employee?.role || 'staff',
     branch: employee?.branch || employee?.department || '',
     status: employee?.status || 'active',
+    address: employee?.address || employee?.addr || '',
     city: employee?.city || '',
     country: employee?.country || ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Branch management state
+  const [branches, setBranches] = useState([]);
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const [branchInputFocused, setBranchInputFocused] = useState(false);
+  const [originalBranchValue, setOriginalBranchValue] = useState('');
+
+  // Fetch branches when modal opens
+  const fetchBranches = async () => {
+    try {
+      // Get unique branches from existing users
+      const res = await axios.get('/api/admin/users', {
+        params: { limit: 1000 }, // Get all users to extract branches
+        withCredentials: true
+      });
+      
+      const allUsers = res.data.users || [];
+      const uniqueBranches = [...new Set(
+        allUsers
+          .map(user => user.branch)
+          .filter(branch => branch && branch.trim() !== '')
+      )].sort();
+      
+      setBranches(uniqueBranches);
+    } catch (err) {
+      console.error('Failed to fetch branches:', err);
+      setBranches([]);
+    }
+  };
+
+  // Fetch branches when modal opens and set original value
+  React.useEffect(() => {
+    if (open) {
+      fetchBranches();
+      setOriginalBranchValue(employee?.branch || employee?.department || '');
+    }
+  }, [open, employee]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -746,6 +909,7 @@ function EditEmployeeModal({ open, onClose, employee, onSuccess }) {
         branch: formData.branch?.trim() || null,
         department: formData.branch?.trim() || null,
         status: formData.status || 'active',
+        address: formData.address?.trim() || null,
         city: formData.city?.trim() || null,
         country: formData.country?.trim() || null
       };
@@ -885,14 +1049,72 @@ function EditEmployeeModal({ open, onClose, employee, onSuccess }) {
                 <label className="block text-sm font-medium text-slate-600 mb-1">
                   Branch/Department
                 </label>
-                <input
-                  name="branch"
-                  value={formData.branch}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
-                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
-                  placeholder="Branch or department name"
-                />
+                <div className="relative">
+                  <input
+                    name="branch"
+                    value={formData.branch}
+                    onChange={handleChange}
+                    onFocus={() => {
+                      setBranchInputFocused(true);
+                      setShowBranchDropdown(true);
+                    }}
+                    onBlur={() => {
+                      // Delay hiding dropdown to allow clicking on options
+                      setTimeout(() => {
+                        setBranchInputFocused(false);
+                        setShowBranchDropdown(false);
+                      }, 200);
+                    }}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm pr-10
+                               focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                    placeholder="Select existing branch or type new one"
+                  />
+                  <ChevronDown 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" 
+                  />
+                  
+                  {/* Branch Dropdown */}
+                  {showBranchDropdown && branches.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {branches
+                        .filter(branch => {
+                          // If user hasn't modified the input from original value, show all branches
+                          if (formData.branch === originalBranchValue) {
+                            return true;
+                          }
+                          // Otherwise filter based on what user is typing
+                          return branch.toLowerCase().includes(formData.branch.toLowerCase());
+                        })
+                        .map((branch, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, branch });
+                              setShowBranchDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm border-b border-gray-100 last:border-b-0 flex items-center gap-2"
+                          >
+                            <Building className="w-4 h-4 text-gray-400" />
+                            <span>{branch}</span>
+                          </button>
+                        ))
+                      }
+                      
+                      {/* Show "Create new branch" option when typing */}
+                      {formData.branch && 
+                       formData.branch !== originalBranchValue &&
+                       !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
+                        <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
+                          <div className="flex items-center gap-2">
+                            <UserPlus className="w-4 h-4 text-teal-500" />
+                            <span>Create new branch: <strong className="text-teal-600">"{formData.branch}"</strong></span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Status */}
@@ -912,6 +1134,21 @@ function EditEmployeeModal({ open, onClose, employee, onSuccess }) {
                   <option value="pending">Pending</option>
                   <option value="inactive">Inactive</option>
                 </select>
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Address
+                </label>
+                <input
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="Full address"
+                />
               </div>
 
               {/* City */}
