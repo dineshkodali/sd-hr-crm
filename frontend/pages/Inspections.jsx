@@ -140,6 +140,9 @@ export default function Inspections({ user }) {
   const [staffLoading, setStaffLoading] = useState(false);
   const [hotelsLoading, setHotelsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const staffCacheRef = useRef({});
+  const staffAbortRef = useRef(null);
   
   // Modals State
   const [showModal, setShowModal] = useState(false);
@@ -527,31 +530,40 @@ export default function Inspections({ user }) {
       setStaffUsers([]);
       return;
     }
+
+    const cacheKey = String(hotelId);
+    const cached = staffCacheRef.current?.[cacheKey];
+    if (Array.isArray(cached)) {
+      setStaffUsers(cached);
+      return;
+    }
+
+    if (staffAbortRef.current) {
+      try { staffAbortRef.current.abort(); } catch { }
+    }
+    const controller = new AbortController();
+    staffAbortRef.current = controller;
+
     try {
       setStaffLoading(true);
-
-      const tryPath = async (path) => {
-        const r = await api.get(path);
-        return r?.data;
-      };
 
       const paths = [
         `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
         `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
       ];
 
-      let data = null;
-      let lastErr = null;
-      for (const p of paths) {
-        try {
-          data = await tryPath(p);
-          if (data) break;
-        } catch (e) {
-          lastErr = e;
-        }
-      }
+      const requests = paths.map((p) =>
+        api.get(p, { signal: controller.signal }).then((r) => r?.data)
+      );
 
-      if (!data) throw lastErr || new Error('Unable to load staff');
+      const settled = await Promise.allSettled(requests);
+      const firstOk = settled.find((s) => s.status === 'fulfilled' && s.value);
+      const data = firstOk && firstOk.status === 'fulfilled' ? firstOk.value : null;
+
+      if (!data) {
+        const firstErr = settled.find((s) => s.status === 'rejected');
+        throw (firstErr && firstErr.status === 'rejected' ? firstErr.reason : null) || new Error('Unable to load staff');
+      }
 
       const list = data?.staff ?? data?.users ?? data ?? [];
       const normalized = (Array.isArray(list) ? list : [])
@@ -562,11 +574,16 @@ export default function Inspections({ user }) {
         }))
         .filter((u) => u.id && u.name);
       setStaffUsers(normalized);
+
+      staffCacheRef.current = { ...staffCacheRef.current, [cacheKey]: normalized };
     } catch (err) {
+      if (err?.name === 'CanceledError' || err?.name === 'AbortError') return;
       console.error('fetchStaffForHotel error:', err);
       setStaffUsers([]);
     } finally {
-      setStaffLoading(false);
+      if (staffAbortRef.current === controller) {
+        setStaffLoading(false);
+      }
     }
   }
 
@@ -1949,7 +1966,7 @@ export default function Inspections({ user }) {
 
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Inspector Name <span className="text-red-500">*</span></label>
-                  {staffUsers && staffUsers.length > 0 ? (
+                  {formData.propertyId ? (
                     <select
                       name="inspectorName"
                       value={formData.inspectorName}
@@ -1976,11 +1993,12 @@ export default function Inspections({ user }) {
                     <input 
                       type="text" 
                       name="inspectorName" 
-                      required 
+                      required={!!formData.propertyId}
                       value={formData.inspectorName} 
                       onChange={handleInputChange} 
-                      placeholder="Name of inspector" 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" 
+                      disabled={!formData.propertyId}
+                      placeholder={!formData.propertyId ? "Select property first" : "Name of inspector"}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed" 
                     />
                   )}
                 </div>

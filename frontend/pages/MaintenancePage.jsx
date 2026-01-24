@@ -123,7 +123,7 @@ const DetailField = ({ label, value, icon: Icon }) => (
 /* Form Input Component */
 const FormInput = ({ label, value, onChange, type = "text", required = false, placeholder, icon: Icon }) => (
   <div className="w-full">
-    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+    <label className="block text-xs font-medium text-gray-600 mb-1">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <div className="relative">
@@ -138,7 +138,7 @@ const FormInput = ({ label, value, onChange, type = "text", required = false, pl
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5 ${Icon ? 'pl-10' : 'pl-3'}`}
+        className={`w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${Icon ? 'pl-10' : ''}`}
       />
     </div>
   </div>
@@ -147,7 +147,7 @@ const FormInput = ({ label, value, onChange, type = "text", required = false, pl
 /* Form Select Component */
 const FormSelect = ({ label, value, onChange, options, required = false, disabled = false, icon: Icon }) => (
   <div className="w-full">
-    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+    <label className="block text-xs font-medium text-gray-600 mb-1">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <div className="relative">
@@ -161,7 +161,7 @@ const FormSelect = ({ label, value, onChange, options, required = false, disable
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className={`block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5 ${Icon ? 'pl-10' : 'pl-3'} ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+        className={`w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all ${Icon ? 'pl-10' : ''} ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
       >
         {options}
       </select>
@@ -1769,7 +1769,7 @@ export default function MaintenancePage({ user }) {
             </div>
 
             {/* Modal Body (Scrollable) */}
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               {showView ? (
                 <div className="space-y-6">
                   {/* Primary Info */}
@@ -1828,8 +1828,8 @@ export default function MaintenancePage({ user }) {
                 </div>
               ) : (
                 /* Edit/Create Form Content */
-                <form id="maintenance-form" onSubmit={showEdit ? handleEditSubmit : handleCreateSubmit} className="space-y-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <form id="maintenance-form" onSubmit={showEdit ? handleEditSubmit : handleCreateSubmit}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
 
                     {/* Row 1 */}
                     <FormInput
@@ -1998,10 +1998,10 @@ export default function MaintenancePage({ user }) {
 
                     {/* Description */}
                     <div className="col-span-1 md:col-span-2">
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Description</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
                       <textarea
                         rows={3}
-                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-3 resize-y"
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y transition-all"
                         value={form.description}
                         onChange={e => handleFormChange("description", e.target.value)}
                         placeholder="Detailed description of the issue..."
@@ -2011,16 +2011,16 @@ export default function MaintenancePage({ user }) {
                     {/* Custom Columns Section */}
                     {customColumns.length > 0 && (
                       <div className="col-span-1 md:col-span-2 pt-4 mt-2 border-t border-gray-100">
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Additional Fields</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Additional Fields</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
                           {customColumns.map(col => (
                             <div key={col}>
-                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                              <label className="block text-xs font-medium text-gray-600 mb-1">
                                 {col.replace(/_/g, ' ')}
                               </label>
                               <input
                                 type="text"
-                                className="block w-full rounded-lg border-gray-200 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5 px-3 bg-gray-50/50"
+                                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
                                 value={form[col] || ''}
                                 onChange={e => handleFormChange(col, e.target.value)}
                               />

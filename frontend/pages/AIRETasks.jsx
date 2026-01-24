@@ -1531,15 +1531,79 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
     status: 'Pending'
   });
 
+  const CATEGORY_STORAGE_KEY = 'aireTasks.customCategories';
+  const [customCategories, setCustomCategories] = useState([]);
+  const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
+  const [customCategoryValue, setCustomCategoryValue] = useState('');
+
   const [hotels, setHotels] = useState([]);
   const [serviceUsers, setServiceUsers] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [staffLoading, setStaffLoading] = useState(false);
   const [hotelsLoading, setHotelsLoading] = useState(false);
   const hotelsControllerRef = React.useRef(null);
+  const staffCacheRef = React.useRef({});
+  const staffAbortRef = React.useRef(null);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CATEGORY_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setCustomCategories(parsed.filter(Boolean).map(String));
+      }
+    } catch {
+      setCustomCategories([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showCustomCategoryInput) {
+      setCustomCategoryValue('');
+    }
+  }, [showCustomCategoryInput]);
+
+  const persistCustomCategories = (list) => {
+    try {
+      localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+    }
+  };
+
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      setShowCustomCategoryInput(true);
+      setCustomCategoryValue('');
+      setForm((p) => ({ ...p, category: '' }));
+      return;
+    }
+    setShowCustomCategoryInput(false);
+    setCustomCategoryValue('');
+    setForm((p) => ({ ...p, category: value }));
+  };
+
+  const saveCustomCategory = () => {
+    const next = String(customCategoryValue || '').trim();
+    if (!next) return;
+
+    const builtins = ['Maintenance', 'Inspection', 'General'];
+    const builtinLower = new Set(builtins.map((t) => String(t).toLowerCase()));
+    const merged = [...customCategories];
+    if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
+      merged.push(next);
+      setCustomCategories(merged);
+      persistCustomCategories(merged);
+    }
+
+    setForm((p) => ({ ...p, category: next }));
+    setShowCustomCategoryInput(false);
+    setCustomCategoryValue('');
   };
 
   // Initialize custom columns when customColumns array changes
@@ -1629,31 +1693,38 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
       setStaffUsers([]);
       return;
     }
+
+    const cacheKey = String(hotelId);
+    const cached = staffCacheRef.current?.[cacheKey];
+    if (Array.isArray(cached)) {
+      setStaffUsers(cached);
+      return;
+    }
+
+    if (staffAbortRef.current) {
+      try { staffAbortRef.current.abort(); } catch { }
+    }
+    const controller = new AbortController();
+    staffAbortRef.current = controller;
+
     try {
       setStaffLoading(true);
-
-      const tryPath = async (path) => {
-        const r = await api.get(path);
-        return r?.data;
-      };
-
       const paths = [
         `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
         `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
       ];
 
-      let data = null;
-      let lastErr = null;
-      for (const p of paths) {
-        try {
-          data = await tryPath(p);
-          if (data) break;
-        } catch (e) {
-          lastErr = e;
-        }
-      }
+      const requests = paths.map((p) =>
+        api.get(p, { signal: controller.signal }).then((r) => r?.data)
+      );
+      const settled = await Promise.allSettled(requests);
+      const firstOk = settled.find((s) => s.status === 'fulfilled' && s.value);
+      const data = firstOk && firstOk.status === 'fulfilled' ? firstOk.value : null;
 
-      if (!data) throw lastErr || new Error('Unable to load staff');
+      if (!data) {
+        const firstErr = settled.find((s) => s.status === 'rejected');
+        throw (firstErr && firstErr.status === 'rejected' ? firstErr.reason : null) || new Error('Unable to load staff');
+      }
 
       const list = data?.staff ?? data?.users ?? data ?? [];
       const normalized = (Array.isArray(list) ? list : [])
@@ -1664,11 +1735,16 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
         }))
         .filter((u) => u.id && u.name);
       setStaffUsers(normalized);
+
+      staffCacheRef.current = { ...staffCacheRef.current, [cacheKey]: normalized };
     } catch (err) {
+      if (err?.name === 'CanceledError' || err?.name === 'AbortError') return;
       console.error('fetchStaffForHotel error:', err);
       setStaffUsers([]);
     } finally {
-      setStaffLoading(false);
+      if (staffAbortRef.current === controller) {
+        setStaffLoading(false);
+      }
     }
   }
 
@@ -1865,15 +1941,49 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
               <select
                 name="category"
                 value={form.category}
-                onChange={handleChange}
+                onChange={handleCategoryChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                 required
               >
                 <option value="">Select category</option>
-                <option value="Maintenance">Maintenance</option>
-                <option value="Inspection">Inspection</option>
-                <option value="General">General</option>
+                {['Maintenance', 'Inspection', 'General', ...customCategories].map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+                {!!form.category && !['Maintenance', 'Inspection', 'General', ...customCategories].some((c) => String(c) === String(form.category)) && (
+                  <option value={form.category}>{form.category}</option>
+                )}
+                <option value="__add_new__">+ Add new...</option>
               </select>
+              {showCustomCategoryInput && (
+                <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                  <input
+                    type="text"
+                    value={customCategoryValue}
+                    onChange={(e) => setCustomCategoryValue(e.target.value)}
+                    placeholder="Enter new category"
+                    className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  />
+                  <div className="flex items-center gap-2 sm:shrink-0">
+                    <button
+                      type="button"
+                      onClick={saveCustomCategory}
+                      className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium whitespace-nowrap"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomCategoryInput(false);
+                        setCustomCategoryValue('');
+                      }}
+                      className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium whitespace-nowrap"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             {/* Row 4: Priority & Reported By */}
             <div className="col-span-1">
@@ -1892,7 +2002,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
             </div>
             <div className="col-span-1">
               <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-              {staffUsers && staffUsers.length > 0 ? (
+              {form.property ? (
                 <select
                   name="reportedBy"
                   value={form.reportedBy}
@@ -1921,16 +2031,17 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                   name="reportedBy"
                   value={form.reportedBy}
                   onChange={handleChange}
-                  placeholder="Name of person"
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  required
+                  disabled={!form.property}
+                  placeholder={!form.property ? "Select property first" : "Name of person"}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  required={!!form.property}
                 />
               )}
             </div>
             {/* Row 5: Assigned To & Scheduled Date */}
             <div className="col-span-1">
               <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-              {staffUsers && staffUsers.length > 0 ? (
+              {form.property ? (
                 <select
                   name="assignedTo"
                   value={form.assignedTo || ''}
@@ -1956,8 +2067,9 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                   name="assignedTo"
                   value={form.assignedTo}
                   onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value, assignedToId: '', serviceUserId: '' }))}
-                  placeholder="Name"
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  disabled={!form.property}
+                  placeholder={!form.property ? "Select property first" : "Name"}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               )}
             </div>

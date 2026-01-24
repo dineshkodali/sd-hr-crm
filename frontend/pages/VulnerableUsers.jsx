@@ -161,6 +161,11 @@ export default function VulnerableUsers({ user }) {
     status: 'New',
   });
 
+  const CATEGORY_STORAGE_KEY = 'vulnerableUsers.customCategories';
+  const [customCategories, setCustomCategories] = useState([]);
+  const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
+  const [customCategoryValue, setCustomCategoryValue] = useState('');
+
   /* Dialog State */
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
@@ -211,6 +216,63 @@ export default function VulnerableUsers({ user }) {
   });
 
   const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true, timeout: 15000 }), []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CATEGORY_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setCustomCategories(parsed.filter(Boolean).map(String));
+      }
+    } catch {
+      setCustomCategories([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showCustomCategoryInput) {
+      setCustomCategoryValue('');
+    }
+  }, [showCustomCategoryInput]);
+
+  const persistCustomCategories = (list) => {
+    try {
+      localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+    }
+  };
+
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      setShowCustomCategoryInput(true);
+      setCustomCategoryValue('');
+      setFormData((p) => ({ ...p, category: '' }));
+      return;
+    }
+    setShowCustomCategoryInput(false);
+    setCustomCategoryValue('');
+    setFormData((p) => ({ ...p, category: value }));
+  };
+
+  const saveCustomCategory = () => {
+    const next = String(customCategoryValue || '').trim();
+    if (!next) return;
+
+    const builtins = categoryOptions;
+    const builtinLower = new Set((builtins || []).map((t) => String(t).toLowerCase()));
+    const merged = [...customCategories];
+    if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
+      merged.push(next);
+      setCustomCategories(merged);
+      persistCustomCategories(merged);
+    }
+
+    setFormData((p) => ({ ...p, category: next }));
+    setShowCustomCategoryInput(false);
+    setCustomCategoryValue('');
+  };
 
   const normalizeStaffResponse = (data) => {
     const list = data?.staff ?? data?.users ?? data?.rows ?? data?.data ?? data ?? [];
@@ -1549,12 +1611,48 @@ export default function VulnerableUsers({ user }) {
                     <select 
                       required 
                       value={formData.category || ''} 
-                      onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                      onChange={handleCategoryChange}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
                       <option value="">Select category</option>
-                      {categoryOptions.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      {[...categoryOptions, ...customCategories].map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                      {!!formData.category && ![...categoryOptions, ...customCategories].some((c) => String(c) === String(formData.category)) && (
+                        <option value={formData.category}>{formData.category}</option>
+                      )}
+                      <option value="__add_new__">+ Add new...</option>
                     </select>
+                    {showCustomCategoryInput && (
+                      <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                        <input
+                          type="text"
+                          value={customCategoryValue}
+                          onChange={(e) => setCustomCategoryValue(e.target.value)}
+                          placeholder="Enter new category"
+                          className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        />
+                        <div className="flex items-center gap-2 sm:shrink-0">
+                          <button
+                            type="button"
+                            onClick={saveCustomCategory}
+                            className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium whitespace-nowrap"
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowCustomCategoryInput(false);
+                              setCustomCategoryValue('');
+                            }}
+                            className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium whitespace-nowrap"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Row 3: Priority & Reported By */}
