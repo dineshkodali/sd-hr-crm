@@ -311,16 +311,49 @@ function PermissionRoute({ user, module, children }) {
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-md bg-white shadow-lg rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold mb-2 text-gray-800">Access Denied</h2>
-          <p className="text-gray-600 mb-4">You don't have permission to access this page.</p>
-          <button
-            onClick={() => window.history.back()}
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-          >
-            Go Back
-          </button>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Access Denied</h2>
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="px-6 py-6">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                <div className="h-9 w-9 rounded-full border-2 border-red-400 text-red-500 flex items-center justify-center font-bold">
+                  !
+                </div>
+              </div>
+              <p className="text-gray-600">
+                You don't have permission to access this page.
+              </p>
+            </div>
+          </div>
+
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="px-5 py-2 rounded-lg bg-rose-500 text-white font-medium hover:bg-rose-600 transition-colors"
+            >
+              Go Back
+            </button>
+          </div>
         </div>
       </div>
     );
