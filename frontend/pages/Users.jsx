@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { useOutletContext } from "react-router-dom";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { validatePassword, passwordStrengthLabel, passwordStrengthPercent } from '../src/utils/passwordUtils';
 import { 
   Home, 
   UserPlus, 
@@ -27,6 +28,449 @@ import {
 
 axios.defaults.withCredentials = true;
 
+function AddEmployeeModal({ open, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'staff',
+    phone: '',
+    branch: '',
+    address: '',
+    city: '',
+    status: 'active'
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [pwStrengthLabelState, setPwStrengthLabelState] = useState('');
+  const [pwPercent, setPwPercent] = useState(0);
+  const [pwFieldErrors, setPwFieldErrors] = useState([]);
+  const [branches, setBranches] = useState([]);
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const [branchInputFocused, setBranchInputFocused] = useState(false);
+
+  const fetchBranches = async () => {
+    try {
+      const res = await axios.get('/api/admin/users', {
+        params: { limit: 1000 },
+        withCredentials: true
+      });
+
+      const allUsers = res.data.users || [];
+      const uniqueBranches = [...new Set(
+        allUsers
+          .map(user => user.branch)
+          .filter(branch => branch && branch.trim() !== '')
+      )].sort();
+
+      setBranches(uniqueBranches);
+    } catch (err) {
+      console.error('Failed to fetch branches:', err);
+      setBranches([]);
+    }
+  };
+
+  React.useEffect(() => {
+    if (open) {
+      fetchBranches();
+    }
+  }, [open]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (name === 'password') {
+      try {
+        const label = passwordStrengthLabel(value);
+        const pct = passwordStrengthPercent(value);
+        setPwStrengthLabelState(label);
+        setPwPercent(pct);
+        const v = validatePassword(value);
+        setPwFieldErrors(v.errors || []);
+      } catch {
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!formData.name || !formData.email || !formData.role) {
+      setError('Name, email, and role are required');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    let password = formData.password;
+    if (password) {
+      const { valid, errors } = validatePassword(password);
+      if (!valid) {
+        setError(errors.join('; '));
+        return;
+      }
+
+      if (formData.confirmPassword && formData.confirmPassword !== password) {
+        setError('Password and confirmation do not match');
+        return;
+      }
+    } else {
+      password = `${formData.name.split(' ')[0]}${Math.floor(Math.random() * 10000)}`;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: password,
+        role: formData.role,
+        phone: formData.phone?.trim() || null,
+        branch: formData.branch?.trim() || null,
+        address: formData.address?.trim() || null,
+        city: formData.city?.trim() || null,
+        status: formData.status || 'active'
+      };
+
+      const response = await axios.post('/api/admin/users', payload, {
+        withCredentials: true
+      });
+
+      if (response.data) {
+        if (onSuccess) onSuccess();
+        onClose();
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          role: 'staff',
+          phone: '',
+          branch: '',
+          address: '',
+          city: '',
+          status: 'active'
+        });
+        setShowBranchDropdown(false);
+        setBranchInputFocused(false);
+      }
+    } catch (err) {
+      console.error('Error creating employee:', err);
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to create employee';
+      setError(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div
+        className="absolute inset-0"
+        onClick={onClose}
+      />
+
+      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">Add Employee</h3>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Add a new employee to the system.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {error && (
+          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-6 max-h-[calc(100vh-300px)] overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="John Smith"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="email@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Phone
+                </label>
+                <input
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="Phone number"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Role <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                >
+                  <option value="staff">Staff</option>
+                  <option value="manager">Manager</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Branch
+                </label>
+                <div className="relative">
+                  <input
+                    name="branch"
+                    value={formData.branch}
+                    onChange={handleChange}
+                    onFocus={() => {
+                      setBranchInputFocused(true);
+                      setShowBranchDropdown(true);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        setBranchInputFocused(false);
+                        setShowBranchDropdown(false);
+                      }, 200);
+                    }}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm pr-10
+                               focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                    placeholder="Select existing branch or type new one"
+                  />
+                  <ChevronDown
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+                  />
+
+                  {showBranchDropdown && branches.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {branches
+                        .filter(branch =>
+                          branch.toLowerCase().includes(formData.branch.toLowerCase())
+                        )
+                        .map((branch, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, branch });
+                              setShowBranchDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm border-b border-gray-100 last:border-b-0 flex items-center gap-2"
+                          >
+                            <Building className="w-4 h-4 text-gray-400" />
+                            <span>{branch}</span>
+                          </button>
+                        ))
+                      }
+
+                      {formData.branch &&
+                       !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
+                        <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
+                          <div className="flex items-center gap-2">
+                            <UserPlus className="w-4 h-4 text-teal-500" />
+                            <span>Create new branch: <strong className="text-teal-600">&quot;{formData.branch}&quot;</strong></span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Status <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                >
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Address
+                </label>
+                <input
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="Full address"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  City
+                </label>
+                <input
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                  placeholder="City"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Password <span className="text-gray-400 text-xs">(Optional - will be auto-generated)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm pr-10
+                               focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                    placeholder="Leave empty for auto-generated password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10 0-1.054.164-2.066.468-3.012" />
+                        <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        <circle cx="12" cy="12" r="3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                <div className="mt-3">
+                  <div className="pw-strength">
+                    <div
+                      className={`pw-strength-inner ${pwStrengthLabelState === 'Weak' ? 'pw-weak' : pwStrengthLabelState === 'Medium' ? 'pw-medium' : pwStrengthLabelState === 'Strong' ? 'pw-strong' : ''}`}
+                      style={{ width: `${pwPercent}%` }}
+                    />
+                  </div>
+                  <div className="pw-strength-label">{pwStrengthLabelState}</div>
+                  {pwFieldErrors && pwFieldErrors.length > 0 && (
+                    <div className="text-xs text-red-600 mt-2">
+                      {pwFieldErrors.map((e, i) => (
+                        <div key={i}>• {e}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-slate-600 mb-1">Confirm Password</label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                               focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                    placeholder="Confirm password"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 px-6 py-5 border-t border-gray-100 bg-gray-50">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={submitting}
+              className="px-5 py-2 rounded-lg border border-gray-300 text-slate-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-5 py-2 rounded-lg bg-teal-400 text-white font-medium hover:bg-teal-500 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Adding...' : 'Add Employee'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Users() {
   const outlet = useOutletContext();
   const { user } = outlet || {};
@@ -34,6 +478,7 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState({
@@ -284,7 +729,7 @@ export default function Users() {
         notes: moveRoomFormData.notes,
       };
 
-      await axios.post("/api/moveins", payload, { withCredentials: true });
+      await axios.post("/api/move-ins", payload, { withCredentials: true });
       
       await fetchUsers();
       closeMoveRoom();
@@ -556,7 +1001,13 @@ export default function Users() {
             </div>
             <p className="text-sm text-gray-600 mt-1">Manage staff members and their information</p>
           </div>
-         
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-400 hover:bg-teal-500 active:bg-teal-600 text-white rounded-lg shadow-sm font-medium transition-colors"
+          >
+            <span className="text-lg leading-none">+</span>
+            Add Employee
+          </button>
         </div>
 
         {/* Stats Overview */}
@@ -1159,6 +1610,12 @@ export default function Users() {
         title={alertDialog.title}
         message={alertDialog.message}
         type={alertDialog.type}
+      />
+
+      <AddEmployeeModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={fetchUsers}
       />
 
     </div>

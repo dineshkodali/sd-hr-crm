@@ -1505,8 +1505,8 @@ export default function Complaints({ user }) {
 
       {/* --- FORM MODAL --- */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative my-4">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -1522,8 +1522,9 @@ export default function Complaints({ user }) {
             </div>
 
             {/* Modal Form Content */}
-            <form onSubmit={handleSubmit} className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+            <form onSubmit={handleSubmit} className="p-4 flex flex-col">
+              <div className="max-h-[70vh] overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
                 
                 {/* Row 1: Title & Description */}
                 <div className="col-span-1 md:col-span-2">
@@ -1717,6 +1718,7 @@ export default function Complaints({ user }) {
                     />
                   </div>
                 ))}
+                </div>
               </div>
 
               {/* Footer Buttons */}

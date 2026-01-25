@@ -2,8 +2,23 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
 import { Eye, ChevronDown, Filter, Columns, X, Home } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { usePermissions } from "../hooks/usePermissions";
 
-export default function MealManagement() {
+export default function MealManagement({ user }) {
+  const MODULE_KEY = 'meals';
+  const {
+    loading: permissionsLoading,
+    canRead,
+    canCreate,
+    canUpdate,
+    canDelete
+  } = usePermissions(user);
+
+  const canReadPage = canRead(MODULE_KEY);
+  const canCreatePage = canCreate(MODULE_KEY);
+  const canUpdatePage = canUpdate(MODULE_KEY);
+  const canDeletePage = canDelete(MODULE_KEY);
+
   const [properties, setProperties] = useState([]);
   const [serviceUsers, setServiceUsers] = useState([]);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -342,6 +357,15 @@ export default function MealManagement() {
   }
 
   async function markConsumed(id) {
+    if (!canUpdatePage) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to update meals.',
+        type: 'warning'
+      });
+      return;
+    }
     setMeals((prev) =>
       prev.map((m) =>
         String(m.id) === String(id) ? { ...m, status: "Consumed" } : m
@@ -357,6 +381,15 @@ export default function MealManagement() {
   }
 
   async function markNotConsumed(id) {
+    if (!canUpdatePage) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to update meals.',
+        type: 'warning'
+      });
+      return;
+    }
     setMeals((prev) =>
       prev.map((m) =>
         String(m.id) === String(id) ? { ...m, status: "Pending" } : m
@@ -372,6 +405,15 @@ export default function MealManagement() {
   }
 
   async function createMeal(payload) {
+    if (!canCreatePage) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to create meals.',
+        type: 'warning'
+      });
+      return;
+    }
     const tempId = `tmp-${Date.now()}`;
     const row = {
       id: tempId,
@@ -428,6 +470,15 @@ export default function MealManagement() {
   }
 
   function handleEdit(m) {
+    if (!canUpdatePage) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to update meals.',
+        type: 'warning'
+      });
+      return;
+    }
     setEditingMeal(m);
     setShowScheduleModal(true);
   }
@@ -448,6 +499,17 @@ export default function MealManagement() {
   // }
 
   const handleDeleteMealConfirm = async () => {
+  if (!canDeletePage) {
+    setAlertDialog({
+      isOpen: true,
+      title: 'Permission Denied',
+      message: 'You do not have permission to delete meals.',
+      type: 'warning'
+    });
+    setShowDeleteModal(false);
+    setDeleteMeal(null);
+    return;
+  }
   if (!deleteMeal) return;
 
   try {
@@ -489,6 +551,16 @@ export default function MealManagement() {
 
 
   async function updateMeal(id, payload) {
+    if (!canUpdatePage) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to update meals.',
+        type: 'warning'
+      });
+      setEditingMeal(null);
+      return;
+    }
     // keep a copy so we can revert on failure
     const prevMeals = [...meals];
     setMeals((prev) =>
@@ -527,6 +599,28 @@ export default function MealManagement() {
     }
   }
 
+  if (permissionsLoading) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="min-h-[40vh] flex items-center justify-center text-sm text-gray-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canReadPage) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-700">
+            You do not have permission to view Meals.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700">
       <div className="max-w-[1600px] mx-auto">
@@ -558,27 +652,29 @@ export default function MealManagement() {
             </div>
           </div>
           <div>
-            <button
-              onClick={() => {
-                setEditingMeal(null);
-                setShowScheduleModal(true);
-              }}
-              className="
-      bg-teal-400
-      hover:bg-teal-500
-      active:bg-teal-600
-      text-white
-      px-4 py-2
-      rounded-lg
-      shadow-sm
-      hover:shadow
-      transition-colors
-      flex items-center gap-2
-    "
-            >
-              <span className="text-lg leading-none">+</span>
-              Schedule Meal
-            </button>
+            {canCreatePage && (
+              <button
+                onClick={() => {
+                  setEditingMeal(null);
+                  setShowScheduleModal(true);
+                }}
+                className="
+        bg-teal-400
+        hover:bg-teal-500
+        active:bg-teal-600
+        text-white
+        px-4 py-2
+        rounded-lg
+        shadow-sm
+        hover:shadow
+        transition-colors
+        flex items-center gap-2
+      "
+              >
+                <span className="text-lg leading-none">+</span>
+                Schedule Meal
+              </button>
+            )}
           </div>
         </div>
 
@@ -594,10 +690,28 @@ export default function MealManagement() {
               setEditingMeal(null);
             }}
             onCreate={async (payload) => {
+              if (!canCreatePage) {
+                setAlertDialog({
+                  isOpen: true,
+                  title: 'Permission Denied',
+                  message: 'You do not have permission to create meals.',
+                  type: 'warning'
+                });
+                return;
+              }
               await createMeal(payload);
               setShowScheduleModal(false);
             }}
             onUpdate={async (id, payload) => {
+              if (!canUpdatePage) {
+                setAlertDialog({
+                  isOpen: true,
+                  title: 'Permission Denied',
+                  message: 'You do not have permission to update meals.',
+                  type: 'warning'
+                });
+                return;
+              }
               await updateMeal(id, payload);
               setShowScheduleModal(false);
             }}
@@ -832,16 +946,18 @@ export default function MealManagement() {
                   )}
                 </div>
 
-                <button
-                  onClick={() => {
-                    setEditingMeal(null);
-                    setShowScheduleModal(true);
-                  }}
-                  className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
-                >
-                  <span className="text-lg leading-none">+</span>
-                  <span>Schedule Meal</span>
-                </button>
+                {canCreatePage && (
+                  <button
+                    onClick={() => {
+                      setEditingMeal(null);
+                      setShowScheduleModal(true);
+                    }}
+                    className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                  >
+                    <span className="text-lg leading-none">+</span>
+                    <span>Schedule Meal</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1040,40 +1156,46 @@ export default function MealManagement() {
                         >
                           <IconEye />
                         </button>
-                        <button
-                          title="Edit"
-                          onClick={() => handleEdit(m)}
-                          className="group relative p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
-                        >
-                          <IconEdit />
-                        </button>
-                        <button
-                         title="Delete"
-                         onClick={() => {
-                           setDeleteMeal(m);
-                           setShowDeleteModal(true);
-                         }}
-                         className="group relative p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
-                        >
-                          <IconTrash />
-                        </button>
+                        {canUpdatePage && (
+                          <button
+                            title="Edit"
+                            onClick={() => handleEdit(m)}
+                            className="group relative p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                          >
+                            <IconEdit />
+                          </button>
+                        )}
+                        {canDeletePage && (
+                          <button
+                           title="Delete"
+                           onClick={() => {
+                             setDeleteMeal(m);
+                             setShowDeleteModal(true);
+                           }}
+                           className="group relative p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                          >
+                            <IconTrash />
+                          </button>
+                        )}
 
-                        {String(m.status).toLowerCase() === "consumed" ? (
-                          <button
-                            onClick={() => markNotConsumed(m.id)}
-                            className="ml-1 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-700 hover:text-white text-xs font-medium transition-all duration-200 border border-amber-200 hover:border-amber-500"
-                            title="Mark as Not Consumed"
-                          >
-                            Not Consumed
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => markConsumed(m.id)}
-                            className="ml-1 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500 text-teal-700 hover:text-white text-xs font-medium transition-all duration-200 border border-teal-200 hover:border-teal-500"
-                            title="Mark as Consumed"
-                          >
-                            Mark Consumed
-                          </button>
+                        {canUpdatePage && (
+                          String(m.status).toLowerCase() === "consumed" ? (
+                            <button
+                              onClick={() => markNotConsumed(m.id)}
+                              className="ml-1 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-700 hover:text-white text-xs font-medium transition-all duration-200 border border-amber-200 hover:border-amber-500"
+                              title="Mark as Not Consumed"
+                            >
+                              Not Consumed
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => markConsumed(m.id)}
+                              className="ml-1 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500 text-teal-700 hover:text-white text-xs font-medium transition-all duration-200 border border-teal-200 hover:border-teal-500"
+                              title="Mark as Consumed"
+                            >
+                              Mark Consumed
+                            </button>
+                          )
                         )}
                           </div>
                         </td>

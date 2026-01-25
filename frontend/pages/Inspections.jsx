@@ -666,7 +666,9 @@ export default function Inspections({ user }) {
       inspection_type: formData.inspectionType,
       propertyId: formData.propertyId,
       property_id: formData.propertyId,
-      property: formData.propertyName,
+      property: formData.propertyId,
+      propertyName: formData.propertyName,
+      property_name: formData.propertyName,
       serviceUserId: formData.serviceUserId || null,
       service_user_id: formData.serviceUserId || null,
       serviceUser: formData.serviceUserName || null,
@@ -684,9 +686,10 @@ export default function Inspections({ user }) {
     };
     // Add custom column values to payload
     customColumns.forEach(col => {
-      if (formData[col] !== undefined) {
-        payload[col] = formData[col];
-      }
+      const val = formData[col];
+      if (val === undefined) return;
+      if (typeof val === 'string' && val.trim() === '') return;
+      payload[col] = val;
     });
     try {
       let res;

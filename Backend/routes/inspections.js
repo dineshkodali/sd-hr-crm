@@ -65,6 +65,49 @@ function makeReference() {
   return `ISPT-${year}-${rnd}`;
 }
 
+function coerceValueByPgType(pgType, value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+
+  // Most common culprit: empty string sent for numeric/date/boolean
+  if (typeof value === "string" && value.trim() === "") {
+    return null;
+  }
+
+  const t = String(pgType || "").toLowerCase();
+
+  if (t.includes("boolean")) {
+    if (typeof value === "boolean") return value;
+    const s = String(value).trim().toLowerCase();
+    if (["true", "1", "yes", "y", "on"].includes(s)) return true;
+    if (["false", "0", "no", "n", "off"].includes(s)) return false;
+    throw new Error(`Invalid boolean value: ${value}`);
+  }
+
+  // numeric/decimal/real/double precision
+  if (t.includes("numeric") || t.includes("decimal") || t.includes("real") || t.includes("double")) {
+    const num = Number(value);
+    if (Number.isNaN(num)) throw new Error(`Invalid number value: ${value}`);
+    return num;
+  }
+
+  // integer / bigint
+  if (t.includes("integer") || t.includes("bigint") || t.includes("smallint")) {
+    const num = Number.parseInt(String(value), 10);
+    if (Number.isNaN(num)) throw new Error(`Invalid integer value: ${value}`);
+    return num;
+  }
+
+  // date / timestamp
+  if (t.includes("date") || t.includes("timestamp")) {
+    // Let Postgres parse valid ISO/date strings; only null out empty string above
+    return value;
+  }
+
+  // fallback (text, varchar, etc)
+  return value;
+}
+
 /* LIST */
 router.get("/", async (req, res) => {
   try {
@@ -220,11 +263,12 @@ router.post("/", async (req, res) => {
 
     // Get existing columns in inspections table
     const { rows: colRows } = await pool.query(`
-      SELECT column_name
+      SELECT column_name, data_type
       FROM information_schema.columns
       WHERE table_name = 'inspections'
     `);
     const existingCols = colRows.map(r => r.column_name);
+    const colTypeMap = new Map(colRows.map(r => [String(r.column_name), String(r.data_type)]));
 
     // Build dynamic INSERT based on existing columns
     const columnsToInsert = ['reference', 'inspection_type', 'inspector_name', 'inspection_date', 'status'];
@@ -285,11 +329,19 @@ router.post("/", async (req, res) => {
     const standardCols = ['id', 'reference', 'inspection_type', 'inspector_name', 'inspection_date', 
                           'status', 'property', 'property_name', 'service_user', 'findings', 
                           'issues_found', 'action_required', 'priority', 'created_at', 'updated_at'];
-    for (const col of existingCols) {
-      if (!standardCols.includes(col) && req.body[col] !== undefined) {
+    try {
+      for (const col of existingCols) {
+        if (standardCols.includes(col)) continue;
+        if (req.body[col] === undefined) continue;
+
+        const coerced = coerceValueByPgType(colTypeMap.get(col), req.body[col]);
+        if (coerced === undefined) continue;
+
         columnsToInsert.push(col);
-        valuesToInsert.push(req.body[col]);
+        valuesToInsert.push(coerced);
       }
+    } catch (e) {
+      return res.status(400).json({ success: false, message: e?.message || "Invalid custom field value" });
     }
 
     const placeholders = columnsToInsert.map((_, i) => `$${i + 1}`).join(',');
@@ -324,11 +376,12 @@ router.put("/:id", async (req, res) => {
     const { id } = req.params;
       // get existing columns so we only try to update columns that exist
       const { rows: colRows } = await pool.query(`
-        SELECT column_name
+        SELECT column_name, data_type
         FROM information_schema.columns
         WHERE table_name = 'inspections'
       `);
       const existingCols = colRows.map(r => r.column_name);
+      const colTypeMap = new Map(colRows.map(r => [String(r.column_name), String(r.data_type)]));
 
       const fields = [
         "reference",
@@ -392,12 +445,20 @@ router.put("/:id", async (req, res) => {
     const standardCols = ['id', 'reference', 'inspection_type', 'inspector_name', 'inspection_date', 
                           'status', 'property', 'property_name', 'service_user', 'findings', 
                           'issues_found', 'action_required', 'priority', 'created_at', 'updated_at'];
-    for (const col of existingCols) {
-      if (!standardCols.includes(col) && req.body[col] !== undefined) {
+    try {
+      for (const col of existingCols) {
+        if (standardCols.includes(col)) continue;
+        if (req.body[col] === undefined) continue;
+
+        const coerced = coerceValueByPgType(colTypeMap.get(col), req.body[col]);
+        if (coerced === undefined) continue;
+
         updates.push(`${col} = $${idx}`);
-        values.push(req.body[col]);
+        values.push(coerced);
         idx++;
       }
+    } catch (e) {
+      return res.status(400).json({ success: false, message: e?.message || "Invalid custom field value" });
     }
 
     if (!updates.length) return res.status(400).json({ success: false, message: "No fields to update" });

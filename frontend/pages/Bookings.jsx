@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Filter,
   Eye,
+  EyeOff,
   Columns,
   ClipboardList,
   Upload,
@@ -750,9 +751,9 @@ export default function Bookings({ user }) {
                         {viewMode === 'table' && (
                           <button
                             onClick={() => setShowColumnVisibility(!showColumnVisibility)}
-                            className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                            className="w-full flex items-center justify-between px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
                           >
-                            <span>Column visibility</span>
+                            <span className="font-medium">Column visibility</span>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-500">
                                 {Object.values(visibleColumns).filter(Boolean).length} shown
@@ -765,54 +766,51 @@ export default function Bookings({ user }) {
                         {/* Column Visibility Panel */}
                         {showColumnVisibility && (
                           <div className="mt-2 border-t border-gray-200 pt-3">
-                            <div className="mb-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Shown in table</span>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Default columns</span>
+                              <div className="text-xs font-medium">
+                                <button
+                                  onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))}
+                                  className="text-teal-600 hover:text-teal-700"
+                                  type="button"
+                                >
+                                  Show all
+                                </button>
+                                <span className="text-gray-300 mx-2">|</span>
                                 <button
                                   onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: false }), {}))}
-                                  className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                  className="text-teal-600 hover:text-teal-700"
+                                  type="button"
                                 >
                                   Hide all
                                 </button>
                               </div>
-                              <div className="space-y-1">
-                                {ALL_COLUMNS.filter(col => visibleColumns[col]).map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
-                                    className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                                  >
-                                    <span className="capitalize">{col.replace('_', ' ')}</span>
-                                    <Eye className="w-4 h-4 text-teal-600" />
-                                  </button>
-                                ))}
-                              </div>
                             </div>
 
-                            {Object.values(visibleColumns).some(v => !v) && (
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hidden in table</span>
+                            <div className="text-xs text-gray-500 mb-3">Toggle column visibility by clicking</div>
+
+                            <div className="max-h-72 overflow-y-auto pr-1 space-y-2">
+                              {ALL_COLUMNS.map((col) => {
+                                const isVisible = Boolean(visibleColumns[col]);
+                                return (
                                   <button
-                                    onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                    key={col}
+                                    type="button"
+                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !isVisible })}
+                                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
                                   >
-                                    Show all
+                                    <span className={`text-sm font-medium ${isVisible ? 'text-gray-800' : 'text-gray-400'}`}>
+                                      {col === 'order_no' ? 'Order no' : col.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())}
+                                    </span>
+                                    {isVisible ? (
+                                      <Eye className="w-4 h-4 text-teal-600" />
+                                    ) : (
+                                      <EyeOff className="w-4 h-4 text-gray-400" />
+                                    )}
                                   </button>
-                                </div>
-                                <div className="space-y-1">
-                                  {ALL_COLUMNS.filter(col => !visibleColumns[col]).map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
-                                      className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
-                                    >
-                                      <span className="capitalize">{col.replace('_', ' ')}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
                       </div>

@@ -479,7 +479,7 @@ export default function AdminDashboard() {
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{page.title}</span>
                 <span className="text-sm font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{stats.count}</span>
             </div>
-            <div className="h-10 w-full min-w-0 overflow-hidden relative z-10">
+            <div style={{ width: '100%', height: 40, minWidth: 0, minHeight: 40 }} className="overflow-hidden relative z-10">
                 {stats.breakdown.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <BarChart data={stats.breakdown}>

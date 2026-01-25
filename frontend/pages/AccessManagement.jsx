@@ -5,6 +5,8 @@ import axios from "axios";
 const MODULES = [
   { key: "dashboard", label: "Dashboard" },
   { key: "su_data", label: "SU Data" },
+  { key: "move_in_out", label: "MoveInOut" },
+  { key: "meals", label: "Meals" },
   { key: "properties", label: "Properties" },
   { key: "employees", label: "Employees" },
   { key: "inspections", label: "Inspections" },

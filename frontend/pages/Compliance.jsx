@@ -232,6 +232,18 @@ export default function Compliance() {
     }
   }, [modalOpen]);
 
+  useEffect(() => {
+    const isModalOpen = modalOpen;
+    if (isModalOpen) {
+      document.body.classList.add('form-modal-open');
+    } else {
+      document.body.classList.remove('form-modal-open');
+    }
+    return () => {
+      document.body.classList.remove('form-modal-open');
+    };
+  }, [modalOpen]);
+
   // --- Data Fetching ---
   const normalizeHotelsResponse = (data) => {
     if (!data) return [];

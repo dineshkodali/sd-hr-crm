@@ -521,7 +521,7 @@ export default function App() {
 
               <Route path="/su/move-in-out" element={
                 <GeneralLayoutWrapper>
-                  <PermissionRoute user={user} module="su_data">
+                  <PermissionRoute user={user} module="move_in_out">
                     <MoveInOutSafe user={user} />
                   </PermissionRoute>
                 </GeneralLayoutWrapper>
@@ -529,7 +529,7 @@ export default function App() {
 
               <Route path="/su/meals" element={
                 <GeneralLayoutWrapper>
-                  <PermissionRoute user={user} module="su_data">
+                  <PermissionRoute user={user} module="meals">
                     <MealManagementSafe user={user} />
                   </PermissionRoute>
                 </GeneralLayoutWrapper>
@@ -764,6 +764,17 @@ export default function App() {
                 <RoleRoute user={user} allowed={["manager"]}>
                   <ManagerDashboardSafe user={user} />
                 </RoleRoute>
+              } />
+
+              {/* Manager employee list (Employee Management page) */}
+              <Route path="/manager/users" element={
+                <GeneralLayoutWrapper>
+                  <RoleRoute user={user} allowed={["manager"]}>
+                    <PermissionRoute user={user} module="employees">
+                      <UsersSafe user={user} />
+                    </PermissionRoute>
+                  </RoleRoute>
+                </GeneralLayoutWrapper>
               } />
 
               {/* Manager staff management (standalone page) */}
@@ -1067,13 +1078,17 @@ export default function App() {
               {/* Shared Room Manager */}
               <Route path="/hotels/:hotelId/rooms" element={
                 <RoleRoute user={user} allowed={["admin", "manager", "staff"]}>
-                  <RoomsManagerSafe user={user} />
+                  <AdminLayoutSafe user={user}>
+                    <RoomsManagerSafe user={user} />
+                  </AdminLayoutSafe>
                 </RoleRoute>
               } />
 
               <Route path="/hotels/:hotelId/rooms/:roomId" element={
                 <RoleRoute user={user} allowed={["admin", "manager", "staff"]}>
-                  <RoomDetailsSafe />
+                  <AdminLayoutSafe user={user}>
+                    <RoomDetailsSafe />
+                  </AdminLayoutSafe>
                 </RoleRoute>
               } />
 

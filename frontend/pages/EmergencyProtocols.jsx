@@ -274,6 +274,68 @@ export default function EmergencyProtocols() {
 
   const [form, setForm] = useState(initialForm);
 
+  const CATEGORY_OPTIONS = ["Emergency Protocols", "Maintenance"];
+  const CATEGORY_STORAGE_KEY = 'emergencyProtocols.customCategories';
+  const [customCategories, setCustomCategories] = useState([]);
+  const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
+  const [customCategoryValue, setCustomCategoryValue] = useState('');
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CATEGORY_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setCustomCategories(parsed.filter(Boolean).map(String));
+      }
+    } catch {
+      setCustomCategories([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showCustomCategoryInput) {
+      setCustomCategoryValue('');
+    }
+  }, [showCustomCategoryInput]);
+
+  const persistCustomCategories = (list) => {
+    try {
+      localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(list));
+    } catch {
+    }
+  };
+
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    if (value === '__add_new__') {
+      setShowCustomCategoryInput(true);
+      setCustomCategoryValue('');
+      setForm((p) => ({ ...p, category: '' }));
+      return;
+    }
+    setShowCustomCategoryInput(false);
+    setCustomCategoryValue('');
+    setForm((p) => ({ ...p, category: value }));
+  };
+
+  const saveCustomCategory = () => {
+    const next = String(customCategoryValue || '').trim();
+    if (!next) return;
+
+    const builtinLower = new Set((CATEGORY_OPTIONS || []).map((t) => String(t).toLowerCase()));
+    const merged = [...customCategories];
+    if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
+      merged.push(next);
+      setCustomCategories(merged);
+      persistCustomCategories(merged);
+    }
+
+    setForm((p) => ({ ...p, category: next }));
+    setShowCustomCategoryInput(false);
+    setCustomCategoryValue('');
+  };
+
   // When customColumns change, add new fields to form state
   useEffect(() => {
     setForm(prev => {
@@ -1599,10 +1661,46 @@ export default function EmergencyProtocols() {
 
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
-                  <select className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                    <option value="Emergency Protocols">Emergency Protocols</option>
-                    <option value="Maintenance">Maintenance</option>
+                  <select className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white" value={form.category} onChange={handleCategoryChange}>
+                    <option value="">Select category</option>
+                    {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                    {!!form.category && ![...CATEGORY_OPTIONS, ...customCategories].some((c) => String(c) === String(form.category)) && (
+                      <option value={form.category}>{form.category}</option>
+                    )}
+                    <option value="__add_new__">+ Add new...</option>
                   </select>
+                  {showCustomCategoryInput && (
+                    <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                      <input
+                        type="text"
+                        value={customCategoryValue}
+                        onChange={(e) => setCustomCategoryValue(e.target.value)}
+                        placeholder="Enter new category"
+                        className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      />
+                      <div className="flex items-center gap-2 sm:shrink-0">
+                        <button
+                          type="button"
+                          onClick={saveCustomCategory}
+                          className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium whitespace-nowrap"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCustomCategoryInput(false);
+                            setCustomCategoryValue('');
+                          }}
+                          className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium whitespace-nowrap"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="col-span-1">

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import axios from "axios";
 import { Eye, ChevronDown, Filter, Columns, X, Home } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { usePermissions } from "../hooks/usePermissions";
 
 // Checklist labels reused by MoveInModal, MoveOutModal and DetailModal
 const MOVE_IN_CHECKLIST_ITEMS = [
@@ -26,7 +27,21 @@ const MOVE_OUT_CHECKLIST_ITEMS = [
   "Signature obtained",
 ];
 
-export default function MoveInOutPage() {
+export default function MoveInOutPage({ user }) {
+  const MODULE_KEY = 'move_in_out';
+  const {
+    loading: permissionsLoading,
+    canRead,
+    canCreate,
+    canUpdate,
+    canDelete
+  } = usePermissions(user);
+
+  const canReadPage = canRead(MODULE_KEY);
+  const canCreatePage = canCreate(MODULE_KEY);
+  const canUpdatePage = canUpdate(MODULE_KEY);
+  const canDeletePage = canDelete(MODULE_KEY);
+
   const [showModal, setShowModal] = useState(false);
   const [showOutModal, setShowOutModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -423,6 +438,16 @@ const [deleting, setDeleting] = useState(false);
   const onSave = useCallback(
     async (payload) => {
       try {
+        if (payload && payload.id) {
+          if (!canUpdatePage) {
+            throw new Error("Permission denied");
+          }
+        } else {
+          if (!canCreatePage) {
+            throw new Error("Permission denied");
+          }
+        }
+
         const su = serviceUsers.find(
           (s) => String(s.id) === String(payload.serviceUserId)
         );
@@ -471,13 +496,16 @@ const [deleting, setDeleting] = useState(false);
         throw err;
       }
     },
-    [api, serviceUsers, hotels, rooms, bedspaces]
+    [api, serviceUsers, hotels, rooms, bedspaces, canCreatePage, canUpdatePage]
   );
 
   const onDelete = useCallback(
     async (id) => {
       if (!id) return;
       try {
+        if (!canDeletePage) {
+          throw new Error("Permission denied");
+        }
         await api.delete(`/api/move-ins/${encodeURIComponent(id)}`);
         setRecent((prev) => prev.filter((r) => String(r.id) !== String(id)));
       } catch (err) {
@@ -495,6 +523,9 @@ const [deleting, setDeleting] = useState(false);
     async (id) => {
       if (!id) return;
       try {
+        if (!canDeletePage) {
+          throw new Error("Permission denied");
+        }
         await api.delete(`/api/move-outs/${encodeURIComponent(id)}`);
         setMoveOuts((prev) => prev.filter((m) => String(m.id) !== String(id)));
       } catch (err) {
@@ -509,6 +540,18 @@ const [deleting, setDeleting] = useState(false);
   );
 
   const handleDeleteConfirm = async () => {
+  if (!canDeletePage) {
+    setAlertDialog({
+      isOpen: true,
+      title: 'Permission Denied',
+      message: 'You do not have permission to delete records.',
+      type: 'warning'
+    });
+    setShowDeleteModal(false);
+    setDeleteId(null);
+    setDeleteType(null);
+    return;
+  }
   if (!deleteId || !deleteType) return;
 
   try {
@@ -565,6 +608,16 @@ const [deleting, setDeleting] = useState(false);
   const saveMoveOut = useCallback(
     async (payload) => {
       try {
+        if (editing && editing.id) {
+          if (!canUpdatePage) {
+            throw new Error("Permission denied");
+          }
+        } else {
+          if (!canCreatePage) {
+            throw new Error("Permission denied");
+          }
+        }
+
         // Get user name from activeResidents first, then from recent array, then from payload
         let userName = payload.service_user_name || null;
 
@@ -613,7 +666,7 @@ const [deleting, setDeleting] = useState(false);
         throw err;
       }
     },
-    [api, activeResidents, editing, recent]
+    [api, activeResidents, editing, recent, canCreatePage, canUpdatePage]
   );
 
   function handleOutCreated(saved) {
@@ -639,6 +692,28 @@ const [deleting, setDeleting] = useState(false);
     }
     setShowOutModal(false);
     setEditing(null);
+  }
+
+  if (permissionsLoading) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="min-h-[40vh] flex items-center justify-center text-sm text-gray-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canReadPage) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-700">
+            You do not have permission to view Move-In/Out.
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -669,33 +744,37 @@ const [deleting, setDeleting] = useState(false);
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowModal(true)}
-              className="
-    bg-teal-400
-    hover:bg-teal-500
-    active:bg-teal-600
-    text-white
-    px-5 py-2.5
-    rounded-lg
-    shadow-sm
-    hover:shadow-md
-    font-medium
-    flex items-center gap-2
-    transition-all duration-200
-  "
-            >
-              <IconMoveIn size={18} />
-              Process Move-In
-            </button>
+            {canCreatePage && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="
+      bg-teal-400
+      hover:bg-teal-500
+      active:bg-teal-600
+      text-white
+      px-5 py-2.5
+      rounded-lg
+      shadow-sm
+      hover:shadow-md
+      font-medium
+      flex items-center gap-2
+      transition-all duration-200
+    "
+              >
+                <IconMoveIn size={18} />
+                Process Move-In
+              </button>
+            )}
 
-            <button
-              onClick={() => setShowOutModal(true)}
-              className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 px-5 py-2.5 rounded-lg shadow-sm font-medium flex items-center gap-2 transition-all duration-200"
-            >
-              <IconMoveOut size={18} />
-              Process Move-Out
-            </button>
+            {canCreatePage && (
+              <button
+                onClick={() => setShowOutModal(true)}
+                className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 px-5 py-2.5 rounded-lg shadow-sm font-medium flex items-center gap-2 transition-all duration-200"
+              >
+                <IconMoveOut size={18} />
+                Process Move-Out
+              </button>
+            )}
           </div>
         </div>
 
@@ -1010,33 +1089,33 @@ const [deleting, setDeleting] = useState(false);
                                 <IconEye size={18} />
                               </button>
 
-                              <button
-                                onClick={() => {
-                                  setEditing(r);
-                                  setShowModal(true);
-                                }}
-                                className="group relative p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
-                                title="Edit Record"
-                              >
-                                <IconEdit size={18} />
-                              </button>
+                              {canUpdatePage && (
+                                <button
+                                  onClick={() => {
+                                    setEditing(r);
+                                    setShowModal(true);
+                                  }}
+                                  className="group relative p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                                  title="Edit Record"
+                                >
+                                  <IconEdit size={18} />
+                                </button>
+                              )}
 
-                              <button
-                               onClick={() => {
-                                 setDeleteId(r.id);
-                                 setDeleteType("move-in");
-                                 setShowDeleteModal(true);
-                               }}
-                               className="group relative p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
-                               title="Delete Record"
+                              {canDeletePage && (
+                                <button
+                                  onClick={() => {
+                                    setDeleteId(r.id);
+                                    setDeleteType("move-in");
+                                    setShowDeleteModal(true);
+                                  }}
+                                  className="group relative p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                                  title="Delete Record"
                                 >
                                   <IconTrash size={16} />
                                   <span className="text-sm font-medium hidden lg:inline">Delete</span>
                                 </button>
-
-
-
-
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1100,27 +1179,31 @@ const [deleting, setDeleting] = useState(false);
                             </div>
                             <div className="h-8 w-px bg-slate-100"></div>
                             <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => {
-                                  setEditing(r);
-                                  setShowOutModal(true);
-                                }}
-                                className="group relative p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
-                                title="Edit Record"
-                              >
-                                <IconEdit size={18} />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDeleteId(r.id);
-                                  setDeleteType("move-out");
-                                  setShowDeleteModal(true);
-                                }}
-                                className="group relative p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
-                                title="Delete Record"
-                               >
-                                 <IconTrash size={18} />
-                               </button>
+                              {canUpdatePage && (
+                                <button
+                                  onClick={() => {
+                                    setEditing(r);
+                                    setShowOutModal(true);
+                                  }}
+                                  className="group relative p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                                  title="Edit Record"
+                                >
+                                  <IconEdit size={18} />
+                                </button>
+                              )}
+                              {canDeletePage && (
+                                <button
+                                  onClick={() => {
+                                    setDeleteId(r.id);
+                                    setDeleteType("move-out");
+                                    setShowDeleteModal(true);
+                                  }}
+                                  className="group relative p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                                  title="Delete Record"
+                                 >
+                                   <IconTrash size={18} />
+                                 </button>
+                              )}
 
                             </div>
                           </div>

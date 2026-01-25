@@ -285,7 +285,18 @@ app.get("/api/health", async (req, res) => {
     health.status = "DEGRADED"; // Still up but DB is down
   }
 
-  res.status(health.status === "UP" ? 200 : 503).json(health);
+  res.status(200).json(health);
+});
+
+app.get("/api/ready", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT 1 as connected");
+    const ok = result.rows && result.rows[0] && result.rows[0].connected === 1;
+    if (!ok) return res.status(503).json({ status: "NOT_READY", database: "DOWN" });
+    return res.status(200).json({ status: "READY", database: "UP" });
+  } catch (err) {
+    return res.status(503).json({ status: "NOT_READY", database: "DOWN" });
+  }
 });
 
 // explicit API 404 (logged)

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { usePermissions } from "../hooks/usePermissions";
 
 /**
  * Build a list of candidate API bases.
@@ -41,13 +42,27 @@ const createApi = (baseURL) =>
     withCredentials: true,
   });
 
-export default function ServiceUsersList() {
+export default function ServiceUsersList({ user, openAddModal = false }) {
   const [users, setUsers] = useState([]);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const apiRef = useRef(createApi(candidateBases[0]));
   const [apiBase, setApiBase] = useState(candidateBases[0]);
+
+  const MODULE_KEY = 'su_data';
+  const {
+    loading: permissionsLoading,
+    canRead,
+    canCreate,
+    canUpdate,
+    canDelete
+  } = usePermissions(user);
+
+  const canReadSU = canRead(MODULE_KEY);
+  const canCreateSU = canCreate(MODULE_KEY);
+  const canUpdateSU = canUpdate(MODULE_KEY);
+  const canDeleteSU = canDelete(MODULE_KEY);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState(null);
@@ -145,6 +160,13 @@ export default function ServiceUsersList() {
     };
   }, []);
 
+  useEffect(() => {
+    if (openAddModal && canCreateSU) {
+      resetForm();
+      setIsModalOpen(true);
+    }
+  }, [openAddModal, canCreateSU]);
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -234,6 +256,15 @@ export default function ServiceUsersList() {
   };
 
   const handleEditUser = async (user) => {
+    if (!canUpdateSU) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to update service users.',
+        type: 'warning'
+      });
+      return;
+    }
     try {
       const formatDateForInput = (dateString) => {
         if (!dateString) return "";
@@ -290,6 +321,15 @@ export default function ServiceUsersList() {
   };
 
   const handleDeleteUser = async (userId) => {
+    if (!canDeleteSU) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to delete service users.',
+        type: 'warning'
+      });
+      return;
+    }
     setConfirmDialog({
       isOpen: true,
       title: 'Delete User',
@@ -327,6 +367,17 @@ export default function ServiceUsersList() {
   };
 
   const handleDeleteUserConfirm = async () => {
+    if (!canDeleteSU) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to delete service users.',
+        type: 'warning'
+      });
+      setShowDeleteModal(false);
+      setDeleteUserId(null);
+      return;
+    }
     if (!deleteUserId) return;
 
     try {
@@ -405,11 +456,32 @@ export default function ServiceUsersList() {
 
   const handleSubmitUser = async (e) => {
     e.preventDefault();
+
+    if (formData.id) {
+      if (!canUpdateSU) {
+        setAlertDialog({
+          isOpen: true,
+          title: 'Permission Denied',
+          message: 'You do not have permission to update service users.',
+          type: 'warning'
+        });
+        return;
+      }
+    } else {
+      if (!canCreateSU) {
+        setAlertDialog({
+          isOpen: true,
+          title: 'Permission Denied',
+          message: 'You do not have permission to create service users.',
+          type: 'warning'
+        });
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
-      const selectedHotel = hotels.find(
-        (h) => String(h.id) === String(formData.hotel_id)
-      );
+      const selectedHotel = hotels.find((h) => String(h.id) === String(formData.hotel_id));
 
       const cleanDob = formData.date_of_birth || formData.dob || null;
       const cleanAdmission = formData.admission_date || null;
@@ -564,6 +636,24 @@ export default function ServiceUsersList() {
     resetForm();
   };
 
+  if (permissionsLoading) {
+    return (
+      <div className="p-6 bg-[#F8FAFC] min-h-screen relative font-sans">
+        <div className="min-h-[40vh] flex items-center justify-center text-sm text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!canReadSU) {
+    return (
+      <div className="p-6 bg-[#F8FAFC] min-h-screen relative font-sans">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-700">
+          You do not have permission to view Service Users.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 bg-[#F8FAFC] min-h-screen relative font-sans">
       {/* HEADER */}
@@ -587,27 +677,29 @@ export default function ServiceUsersList() {
           </div>
         </div>
         <div>
-          <button
-            onClick={() => {
-              resetForm();
-              setIsModalOpen(true);
-            }}
-            className="
-      flex items-center gap-2
-      bg-teal-400
-      hover:bg-teal-500
-      active:bg-teal-600
-      text-white
-      px-5 py-2.5
-      rounded-lg
-      text-sm font-semibold
-      transition-colors
-      shadow-sm
-    "
-          >
-            <span className="text-lg leading-none">+</span>
-            Add Service User
-          </button>
+          {canCreateSU && (
+            <button
+              onClick={() => {
+                resetForm();
+                setIsModalOpen(true);
+              }}
+              className="
+        flex items-center gap-2
+        bg-teal-400
+        hover:bg-teal-500
+        active:bg-teal-600
+        text-white
+        px-5 py-2.5
+        rounded-lg
+        text-sm font-semibold
+        transition-colors
+        shadow-sm
+      "
+            >
+              <span className="text-lg leading-none">+</span>
+              Add Service User
+            </button>
+          )}
         </div>
       </div>
 
@@ -841,6 +933,7 @@ export default function ServiceUsersList() {
                         e.stopPropagation();
                         handleEditUser(user);
                       }}
+                      disabled={!canUpdateSU}
                       className="flex items-center gap-1.5 px-3.5 py-1.75 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors"
                       title="Edit User"
                     >
@@ -860,10 +953,19 @@ export default function ServiceUsersList() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (!canDeleteSU) {
+                          setAlertDialog({
+                            isOpen: true,
+                            title: 'Permission Denied',
+                            message: 'You do not have permission to delete service users.',
+                            type: 'warning'
+                          });
+                          return;
+                        }
                         setDeleteUserId(user.id);
                         setShowDeleteModal(true);
                       }}
-
+                      disabled={!canDeleteSU}
                       className="flex items-center gap-1.5 px-3.5 py-1.75 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors"
                       title="Delete User"
                     >
