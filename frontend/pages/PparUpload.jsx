@@ -2,7 +2,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import * as XLSX from "xlsx";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import { Download, Upload, Check, AlertCircle } from "lucide-react";
 
@@ -89,6 +88,25 @@ function normalizeHotelsResponse(data) {
       return { id, name, address };
     })
     .filter((x) => x.id && x.name);
+}
+
+function toCsvCell(value) {
+  const s = String(value ?? "");
+  const escaped = s.replace(/"/g, '""');
+  if (/[\n\r,\"]/g.test(escaped)) return `"${escaped}"`;
+  return escaped;
+}
+
+function downloadTextFile(filename, text, mime = "text/plain;charset=utf-8") {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export default function PPARFileUpload() {
@@ -429,7 +447,7 @@ export default function PPARFileUpload() {
   const openReportModal = () => setShowModal(true);
 
   // Generate and download sample PPAR file
-  const downloadSampleFile = () => {
+  const downloadSample = () => {
     const sampleData = [
       {
         Floor: "1",
@@ -478,10 +496,12 @@ export default function PPARFileUpload() {
       },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(sampleData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Rooms");
-    XLSX.writeFile(wb, "PPAR_Sample.xlsx");
+    const headers = Object.keys(sampleData[0] || {});
+    const lines = [headers.map(toCsvCell).join(",")];
+    for (const row of sampleData) {
+      lines.push(headers.map((h) => toCsvCell(row[h])).join(","));
+    }
+    downloadTextFile("PPAR_Sample.csv", lines.join("\n"), "text/csv;charset=utf-8");
   };
 
   // Parse and process uploaded file
@@ -492,15 +512,20 @@ export default function PPARFileUpload() {
       setUploading(true);
       setUploadProgress(0);
 
+      if (!file.name.endsWith('.csv')) {
+        setAlertDialog({
+          isOpen: true,
+          title: 'Unsupported File',
+          message: 'Please upload a .csv file.',
+          type: 'warning'
+        });
+        return;
+      }
+
       let data = [];
       
       // Determine file type and parse accordingly
-      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-        const arrayBuffer = await file.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        data = XLSX.utils.sheet_to_json(worksheet);
-      } else if (file.name.endsWith('.csv')) {
+      if (file.name.endsWith('.csv')) {
         const text = await file.text();
         const lines = text.split('\n');
         const headers = lines[0].split(',').map(h => h.trim());
@@ -513,6 +538,14 @@ export default function PPARFileUpload() {
           });
           data.push(row);
         }
+      } else {
+        setAlertDialog({
+          isOpen: true,
+          title: 'Unsupported File',
+          message: 'Please upload a .csv file.',
+          type: 'warning'
+        });
+        return;
       }
 
       if (data.length === 0) {
@@ -646,7 +679,7 @@ export default function PPARFileUpload() {
               <input
                 type="file"
                 id="ppar-file"
-                accept=".xlsx,.xls,.csv"
+                accept=".csv"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   setSelectedFile(file || null);
@@ -662,7 +695,7 @@ export default function PPARFileUpload() {
                       Click to select file or drag and drop
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Supported: .xlsx, .xls, .csv
+                      Supported: .csv
                     </p>
                   </div>
                 </div>

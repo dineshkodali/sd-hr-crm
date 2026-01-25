@@ -216,9 +216,29 @@ export default function Bookings({ user }) {
       // Fetch rooms to get room details
       let allRooms = mockRooms; // Use mock rooms as fallback
       try {
-        const roomsResponse = await api.get('/api/hotels/rooms');
-        if (Array.isArray(roomsResponse.data?.rooms)) {
-          allRooms = roomsResponse.data.rooms;
+        const propertyIds = Array.from(
+          new Set(
+            serviceUsers
+              .map((s) => s.property_id)
+              .concat(moveIns.map((m) => m.property_id))
+              .filter((v) => v !== null && v !== undefined && v !== "")
+              .map((v) => String(v))
+          )
+        );
+
+        const roomsMerged = [];
+        for (const pid of propertyIds) {
+          try {
+            const roomsResponse = await api.get(`/api/hotels/${encodeURIComponent(pid)}/rooms`);
+            const list =
+              (roomsResponse.data?.rooms ?? roomsResponse.data?.data ?? roomsResponse.data) || [];
+            if (Array.isArray(list)) roomsMerged.push(...list);
+          } catch {
+            // ignore
+          }
+        }
+        if (roomsMerged.length > 0) {
+          allRooms = roomsMerged;
         }
       } catch (err) {
       }
@@ -342,17 +362,33 @@ export default function Bookings({ user }) {
     setShowViewModal(true);
   };
 
+  const normalizeDateInput = (value) => {
+    if (!value) return "";
+    if (typeof value === "string") {
+      // already YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+      // ISO string -> YYYY-MM-DD
+      if (value.includes("T")) return value.slice(0, 10);
+    }
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toISOString().slice(0, 10);
+  };
+
   const handleEdit = (booking) => {
     setSelectedBooking(booking);
+    if (booking?.property_id) {
+      handlePropertyChange(String(booking.property_id));
+    }
     setFormData({
       first_name: booking.first_name || '',
       last_name: booking.last_name || '',
-      date_of_birth: booking.date_of_birth || '',
+      date_of_birth: normalizeDateInput(booking.date_of_birth),
       nationality: booking.nationality || '',
       home_office_reference: booking.home_office_reference || '',
       property_id: booking.property_id || '',
       room_id: booking.room_id || '',
-      check_in_date: booking.check_in || '',
+      check_in_date: normalizeDateInput(booking.check_in),
       vulnerabilities: booking.vulnerabilities || '',
       medical_conditions: booking.medical_conditions || '',
       dietary_requirements: booking.dietary_requirements || ''
@@ -1239,7 +1275,7 @@ export default function Bookings({ user }) {
 
       {/* View Modal */}
       {showViewModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
               <div>
@@ -1338,7 +1374,7 @@ export default function Bookings({ user }) {
 
       {/* Edit Modal */}
       {showEditModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
               <div>
@@ -1357,22 +1393,44 @@ export default function Bookings({ user }) {
               e.preventDefault();
               setError(null);
 
+              if (!formData.first_name || !formData.last_name || !formData.date_of_birth ||
+                !formData.nationality || !formData.property_id || !formData.room_id ||
+                !formData.check_in_date) {
+                setError('Please fill in all required fields');
+                return;
+              }
+
               try {
                 setSubmitting(true);
+
+                const safePropertyId = String(formData.property_id);
+                const safeRoomId = String(formData.room_id);
+                const safeDob = normalizeDateInput(formData.date_of_birth);
+                const safeCheckIn = normalizeDateInput(formData.check_in_date);
+                const selectedRoomObj = (Array.isArray(rooms) ? rooms : []).find(
+                  (r) => String(r.id) === String(safeRoomId)
+                );
+                const safeRoomNumber =
+                  selectedRoomObj?.room_number ??
+                  selectedRoomObj?.number ??
+                  selectedRoomObj?.name ??
+                  null;
 
                 // Step 1: Update service user with all fields
                 if (selectedBooking.service_user_id) {
                   const updateSuData = {
                     first_name: formData.first_name,
                     last_name: formData.last_name,
-                    date_of_birth: formData.date_of_birth,
+                    date_of_birth: safeDob,
                     nationality: formData.nationality,
                     home_office_reference: formData.home_office_reference,
                     vulnerabilities: formData.vulnerabilities || null,
                     medical_conditions: formData.medical_conditions || null,
                     dietary_requirements: formData.dietary_requirements || null,
-                    property_id: parseInt(formData.property_id),
-                    room_id: parseInt(formData.room_id),
+                    property_id: safePropertyId,
+                    room_id: safeRoomId,
+                    room_number: safeRoomNumber,
+                    admission_date: safeCheckIn,
                     updated_by: user?.id || user?.user_id || null
                   };
 
@@ -1382,9 +1440,9 @@ export default function Bookings({ user }) {
                 // Step 2: Update move-in record if room/property changed
                 if (selectedBooking.move_in_id) {
                   const updateMoveInData = {
-                    room_id: parseInt(formData.room_id),
-                    property_id: parseInt(formData.property_id),
-                    move_in_date: formData.check_in_date,
+                    room_id: safeRoomId,
+                    property_id: safePropertyId,
+                    move_in_date: safeCheckIn,
                     updated_by: user?.id || user?.user_id || null
                   };
 
@@ -1393,9 +1451,9 @@ export default function Bookings({ user }) {
                   // If no move-in record exists, create one
                   const moveInData = {
                     service_user_id: selectedBooking.service_user_id,
-                    room_id: parseInt(formData.room_id),
-                    property_id: parseInt(formData.property_id),
-                    move_in_date: formData.check_in_date,
+                    room_id: safeRoomId,
+                    property_id: safePropertyId,
+                    move_in_date: safeCheckIn,
                     status: 'Active'
                   };
                   await api.post('/api/move-ins', moveInData);

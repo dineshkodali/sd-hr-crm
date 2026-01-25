@@ -1,5 +1,5 @@
 /* src/pages/RoomsManager.jsx */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -16,6 +16,49 @@ export default function RoomsManager({ user }) {
   const [hotel, setHotel] = useState(null);
   const [saving, setSaving] = useState(false);
   const [extraColumns, setExtraColumns] = useState([]);
+  const [customDropdownOptions, setCustomDropdownOptions] = useState({});
+  const [customDropdownDraft, setCustomDropdownDraft] = useState({});
+  const [openMultiDropdown, setOpenMultiDropdown] = useState(null);
+  const inventoryDropdownRef = useRef(null);
+
+  const isInventoryColumn = (colName) => String(colName || "").toLowerCase() === "inventory";
+
+  const parseMultiValue = (raw) => {
+    if (raw === null || raw === undefined || raw === "") return [];
+    if (Array.isArray(raw)) return raw.map((x) => String(x)).filter(Boolean);
+    const s = String(raw);
+    try {
+      // Handle JSON arrays stored as strings
+      if (s.trim().startsWith("[") && s.trim().endsWith("]")) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed)) return parsed.map((x) => String(x)).filter(Boolean);
+      }
+    } catch {
+      // ignore
+    }
+    return s
+      .split(",")
+      .map((x) => String(x).trim())
+      .filter(Boolean);
+  };
+
+  const toStorageValue = (val, col) => {
+    if (!isInventoryColumn(col?.column_name)) return val;
+    const arr = Array.isArray(val) ? val.map((x) => String(x)).filter(Boolean) : parseMultiValue(val);
+    const dt = String(col?.data_type || "").toUpperCase();
+    const isJson = dt === "JSON" || dt === "JSONB";
+    return isJson ? arr : arr.join(", ");
+  };
+
+  useEffect(() => {
+    const onDown = (e) => {
+      if (!openMultiDropdown) return;
+      if (inventoryDropdownRef.current && inventoryDropdownRef.current.contains(e.target)) return;
+      setOpenMultiDropdown(null);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [openMultiDropdown]);
 
   const totalBeds = Number(hotel?.total_beds ?? hotel?.total_bed ?? 0);
   const occupiedBeds = Number(hotel?.occupied_beds ?? hotel?.occupied ?? 0);
@@ -66,6 +109,21 @@ export default function RoomsManager({ user }) {
       const standard = ['id', 'hotel_id', 'room_number', 'type', 'rate', 'floor', 'status', 'created_at', 'updated_at', 'created_by'];
       const custom = cols.filter(c => !standard.includes(c.column_name));
       setExtraColumns(custom);
+
+      // Load custom dropdown options from localStorage for specific columns (e.g., Inventory)
+      const nextCustom = {};
+      (custom || []).forEach((c) => {
+        if (!isInventoryColumn(c.column_name)) return;
+        try {
+          const key = `roomsManager.customOptions.${String(c.column_name)}`;
+          const raw = localStorage.getItem(key);
+          const parsed = raw ? JSON.parse(raw) : [];
+          if (Array.isArray(parsed)) nextCustom[c.column_name] = parsed.map(String).filter(Boolean);
+        } catch {
+          // ignore
+        }
+      });
+      setCustomDropdownOptions((prev) => ({ ...prev, ...nextCustom }));
     } catch (err) {
       console.error("Failed to fetch custom columns:", err);
     }
@@ -105,7 +163,7 @@ export default function RoomsManager({ user }) {
           const isBoolColumn = String(col.data_type || '').toUpperCase() === 'BOOLEAN';
           payload[col.column_name] = isBoolColumn ? boolVal : (boolVal ? 'true' : 'false');
         } else {
-          payload[col.column_name] = v;
+          payload[col.column_name] = toStorageValue(v, col);
         }
       });
       const res = await axios.post(`/api/hotels/${hotelId}/rooms`, payload);
@@ -138,6 +196,8 @@ export default function RoomsManager({ user }) {
       const raw = r[col.column_name];
       if (t === 'checkbox' || t === 'switch') {
         nextForm[col.column_name] = raw === true || String(raw) === 'true';
+      } else if (t === 'dropdown' && isInventoryColumn(col.column_name)) {
+        nextForm[col.column_name] = parseMultiValue(raw);
       } else {
         nextForm[col.column_name] = (raw !== undefined && raw !== null) ? String(raw) : "";
       }
@@ -171,7 +231,7 @@ export default function RoomsManager({ user }) {
           const isBoolColumn = String(col.data_type || '').toUpperCase() === 'BOOLEAN';
           payload[col.column_name] = isBoolColumn ? boolVal : (boolVal ? 'true' : 'false');
         } else {
-          payload[col.column_name] = v;
+          payload[col.column_name] = toStorageValue(v, col);
         }
       });
       // IMPORTANT: use the hotel-scoped route for editing
@@ -402,23 +462,149 @@ export default function RoomsManager({ user }) {
                         );
                       })()
                     ) : String(col.input_type || '').toLowerCase() === 'dropdown' ? (
-                      <select
-                        value={form[col.column_name] ?? ""}
-                        onChange={(e) => setForm({ ...form, [col.column_name]: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#f0faf9] border border-[#d3f1ec] rounded-xl focus:border-teal-500 focus:ring-2 focus:ring-[#d3f1ec] text-slate-700 transition-all outline-none"
-                      >
-                        <option value="">Select...</option>
-                        {(Array.isArray(col.input_options) ? col.input_options : []).map((opt, i) => {
-                          const v = typeof opt === 'string' ? opt : (opt?.value ?? opt?.label ?? '');
-                          const label = typeof opt === 'string' ? opt : (opt?.label ?? opt?.value ?? '');
-                          if (!String(v).trim()) return null;
+                      isInventoryColumn(col.column_name) ? (
+                        (() => {
+                          const baseOpts = (Array.isArray(col.input_options) ? col.input_options : [])
+                            .map((opt) => (typeof opt === 'string' ? opt : (opt?.value ?? opt?.label ?? '')))
+                            .map((v) => String(v ?? '').trim())
+                            .filter(Boolean);
+                          const addedOpts = (customDropdownOptions[col.column_name] || []).map((v) => String(v).trim()).filter(Boolean);
+                          const optSet = new Set([...baseOpts, ...addedOpts]);
+                          const options = Array.from(optSet);
+                          const selected = Array.isArray(form[col.column_name]) ? form[col.column_name] : parseMultiValue(form[col.column_name]);
+                          const displayValue = selected.length ? selected.join(", ") : "";
+
                           return (
-                            <option key={`${v}-${i}`} value={v}>
-                              {label}
-                            </option>
+                            <div className="space-y-2" ref={inventoryDropdownRef}>
+                              <div className="relative">
+                                <input
+                                  readOnly
+                                  value={displayValue}
+                                  onClick={() => setOpenMultiDropdown((p) => (p === col.column_name ? null : col.column_name))}
+                                  placeholder="Select..."
+                                  className="w-full px-4 py-3 bg-[#f0faf9] border border-[#d3f1ec] rounded-xl focus:border-teal-500 focus:ring-2 focus:ring-[#d3f1ec] text-slate-700 placeholder-slate-400 transition-all outline-none cursor-pointer"
+                                />
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                  ▾
+                                </div>
+
+                                {openMultiDropdown === col.column_name && (
+                                  <div className="absolute z-20 mt-2 w-full rounded-xl border border-[#d3f1ec] bg-white shadow-lg overflow-hidden">
+                                    <div className="max-h-56 overflow-auto">
+                                      {options.length === 0 ? (
+                                        <div className="px-4 py-3 text-sm text-slate-500">No options</div>
+                                      ) : (
+                                        options.map((v, i) => {
+                                          const checked = selected.some((x) => String(x) === String(v));
+                                          return (
+                                            <button
+                                              key={`${v}-${i}`}
+                                              type="button"
+                                              onClick={() => {
+                                                const exists = checked;
+                                                const next = exists
+                                                  ? selected.filter((x) => String(x) !== String(v))
+                                                  : [...selected, v];
+                                                setForm({ ...form, [col.column_name]: next });
+                                              }}
+                                              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-teal-50 transition-colors"
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                readOnly
+                                                className="h-4 w-4 accent-teal-600"
+                                              />
+                                              <span className="text-sm text-slate-700">{v}</span>
+                                            </button>
+                                          );
+                                        })
+                                      )}
+                                    </div>
+
+                                    <div className="border-t border-[#d3f1ec] p-3 bg-[#f0faf9]">
+                                      <div className="flex items-center gap-2">
+                                        <input
+                                          value={customDropdownDraft[col.column_name] || ""}
+                                          onChange={(e) => setCustomDropdownDraft((p) => ({ ...p, [col.column_name]: e.target.value }))}
+                                          placeholder="Add option..."
+                                          className="flex-1 px-3 py-2 bg-white border border-[#d3f1ec] rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-[#d3f1ec] text-slate-700 placeholder-slate-400 transition-all outline-none"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const nextVal = String(customDropdownDraft[col.column_name] || "").trim();
+                                            if (!nextVal) return;
+                                            setCustomDropdownOptions((prev) => {
+                                              const existing = prev[col.column_name] || [];
+                                              const set = new Set(existing.map((x) => String(x).trim()).filter(Boolean));
+                                              set.add(nextVal);
+                                              const next = { ...prev, [col.column_name]: Array.from(set) };
+                                              try {
+                                                const key = `roomsManager.customOptions.${String(col.column_name)}`;
+                                                localStorage.setItem(key, JSON.stringify(next[col.column_name]));
+                                              } catch {
+                                                // ignore
+                                              }
+                                              return next;
+                                            });
+                                            setCustomDropdownDraft((p) => ({ ...p, [col.column_name]: "" }));
+                                          }}
+                                          className="px-3 py-2 rounded-lg font-semibold bg-teal-700 hover:bg-teal-800 text-white transition-colors"
+                                        >
+                                          Add
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {selected.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {selected.map((v) => (
+                                    <span
+                                      key={v}
+                                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-100 text-xs font-semibold"
+                                    >
+                                      {v}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const next = selected.filter((x) => String(x) !== String(v));
+                                          setForm({ ...form, [col.column_name]: next });
+                                        }}
+                                        className="text-teal-700/70 hover:text-teal-900"
+                                        aria-label="Remove"
+                                      >
+                                        ×
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
                           );
-                        })}
-                      </select>
+                        })()
+                      ) : (
+                        <select
+                          value={form[col.column_name] ?? ""}
+                          onChange={(e) => setForm({ ...form, [col.column_name]: e.target.value })}
+                          className="w-full px-4 py-3 bg-[#f0faf9] border border-[#d3f1ec] rounded-xl focus:border-teal-500 focus:ring-2 focus:ring-[#d3f1ec] text-slate-700 transition-all outline-none"
+                        >
+                          <option value="">Select...</option>
+                          {(Array.isArray(col.input_options) ? col.input_options : []).map((opt, i) => {
+                            const v = typeof opt === 'string' ? opt : (opt?.value ?? opt?.label ?? '');
+                            const label = typeof opt === 'string' ? opt : (opt?.label ?? opt?.value ?? '');
+                            if (!String(v).trim()) return null;
+                            return (
+                              <option key={`${v}-${i}`} value={v}>
+                                {label}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      )
                     ) : (String(col.input_type || '').toLowerCase() === 'checkbox' || String(col.input_type || '').toLowerCase() === 'switch') ? (
                       <label className="inline-flex items-center gap-3 select-none">
                         <input

@@ -47,6 +47,18 @@ export default function MoveInOutPage({ user }) {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailRecord, setDetailRecord] = useState(null);
 
+  useEffect(() => {
+    const shouldHide = Boolean(showModal || showOutModal);
+    try {
+      document.body.classList.toggle("form-modal-open", shouldHide);
+    } catch { }
+    return () => {
+      try {
+        document.body.classList.remove("form-modal-open");
+      } catch { }
+    };
+  }, [showModal, showOutModal]);
+
   const [hotels, setHotels] = useState([]);
   const [serviceUsers, setServiceUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -360,6 +372,14 @@ const [deleting, setDeleting] = useState(false);
           ? sus.map((s) => ({
               id: s.id,
               name: s.first_name ?? s.name ?? `${s.id}`,
+              propertyId:
+                s.hotel_id ??
+                s.property_id ??
+                s.hotelId ??
+                s.propertyId ??
+                s.hotel ??
+                s.property ??
+                "",
             }))
           : []
       );
@@ -1233,6 +1253,8 @@ const [deleting, setDeleting] = useState(false);
           hotels={hotels}
           serviceUsers={serviceUsers}
           rooms={rooms}
+          recent={recent}
+          moveOuts={moveOuts}
           onClose={() => {
             setShowModal(false);
             setEditing(null);
@@ -1617,6 +1639,8 @@ function MoveInModal({
   serviceUsers = [],
   rooms = [],
   bedspaces = [],
+  recent = [],
+  moveOuts = [],
   onClose = () => {},
   onCreate = () => {},
   fetchRooms = async () => [],
@@ -1664,6 +1688,114 @@ function MoveInModal({
 
   const checklistItems = MOVE_IN_CHECKLIST_ITEMS;
 
+  const api = useMemo(
+    () =>
+      axios.create({
+        baseURL: import.meta.env.VITE_API_URL || "",
+        withCredentials: true,
+        timeout: 15000,
+      }),
+    []
+  );
+
+  const [roomCapacity, setRoomCapacity] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadRoomCapacity() {
+      if (!form.propertyId || !form.roomId) {
+        if (mounted) setRoomCapacity(null);
+        return;
+      }
+      try {
+        const res = await api.get(
+          `/api/hotels/${encodeURIComponent(form.propertyId)}/rooms/${encodeURIComponent(form.roomId)}`
+        );
+        const room = res?.data || {};
+        const cap =
+          room.bedspaces ??
+          room.bedspace_count ??
+          room.capacity ??
+          room.total_bedspaces ??
+          null;
+        const n = cap === null || cap === undefined ? null : Number(cap);
+        if (mounted) setRoomCapacity(Number.isFinite(n) ? n : null);
+      } catch (err) {
+        if (mounted) setRoomCapacity(null);
+      }
+    }
+    loadRoomCapacity();
+    return () => {
+      mounted = false;
+    };
+  }, [api, form.propertyId, form.roomId]);
+
+  const availableBedspacesForRoom = useMemo(() => {
+    if (!form.roomId) return [];
+
+    const movedOutIds = new Set(
+      (Array.isArray(moveOuts) ? moveOuts : []).map((o) =>
+        String(o.service_user_id || o.serviceUserId).toLowerCase()
+      )
+    );
+
+    const activeMoveIns = (Array.isArray(recent) ? recent : []).filter((r) => {
+      const suId = String(r.service_user_id || r.serviceUserId).toLowerCase();
+      return !movedOutIds.has(suId);
+    });
+
+    const occupiedBedspaceIds = new Set(
+      activeMoveIns
+        .filter((r) => String(r.room_id || r.roomId) === String(form.roomId))
+        .map((r) => r.bedspace_id || r.bedspaceId)
+        .filter(Boolean)
+        .map((id) => String(id))
+    );
+
+    return (Array.isArray(bedspaces) ? bedspaces : []).filter(
+      (b) => !occupiedBedspaceIds.has(String(b.id))
+    );
+  }, [form.roomId, bedspaces, recent, moveOuts]);
+
+  const availableSlotsCount = useMemo(() => {
+    if (!form.roomId) return 0;
+
+    const movedOutIds = new Set(
+      (Array.isArray(moveOuts) ? moveOuts : []).map((o) =>
+        String(o.service_user_id || o.serviceUserId).toLowerCase()
+      )
+    );
+
+    const activeMoveIns = (Array.isArray(recent) ? recent : []).filter((r) => {
+      const suId = String(r.service_user_id || r.serviceUserId).toLowerCase();
+      return !movedOutIds.has(suId);
+    });
+
+    const occupiedCount = activeMoveIns.filter(
+      (r) => String(r.room_id || r.roomId) === String(form.roomId)
+    ).length;
+
+    const cap = Number(roomCapacity);
+    if (!Number.isFinite(cap) || cap <= 0) return 0;
+
+    const free = cap - occupiedCount;
+    return free > 0 ? free : 0;
+  }, [form.roomId, recent, moveOuts, roomCapacity]);
+
+  const bedspaceOptions = useMemo(() => {
+    if (!form.roomId) return [];
+    if (availableBedspacesForRoom.length > 0) {
+      return availableBedspacesForRoom.map((b) => ({ value: String(b.id), label: b.name }));
+    }
+    if (availableSlotsCount > 0) {
+      return Array.from({ length: availableSlotsCount }, (_, i) => {
+        const n = i + 1;
+        return { value: String(n), label: `Bedspace ${n}` };
+      });
+    }
+    return [];
+  }, [form.roomId, availableBedspacesForRoom, availableSlotsCount]);
+
   useEffect(() => {
     if (form.propertyId) {
       fetchRooms(form.propertyId);
@@ -1690,6 +1822,20 @@ function MoveInModal({
   }
 
   function handleChange(field, value) {
+    if (field === "serviceUserId") {
+      const su = (Array.isArray(serviceUsers) ? serviceUsers : []).find(
+        (s) => String(s.id) === String(value)
+      );
+      const nextPropertyId = su?.propertyId ? String(su.propertyId) : "";
+      setForm((f) => ({
+        ...f,
+        serviceUserId: value,
+        propertyId: nextPropertyId,
+        roomId: "",
+        bedspaceId: "",
+      }));
+      return;
+    }
     if (field === "propertyId") {
       setForm((f) => ({ ...f, propertyId: value, roomId: "" }));
       return;
@@ -1875,15 +2021,14 @@ function MoveInModal({
                   className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 transition-all"
                   value={form.bedspaceId}
                   onChange={(e) => handleChange("bedspaceId", e.target.value)}
-                  disabled={!form.roomId}
+                  disabled={!form.roomId || bedspaceOptions.length === 0}
                 >
                   <option value="">Select bedspace</option>
-                  {Array.isArray(bedspaces) &&
-                    bedspaces.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
-                    ))}
+                  {bedspaceOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -2036,7 +2181,7 @@ function MoveOutModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-opacity mt-15">
-      <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-start p-6 border-b border-slate-100 bg-slate-50/30">
           <div>
             <h2 className="text-xl font-bold text-slate-800">
@@ -2068,56 +2213,58 @@ function MoveOutModal({
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
           <form id="moveOutForm" onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Resident
-              </label>
-              <select
-                required
-                disabled={initialRecord}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 transition-all disabled:bg-slate-50 disabled:text-slate-500"
-                value={form.serviceUserId}
-                onChange={(e) => {
-                  const selectedUser = activeResidents.find(
-                    (r) => String(r.id) === String(e.target.value)
-                  );
-                  setForm({
-                    ...form,
-                    serviceUserId: e.target.value,
-                    service_user_name: selectedUser?.name || "",
-                  });
-                }}
-              >
-                <option value="">Select resident</option>
-                {activeResidents.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Resident
+                </label>
+                <select
+                  required
+                  disabled={initialRecord}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 transition-all disabled:bg-slate-50 disabled:text-slate-500"
+                  value={form.serviceUserId}
+                  onChange={(e) => {
+                    const selectedUser = activeResidents.find(
+                      (r) => String(r.id) === String(e.target.value)
+                    );
+                    setForm({
+                      ...form,
+                      serviceUserId: e.target.value,
+                      service_user_name: selectedUser?.name || "",
+                    });
+                  }}
+                >
+                  <option value="">Select resident</option>
+                  {activeResidents.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Move-Out Date
-              </label>
-              <input
-                type="date"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 transition-all"
-                value={form.moveOutDate}
-                onChange={(e) =>
-                  setForm({ ...form, moveOutDate: e.target.value })
-                }
-              />
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Move-Out Date
+                </label>
+                <input
+                  type="date"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 transition-all"
+                  value={form.moveOutDate}
+                  onChange={(e) =>
+                    setForm({ ...form, moveOutDate: e.target.value })
+                  }
+                />
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-3">
                 Move-Out Checklist
               </label>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {checklistItems.map((t, i) => (
                   <label
                     key={i}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
-import { Eye, ChevronDown, Filter, Columns, X, Home } from "lucide-react";
+import { Eye, EyeOff, ChevronDown, Filter, Columns, X, Home } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import { usePermissions } from "../hooks/usePermissions";
 
@@ -28,6 +28,18 @@ export default function MealManagement({ user }) {
   const [loading, setLoading] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [editingMeal, setEditingMeal] = useState(null);
+
+  useEffect(() => {
+    const shouldHide = Boolean(showScheduleModal);
+    try {
+      document.body.classList.toggle("form-modal-open", shouldHide);
+    } catch { }
+    return () => {
+      try {
+        document.body.classList.remove("form-modal-open");
+      } catch { }
+    };
+  }, [showScheduleModal]);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteMeal, setDeleteMeal] = useState(null);
@@ -222,6 +234,14 @@ export default function MealManagement({ user }) {
             ? sus.map((s) => ({
                 id: s.id,
                 name: s.first_name ?? s.name ?? s.full_name ?? `${s.id}`,
+                propertyId:
+                  s.hotel_id ??
+                  s.property_id ??
+                  s.hotelId ??
+                  s.propertyId ??
+                  s.hotel ??
+                  s.property ??
+                  "",
               }))
             : []
         );
@@ -877,9 +897,9 @@ export default function MealManagement({ user }) {
                         <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
                         <button
                           onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                          className="w-full flex items-center justify-between px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
                         >
-                          <span>Column visibility</span>
+                          <span className="font-medium">Column visibility</span>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-500">
                               {Object.values(visibleColumns).filter(Boolean).length} shown
@@ -891,54 +911,57 @@ export default function MealManagement({ user }) {
                         {/* Column Visibility Panel */}
                         {showPropertyVisibility && (
                           <div className="mt-2 border-t border-gray-200 pt-3">
-                            <div className="mb-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Shown in table</span>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Default columns</span>
+                              <div className="text-xs font-medium">
+                                <button
+                                  onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))}
+                                  className="text-teal-600 hover:text-teal-700"
+                                  type="button"
+                                >
+                                  Show all
+                                </button>
+                                <span className="text-gray-300 mx-2">|</span>
                                 <button
                                   onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: false }), {}))}
-                                  className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                  className="text-teal-600 hover:text-teal-700"
+                                  type="button"
                                 >
                                   Hide all
                                 </button>
                               </div>
-                              <div className="space-y-1">
-                                {ALL_COLUMNS.filter(col => visibleColumns[col]).map(col => (
+                            </div>
+
+                            <div className="text-xs text-gray-500 mb-3">Toggle column visibility by clicking</div>
+
+                            <div className="max-h-72 overflow-y-auto pr-1 space-y-2">
+                              {ALL_COLUMNS.map((col) => {
+                                const isVisible = Boolean(visibleColumns[col]);
+                                const label = col === 'serviceUser'
+                                  ? 'Service User'
+                                  : col === 'mealType'
+                                  ? 'Meal Type'
+                                  : col.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+
+                                return (
                                   <button
                                     key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: false })}
-                                    className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                                    type="button"
+                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !isVisible })}
+                                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
                                   >
-                                    <span className="capitalize">{col === 'serviceUser' ? 'Service User' : col === 'mealType' ? 'Meal Type' : col}</span>
-                                    <Eye className="w-4 h-4 text-teal-600" />
+                                    <span className={`text-sm font-medium ${isVisible ? 'text-gray-800' : 'text-gray-400'}`}>
+                                      {label}
+                                    </span>
+                                    {isVisible ? (
+                                      <Eye className="w-4 h-4 text-teal-600" />
+                                    ) : (
+                                      <EyeOff className="w-4 h-4 text-gray-400" />
+                                    )}
                                   </button>
-                                ))}
-                              </div>
+                                );
+                              })}
                             </div>
-                            
-                            {Object.values(visibleColumns).some(v => !v) && (
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Hidden in table</span>
-                                  <button
-                                    onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Show all
-                                  </button>
-                                </div>
-                                <div className="space-y-1">
-                                  {ALL_COLUMNS.filter(col => !visibleColumns[col]).map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: true })}
-                                      className="w-full flex items-center justify-between px-2 py-1.5 text-sm text-gray-400 hover:bg-gray-50 rounded transition-colors"
-                                    >
-                                      <span className="capitalize">{col === 'serviceUser' ? 'Service User' : col === 'mealType' ? 'Meal Type' : col}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
                           </div>
                         )}
                       </div>
@@ -1386,6 +1409,18 @@ function ScheduleMealModal({
   }, [initialData, initialDate]);
 
   function handleChange(field, value) {
+    if (field === "serviceUserId") {
+      const su = (Array.isArray(serviceUsers) ? serviceUsers : []).find(
+        (s) => String(s.id) === String(value)
+      );
+      const nextPropertyId = su?.propertyId ? String(su.propertyId) : "";
+      setForm((f) => ({
+        ...f,
+        serviceUserId: value,
+        propertyId: nextPropertyId,
+      }));
+      return;
+    }
     setForm((f) => ({ ...f, [field]: value }));
   }
 

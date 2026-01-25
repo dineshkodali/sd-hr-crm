@@ -442,11 +442,33 @@ export default function ServiceUserProfile() {
     </span>
   );
 
+  const handleBack = () => {
+    try {
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate("/su/users");
+      }
+    } catch {
+      navigate("/su/users");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 mb-6">
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+          </div>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{computed.fullName}</h1>
@@ -733,7 +755,7 @@ export default function ServiceUserProfile() {
 
       {/* Move Room Modal */}
       {showMoveRoomModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 p-6 sm:p-8">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-1">

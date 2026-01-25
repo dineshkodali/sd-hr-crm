@@ -70,6 +70,48 @@ function getAvatarColor(name) {
   return "bg-teal-100 text-teal-700";
 }
 
+function normalizeColumnDataType(dt) {
+  const t = String(dt || "").toLowerCase();
+  if (!t) return "text";
+  if (t.includes("int") || t.includes("numeric") || t.includes("decimal") || t.includes("real") || t.includes("double") || t.includes("float")) return "number";
+  if (t.includes("bool")) return "boolean";
+  if (t === "date") return "date";
+  if (t.includes("timestamp") || t.includes("time")) return "datetime";
+  return "text";
+}
+
+function typeLabel(t) {
+  if (t === "number") return "number";
+  if (t === "boolean") return "boolean (true/false)";
+  if (t === "date") return "date (YYYY-MM-DD)";
+  if (t === "datetime") return "date-time";
+  return "text";
+}
+
+function validateValueByType(value, t) {
+  if (value === null || value === undefined || value === "") return null;
+  if (t === "number") {
+    const n = Number(value);
+    return Number.isFinite(n) ? null : `Please enter the correct type of data (${typeLabel(t)})`;
+  }
+  if (t === "boolean") {
+    if (typeof value === "boolean") return null;
+    const v = String(value).toLowerCase().trim();
+    if (["true", "false", "1", "0", "yes", "no"].includes(v)) return null;
+    return `Please enter the correct type of data (${typeLabel(t)})`;
+  }
+  if (t === "date") {
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? `Please enter the correct type of data (${typeLabel(t)})` : null;
+  }
+  if (t === "datetime") {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? `Please enter the correct type of data (${typeLabel(t)})` : null;
+  }
+  return null;
+}
+
 /* helper for normalizing hotels responses */
 function normalizeHotelsResponse(data) {
   if (!data) return [];
@@ -156,6 +198,7 @@ export default function Inspections({ user }) {
   
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [query, setQuery] = useState("");
   
   // Filter and Sort State
@@ -174,6 +217,7 @@ export default function Inspections({ user }) {
 
   // Custom columns from Forms Builder
   const [customColumns, setCustomColumns] = useState([]);
+  const [customColumnTypes, setCustomColumnTypes] = useState({});
   // ...existing code...
   const [availableColumns, setAvailableColumns] = useState(["checkbox","type","reference","description","priority","status","assigned","date","actions"]);
 
@@ -361,6 +405,13 @@ export default function Inspections({ user }) {
       const customCols = columns
         .filter(col => !systemColumns.includes(col.column_name) && !DEFAULT_COLUMNS.includes(col.column_name))
         .map(col => col.column_name);
+
+      const nextTypes = {};
+      (Array.isArray(columns) ? columns : []).forEach((col) => {
+        const name = col?.column_name;
+        if (!name) return;
+        nextTypes[name] = normalizeColumnDataType(col?.data_type ?? col?.udt_name ?? col?.type);
+      });
       
       // Insert custom columns before "actions" column
       const newColumns = [...DEFAULT_COLUMNS.slice(0, -1), ...customCols, DEFAULT_COLUMNS[DEFAULT_COLUMNS.length - 1]];
@@ -369,6 +420,7 @@ export default function Inspections({ user }) {
       setCustomColumns(prevCols => {
         // Only trigger update if columns actually changed
         if (JSON.stringify(customCols) !== JSON.stringify(prevCols)) {
+          setCustomColumnTypes((prev) => ({ ...prev, ...nextTypes }));
           setAvailableColumns(newColumns);
           
           // Update visible columns - restore from localStorage or default to hidden
@@ -396,6 +448,7 @@ export default function Inspections({ user }) {
           
           return customCols;
         }
+        setCustomColumnTypes((prev) => ({ ...prev, ...nextTypes }));
         return prevCols;
       });
     } catch (err) {
@@ -606,13 +659,41 @@ export default function Inspections({ user }) {
     const { name, type, value, checked } = e.target;
     if (type === "checkbox") {
       setFormData((p) => ({ ...p, [name]: checked }));
+      if (customColumnTypes[name] === "boolean") {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          const msg = validateValueByType(checked, "boolean");
+          if (msg) next[name] = msg;
+          else delete next[name];
+          return next;
+        });
+      }
       return;
     }
     if (type === "number") {
       setFormData((p) => ({ ...p, [name]: value === "" ? "" : Number(value) }));
+      if (customColumnTypes[name]) {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          const msg = validateValueByType(value, customColumnTypes[name]);
+          if (msg) next[name] = msg;
+          else delete next[name];
+          return next;
+        });
+      }
       return;
     }
     setFormData((p) => ({ ...p, [name]: value }));
+
+    if (customColumnTypes[name]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        const msg = validateValueByType(value, customColumnTypes[name]);
+        if (msg) next[name] = msg;
+        else delete next[name];
+        return next;
+      });
+    }
   }
 
   async function handlePropertyChange(e) {
@@ -643,6 +724,11 @@ export default function Inspections({ user }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+
+    if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+      setError('Please fix the highlighted fields before saving.');
+      return;
+    }
 
     // Check permissions
     if (editingId && !hasUpdate) {
@@ -689,6 +775,24 @@ export default function Inspections({ user }) {
       const val = formData[col];
       if (val === undefined) return;
       if (typeof val === 'string' && val.trim() === '') return;
+
+      const t = customColumnTypes[col] || "text";
+      if (t === "number") {
+        payload[col] = Number(val);
+        return;
+      }
+      if (t === "boolean") {
+        if (typeof val === "boolean") payload[col] = val;
+        else {
+          const v = String(val).toLowerCase().trim();
+          payload[col] = v === "true" || v === "1" || v === "yes";
+        }
+        return;
+      }
+      if (t === "date") {
+        payload[col] = formatDateISO(val);
+        return;
+      }
       payload[col] = val;
     });
     try {
@@ -2077,14 +2181,35 @@ export default function Inspections({ user }) {
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                       {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </label>
-                    <input
-                      type="text"
-                      name={col}
-                      value={formData[col] || ''}
-                      onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                      placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                    />
+                    {customColumnTypes[col] === 'boolean' ? (
+                      <div className="flex items-center gap-3 h-[38px]">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name={col}
+                            checked={!!formData[col]}
+                            onChange={handleInputChange}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
+                          <span className="ml-3 text-sm font-medium text-gray-700">Yes / No</span>
+                        </label>
+                      </div>
+                    ) : (
+                      <input
+                        type={customColumnTypes[col] === 'number' ? 'number' : customColumnTypes[col] === 'date' ? 'date' : 'text'}
+                        name={col}
+                        value={formData[col] || ''}
+                        onChange={handleInputChange}
+                        className={`w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${fieldErrors[col] ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                        placeholder={`Enter ${col.replace(/_/g, ' ')} (${typeLabel(customColumnTypes[col] || 'text')})`}
+                      />
+                    )}
+                    {fieldErrors[col] && (
+                      <div className="mt-1 text-xs text-red-600 font-medium">
+                        {fieldErrors[col]}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

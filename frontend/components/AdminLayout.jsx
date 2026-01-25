@@ -8,7 +8,7 @@ export default function AdminLayout({ user, children }) {
     <div className="flex h-full bg-[#f8f9fa]">
       
       {/* Sidebar Container - Fixed width handled by Sidebar component */}
-      <div className="shrink-0 h-full z-10">
+      <div className="shrink-0 h-full z-10 admin-sidebar">
         <AdminSidebar user={user} />
       </div>
 

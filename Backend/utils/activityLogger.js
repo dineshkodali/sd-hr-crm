@@ -27,6 +27,13 @@ export async function logActivity({
       return;
     }
 
+    const rawResourceId = resourceId;
+    let safeResourceId = null;
+    if (rawResourceId !== null && rawResourceId !== undefined && rawResourceId !== "") {
+      const n = Number(rawResourceId);
+      safeResourceId = Number.isInteger(n) ? n : null;
+    }
+
     // Parse user agent if provided
     let browser = null, os = null, deviceType = null;
     if (userAgent) {
@@ -39,6 +46,7 @@ export async function logActivity({
     // Enhanced metadata with before/after comparison
     const enhancedMetadata = {
       ...(metadata || {}),
+      rawResourceId: rawResourceId ?? null,
       beforeData: beforeData || null,
       afterData: afterData || null,
       changedFields: changedFields || null,
@@ -55,7 +63,7 @@ export async function logActivity({
         action,
         actionType,
         resource,
-        resourceId,
+        safeResourceId,
         description,
         JSON.stringify(enhancedMetadata),
         ipAddress,

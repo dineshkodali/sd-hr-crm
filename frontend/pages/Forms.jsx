@@ -112,6 +112,14 @@ export default function Forms() {
   }, []);
 
   useEffect(() => {
+    const shouldHide = !!(showAddColumnModal || showEditColumnModal);
+    document.body.classList.toggle("form-modal-open", shouldHide);
+    return () => {
+      document.body.classList.remove("form-modal-open");
+    };
+  }, [showAddColumnModal, showEditColumnModal]);
+
+  useEffect(() => {
     if (selectedTable) {
       fetchColumns(selectedTable);
     }
