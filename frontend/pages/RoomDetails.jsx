@@ -318,8 +318,154 @@ export default function RoomDetails() {
         )}
 
         {activeTab === "inventory" && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-gray-600">
-            Inventory & Equipment view is not implemented yet.
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Inventory & Equipment</h2>
+            {(() => {
+              const inventoryData = room?.inventory;
+              if (!inventoryData || (Array.isArray(inventoryData) && inventoryData.length === 0)) {
+                return (
+                  <div className="text-gray-500">
+                    No inventory items assigned to this room.
+                  </div>
+                );
+              }
+
+              let inventoryItems = [];
+              if (Array.isArray(inventoryData)) {
+                inventoryItems = inventoryData;
+              } else if (typeof inventoryData === 'string') {
+                try {
+                  const parsed = JSON.parse(inventoryData);
+                  inventoryItems = Array.isArray(parsed) ? parsed : [inventoryData];
+                } catch {
+                  inventoryItems = inventoryData.split(',').map(item => item.trim()).filter(Boolean);
+                }
+              }
+
+              if (inventoryItems.length === 0) {
+                return (
+                  <div className="text-gray-500">
+                    No inventory items assigned to this room.
+                  </div>
+                );
+              }
+
+              const getInventoryIcon = (item) => {
+                const itemName = String(item).toLowerCase().trim();
+                
+                // Furniture items
+                if (itemName.includes('bed') || itemName.includes('mattress')) {
+                  return (
+                    <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 21v-4a2 2 0 012-2h4a2 2 0 012 2v4" />
+                    </svg>
+                  );
+                }
+                if (itemName.includes('chair') || itemName.includes('sofa') || itemName.includes('couch')) {
+                  return (
+                    <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  );
+                }
+                if (itemName.includes('table') || itemName.includes('desk')) {
+                  return (
+                    <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  );
+                }
+                if (itemName.includes('wardrobe') || itemName.includes('closet') || itemName.includes('drawer')) {
+                  return (
+                    <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                  );
+                }
+                
+                // Electronics
+                if (itemName.includes('tv') || itemName.includes('television')) {
+                  return (
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  );
+                }
+                if (itemName.includes('fan') || itemName.includes('ac') || itemName.includes('air')) {
+                  return (
+                    <svg className="w-5 h-5 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  );
+                }
+                if (itemName.includes('fridge') || itemName.includes('refrigerator') || itemName.includes('microwave')) {
+                  return (
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  );
+                }
+                
+                // Bathroom items
+                if (itemName.includes('toilet') || itemName.includes('bathroom')) {
+                  return (
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  );
+                }
+                if (itemName.includes('shower') || itemName.includes('bathtub')) {
+                  return (
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  );
+                }
+                
+                // Kitchen items
+                if (itemName.includes('stove') || itemName.includes('oven') || itemName.includes('cooking')) {
+                  return (
+                    <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+                    </svg>
+                  );
+                }
+                
+                // Lighting
+                if (itemName.includes('lamp') || itemName.includes('light') || itemName.includes('bulb')) {
+                  return (
+                    <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  );
+                }
+                
+                // Default icon for other items
+                return (
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                );
+              };
+
+              return (
+                <div className="space-y-2">
+                  {inventoryItems.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-lg border border-gray-100"
+                    >
+                      {getInventoryIcon(item)}
+                      <span className="text-sm font-medium text-gray-800">
+                        {String(item).trim()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
 
