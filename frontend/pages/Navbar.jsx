@@ -17,6 +17,14 @@ export default function Navbar({ user, setUser, children }) {
   // treat /login and /register as auth pages
   const isAuthPage = /^\/(login|register)(?:$|[/?#])/.test(location.pathname + (location.search || ""));
 
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
+  }, []);
+
   // If we're on an auth page (login/register), do not render the top nav —
   // return only the page content so the login/register UI is full-bleed.
   if (isAuthPage) {
@@ -34,14 +42,6 @@ export default function Navbar({ user, setUser, children }) {
     console.error("Navbar render error:", err);
     return <main>{children}</main>;
   }
-
-  useEffect(() => {
-    const onDoc = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("click", onDoc);
-    return () => document.removeEventListener("click", onDoc);
-  }, []);
 
   const logout = async () => {
     try {
