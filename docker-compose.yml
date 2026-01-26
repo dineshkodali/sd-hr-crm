@@ -10,11 +10,18 @@ services:
       POSTGRES_DB: ${DB_NAME:-hr_crm}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker-init-db.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     networks:
       - crm-network
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-hr_crm}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   backend:
     build:
@@ -23,12 +30,13 @@ services:
     container_name: crm-backend
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres_password}@db:5432/${DB_NAME:-hr_crm}
-      - JWT_SECRET=${JWT_SECRET:-secret}
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
       - PORT=4000
       - NODE_ENV=production
-      - CORS_ORIGINS=http://localhost:3002
+      - CORS_ORIGINS=http://localhost:3002,http://192.168.0.4:3002,http://frontend:80
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "4000:4000"
     networks:
@@ -49,10 +57,15 @@ services:
       - "3002:80"
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     networks:
       - crm-network
     restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   crm-network:

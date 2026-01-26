@@ -49,6 +49,9 @@ import userManagementRoutes from "./routes/admin/user-management.js";
 import emailNotificationRoutes from "./routes/email-notifications.js";
 import emailConfigRoutes from "./routes/email-config.js";
 import orgChartRoutes from "./routes/org-chart.js";
+import dashboardRoutes from "./routes/dashboard.js";
+import branchesRoutes from "./routes/branches.js";
+import roomsListRoutes from "./routes/rooms-list.js";
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -211,6 +214,15 @@ mountRoute("/api/access", accessRoutes, "accessRoutes");
 
 // Public dashboard summaries for landing/login (lightweight)
 mountRoute("/api/dashboard", dashboardPublicRoutes, "dashboardPublicRoutes");
+
+// Dashboard analytics routes
+mountRoute("/api/dashboard", dashboardRoutes, "dashboardRoutes");
+
+// Branches management
+mountRoute("/api/branches", branchesRoutes, "branchesRoutes");
+
+// Rooms list (all rooms across hotels)
+mountRoute("/api/rooms", roomsListRoutes, "roomsListRoutes");
 
 // Alias for older frontend endpoints that reference /api/meal-schedules
 mountRoute("/api/meal-schedules", mealsRoutes, "mealsRoutesAlias");
