@@ -1,6 +1,6 @@
 // src/routes/properties.js
 import express from "express";
-import { pool } from "../db.js";
+import pool from "../config/db.js";
 
 const router = express.Router();
 

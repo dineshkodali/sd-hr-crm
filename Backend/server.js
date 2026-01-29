@@ -1,10 +1,10 @@
 // File: C:\PostgreAuth\Backend\server.js
 // ES module style. If your project uses CommonJS, convert imports -> require accordingly.
 
+import "./load-env.js"; // MUST be first to ensure env vars are loaded before db.js
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import path from "path";
 import fs from "fs";
@@ -52,7 +52,7 @@ import orgChartRoutes from "./routes/org-chart.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import branchesRoutes from "./routes/branches.js";
 import roomsListRoutes from "./routes/rooms-list.js";
-dotenv.config();
+import propertiesRoutes from "./routes/properties.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -247,6 +247,9 @@ mountRoute("/api/email-config", emailConfigRoutes, "emailConfigRoutes");
 
 // Organization Chart
 mountRoute("/api/org-chart", orgChartRoutes, "orgChartRoutes");
+
+// Properties
+mountRoute("/api/properties", propertiesRoutes, "propertiesRoutes");
 
 // profile (keep last)
 mountRoute("/api/profile", profileRoutes, "profileRoutes");

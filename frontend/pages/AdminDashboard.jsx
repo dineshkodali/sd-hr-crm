@@ -406,8 +406,8 @@ export default function AdminDashboard() {
                 key={range}
                 onClick={() => setTimeRange(range.toLowerCase())}
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${timeRange === range.toLowerCase()
-                    ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                    : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-gray-600 hover:bg-gray-100'
                   }`}
               >
                 {range}
@@ -700,7 +700,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="h-[300px]">
+          <div className="h-[300px]" style={{ height: 300, width: '100%' }}>
             {trends.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trends} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
