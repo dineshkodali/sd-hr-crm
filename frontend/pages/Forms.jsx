@@ -585,17 +585,18 @@ export default function Forms() {
                   <div className="divide-y divide-slate-100">
                     {filteredTables.map((table) => (
                       <button
-                        key={table.table_name}
+                        key={`${table.table_schema}-${table.table_name}`}
                         onClick={() => setSelectedTable(table.table_name)}
                         className={`w-full px-5 py-3.5 text-left hover:bg-slate-50 transition-colors ${selectedTable === table.table_name
-                            ? 'bg-teal-50 border-l-4 border-teal-500'
-                            : ''
+                          ? 'bg-teal-50 border-l-4 border-teal-500'
+                          : ''
                           }`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <h3 className="font-semibold text-slate-900 text-sm">
                               {table.table_name}
+                              <span className="ml-2 text-xs text-slate-400 font-normal">({table.table_schema})</span>
                             </h3>
                             <p className="text-xs text-slate-500 mt-0.5">
                               {table.column_count} columns
@@ -674,8 +675,8 @@ export default function Forms() {
                           </td>
                           <td className="px-5 py-4">
                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${col.is_nullable === 'YES'
-                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                : 'bg-red-50 text-red-700 border border-red-200'
+                              ? 'bg-green-50 text-green-700 border border-green-200'
+                              : 'bg-red-50 text-red-700 border border-red-200'
                               }`}>
                               {col.is_nullable === 'YES' ? 'YES' : 'NO'}
                             </span>

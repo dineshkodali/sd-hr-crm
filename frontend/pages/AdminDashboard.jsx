@@ -40,7 +40,7 @@ const useCountUp = (end, duration = 1500) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
       // Ease-out function for smooth effect
-      const easeOut = 1 - Math.pow(1 - progress, 3); 
+      const easeOut = 1 - Math.pow(1 - progress, 3);
       setCount(Math.floor(easeOut * end));
       if (progress < 1) {
         animationFrame = requestAnimationFrame(step);
@@ -55,7 +55,7 @@ const useCountUp = (end, duration = 1500) => {
 /* --- 2. SUB-COMPONENTS --- */
 
 const DashboardCard = ({ title, action, children, className = "", delay = 0, onClick }) => (
-  <div 
+  <div
     className={`bg-white rounded-2xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-xl transition-all duration-300 flex flex-col relative overflow-hidden group ${className} ${onClick ? 'cursor-pointer' : ''}`}
     style={{ animation: `fadeInUp 0.6s ease-out ${delay}ms forwards`, opacity: 0 }}
     onClick={onClick}
@@ -79,7 +79,7 @@ const StatCard = ({ title, value, sub, color, icon, delay = 0, onClick }) => {
   const isString = typeof value === 'string' && isNaN(parseInt(value));
 
   return (
-    <div 
+    <div
       className={`bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_10px_-4px_rgba(6,81,237,0.1)] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
       style={{ animation: `fadeInUp 0.6s ease-out ${delay}ms forwards`, opacity: 0, transform: 'translateY(10px)' }}
       onClick={onClick}
@@ -91,19 +91,19 @@ const StatCard = ({ title, value, sub, color, icon, delay = 0, onClick }) => {
             {isString ? value : displayValue.toLocaleString()}
           </div>
           {sub && <div className="text-xs text-slate-400 mt-2 font-medium flex items-center gap-1">
-             <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> {sub}
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> {sub}
           </div>}
         </div>
-        <div 
-          className="p-3 rounded-xl text-white shadow-lg transform group-hover:rotate-12 transition-transform duration-500" 
+        <div
+          className="p-3 rounded-xl text-white shadow-lg transform group-hover:rotate-12 transition-transform duration-500"
           style={{ background: `linear-gradient(135deg, ${color}, ${adjustColor(color, -20)})` }}
         >
           {icon}
         </div>
       </div>
       {/* Decorative Blob */}
-      <div 
-        className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full opacity-10 group-hover:scale-110 transition-transform duration-700" 
+      <div
+        className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full opacity-10 group-hover:scale-110 transition-transform duration-700"
         style={{ backgroundColor: color }}
       ></div>
     </div>
@@ -112,7 +112,7 @@ const StatCard = ({ title, value, sub, color, icon, delay = 0, onClick }) => {
 
 // Helper to darken color for gradient
 const adjustColor = (color, amount) => {
-    return color; // Simplified for demo, ideally uses hex manipulation
+  return color; // Simplified for demo, ideally uses hex manipulation
 }
 
 const LoadingSkeleton = () => (
@@ -144,7 +144,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         <p className="font-bold mb-1 opacity-70">{label}</p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full" style={{background: entry.color}}></div>
+            <div className="w-2 h-2 rounded-full" style={{ background: entry.color }}></div>
             <span className="font-medium">{entry.name}:</span>
             <span className="font-bold">{entry.value}</span>
           </div>
@@ -156,25 +156,25 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 /* --- Icons --- */
-const IconBuilding = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/><path d="M17 21v-8.5a1.5 1.5 0 0 0-1.5-1.5h-7a1.5 1.5 0 0 0-1.5 1.5V21"/></svg>;
-const IconUsers = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
-const IconAlert = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
-const IconCheck = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
-const IconWrench = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>;
+const IconBuilding = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V7l8-4 8 4v14" /><path d="M17 21v-8.5a1.5 1.5 0 0 0-1.5-1.5h-7a1.5 1.5 0 0 0-1.5 1.5V21" /></svg>;
+const IconUsers = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+const IconAlert = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
+const IconCheck = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
+const IconWrench = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>;
 
 /* --- 3. MAIN COMPONENT --- */
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  
+
   // Filter States
   const [selectedBranch, setSelectedBranch] = useState('all');
   const [selectedProperty, setSelectedProperty] = useState('all');
   const [timeRange, setTimeRange] = useState('30d');
   const [branches, setBranches] = useState([]);
   const [properties, setProperties] = useState([]);
-  
+
   // Data State
   const [kpis, setKpis] = useState([]);
   const [trends, setTrends] = useState([]);
@@ -211,7 +211,7 @@ export default function AdminDashboard() {
           api.get('/api/branches'),
           api.get('/api/hotels')
         ]);
-        
+
         if (mounted) {
           if (branchesRes.status === 'fulfilled') {
             setBranches(extractArray(branchesRes.value));
@@ -230,17 +230,17 @@ export default function AdminDashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        
+
         // Build query params based on filters
         const params = {
           timeRange,
           ...(selectedBranch !== 'all' && { branch_id: selectedBranch }),
           ...(selectedProperty !== 'all' && { property_id: selectedProperty })
         };
-        
+
         // 1. Fetch Summary endpoints (Optimized/Aggregated) with filters
         const results = await Promise.allSettled([
-          api.get('/api/dashboard/kpis', { params }),           
+          api.get('/api/dashboard/kpis', { params }),
           api.get('/api/dashboard/trends', { params }),
           api.get('/api/dashboard/occupancy', { params }),
           api.get('/api/dashboard/incidents-summary', { params }),
@@ -256,58 +256,58 @@ export default function AdminDashboard() {
 
         // --- KPI LOGIC ---
         if (val(0) && val(0).data && Array.isArray(val(0).data) && val(0).data.length > 0) {
-           setKpis(val(0).data);
+          setKpis(val(0).data);
         } else {
-           // --- FALLBACK CALCULATION (Real Database Counts) ---
-           try {
-              const [hotelsRes, usersRes, incRes, compRes, roomsRes] = await Promise.allSettled([
-                  api.get('/api/hotels'),         
-                  api.get('/api/service-users'),  
-                  api.get('/api/incidents?status=Open'),
-                  api.get('/api/compliance'),
-                  api.get('/api/rooms')
-              ]);
-              
-              const getCount = (r) => {
-                  if (r.status !== 'fulfilled') return 0;
-                  const arr = extractArray(r.value);
-                  return arr.length;
-              };
+          // --- FALLBACK CALCULATION (Real Database Counts) ---
+          try {
+            const [hotelsRes, usersRes, incRes, compRes, roomsRes] = await Promise.allSettled([
+              api.get('/api/hotels'),
+              api.get('/api/service-users'),
+              api.get('/api/incidents?status=Open'),
+              api.get('/api/compliance'),
+              api.get('/api/rooms')
+            ]);
 
-              const usersCount = getCount(usersRes);
-              setServiceUserCount(usersCount);
+            const getCount = (r) => {
+              if (r.status !== 'fulfilled') return 0;
+              const arr = extractArray(r.value);
+              return arr.length;
+            };
 
-              // Calculate occupancy
-              if (roomsRes.status === 'fulfilled') {
-                const rooms = extractArray(roomsRes.value);
-                const total = rooms.length;
-                const occupied = rooms.filter(r => r.status === 'Occupied' || r.service_user_id).length;
-                setTotalRooms(total);
-                setOccupiedRooms(occupied);
-              }
+            const usersCount = getCount(usersRes);
+            setServiceUserCount(usersCount);
 
-              setKpis([
-                  { title: "Total Properties", main: getCount(hotelsRes), sub: "Registered", color: COLORS.primary },
-                  { title: "Total Users", main: usersCount, sub: "Active Accounts", color: COLORS.success },
-                  { title: "Open Incidents", main: getCount(incRes), sub: "Unresolved", color: COLORS.warning },
-                  { title: "Compliance", main: getCount(compRes), sub: "Records", color: COLORS.danger },
-              ]);
-           } catch (e) {
-               console.warn("KPI Calculation failed", e);
-               setKpis([]); 
-           }
+            // Calculate occupancy
+            if (roomsRes.status === 'fulfilled') {
+              const rooms = extractArray(roomsRes.value);
+              const total = rooms.length;
+              const occupied = rooms.filter(r => r.status === 'Occupied' || r.service_user_id).length;
+              setTotalRooms(total);
+              setOccupiedRooms(occupied);
+            }
+
+            setKpis([
+              { title: "Total Properties", main: getCount(hotelsRes), sub: "Registered", color: COLORS.primary },
+              { title: "Total Users", main: usersCount, sub: "Active Accounts", color: COLORS.success },
+              { title: "Open Incidents", main: getCount(incRes), sub: "Unresolved", color: COLORS.warning },
+              { title: "Compliance", main: getCount(compRes), sub: "Records", color: COLORS.danger },
+            ]);
+          } catch (e) {
+            console.warn("KPI Calculation failed", e);
+            setKpis([]);
+          }
         }
-        
+
         // 2. TRENDS
         if (val(1) && Array.isArray(val(1).data) && val(1).data.length > 0) {
-            setTrends(val(1).data);
+          setTrends(val(1).data);
         } else {
-            setTrends([]);
+          setTrends([]);
         }
 
         // 3. Occupancy
         if (val(2)) setOccupancy(val(2).data || []);
-        
+
         // 4. Compliance
         if (val(4)) setCompliance(val(4).data || []);
 
@@ -337,46 +337,46 @@ export default function AdminDashboard() {
   // Mini Chart Component
   const PageAnalyticsItem = ({ page, index }) => {
     const [stats, setStats] = useState({ count: 0, breakdown: [] });
-    
+
     useEffect(() => {
-        let active = true;
-        api.get(page.endpoint + '?limit=1000').then(res => {
-            if(!active) return;
-            const arr = extractArray(res);
-            const map = {};
-            arr.forEach(i => {
-                const k = i.status || i.priority || i.severity || 'Other';
-                map[k] = (map[k]||0)+1;
-            });
-            const breakdown = Object.keys(map).slice(0,4).map(k => ({ name: k, value: map[k] }));
-            setStats({ count: arr.length, breakdown });
-        }).catch(() => {
-            if(active) setStats({ count: 0, breakdown: [] });
+      let active = true;
+      api.get(page.endpoint + '?limit=1000').then(res => {
+        if (!active) return;
+        const arr = extractArray(res);
+        const map = {};
+        arr.forEach(i => {
+          const k = i.status || i.priority || i.severity || 'Other';
+          map[k] = (map[k] || 0) + 1;
         });
-        return () => { active = false; };
+        const breakdown = Object.keys(map).slice(0, 4).map(k => ({ name: k, value: map[k] }));
+        setStats({ count: arr.length, breakdown });
+      }).catch(() => {
+        if (active) setStats({ count: 0, breakdown: [] });
+      });
+      return () => { active = false; };
     }, [page.endpoint]);
 
     return (
-        <div 
-          className="bg-white border border-slate-100 rounded-xl p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden cursor-pointer"
-          style={{ animation: `fadeInUp 0.6s ease-out ${index * 100 + 500}ms forwards`, opacity: 0 }}
-          onClick={() => navigate(page.route)}
-        >
-            <div className="flex justify-between items-center mb-3 relative z-10">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{page.title}</span>
-                <span className="text-sm font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{stats.count}</span>
-            </div>
-            <div style={{ width: '100%', height: 40, minWidth: 0, minHeight: 40 }} className="overflow-hidden relative z-10">
-                {stats.breakdown.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                        <BarChart data={stats.breakdown}>
-                            <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
-                            <Bar dataKey="value" fill={COLORS.primary} radius={[2,2,2,2]} animationDuration={1500} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                ) : <div className="h-full bg-slate-50/50 rounded flex items-center justify-center text-[10px] text-slate-400">0 Records</div>}
-            </div>
+      <div
+        className="bg-white border border-slate-100 rounded-xl p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden cursor-pointer"
+        style={{ animation: `fadeInUp 0.6s ease-out ${index * 100 + 500}ms forwards`, opacity: 0 }}
+        onClick={() => navigate(page.route)}
+      >
+        <div className="flex justify-between items-center mb-3 relative z-10">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{page.title}</span>
+          <span className="text-sm font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{stats.count}</span>
         </div>
+        <div style={{ width: '100%', height: 40, minWidth: 0, minHeight: 40 }} className="overflow-hidden relative z-10">
+          {stats.breakdown.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <BarChart data={stats.breakdown}>
+                <Tooltip cursor={{ fill: 'transparent' }} content={<CustomTooltip />} />
+                <Bar dataKey="value" fill={COLORS.primary} radius={[2, 2, 2, 2]} animationDuration={1500} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <div className="h-full bg-slate-50/50 rounded flex items-center justify-center text-[10px] text-slate-400">0 Records</div>}
+        </div>
+      </div>
     );
   };
 
@@ -384,42 +384,41 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 font-sans">
-      
+
       {/* --- Keyframes Injection --- */}
       <style>{`
          @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       <div className="max-w-[1600px] mx-auto space-y-6">
-        
+
         {/* --- HEADER --- */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Analytics Dashboard</h1>
             <p className="text-sm text-gray-500">Overview of your accommodation portfolio</p>
           </div>
-          
+
           <div className="flex items-center gap-3">
             {/* Time Range Buttons */}
             {['7D', '30D', '90D', '1Y'].map(range => (
-              <button 
-                key={range} 
+              <button
+                key={range}
                 onClick={() => setTimeRange(range.toLowerCase())}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  timeRange === range.toLowerCase()
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${timeRange === range.toLowerCase()
                     ? 'bg-blue-50 text-blue-600 border border-blue-200'
                     : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 {range}
               </button>
             ))}
-            
+
             {/* Icon Button */}
             <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             </button>
-            
+
             {/* Property Dropdown */}
             <select
               value={selectedProperty}
@@ -437,7 +436,7 @@ export default function AdminDashboard() {
         {/* --- ROW 1: PRIMARY KPI CARDS --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Properties */}
-          <div 
+          <div
             onClick={() => navigate('/hotels')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -456,7 +455,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Occupancy Rate */}
-          <div 
+          <div
             onClick={() => navigate('/rooms')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -481,7 +480,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Active Residents */}
-          <div 
+          <div
             onClick={() => navigate('/service-users')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -500,7 +499,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Open Incidents */}
-          <div 
+          <div
             onClick={() => navigate('/incidents')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -522,7 +521,7 @@ export default function AdminDashboard() {
         {/* --- ROW 2: SECONDARY KPI CARDS --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Compliance Health */}
-          <div 
+          <div
             onClick={() => navigate('/compliance')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -543,7 +542,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Expiring Soon */}
-          <div 
+          <div
             onClick={() => navigate('/compliance')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -560,7 +559,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Pending Maintenance */}
-          <div 
+          <div
             onClick={() => navigate('/maintenance')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -577,7 +576,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Completion Rate */}
-          <div 
+          <div
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
             <div className="flex items-start justify-between mb-4">
@@ -611,11 +610,11 @@ export default function AdminDashboard() {
             </div>
             <h2 className="text-base font-semibold text-gray-900">Items Requiring Immediate Attention</h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Show real attention items if available, otherwise show defaults */}
             {attentionItems.length > 0 ? attentionItems.slice(0, 3).map((item, idx) => (
-              <div 
+              <div
                 key={idx}
                 onClick={() => {
                   if (item.type === 'compliance' || item.category === 'compliance') navigate('/compliance');
@@ -645,7 +644,7 @@ export default function AdminDashboard() {
               { title: 'Legionella Risk Assessment Expired', location: 'Riverside Hotel' },
               { title: 'Asbestos Survey Expired', location: 'Riverside Hotel' }
             ].map((item, idx) => (
-              <div 
+              <div
                 key={idx}
                 onClick={() => navigate('/compliance')}
                 className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer group border border-gray-100"
@@ -683,7 +682,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-gray-500">Incidents & Resolutions</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
@@ -700,49 +699,49 @@ export default function AdminDashboard() {
               </select>
             </div>
           </div>
-          
+
           <div className="h-[300px]">
             {trends.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trends} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorIncidents" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis 
-                    dataKey="month" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#9ca3af', fontSize: 12 }} 
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#9ca3af', fontSize: 12 }}
                   />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#9ca3af', fontSize: 12 }} 
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#9ca3af', fontSize: 12 }}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="incidents" 
-                    stroke="#3b82f6" 
+                  <Area
+                    type="monotone"
+                    dataKey="incidents"
+                    stroke="#3b82f6"
                     strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorIncidents)" 
+                    fillOpacity={1}
+                    fill="url(#colorIncidents)"
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="resolutions" 
-                    stroke="#14b8a6" 
+                  <Area
+                    type="monotone"
+                    dataKey="resolutions"
+                    stroke="#14b8a6"
                     strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorResolved)" 
+                    fillOpacity={1}
+                    fill="url(#colorResolved)"
                   />
                 </AreaChart>
               </ResponsiveContainer>

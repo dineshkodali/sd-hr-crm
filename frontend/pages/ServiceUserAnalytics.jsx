@@ -8,12 +8,12 @@ axios.defaults.withCredentials = true;
 export default function ServiceUserAnalytics() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('demographics');
-  
+
   // Data states
   const [serviceUsers, setServiceUsers] = useState([]);
   const [properties, setProperties] = useState([]);
   const [rooms, setRooms] = useState([]);
-  
+
   // Demographics data
   const [demographics, setDemographics] = useState({
     totalUsers: 0,
@@ -64,7 +64,7 @@ export default function ServiceUserAnalytics() {
 
       // Process demographics
       processDemographics(users);
-      
+
       // Process accommodation
       processAccommodation(users, props, roomsData);
 
@@ -77,11 +77,11 @@ export default function ServiceUserAnalytics() {
 
   const processDemographics = (users) => {
     const totalUsers = users.length;
-    const activeUsers = users.filter(u => 
+    const activeUsers = users.filter(u =>
       (u.status || '').toLowerCase() === 'active'
     ).length;
-    const movedOut = users.filter(u => 
-      (u.status || '').toLowerCase() === 'moved out' || 
+    const movedOut = users.filter(u =>
+      (u.status || '').toLowerCase() === 'moved out' ||
       (u.status || '').toLowerCase() === 'movedout'
     ).length;
 
@@ -137,24 +137,24 @@ export default function ServiceUserAnalytics() {
   const processAccommodation = (users, props, roomsData) => {
     const totalProperties = props.length;
     const totalRooms = roomsData.length;
-    const occupiedRooms = roomsData.filter(r => 
+    const occupiedRooms = roomsData.filter(r =>
       r.status === 'Occupied' || r.service_user_id
     ).length;
-    const occupancyRate = totalRooms > 0 
-      ? Math.round((occupiedRooms / totalRooms) * 100) 
+    const occupancyRate = totalRooms > 0
+      ? Math.round((occupiedRooms / totalRooms) * 100)
       : 0;
 
     // Property occupancy
     const propertyOccupancy = props.map(prop => {
-      const propRooms = roomsData.filter(r => 
-        String(r.hotel_id) === String(prop.id) || 
+      const propRooms = roomsData.filter(r =>
+        String(r.hotel_id) === String(prop.id) ||
         String(r.property_id) === String(prop.id)
       );
-      const propOccupied = propRooms.filter(r => 
+      const propOccupied = propRooms.filter(r =>
         r.status === 'Occupied' || r.service_user_id
       ).length;
       const propTotal = propRooms.length;
-      
+
       return {
         name: prop.name || prop.hotel_name || `Property ${prop.id}`,
         occupied: propOccupied,
@@ -222,14 +222,14 @@ export default function ServiceUserAnalytics() {
             </div>
             {/* Export Buttons */}
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={exportToPDF}
                 className="flex items-center gap-2 px-5 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 font-medium"
               >
                 <Download className="w-4 h-4" />
                 Export PDF
               </button>
-              <button 
+              <button
                 onClick={exportToExcel}
                 className="flex items-center gap-2 px-5 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 font-medium"
               >
@@ -288,11 +288,10 @@ export default function ServiceUserAnalytics() {
           <div className="mb-6 flex items-center gap-3 border-b border-gray-200">
             <button
               onClick={() => setActiveTab('demographics')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'demographics'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'demographics'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <PieChart className="w-4 h-4" />
@@ -301,11 +300,10 @@ export default function ServiceUserAnalytics() {
             </button>
             <button
               onClick={() => setActiveTab('accommodation')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'accommodation'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'accommodation'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Home className="w-4 h-4" />
@@ -314,11 +312,10 @@ export default function ServiceUserAnalytics() {
             </button>
             <button
               onClick={() => setActiveTab('reports')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'reports'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'reports'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
@@ -338,24 +335,24 @@ export default function ServiceUserAnalytics() {
                     <div key={group.name} className="flex items-center gap-3">
                       <div className="w-20 text-sm font-medium text-gray-700">{group.name}</div>
                       <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden">
-                        <div
-                          className="bg-indigo-600 h-full flex items-center justify-center text-white text-xs font-medium"
-                          style={{ width: `${(group.value / demographics.totalUsers) * 100}%` }}
-                        >
-                          {group.value > 0 && group.value}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden">
+                            <div
+                              className="bg-indigo-600 h-full flex items-center justify-center text-white text-xs font-medium"
+                              style={{ width: `${(group.value / demographics.totalUsers) * 100}%` }}
+                            >
+                              {group.value > 0 && group.value}
+                            </div>
+                          </div>
+                          <div className="w-12 text-sm text-gray-600">
+                            {Math.round((group.value / demographics.totalUsers) * 100)}%
+                          </div>
                         </div>
                       </div>
-                      <div className="w-12 text-sm text-gray-600">
-                        {Math.round((group.value / demographics.totalUsers) * 100)}%
-                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
               {/* Gender & Immigration Status */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -427,7 +424,7 @@ export default function ServiceUserAnalytics() {
               {/* Property Occupancy */}
               <div className="bg-gray-50 rounded-xl p-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Property Occupancy Rates</h3>
-                    <div className="space-y-4">
+                <div className="space-y-4">
                   {accommodation.propertyOccupancy.map((prop, idx) => (
                     <div key={idx} className="border-b border-gray-200 pb-4 last:border-0">
                       <div className="flex items-center justify-between mb-2">
@@ -435,7 +432,7 @@ export default function ServiceUserAnalytics() {
                         <span className="text-sm text-gray-600">{prop.occupied} / {prop.total} rooms</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden">
+                        <div className="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden relative" style={{ minHeight: '32px' }}>
                           <div
                             className="bg-green-600 h-full flex items-center justify-center text-white text-xs font-medium"
                             style={{ width: `${prop.rate}%` }}
@@ -477,7 +474,7 @@ export default function ServiceUserAnalytics() {
                       <Bed className="w-8 h-8 text-green-500" />
                     </div>
                   </div>
-                  
+
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100">
                     <div className="flex items-center justify-between">
                       <div>
@@ -487,7 +484,7 @@ export default function ServiceUserAnalytics() {
                       <Home className="w-8 h-8 text-blue-500" />
                     </div>
                   </div>
-                  
+
                   <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
                     <div className="flex items-center justify-between">
                       <div>
@@ -509,13 +506,13 @@ export default function ServiceUserAnalytics() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Available Reports</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="p-4 bg-white border border-gray-200 rounded-xl hover:border-teal-400 hover:shadow-lg transition-all cursor-pointer">
-                <PieChart className="w-8 h-8 text-indigo-600 mb-3" />
-                <h4 className="font-semibold text-gray-900 mb-2">Demographics Report</h4>
-                <p className="text-sm text-gray-600 mb-3">Comprehensive breakdown of service user demographics.</p>
-                <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                  Generate Report →
-                </button>
-              </div>
+                    <PieChart className="w-8 h-8 text-indigo-600 mb-3" />
+                    <h4 className="font-semibold text-gray-900 mb-2">Demographics Report</h4>
+                    <p className="text-sm text-gray-600 mb-3">Comprehensive breakdown of service user demographics.</p>
+                    <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                      Generate Report →
+                    </button>
+                  </div>
 
                   <div className="p-4 bg-white border border-gray-200 rounded-xl hover:border-teal-400 hover:shadow-lg transition-all cursor-pointer">
                     <PieChart className="w-8 h-8 text-indigo-600 mb-3" />

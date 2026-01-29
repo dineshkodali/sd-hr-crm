@@ -59,6 +59,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Healthcheck endpoint for Docker
+app.get('/api/health', (req, res) => res.send('OK'));
+
 console.log("Starting server (server.js) - NODE_ENV:", process.env.NODE_ENV || "development");
 
 /* ----------------------------

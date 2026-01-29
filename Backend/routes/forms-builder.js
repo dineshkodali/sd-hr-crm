@@ -63,38 +63,38 @@ const getFieldSQLType = (fieldType) => {
 const generateCreateTableSQL = (tableName, fields) => {
   // Sanitize table name - only allow alphanumeric and underscores
   const sanitizedTableName = tableName.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-  
+
   // Filter out invalid fields (empty field_name or missing field_type)
   const validFields = fields.filter(field => {
-    return field && 
-           field.field_name && 
-           String(field.field_name).trim() !== '' && 
-           field.field_type;
+    return field &&
+      field.field_name &&
+      String(field.field_name).trim() !== '' &&
+      field.field_type;
   });
-  
+
   if (validFields.length === 0) {
     throw new Error('At least one valid field with field_name and field_type is required');
   }
-  
+
   const columns = validFields.map(field => {
     // Sanitize field name - only allow alphanumeric and underscores
     const sanitizedFieldName = String(field.field_name).replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-    
+
     // Ensure field name is not empty after sanitization
     if (!sanitizedFieldName || sanitizedFieldName.trim() === '') {
       throw new Error(`Invalid field name: "${field.field_name}"`);
     }
-    
+
     const sqlType = getFieldSQLType(field.field_type);
     const notNull = field.required ? 'NOT NULL' : '';
-    
+
     // Escape single quotes in default values
     let defaultValue = '';
     if (field.default_value !== undefined && field.default_value !== null && field.default_value !== '') {
       const escapedValue = String(field.default_value).replace(/'/g, "''");
       defaultValue = `DEFAULT '${escapedValue}'`;
     }
-    
+
     return `${sanitizedFieldName} ${sqlType} ${notNull} ${defaultValue}`.trim();
   });
 
@@ -112,17 +112,17 @@ const generateCreateTableSQL = (tableName, fields) => {
 // Generate ALTER TABLE SQL for field changes
 const generateAlterTableSQL = (tableName, oldFields, newFields) => {
   const statements = [];
-  
+
   // Sanitize table name
   const sanitizedTableName = tableName.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-  
+
   // Ensure arrays
   if (!Array.isArray(oldFields)) oldFields = [];
   if (!Array.isArray(newFields)) newFields = [];
 
   // Sanitize field names for comparison
   const sanitizeFieldName = (name) => (name || '').replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-  
+
   const oldFieldNames = oldFields.map(f => sanitizeFieldName(f?.field_name));
   const newFieldNames = newFields.map(f => sanitizeFieldName(f?.field_name));
 
@@ -130,19 +130,19 @@ const generateAlterTableSQL = (tableName, oldFields, newFields) => {
     if (!f || !f.field_name) return false;
     return !oldFieldNames.includes(sanitizeFieldName(f.field_name));
   });
-  
+
   addedFields.forEach(field => {
     if (!field.field_name || !field.field_type) return;
     const sanitizedFieldName = sanitizeFieldName(field.field_name);
     const sqlType = getFieldSQLType(field.field_type);
     const notNull = field.required ? 'NOT NULL' : '';
-    
+
     let defaultValue = '';
     if (field.default_value !== undefined && field.default_value !== null && field.default_value !== '') {
       const escapedValue = String(field.default_value).replace(/'/g, "''");
       defaultValue = `DEFAULT '${escapedValue}'`;
     }
-    
+
     statements.push(`ALTER TABLE public.${sanitizedTableName} ADD COLUMN IF NOT EXISTS ${sanitizedFieldName} ${sqlType} ${notNull} ${defaultValue};`);
   });
 
@@ -150,7 +150,7 @@ const generateAlterTableSQL = (tableName, oldFields, newFields) => {
     if (!f || !f.field_name) return false;
     return !newFieldNames.includes(sanitizeFieldName(f.field_name));
   });
-  
+
   removedFields.forEach(field => {
     const sanitizedFieldName = sanitizeFieldName(field.field_name);
     statements.push(`ALTER TABLE public.${sanitizedTableName} DROP COLUMN IF EXISTS ${sanitizedFieldName};`);
@@ -160,7 +160,7 @@ const generateAlterTableSQL = (tableName, oldFields, newFields) => {
     if (!newField || !newField.field_name) return;
     const sanitizedNewName = sanitizeFieldName(newField.field_name);
     const oldField = oldFields.find(f => sanitizeFieldName(f?.field_name) === sanitizedNewName);
-    
+
     if (oldField && oldField.field_type !== newField.field_type) {
       const sqlType = getFieldSQLType(newField.field_type);
       statements.push(`ALTER TABLE public.${sanitizedTableName} ALTER COLUMN ${sanitizedNewName} TYPE ${sqlType} USING ${sanitizedNewName}::${sqlType};`);
@@ -180,7 +180,7 @@ async function ensureFormsTableExists(client) {
         AND table_name = 'forms'
       );
     `);
-    
+
     if (!tableCheck.rows[0].exists) {
       // Create forms table
       await client.query(`
@@ -196,7 +196,7 @@ async function ensureFormsTableExists(client) {
           created_by INTEGER REFERENCES users(id)
         );
       `);
-      
+
       // Create form_migrations table
       await client.query(`
         CREATE TABLE IF NOT EXISTS form_migrations (
@@ -209,7 +209,7 @@ async function ensureFormsTableExists(client) {
           status VARCHAR(20) DEFAULT 'completed'
         );
       `);
-      
+
       // Create indexes
       await client.query(`CREATE INDEX IF NOT EXISTS idx_forms_section ON forms(section);`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_forms_table_name ON forms(table_name);`);
@@ -255,7 +255,7 @@ router.get('/available-tables', authenticateToken, async (req, res) => {
 router.get('/table-structure/:tableName', authenticateToken, async (req, res) => {
   try {
     const { tableName } = req.params;
-    
+
     // Fetch columns for the specified table from both public and maintenance schemas
     const columnsResult = await pool.query(`
       SELECT 
@@ -271,9 +271,9 @@ router.get('/table-structure/:tableName', authenticateToken, async (req, res) =>
     if (columnsResult.rows.length === 0) {
       return res.status(404).json({ error: 'Table not found' });
     }
-    res.json({ 
+    res.json({
       table_name: tableName,
-      columns: columnsResult.rows 
+      columns: columnsResult.rows
     });
   } catch (err) {
     console.error('Error fetching table structure:', err);
@@ -285,7 +285,7 @@ router.get('/table-structure/:tableName', authenticateToken, async (req, res) =>
 router.get('/debug/tables', authenticateToken, async (req, res) => {
   try {
     const tablesInfo = {};
-    
+
     // Check forms table
     const formsCheck = await pool.query(`
       SELECT EXISTS (
@@ -294,14 +294,14 @@ router.get('/debug/tables', authenticateToken, async (req, res) => {
       );
     `);
     tablesInfo.formsTableExists = formsCheck.rows[0].exists;
-    
+
     if (formsCheck.rows[0].exists) {
       const formsCount = await pool.query('SELECT COUNT(*) FROM forms');
       tablesInfo.formsCount = parseInt(formsCount.rows[0].count);
       const formsSample = await pool.query('SELECT form_id, form_name, section, table_name FROM forms LIMIT 3');
       tablesInfo.formsSample = formsSample.rows;
     }
-    
+
     // Check forms_master table
     const masterCheck = await pool.query(`
       SELECT EXISTS (
@@ -310,14 +310,14 @@ router.get('/debug/tables', authenticateToken, async (req, res) => {
       );
     `);
     tablesInfo.formsMasterTableExists = masterCheck.rows[0].exists;
-    
+
     if (masterCheck.rows[0].exists) {
       const masterCount = await pool.query('SELECT COUNT(*) FROM forms_master WHERE deleted = FALSE');
       tablesInfo.formsMasterCount = parseInt(masterCount.rows[0].count);
       const masterSample = await pool.query('SELECT id, form_id, form_name FROM forms_master WHERE deleted = FALSE LIMIT 3');
       tablesInfo.formsMasterSample = masterSample.rows;
     }
-    
+
     res.json(tablesInfo);
   } catch (err) {
     console.error('Debug error:', err);
@@ -329,7 +329,7 @@ router.get('/debug/tables', authenticateToken, async (req, res) => {
 router.get('/', authenticateToken, async (req, res) => {
   try {
     let allForms = [];
-    
+
     // Check if forms table exists (form builder forms)
     const formsTableCheck = await pool.query(`
       SELECT EXISTS (
@@ -338,7 +338,7 @@ router.get('/', authenticateToken, async (req, res) => {
         AND table_name = 'forms'
       );
     `);
-    
+
     // Fetch from forms table (form builder)
     if (formsTableCheck.rows[0].exists) {
       const { section } = req.query;
@@ -352,7 +352,7 @@ router.get('/', authenticateToken, async (req, res) => {
       console.log(`Fetched ${result.rows.length} forms from 'forms' table`);
       allForms = allForms.concat(result.rows);
     }
-    
+
     // Check if forms_master table exists (legacy forms)
     const formsMasterCheck = await pool.query(`
       SELECT EXISTS (
@@ -361,20 +361,20 @@ router.get('/', authenticateToken, async (req, res) => {
         AND table_name = 'forms_master'
       );
     `);
-    
+
     // Fetch from forms_master table and convert to forms format
     if (formsMasterCheck.rows[0].exists) {
       const masterResult = await pool.query(
         'SELECT * FROM forms_master WHERE deleted = FALSE ORDER BY created_at DESC'
       );
       console.log(`Fetched ${masterResult.rows.length} forms from 'forms_master' table`);
-      
+
       // Convert forms_master format to forms format
       const convertedForms = masterResult.rows.map(masterForm => {
-        const schema = typeof masterForm.schema === 'string' 
-          ? JSON.parse(masterForm.schema) 
+        const schema = typeof masterForm.schema === 'string'
+          ? JSON.parse(masterForm.schema)
           : masterForm.schema;
-        
+
         // Convert schema fields to form builder fields format
         const fields = schema.fields ? schema.fields.map(f => ({
           field_name: f.name || f.field_name,
@@ -385,12 +385,12 @@ router.get('/', authenticateToken, async (req, res) => {
           placeholder: f.placeholder || '',
           default_value: f.defaultValue || f.default_value || ''
         })) : [];
-        
+
         // Get description from schema or generate a helpful one
-        const description = schema.description 
-          || schema.formDescription 
+        const description = schema.description
+          || schema.formDescription
           || `Form with ${fields.length} field${fields.length !== 1 ? 's' : ''} • Created: ${new Date(masterForm.created_at).toLocaleDateString()}`;
-        
+
         return {
           form_id: masterForm.id,
           form_name: masterForm.form_name || schema.formName,
@@ -404,15 +404,15 @@ router.get('/', authenticateToken, async (req, res) => {
           is_legacy: true // Flag to identify legacy forms
         };
       });
-      
+
       allForms = allForms.concat(convertedForms);
     }
-    
+
     console.log(`Total forms returned: ${allForms.length}`);
     if (allForms.length > 0) {
       console.log('Sample form:', JSON.stringify(allForms[0], null, 2));
     }
-    
+
     res.json({ forms: allForms });
   } catch (err) {
     console.error('Error fetching forms:', err);
@@ -452,12 +452,12 @@ router.get('/tables', authenticateToken, async (req, res) => {
 router.get('/tables/:tableName/columns', authenticateToken, async (req, res) => {
   try {
     const { tableName } = req.params;
-    
+
     // Validate table name (alphanumeric and underscores only)
     if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
       return res.status(400).json({ error: 'Invalid table name' });
     }
-    
+
     // Load metadata (input_type) if meta table exists
     let metaMap = new Map();
     try {
@@ -518,7 +518,7 @@ router.post('/tables/:tableName/columns', authenticateToken, async (req, res) =>
   try {
     const { tableName } = req.params;
     const { column_name, data_type, max_length, nullable, default_value, unique, input_type, input_options } = req.body;
-    
+
     // Validate inputs
     if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
       return res.status(400).json({ error: 'Invalid table name' });
@@ -526,22 +526,22 @@ router.post('/tables/:tableName/columns', authenticateToken, async (req, res) =>
     if (!/^[a-zA-Z0-9_]+$/.test(column_name)) {
       return res.status(400).json({ error: 'Invalid column name' });
     }
-    
+
     await client.query('BEGIN');
 
     await ensureColumnsMetaTableExists(client);
-    
+
     // Build ALTER TABLE query
     let columnDef = `${column_name} ${data_type}`;
-    
+
     // Add length for VARCHAR/CHAR
     if ((data_type === 'VARCHAR' || data_type === 'CHAR') && max_length) {
       columnDef += `(${max_length})`;
     }
-    
+
     // Add NULL/NOT NULL
     columnDef += nullable ? ' NULL' : ' NOT NULL';
-    
+
     // Add default value
     if (default_value) {
       if (data_type === 'VARCHAR' || data_type === 'TEXT' || data_type === 'CHAR') {
@@ -550,7 +550,7 @@ router.post('/tables/:tableName/columns', authenticateToken, async (req, res) =>
         columnDef += ` DEFAULT ${default_value}`;
       }
     }
-    
+
     // Execute ALTER TABLE
     await client.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnDef}`);
 
@@ -564,12 +564,12 @@ router.post('/tables/:tableName/columns', authenticateToken, async (req, res) =>
        DO UPDATE SET input_type = EXCLUDED.input_type, options = EXCLUDED.options, updated_at = CURRENT_TIMESTAMP`,
       [tableName, column_name, inputType, options]
     );
-    
+
     // Add unique constraint if requested
     if (unique) {
       await client.query(`ALTER TABLE ${tableName} ADD CONSTRAINT ${tableName}_${column_name}_unique UNIQUE (${column_name})`);
     }
-    
+
     await client.query('COMMIT');
     res.json({ message: 'Column added successfully', column_name });
   } catch (err) {
@@ -587,26 +587,26 @@ router.put('/tables/:tableName/columns/:columnName', authenticateToken, async (r
   try {
     const { tableName, columnName } = req.params;
     const { new_column_name, data_type, max_length, nullable, default_value, input_type, input_options } = req.body;
-    
+
     // Validate inputs
     if (!/^[a-zA-Z0-9_]+$/.test(tableName) || !/^[a-zA-Z0-9_]+$/.test(columnName)) {
       return res.status(400).json({ error: 'Invalid table or column name' });
     }
-    
+
     // Validate new column name if provided
     if (new_column_name && !/^[a-zA-Z0-9_]+$/.test(new_column_name)) {
       return res.status(400).json({ error: 'Invalid new column name' });
     }
-    
+
     await client.query('BEGIN');
-    
+
     // Rename column if new name provided
     let currentColumnName = columnName;
     if (new_column_name && new_column_name !== columnName) {
       await client.query(`ALTER TABLE ${tableName} RENAME COLUMN ${columnName} TO ${new_column_name}`);
       currentColumnName = new_column_name;
     }
-    
+
     // Change data type
     if (data_type) {
       let typeClause = data_type;
@@ -615,13 +615,13 @@ router.put('/tables/:tableName/columns/:columnName', authenticateToken, async (r
       }
       await client.query(`ALTER TABLE ${tableName} ALTER COLUMN ${currentColumnName} TYPE ${typeClause}`);
     }
-    
+
     // Change nullable
     if (nullable !== undefined) {
       const nullClause = nullable ? 'DROP NOT NULL' : 'SET NOT NULL';
       await client.query(`ALTER TABLE ${tableName} ALTER COLUMN ${currentColumnName} ${nullClause}`);
     }
-    
+
     // Change default value
     if (default_value !== undefined) {
       if (default_value === '' || default_value === null) {
@@ -633,7 +633,7 @@ router.put('/tables/:tableName/columns/:columnName', authenticateToken, async (r
         await client.query(`ALTER TABLE ${tableName} ALTER COLUMN ${currentColumnName} SET DEFAULT ${defaultClause}`);
       }
     }
-    
+
     await client.query('COMMIT');
 
     // Update metadata (best-effort)
@@ -675,12 +675,12 @@ router.delete('/tables/:tableName/columns/:columnName', authenticateToken, async
   const client = await pool.connect();
   try {
     const { tableName, columnName } = req.params;
-    
+
     // Validate inputs
     if (!/^[a-zA-Z0-9_]+$/.test(tableName) || !/^[a-zA-Z0-9_]+$/.test(columnName)) {
       return res.status(400).json({ error: 'Invalid table or column name' });
     }
-    
+
     await client.query('BEGIN');
     try {
       await ensureColumnsMetaTableExists(client);
@@ -693,7 +693,7 @@ router.delete('/tables/:tableName/columns/:columnName', authenticateToken, async
     }
     await client.query(`ALTER TABLE ${tableName} DROP COLUMN ${columnName}`);
     await client.query('COMMIT');
-    
+
     res.json({ message: 'Column deleted successfully' });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -708,26 +708,26 @@ router.delete('/tables/:tableName/columns/:columnName', authenticateToken, async
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Try forms table first
     let result = await pool.query('SELECT * FROM forms WHERE form_id = $1', [id]);
-    
+
     if (result.rows.length > 0) {
       return res.json(result.rows[0]);
     }
-    
+
     // Try forms_master table
     const masterResult = await pool.query(
       'SELECT * FROM forms_master WHERE id = $1 AND deleted = FALSE',
       [id]
     );
-    
+
     if (masterResult.rows.length > 0) {
       const masterForm = masterResult.rows[0];
-      const schema = typeof masterForm.schema === 'string' 
-        ? JSON.parse(masterForm.schema) 
+      const schema = typeof masterForm.schema === 'string'
+        ? JSON.parse(masterForm.schema)
         : masterForm.schema;
-      
+
       // Convert to forms format
       const fields = schema.fields ? schema.fields.map(f => ({
         field_name: f.name || f.field_name,
@@ -738,11 +738,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
         placeholder: f.placeholder || '',
         default_value: f.defaultValue || f.default_value || ''
       })) : [];
-      
-      const description = schema.description 
-        || schema.formDescription 
+
+      const description = schema.description
+        || schema.formDescription
         || `Form with ${fields.length} field${fields.length !== 1 ? 's' : ''} • Created: ${new Date(masterForm.created_at).toLocaleDateString()}`;
-      
+
       return res.json({
         form_id: masterForm.id,
         form_name: masterForm.form_name || schema.formName,
@@ -756,7 +756,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         is_legacy: true
       });
     }
-    
+
     return res.status(404).json({ error: 'Form not found' });
   } catch (err) {
     console.error(err);
@@ -778,21 +778,21 @@ router.post('/', authenticateToken, checkPermission('manage_forms'), async (req,
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Missing required fields: form_name, section, table_name, and fields array are required' });
     }
-    
+
     // Filter out invalid fields before validation
     const validFields = fields.filter(field => {
-      return field && 
-             field.field_name && 
-             String(field.field_name).trim() !== '' && 
-             field.field_type;
+      return field &&
+        field.field_name &&
+        String(field.field_name).trim() !== '' &&
+        field.field_type;
     });
-    
+
     if (validFields.length === 0) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'At least one valid field with field_name and field_type is required' });
     }
 
-    const validSections = ['operations_hub','hse','safeguarding','complaints','incidents','inspections','training','compliance'];
+    const validSections = ['operations_hub', 'hse', 'safeguarding', 'complaints', 'incidents', 'inspections', 'training', 'compliance'];
     if (!validSections.includes(section)) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Invalid section' });
@@ -814,7 +814,7 @@ router.post('/', authenticateToken, checkPermission('manage_forms'), async (req,
     `, [table_name]);
 
     let createSQL = null;
-    
+
     // Only create table if it doesn't exist
     if (!tableExists.rows[0].exists) {
       // Generate and execute CREATE TABLE SQL (use filtered validFields)
@@ -825,7 +825,7 @@ router.post('/', authenticateToken, checkPermission('manage_forms'), async (req,
         console.error('Error generating CREATE TABLE SQL:', sqlErr);
         return res.status(400).json({ error: 'Invalid form configuration', details: sqlErr.message });
       }
-      
+
       try {
         await client.query(createSQL);
         console.log(`Created new table: ${table_name}`);
@@ -877,10 +877,10 @@ router.put('/:id', authenticateToken, checkPermission('manage_forms'), async (re
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     // Ensure forms table exists
     await ensureFormsTableExists(client);
-    
+
     const { id } = req.params;
     const { form_name, form_description, section, table_name, fields } = req.body;
 
@@ -901,7 +901,7 @@ router.put('/:id', authenticateToken, checkPermission('manage_forms'), async (re
       }
     }
     if (!Array.isArray(oldFields)) oldFields = [];
-    
+
     const alterSQLs = generateAlterTableSQL(table_name, oldFields, fields);
     for (const sql of alterSQLs) {
       if (sql && sql.trim()) {
@@ -930,16 +930,16 @@ router.delete('/:id', authenticateToken, checkPermission('manage_forms'), async 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     // Ensure forms table exists
     await ensureFormsTableExists(client);
-    
+
     const { id } = req.params;
     const { dropTable } = req.query;
 
     // Try to find in forms table first
     const formRes = await client.query('SELECT * FROM forms WHERE form_id=$1', [id]);
-    
+
     if (formRes.rows.length > 0) {
       // Form found in forms table
       const form = formRes.rows[0];
@@ -949,12 +949,12 @@ router.delete('/:id', authenticateToken, checkPermission('manage_forms'), async 
       }
       await client.query('DELETE FROM forms WHERE form_id=$1', [id]);
       await client.query('COMMIT');
-      return res.json({ message: 'Form deleted', table_dropped: dropTable==='true' });
+      return res.json({ message: 'Form deleted', table_dropped: dropTable === 'true' });
     }
-    
+
     // Try forms_master table (legacy forms)
     const masterRes = await client.query('SELECT * FROM forms_master WHERE id=$1 AND deleted=FALSE', [id]);
-    
+
     if (masterRes.rows.length > 0) {
       // Legacy form found
       const masterForm = masterRes.rows[0];
@@ -965,13 +965,13 @@ router.delete('/:id', authenticateToken, checkPermission('manage_forms'), async 
       // Soft delete for legacy forms
       await client.query('UPDATE forms_master SET deleted=TRUE, updated_at=NOW() WHERE id=$1', [id]);
       await client.query('COMMIT');
-      return res.json({ message: 'Legacy form deleted', table_dropped: dropTable==='true' });
+      return res.json({ message: 'Legacy form deleted', table_dropped: dropTable === 'true' });
     }
-    
+
     // Form not found in either table
     await client.query('ROLLBACK');
     return res.status(404).json({ error: 'Form not found' });
-    
+
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);

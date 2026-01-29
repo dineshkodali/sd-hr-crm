@@ -80,7 +80,7 @@ async function getHotelsPkColumn() {
 /* ensure denormalized column exists */
 (async function ensureHotelNameColumn() {
   try {
-    await safeQuery("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS hotel_name TEXT");
+    await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS hotel_name TEXT");
   } catch (err) {
     console.warn("Could not ensure hotel_name column exists:", err && (err.message || err));
   }
@@ -88,9 +88,9 @@ async function getHotelsPkColumn() {
 
 (async function ensureCertificateDocumentColumns() {
   try {
-    await safeQuery("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS document_name TEXT");
-    await safeQuery("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS document_mime TEXT");
-    await safeQuery("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS document_data BYTEA");
+    await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS document_name TEXT");
+    await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS document_mime TEXT");
+    await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS document_data BYTEA");
   } catch (err) {
     console.warn("Could not ensure certificate document columns exist:", err && (err.message || err));
   }
@@ -110,7 +110,7 @@ router.get("/stats/summary", requireAuth, async (req, res) => {
       COUNT(*) FILTER (WHERE expiry_date > (current_date + INTERVAL '30 days') AND is_active IS TRUE) AS valid_count,
       COUNT(*) FILTER (WHERE expiry_date <= (current_date + INTERVAL '30 days') AND expiry_date >= current_date AND is_active IS TRUE) AS expiring_count,
       COUNT(*) FILTER (WHERE expiry_date < current_date AND is_active IS TRUE) AS expired_count
-    FROM certificates;`;
+    FROM public.certificates;`;
 
     const r = await safeQuery(q);
     if (!r.ok) return res.json({ ok: true, data: { valid_count: 0, expiring_count: 0, expired_count: 0 } });
@@ -149,7 +149,7 @@ router.get("/", requireAuth, async (req, res) => {
         WHEN expiry_date <= (current_date + INTERVAL '30 days') THEN 'expiring'
         ELSE 'valid'
       END AS status
-    FROM certificates
+    FROM public.certificates
     WHERE ${where.join(" AND ")}
     ORDER BY expiry_date ASC
     LIMIT $1 OFFSET $2;`;
@@ -211,7 +211,7 @@ router.get("/:id/document", requireAuth, async (req, res) => {
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
 
     const r = await safeQuery(
-      "SELECT document_name, document_mime, document_data FROM certificates WHERE id::text = $1 AND is_active = true LIMIT 1",
+      "SELECT document_name, document_mime, document_data FROM public.certificates WHERE id::text = $1 AND is_active = true LIMIT 1",
       [String(id)]
     );
     if (!r.ok) return res.status(500).json({ ok: false, error: "Server error" });
@@ -296,7 +296,7 @@ router.post("/", requireAuth, upload.single("document"), async (req, res) => {
       }
     }
 
-    const insertSql = `INSERT INTO certificates (certificate_type, property_id, hotel_name, issue_date, expiry_date, issued_by, file_path, document_name, document_mime, document_data, notes, created_by, is_active)
+    const insertSql = `INSERT INTO public.certificates (certificate_type, property_id, hotel_name, issue_date, expiry_date, issued_by, file_path, document_name, document_mime, document_data, notes, created_by, is_active)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`;
     // property_id we keep as null unless user provided an actual property id that resolves to a properties.id
     let resolvedPropertyId = null;
@@ -427,7 +427,7 @@ router.put("/:id", requireAuth, upload.single("document"), async (req, res) => {
       if (rp.ok && rp.rowCount > 0) resolvedPropertyId = rp.rows[0].id;
     }
 
-    const sql = `UPDATE certificates SET certificate_type = $1, property_id = $2, hotel_name = $3, issue_date = $4, expiry_date = $5, issued_by = $6, file_path = $7, document_name = COALESCE($8, document_name), document_mime = COALESCE($9, document_mime), document_data = COALESCE($10, document_data), notes = $11, is_active = $12, updated_at = now() WHERE id::text = $13 RETURNING id`;
+    const sql = `UPDATE public.certificates SET certificate_type = $1, property_id = $2, hotel_name = $3, issue_date = $4, expiry_date = $5, issued_by = $6, file_path = $7, document_name = COALESCE($8, document_name), document_mime = COALESCE($9, document_mime), document_data = COALESCE($10, document_data), notes = $11, is_active = $12, updated_at = now() WHERE id::text = $13 RETURNING id`;
     const params = [
       certificate_type,
       resolvedPropertyId,
@@ -486,7 +486,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
 
-    const r = await safeQuery("UPDATE certificates SET is_active=false, updated_at=now() WHERE id::text = $1 RETURNING *", [String(id)]);
+    const r = await safeQuery("UPDATE public.certificates SET is_active=false, updated_at=now() WHERE id::text = $1 RETURNING *", [String(id)]);
     if (!r.ok) return res.status(500).json({ ok: false, error: "Server error" });
     if (!r.rows[0]) return res.status(404).json({ ok: false, error: "Not found" });
     return res.json({ ok: true, data: r.rows[0] });
