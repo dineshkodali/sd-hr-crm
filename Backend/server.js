@@ -3,6 +3,7 @@
 
 import "./load-env.js"; // MUST be first to ensure env vars are loaded before db.js
 import express from "express";
+import helmet from "helmet";
 import cors from "cors";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
@@ -58,6 +59,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.use(helmet());
 
 // Healthcheck endpoint for Docker
 app.get('/api/health', (req, res) => res.send('OK'));
