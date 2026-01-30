@@ -20,7 +20,7 @@ EXPOSE 4000
 CMD ["node", "server.js"]
 
 # --- Frontend Production Stage ---
-FROM nginx:stable-alpine AS frontend
+FROM nginx:1.29.4-alpine3.23 AS frontend
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
