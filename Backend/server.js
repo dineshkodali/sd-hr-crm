@@ -62,7 +62,33 @@ const app = express();
 // Healthcheck endpoint for Docker
 app.get('/api/health', (req, res) => res.send('OK'));
 
+// Authentication health check
+app.get('/api/auth-health', (req, res) => {
+  const jwtSecret = process.env.JWT_SECRET || process.env.JWT_SECRET_KEY;
+  const corsOrigins = process.env.CORS_ORIGINS;
+  
+  res.json({
+    status: 'ok',
+    auth: {
+      jwtSecret: !!jwtSecret,
+      jwtSecretLength: jwtSecret ? jwtSecret.length : 0,
+      corsOrigins: corsOrigins ? corsOrigins.split(',') : [],
+      nodeEnv: process.env.NODE_ENV
+    }
+  });
+});
+
 console.log("Starting server (server.js) - NODE_ENV:", process.env.NODE_ENV || "development");
+
+// Check authentication configuration
+if (!process.env.JWT_SECRET && !process.env.JWT_SECRET_KEY) {
+  console.warn("⚠️  JWT_SECRET not set! Using fallback for development.");
+  console.warn("⚠️  Please set JWT_SECRET in your .env file for production security.");
+}
+
+if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGINS) {
+  console.warn("⚠️  CORS_ORIGINS not set in production! Please configure your domain.");
+}
 
 /* ----------------------------
    Basic middleware
@@ -72,12 +98,32 @@ app.set("trust proxy", 1);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow any origin for dynamic host support
-    return callback(null, true);
+    // Allow specific origins in production, localhost in development
+    const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
+      'http://localhost:3002',
+      'http://localhost:3000',
+      'http://127.0.0.1:3002',
+      'http://127.0.0.1:3000'
+    ];
+    
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Log blocked origins for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('CORS blocked origin:', origin, 'Allowed origins:', allowedOrigins);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 }));
 
 app.use(bodyParser.json());

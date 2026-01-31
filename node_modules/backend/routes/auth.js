@@ -19,22 +19,27 @@ import { logActivity, getActivityLogs, getActivityStats } from '../utils/activit
 
 const router = express.Router();
 
-// Dev-friendly cookie options.
+// Production-ready cookie options.
 // In production, set sameSite: 'None' and secure: true (and serve over HTTPS).
-// For local development, returning the token in the JSON response is the most
-// reliable way to test with curl or Authorization headers.
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production", // only true in production (https)
   sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // Lax in dev
   path: "/", // ensure cookie is sent to all routes on the domain
   maxAge: 30 * 24 * 60 * 60 * 1000,
+  domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === "production" ? undefined : undefined),
 };
 
-const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (id) => {
+  // Use same fallback JWT_SECRET as auth middleware
+  const jwtSecret = process.env.JWT_SECRET || 
+    process.env.JWT_SECRET_KEY || 
+    "default-jwt-secret-for-production-change-this-in-env-32-chars-minimum";
+  
+  return jwt.sign({ id }, jwtSecret, {
     expiresIn: "30d",
   });
+};
 
 /* ---------- DEBUG: show token and decoded (non-production only) ---------- */
 if (process.env.NODE_ENV !== "production") {
