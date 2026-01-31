@@ -129,6 +129,17 @@ const Login = ({ setUser }) => {
         return;
       }
 
+      // Store token from response for subsequent API requests
+      if (res?.data?.token) {
+        try {
+          localStorage.setItem("authToken", res.data.token);
+          // Update axios default header with token
+          axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        } catch (err) {
+          console.error("Failed to store auth token:", err);
+        }
+      }
+
       setUser(user);
       try {
         localStorage.setItem("user", JSON.stringify(user));

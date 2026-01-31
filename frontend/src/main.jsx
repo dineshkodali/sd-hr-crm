@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-
+import './utils/axiosConfig.js' // Initialize axios interceptors with token management
 
 // Add this to the TOP of src/main.jsx or src/index.js
 if (typeof crypto === 'undefined') self.crypto = {};
