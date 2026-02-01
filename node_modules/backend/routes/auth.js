@@ -20,11 +20,11 @@ import { logActivity, getActivityLogs, getActivityStats } from '../utils/activit
 const router = express.Router();
 
 // Production-ready cookie options.
-// In production, set sameSite: 'None' and secure: true (and serve over HTTPS).
+// For HTTP production, secure should be false. For HTTPS production, set to true.
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production", // only true in production (https)
-  sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // Lax in dev
+  secure: process.env.NODE_ENV === "production" && process.env.HTTPS_ONLY === "true", // only true for HTTPS production
+  sameSite: process.env.NODE_ENV === "production" ? "Lax" : "Lax", // Lax for HTTP production
   path: "/", // ensure cookie is sent to all routes on the domain
   maxAge: 30 * 24 * 60 * 60 * 1000,
   domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === "production" ? undefined : undefined),
