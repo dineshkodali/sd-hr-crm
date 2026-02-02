@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # db service removed; using remote DB
+  # Using remote database - local db service removed
 
   backend:
     build:
@@ -14,7 +14,13 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
       - PORT=4000
       - NODE_ENV=production
-      - CORS_ORIGINS=https://crm.sdgsolutions.in,http://localhost:3002,http://localhost:3000,http://192.168.0.4:3002,http://frontend:80
+      - CORS_ORIGINS=https://crm.sdcsolutions.in,http://crm.sdcsolutions.in,http://crm.sdgsolutions.in,https://crm.sdgsolutions.in,http://localhost:3002,http://localhost:3000
+      - DATABASE_URL=postgresql://sdcommercial:sdcommercial@18.130.77.174:5432/new_CRM
+      - DB_HOST=18.130.77.174
+      - DB_PORT=5432
+      - DB_NAME=new_CRM
+      - DB_USER=sdcommercial
+      - DB_PASSWORD=sdcommercial
     ports:
       - "4000:4000"
     networks:

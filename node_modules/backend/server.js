@@ -96,35 +96,46 @@ if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGINS) {
 
 app.set("trust proxy", 1);
 
+// File: C:\PostgreAuth\Backend\server.js
+
+// ... (imports remain the same)
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow specific origins in production, localhost in development
+    // 1. UPDATED: Added IP-based origins to the allowed list
     const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
       'http://localhost:3002',
       'http://localhost:3000',
       'http://127.0.0.1:3002',
-      'http://127.0.0.1:3000'
+      'http://127.0.0.1:3000',
+      'http://192.168.0.4:3002', // Added your local IP
+      'http://192.168.0.4:3000',  // Added your local IP
+      'http://172.22.48.1:3002', // Added your current access IP
+      'http://172.22.48.1:3000', // Added your current access IP
+      'http://crm.sdgsolutions.in',
+      'http://crm.sdcsolutions.in',
     ];
     
-    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (process.env.CORS_ORIGINS === '*') {
+      return callback(null, true);
+    }
+    
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
-    // Log blocked origins for debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('CORS blocked origin:', origin, 'Allowed origins:', allowedOrigins);
-    }
-    
+    console.warn('CORS blocked origin:', origin);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+  optionsSuccessStatus: 200 
 }));
+
+// ... (rest of the file remains the same)
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
