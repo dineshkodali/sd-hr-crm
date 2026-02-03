@@ -103,7 +103,18 @@ app.set("trust proxy", 1);
 app.use(cors({
   origin: (origin, callback) => {
     // 1. UPDATED: Added IP-based origins to the allowed list
-    const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
+    const normalizeOrigin = (value) => {
+      if (!value) return value;
+      const trimmed = String(value).trim().replace(/\/+$/, "");
+      // strip default ports so http://x:80 and https://x:443 match http://x and https://x
+      return trimmed
+        .replace(/^http:\/\/(.+):80$/i, "http://$1")
+        .replace(/^https:\/\/(.+):443$/i, "https://$1");
+    };
+
+    const allowedOrigins = (process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(",").map((s) => normalizeOrigin(s)).filter(Boolean)
+      : null) || [
       'http://localhost:3002',
       'http://localhost:3000',
       'http://127.0.0.1:3002',
@@ -121,12 +132,13 @@ app.use(cors({
     }
     
     if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
+
+    const normalizedOrigin = normalizeOrigin(origin);
+    if (allowedOrigins.includes(normalizedOrigin)) {
       return callback(null, true);
     }
     
-    console.warn('CORS blocked origin:', origin);
+    console.warn('CORS blocked origin:', origin, 'normalized:', normalizedOrigin, 'allowed:', allowedOrigins);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
