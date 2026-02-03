@@ -134,7 +134,29 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     const normalizedOrigin = normalizeOrigin(origin);
+    const isPrivateLanOrigin = (() => {
+      // Allow local network IPs where frontend may be accessed directly by IP.
+      // Only allow expected ports for frontend.
+      if (!/:(3000|3002)$/.test(normalizedOrigin)) return false;
+
+      // 10.0.0.0/8
+      if (/^http:\/\/10\.(\d{1,3}\.){2}\d{1,3}:(3000|3002)$/i.test(normalizedOrigin)) return true;
+
+      // 192.168.0.0/16
+      if (/^http:\/\/192\.168\.(\d{1,3})\.\d{1,3}:(3000|3002)$/i.test(normalizedOrigin)) return true;
+
+      // 172.16.0.0 - 172.31.0.0
+      const m = normalizedOrigin.match(/^http:\/\/172\.(\d{1,3})\.(\d{1,3})\.(\d{1,3}):(3000|3002)$/i);
+      if (!m) return false;
+      const secondOctet = Number(m[1]);
+      return secondOctet >= 16 && secondOctet <= 31;
+    })();
+
     if (allowedOrigins.includes(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    if (isPrivateLanOrigin) {
       return callback(null, true);
     }
     
