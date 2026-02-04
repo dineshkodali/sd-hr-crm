@@ -110,12 +110,21 @@ CREATE TABLE IF NOT EXISTS public.rooms (
   type VARCHAR(100),
   rate NUMERIC,
   status VARCHAR(50) DEFAULT 'available',
+  length NUMERIC,
+  width NUMERIC,
+  bathroom_type VARCHAR(100),
+  has_bathroom BOOLEAN,
+  has_kitchen BOOLEAN,
+  inventory TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_rooms_hotel_id ON public.rooms(hotel_id);
 CREATE INDEX IF NOT EXISTS idx_rooms_room_number ON public.rooms(room_number);
+CREATE INDEX IF NOT EXISTS idx_rooms_bathroom_type ON public.rooms(bathroom_type);
+CREATE INDEX IF NOT EXISTS idx_rooms_has_bathroom ON public.rooms(has_bathroom);
+CREATE INDEX IF NOT EXISTS idx_rooms_has_kitchen ON public.rooms(has_kitchen);
 
 -- Hotel access mapping
 CREATE TABLE IF NOT EXISTS public.hotel_access (

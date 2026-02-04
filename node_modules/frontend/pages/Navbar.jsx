@@ -84,7 +84,7 @@ export default function Navbar({ user, setUser, children }) {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 w-full bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between shadow-sm top-navbar">
+      <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-3 flex items-center justify-between shadow-sm top-navbar">
 
         {/* Left Side: Logo + Text */}
         <div className="flex items-center">

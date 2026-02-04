@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import {
   Home,
@@ -111,6 +112,7 @@ export default function Bookings({ user }) {
     "day",
     "guests",
     "origin",
+    "immigration_status",
     "status",
     "actions",
   ];
@@ -167,7 +169,7 @@ export default function Bookings({ user }) {
 
   // Hide modal styles
   useEffect(() => {
-    if (showModal) {
+    if (showModal || showViewModal || showEditModal) {
       document.body.classList.add('form-modal-open');
     } else {
       document.body.classList.remove('form-modal-open');
@@ -175,7 +177,7 @@ export default function Bookings({ user }) {
     return () => {
       document.body.classList.remove('form-modal-open');
     };
-  }, [showModal]);
+  }, [showModal, showViewModal, showEditModal]);
 
   // Close view menu on outside click
   useEffect(() => {
@@ -278,13 +280,14 @@ export default function Bookings({ user }) {
           room_type: room?.type || 'N/A',
           room_id: su.room_id || moveIn?.room_id,
           property_id: su.property_id || moveIn?.property_id,
-          property_name: property?.name || 'Unknown',
+          property_name: property?.name || su.property_name || moveIn?.property_name || 'Unknown',
           check_in: checkInDate || 'N/A',
           day: dayOfWeek,
           guests: 1, // Single person booking
           origin: su.nationality || 'N/A',
+          immigration_status: su.immigration_status || 'Pending',
           status: su.status || moveIn?.status || 'Pending',
-          date_of_birth: su.date_of_birth,
+          date_of_birth: su.date_of_birth || su.dob,
           nationality: su.nationality,
           home_office_reference: su.home_office_reference,
           vulnerabilities: su.vulnerabilities,
@@ -364,12 +367,19 @@ export default function Bookings({ user }) {
 
   const normalizeDateInput = (value) => {
     if (!value) return "";
+
+    // If it's a string
     if (typeof value === "string") {
-      // already YYYY-MM-DD
+      // Already in YYYY-MM-DD format
       if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
       // ISO string -> YYYY-MM-DD
       if (value.includes("T")) return value.slice(0, 10);
+      // Try to parse as date
+      const d = new Date(value);
+      if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
     }
+
+    // Try to parse as date object
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return "";
     return d.toISOString().slice(0, 10);
@@ -380,10 +390,12 @@ export default function Bookings({ user }) {
     if (booking?.property_id) {
       handlePropertyChange(String(booking.property_id));
     }
+    // Try to get DOB from either date_of_birth or dob field
+    const dobValue = booking.date_of_birth || booking.dob;
     setFormData({
       first_name: booking.first_name || '',
       last_name: booking.last_name || '',
-      date_of_birth: normalizeDateInput(booking.date_of_birth),
+      date_of_birth: normalizeDateInput(dobValue),
       nationality: booking.nationality || '',
       home_office_reference: booking.home_office_reference || '',
       property_id: booking.property_id || '',
@@ -671,8 +683,8 @@ export default function Bookings({ user }) {
             <button
               onClick={() => setActiveTab('all')}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               All Bookings
@@ -680,8 +692,8 @@ export default function Bookings({ user }) {
             <button
               onClick={() => setActiveTab('checked-in')}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'checked-in'
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Checked In
@@ -689,8 +701,8 @@ export default function Bookings({ user }) {
             <button
               onClick={() => setActiveTab('arriving')}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'arriving'
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Arriving Today
@@ -698,8 +710,8 @@ export default function Bookings({ user }) {
             <button
               onClick={() => setActiveTab('late')}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'late'
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Late Checkout
@@ -707,8 +719,8 @@ export default function Bookings({ user }) {
             <button
               onClick={() => setActiveTab('pending')}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pending'
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Pending
@@ -764,8 +776,8 @@ export default function Bookings({ user }) {
                             <button
                               onClick={() => setViewMode('table')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <Columns className="w-4 h-4" />
@@ -774,8 +786,8 @@ export default function Bookings({ user }) {
                             <button
                               onClick={() => setViewMode('board')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <ClipboardList className="w-4 h-4" />
@@ -928,6 +940,7 @@ export default function Bookings({ user }) {
                     {visibleColumns.day && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Day</th>}
                     {visibleColumns.guests && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Guests</th>}
                     {visibleColumns.origin && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Origin</th>}
+                    {visibleColumns.immigration_status && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Immigration Status</th>}
                     {visibleColumns.status && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>}
                     {visibleColumns.actions && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>}
                   </tr>
@@ -972,6 +985,13 @@ export default function Bookings({ user }) {
                           {visibleColumns.day && <td className="py-3 px-4 text-sm text-gray-600">{booking.day}</td>}
                           {visibleColumns.guests && <td className="py-3 px-4 text-sm text-gray-600">{booking.guests}</td>}
                           {visibleColumns.origin && <td className="py-3 px-4 text-sm text-gray-600">{booking.origin}</td>}
+                          {visibleColumns.immigration_status && (
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                {booking.immigration_status || 'Pending'}
+                              </span>
+                            </td>
+                          )}
                           {visibleColumns.status && (
                             <td className="py-3 px-4">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusColors.bg} ${statusColors.text} ${statusColors.border}`}>
@@ -1076,9 +1096,9 @@ export default function Bookings({ user }) {
       </div>
 
       {/* New Booking Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-3xl rounded-xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+      {showModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+          <div className="bg-white w-full max-w-3xl rounded-xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200 border border-gray-100">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
               <div>
@@ -1270,13 +1290,14 @@ export default function Bookings({ user }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* View Modal */}
-      {showViewModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      {showViewModal && selectedBooking && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-100 animate-in fade-in zoom-in duration-200">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Booking Details</h2>
@@ -1301,18 +1322,32 @@ export default function Bookings({ user }) {
                   <p className="text-gray-900">{selectedBooking.order_no}</p>
                 </div>
                 <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Date of Birth</label>
+                  <p className="text-gray-900">{formatDate(selectedBooking.date_of_birth) || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Nationality</label>
+                  <p className="text-gray-900">{selectedBooking.nationality || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Home Office Reference</label>
+                  <p className="text-gray-900">{selectedBooking.home_office_reference || 'N/A'}</p>
+                </div>
+                <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Room</label>
                   <p className="text-gray-900">{selectedBooking.room} - {selectedBooking.room_type}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
+                  <p className="text-gray-900">{selectedBooking.property_name || 'N/A'}</p>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Check-In Date</label>
                   <p className="text-gray-900">{formatDate(selectedBooking.check_in)}</p>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(selectedBooking.status).bg} ${getStatusColor(selectedBooking.status).text} ${getStatusColor(selectedBooking.status).border}`}>
-                    {selectedBooking.status}
-                  </span>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Day</label>
+                  <p className="text-gray-900">{selectedBooking.day}</p>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Guests</label>
@@ -1323,8 +1358,16 @@ export default function Bookings({ user }) {
                   <p className="text-gray-900">{selectedBooking.origin}</p>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Day</label>
-                  <p className="text-gray-900">{selectedBooking.day}</p>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Immigration Status</label>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {selectedBooking.immigration_status || 'Pending'}
+                  </span>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(selectedBooking.status).bg} ${getStatusColor(selectedBooking.status).text} ${getStatusColor(selectedBooking.status).border}`}>
+                    {selectedBooking.status}
+                  </span>
                 </div>
               </div>
 
@@ -1369,13 +1412,14 @@ export default function Bookings({ user }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Modal */}
-      {showEditModal && selectedBooking && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      {showEditModal && selectedBooking && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 border border-gray-100">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Edit Booking</h2>
@@ -1641,7 +1685,8 @@ export default function Bookings({ user }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Confirmation Dialog */}

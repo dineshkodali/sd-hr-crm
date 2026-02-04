@@ -1,5 +1,6 @@
 /* src/pages/MoveInOut.jsx */
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { Eye, ChevronDown, Filter, Columns, X, Home } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
@@ -74,9 +75,9 @@ export default function MoveInOutPage({ user }) {
   const [activeTab, setActiveTab] = useState("ins");
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-const [deleteId, setDeleteId] = useState(null);
-const [deleteType, setDeleteType] = useState(null); // "move-in" | "move-out"
-const [deleting, setDeleting] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [deleteType, setDeleteType] = useState(null); // "move-in" | "move-out"
+  const [deleting, setDeleting] = useState(false);
 
   // Filter and Sort State (Litigation-style)
   const [filterProperty, setFilterProperty] = useState('');
@@ -107,7 +108,7 @@ const [deleting, setDeleting] = useState(false);
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'warning'
   });
 
@@ -176,26 +177,26 @@ const [deleting, setDeleting] = useState(false);
         const list = res?.data?.rows ?? res?.data?.data ?? res?.data ?? [];
         const normalized = Array.isArray(list)
           ? list.map((r) => ({
-              id: r.id,
-              service_user_id:
-                r.service_user_id ?? r.serviceUserId ?? r.service_userId,
-              service_user_name:
-                r.service_user_name ??
-                r.serviceUserName ??
-                (r.service_user_id || r.serviceUserId),
-              property_id: r.property_id ?? r.propertyId,
-              property_name: r.property_name ?? r.propertyName ?? null,
-              room_id: r.room_id ?? r.roomId,
-              room_name: r.room_name ?? r.roomName ?? null,
-              bedspace_id: r.bedspace_id ?? r.bedspaceId,
-              bedspace_name: r.bedspace_name ?? r.bedspaceName ?? null,
-              move_in_date:
-                r.move_in_date ?? r.moveInDate ?? r.created_at ?? null,
-              checklist: r.checklist || r.check_list || {},
-              notes: r.notes || null,
-              signature: r.signature || null,
-              created_at: r.created_at || r.createdAt || null,
-            }))
+            id: r.id,
+            service_user_id:
+              r.service_user_id ?? r.serviceUserId ?? r.service_userId,
+            service_user_name:
+              r.service_user_name ??
+              r.serviceUserName ??
+              (r.service_user_id || r.serviceUserId),
+            property_id: r.property_id ?? r.propertyId,
+            property_name: r.property_name ?? r.propertyName ?? null,
+            room_id: r.room_id ?? r.roomId,
+            room_name: r.room_name ?? r.roomName ?? null,
+            bedspace_id: r.bedspace_id ?? r.bedspaceId,
+            bedspace_name: r.bedspace_name ?? r.bedspaceName ?? null,
+            move_in_date:
+              r.move_in_date ?? r.moveInDate ?? r.created_at ?? null,
+            checklist: r.checklist || r.check_list || {},
+            notes: r.notes || null,
+            signature: r.signature || null,
+            created_at: r.created_at || r.createdAt || null,
+          }))
           : [];
 
         if (!mounted) return;
@@ -218,14 +219,14 @@ const [deleting, setDeleting] = useState(false);
       const list = res?.data?.rows ?? res?.data?.data ?? res?.data ?? [];
       const normalized = Array.isArray(list)
         ? list.map((r) => ({
-            id: r.id,
-            service_user_id: r.service_user_id,
-            service_user_name: r.service_user_name,
-            move_out_date: r.move_out_date,
-            checklist: r.checklist || {},
-            notes: r.notes || null,
-            created_at: r.created_at || null,
-          }))
+          id: r.id,
+          service_user_id: r.service_user_id,
+          service_user_name: r.service_user_name,
+          move_out_date: r.move_out_date,
+          checklist: r.checklist || {},
+          notes: r.notes || null,
+          created_at: r.created_at || null,
+        }))
         : [];
       setMoveOuts(normalized);
     } catch (err) {
@@ -370,17 +371,17 @@ const [deleting, setDeleting] = useState(false);
       setServiceUsers(
         Array.isArray(sus)
           ? sus.map((s) => ({
-              id: s.id,
-              name: s.first_name ?? s.name ?? `${s.id}`,
-              propertyId:
-                s.hotel_id ??
-                s.property_id ??
-                s.hotelId ??
-                s.propertyId ??
-                s.hotel ??
-                s.property ??
-                "",
-            }))
+            id: s.id,
+            name: s.first_name ?? s.name ?? `${s.id}`,
+            propertyId:
+              s.hotel_id ??
+              s.property_id ??
+              s.hotelId ??
+              s.propertyId ??
+              s.hotel ??
+              s.property ??
+              "",
+          }))
           : []
       );
     } catch (err) {
@@ -404,9 +405,9 @@ const [deleting, setDeleting] = useState(false);
         const list = r?.data?.rooms ?? r?.data?.data ?? r?.data ?? [];
         const normalized = Array.isArray(list)
           ? list.map((x) => ({
-              id: x.id,
-              room_number: x.room_number ?? x.number ?? x.name ?? x.id,
-            }))
+            id: x.id,
+            room_number: x.room_number ?? x.number ?? x.name ?? x.id,
+          }))
           : [];
         setRooms(
           normalized.map((x) => ({
@@ -440,9 +441,9 @@ const [deleting, setDeleting] = useState(false);
         const list = r?.data?.bedspaces ?? r?.data?.data ?? r?.data ?? [];
         const normalized = Array.isArray(list)
           ? list.map((b) => ({
-              id: b.id,
-              name: b.name ?? b.label ?? String(b.id),
-            }))
+            id: b.id,
+            name: b.name ?? b.label ?? String(b.id),
+          }))
           : [];
         setBedspaces(normalized);
         return normalized;
@@ -560,46 +561,46 @@ const [deleting, setDeleting] = useState(false);
   );
 
   const handleDeleteConfirm = async () => {
-  if (!canDeletePage) {
-    setAlertDialog({
-      isOpen: true,
-      title: 'Permission Denied',
-      message: 'You do not have permission to delete records.',
-      type: 'warning'
-    });
-    setShowDeleteModal(false);
-    setDeleteId(null);
-    setDeleteType(null);
-    return;
-  }
-  if (!deleteId || !deleteType) return;
-
-  try {
-    setDeleting(true);
-
-    if (deleteType === "move-in") {
-      await onDelete(deleteId);
+    if (!canDeletePage) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to delete records.',
+        type: 'warning'
+      });
+      setShowDeleteModal(false);
+      setDeleteId(null);
+      setDeleteType(null);
+      return;
     }
+    if (!deleteId || !deleteType) return;
 
-    if (deleteType === "move-out") {
-      await onDeleteMoveOut(deleteId);
+    try {
+      setDeleting(true);
+
+      if (deleteType === "move-in") {
+        await onDelete(deleteId);
+      }
+
+      if (deleteType === "move-out") {
+        await onDeleteMoveOut(deleteId);
+      }
+
+      setShowDeleteModal(false);
+      setDeleteId(null);
+      setDeleteType(null);
+    } catch (err) {
+      console.error(err);
+      setAlertDialog({
+        isOpen: true,
+        title: 'Delete Failed',
+        message: 'Delete failed. See console for details.',
+        type: 'error'
+      });
+    } finally {
+      setDeleting(false);
     }
-
-    setShowDeleteModal(false);
-    setDeleteId(null);
-    setDeleteType(null);
-  } catch (err) {
-    console.error(err);
-    setAlertDialog({
-      isOpen: true,
-      title: 'Delete Failed',
-      message: 'Delete failed. See console for details.',
-      type: 'error'
-    });
-  } finally {
-    setDeleting(false);
-  }
-};
+  };
 
 
   const activeResidents = useMemo(() => {
@@ -843,11 +844,10 @@ const [deleting, setDeleting] = useState(false);
           <div className="mb-6 flex items-center gap-3 border-b border-gray-200 px-6 pt-6">
             <button
               onClick={() => setActiveTab("ins")}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "ins"
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "ins"
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
             >
               Move-Ins
             </button>
@@ -856,21 +856,19 @@ const [deleting, setDeleting] = useState(false);
                 setActiveTab("outs");
                 fetchMoveOuts();
               }}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "outs"
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "outs"
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
             >
               Move-Outs
             </button>
             <button
               onClick={() => setActiveTab("active")}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === "active"
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "active"
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
             >
               Active Residents
             </button>
@@ -885,15 +883,15 @@ const [deleting, setDeleting] = useState(false);
                     {activeTab === "ins"
                       ? "Recent Move-Ins"
                       : activeTab === "outs"
-                      ? "Recent Move-Outs"
-                      : "Active Residents"}
+                        ? "Recent Move-Outs"
+                        : "Active Residents"}
                   </h3>
                   <p className="text-sm text-gray-500">
                     {activeTab === "ins"
                       ? "Service users who recently moved into accommodation"
                       : activeTab === "outs"
-                      ? "Service users who recently moved out"
-                      : "Currently active residents"}
+                        ? "Service users who recently moved out"
+                        : "Currently active residents"}
                   </p>
                 </div>
               </div>
@@ -902,8 +900,8 @@ const [deleting, setDeleting] = useState(false);
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  <select 
-                    value={filterProperty} 
+                  <select
+                    value={filterProperty}
                     onChange={(e) => setFilterProperty(e.target.value)}
                     className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                   >
@@ -917,8 +915,8 @@ const [deleting, setDeleting] = useState(false);
 
                 <div className="relative">
                   <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  <select 
-                    value={filterStatus} 
+                  <select
+                    value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
                     className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                   >
@@ -931,8 +929,8 @@ const [deleting, setDeleting] = useState(false);
 
                 <div className="relative">
                   <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  <select 
-                    value={sortBy} 
+                  <select
+                    value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                   >
@@ -946,7 +944,7 @@ const [deleting, setDeleting] = useState(false);
 
                 {/* View Menu */}
                 <div className="relative ml-auto" ref={viewRef}>
-                  <button 
+                  <button
                     onClick={() => setShowViewMenu(!showViewMenu)}
                     className="bg-white border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm"
                   >
@@ -972,7 +970,7 @@ const [deleting, setDeleting] = useState(false);
                             <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                           </div>
                         </button>
-                        
+
                         {/* Column Visibility Panel */}
                         {showPropertyVisibility && (
                           <div className="mt-2 border-t border-gray-200 pt-3">
@@ -999,7 +997,7 @@ const [deleting, setDeleting] = useState(false);
                                 ))}
                               </div>
                             </div>
-                            
+
                             {Object.values(visibleColumns).some(v => !v) && (
                               <div>
                                 <div className="flex items-center justify-between mb-2">
@@ -1048,10 +1046,10 @@ const [deleting, setDeleting] = useState(false);
                         r.move_in_date || r.moveInDate || r.created_at;
                       const formatted = dateStr
                         ? new Date(dateStr).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
                         : "";
                       return (
                         <div
@@ -1168,10 +1166,10 @@ const [deleting, setDeleting] = useState(false);
                       const dateStr = r.move_out_date || r.created_at;
                       const formatted = dateStr
                         ? new Date(dateStr).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
                         : "";
                       return (
                         <div
@@ -1220,9 +1218,9 @@ const [deleting, setDeleting] = useState(false);
                                   }}
                                   className="group relative p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
                                   title="Delete Record"
-                                 >
-                                   <IconTrash size={18} />
-                                 </button>
+                                >
+                                  <IconTrash size={18} />
+                                </button>
                               )}
 
                             </div>
@@ -1324,45 +1322,45 @@ const [deleting, setDeleting] = useState(false);
       )}
 
       {showDeleteModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-    <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
 
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        {deleteType === "move-in" ? "Delete Move-In?" : "Delete Move-Out?"}
-      </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {deleteType === "move-in" ? "Delete Move-In?" : "Delete Move-Out?"}
+            </h3>
 
-      <p className="text-sm text-gray-500 mb-6">
-        This action cannot be undone.
-      </p>
+            <p className="text-sm text-gray-500 mb-6">
+              This action cannot be undone.
+            </p>
 
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => {
-            setShowDeleteModal(false);
-            setDeleteId(null);
-            setDeleteType(null);
-          }}
-          className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
-        >
-          Cancel
-        </button>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteId(null);
+                  setDeleteType(null);
+                }}
+                className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
+              >
+                Cancel
+              </button>
 
-        <button
-          onClick={handleDeleteConfirm}
-          disabled={deleting}
-          className="
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="
             px-4 py-2 rounded-md
             bg-teal-400 hover:bg-teal-500
             text-white font-medium
             disabled:opacity-50
           "
-        >
-          {deleting ? "Deleting..." : "Delete"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Dialog */}
       <ConfirmDialog
@@ -1388,7 +1386,7 @@ const [deleting, setDeleting] = useState(false);
   );
 }
 
-function DetailModal({ record = null, onClose = () => {}, moveOuts = [] }) {
+function DetailModal({ record = null, onClose = () => { }, moveOuts = [] }) {
   const r = record || {};
   const movedOut = moveOuts.find(
     (m) =>
@@ -1398,10 +1396,10 @@ function DetailModal({ record = null, onClose = () => {}, moveOuts = [] }) {
   const fmt = (d) =>
     d
       ? new Date(d).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        })
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
       : "Not specified";
 
   const get = (key) => r[key] || r[key.replace(/_/g, "")] || "Not specified";
@@ -1481,7 +1479,7 @@ function DetailModal({ record = null, onClose = () => {}, moveOuts = [] }) {
                   <div className="text-xs text-slate-400">Checklist</div>
                   <div className="mt-2 bg-slate-50 border border-slate-100 rounded-lg p-3 text-sm">
                     {MOVE_IN_CHECKLIST_ITEMS &&
-                    MOVE_IN_CHECKLIST_ITEMS.length > 0 ? (
+                      MOVE_IN_CHECKLIST_ITEMS.length > 0 ? (
                       <ul className="space-y-2">
                         {MOVE_IN_CHECKLIST_ITEMS.map((label, i) => {
                           const v =
@@ -1493,11 +1491,10 @@ function DetailModal({ record = null, onClose = () => {}, moveOuts = [] }) {
                           return (
                             <li key={i} className="flex items-start gap-3">
                               <div
-                                className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                  v
-                                    ? "bg-emerald-500 text-white"
-                                    : "bg-slate-200 text-slate-500"
-                                }`}
+                                className={`w-5 h-5 rounded-full flex items-center justify-center ${v
+                                  ? "bg-emerald-500 text-white"
+                                  : "bg-slate-200 text-slate-500"
+                                  }`}
                               >
                                 {v ? "✓" : ""}
                               </div>
@@ -1519,7 +1516,7 @@ function DetailModal({ record = null, onClose = () => {}, moveOuts = [] }) {
                   <div className="mt-1 font-medium">
                     {r.signature ? (
                       typeof r.signature === "string" &&
-                      r.signature.startsWith("data:") ? (
+                        r.signature.startsWith("data:") ? (
                         <img
                           src={r.signature}
                           alt="signature"
@@ -1554,8 +1551,8 @@ function DetailModal({ record = null, onClose = () => {}, moveOuts = [] }) {
                       ? movedOut.move_out_date
                         ? fmt(movedOut.move_out_date)
                         : movedOut.created_at
-                        ? fmt(movedOut.created_at)
-                        : "Not specified"
+                          ? fmt(movedOut.created_at)
+                          : "Not specified"
                       : "Not specified"}
                   </div>
                 </div>
@@ -1570,7 +1567,7 @@ function DetailModal({ record = null, onClose = () => {}, moveOuts = [] }) {
                   <div className="text-xs text-slate-400">Checklist</div>
                   <div className="mt-2 bg-slate-50 border border-slate-100 rounded-lg p-3 text-sm">
                     {MOVE_OUT_CHECKLIST_ITEMS &&
-                    MOVE_OUT_CHECKLIST_ITEMS.length > 0 ? (
+                      MOVE_OUT_CHECKLIST_ITEMS.length > 0 ? (
                       <ul className="space-y-2">
                         {MOVE_OUT_CHECKLIST_ITEMS.map((label, i) => {
                           const v =
@@ -1583,11 +1580,10 @@ function DetailModal({ record = null, onClose = () => {}, moveOuts = [] }) {
                           return (
                             <li key={i} className="flex items-start gap-3">
                               <div
-                                className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                  v
-                                    ? "bg-emerald-500 text-white"
-                                    : "bg-slate-200 text-slate-500"
-                                }`}
+                                className={`w-5 h-5 rounded-full flex items-center justify-center ${v
+                                  ? "bg-emerald-500 text-white"
+                                  : "bg-slate-200 text-slate-500"
+                                  }`}
                               >
                                 {v ? "✓" : ""}
                               </div>
@@ -1609,7 +1605,7 @@ function DetailModal({ record = null, onClose = () => {}, moveOuts = [] }) {
                   <div className="mt-1 font-medium">
                     {movedOut && movedOut.signature ? (
                       typeof movedOut.signature === "string" &&
-                      movedOut.signature.startsWith("data:") ? (
+                        movedOut.signature.startsWith("data:") ? (
                         <img
                           src={movedOut.signature}
                           alt="move-out signature"
@@ -1641,13 +1637,13 @@ function MoveInModal({
   bedspaces = [],
   recent = [],
   moveOuts = [],
-  onClose = () => {},
-  onCreate = () => {},
+  onClose = () => { },
+  onCreate = () => { },
   fetchRooms = async () => [],
   fetchBedspaces = async () => [],
   onSave = async () => null,
   initialRecord = null,
-  onError = () => {},
+  onError = () => { },
 }) {
   const [form, setForm] = useState({
     serviceUserId: "",
@@ -1919,9 +1915,9 @@ function MoveInModal({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-opacity mt-15">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden h-[73vh] flex flex-col animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-start p-6 border-b border-slate-100 shrink-0 bg-slate-50/30">
           <div>
             <h2 className="text-xl font-bold text-slate-800">
@@ -1954,25 +1950,6 @@ function MoveInModal({
         <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
           <form id="moveInForm" onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Service User
-                </label>
-                <select
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300  transition-all"
-                  value={form.serviceUserId}
-                  onChange={(e) =>
-                    handleChange("serviceUserId", e.target.value)
-                  }
-                >
-                  <option value="">Select service user</option>
-                  {serviceUsers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Property
@@ -2053,11 +2030,10 @@ function MoveInModal({
                 {checklistItems.map((t, i) => (
                   <label
                     key={i}
-                    className={`flex items-start gap-3 text-sm p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                      form.checklist[i]
-                        ? "bg-emerald-20 border-emerald-200"
-                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                    }`}
+                    className={`flex items-start gap-3 text-sm p-3 border rounded-lg cursor-pointer transition-all duration-200 ${form.checklist[i]
+                      ? "bg-emerald-20 border-emerald-200"
+                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                      }`}
                   >
                     <div className="pt-0.5">
                       <input
@@ -2068,9 +2044,8 @@ function MoveInModal({
                       />
                     </div>
                     <span
-                      className={`text-slate-600 ${
-                        form.checklist[i] ? "text-slate-900 font-medium" : ""
-                      }`}
+                      className={`text-slate-600 ${form.checklist[i] ? "text-slate-900 font-medium" : ""
+                        }`}
                     >
                       {t}
                     </span>
@@ -2122,17 +2097,18 @@ function MoveInModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 function MoveOutModal({
   activeResidents = [],
-  onClose = () => {},
-  onSave = async () => {},
-  onSuccess = () => {},
+  onClose = () => { },
+  onSave = async () => { },
+  onSuccess = () => { },
   initialRecord = null,
-  onError = () => {},
+  onError = () => { },
 }) {
   const [form, setForm] = useState({
     serviceUserId: "",
@@ -2179,8 +2155,8 @@ function MoveOutModal({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-opacity mt-15">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
       <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-start p-6 border-b border-slate-100 bg-slate-50/30">
           <div>
@@ -2268,11 +2244,10 @@ function MoveOutModal({
                 {checklistItems.map((t, i) => (
                   <label
                     key={i}
-                    className={`flex items-start gap-3 text-sm p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
-                      form.checklist[i]
-                        ? "bg-emerald-50 border-emerald-200"
-                        : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                    }`}
+                    className={`flex items-start gap-3 text-sm p-3 border rounded-lg cursor-pointer transition-all duration-200 ${form.checklist[i]
+                      ? "bg-emerald-50 border-emerald-200"
+                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                      }`}
                   >
                     <div className="pt-0.5">
                       <input
@@ -2283,9 +2258,8 @@ function MoveOutModal({
                       />
                     </div>
                     <span
-                      className={`text-slate-600 ${
-                        form.checklist[i] ? "text-slate-900 font-medium" : ""
-                      }`}
+                      className={`text-slate-600 ${form.checklist[i] ? "text-slate-900 font-medium" : ""
+                        }`}
                     >
                       {t}
                     </span>
@@ -2337,6 +2311,7 @@ function MoveOutModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

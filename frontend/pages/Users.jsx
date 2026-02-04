@@ -5,13 +5,13 @@ import axios from "axios";
 import { useOutletContext } from "react-router-dom";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import { validatePassword, passwordStrengthLabel, passwordStrengthPercent } from '../src/utils/passwordUtils';
-import { 
-  Home, 
-  UserPlus, 
-  Search, 
-  Users as UsersIcon, 
-  UserCheck, 
-  UserX, 
+import {
+  Home,
+  UserPlus,
+  Search,
+  Users as UsersIcon,
+  UserCheck,
+  UserX,
   Edit,
   Trash2,
   Phone,
@@ -322,14 +322,14 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                       }
 
                       {formData.branch &&
-                       !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
-                        <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
-                          <div className="flex items-center gap-2">
-                            <UserPlus className="w-4 h-4 text-teal-500" />
-                            <span>Create new branch: <strong className="text-teal-600">&quot;{formData.branch}&quot;</strong></span>
+                        !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
+                          <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
+                            <div className="flex items-center gap-2">
+                              <UserPlus className="w-4 h-4 text-teal-500" />
+                              <span>Create new branch: <strong className="text-teal-600">&quot;{formData.branch}&quot;</strong></span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   )}
                 </div>
@@ -485,7 +485,7 @@ export default function Users() {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'warning'
   });
 
@@ -505,15 +505,15 @@ export default function Users() {
   const [saving, setSaving] = useState(false);
 
   /* Delete Modal */
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteUserId, setDeleteUserId] = useState(null);
-    const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   /* Move Room Modal */
   const [showMoveRoomModal, setShowMoveRoomModal] = useState(false);
   const [moveRoomUserId, setMoveRoomUserId] = useState(null);
   const [moveRoomUser, setMoveRoomUser] = useState(null);
-  
+
   // Move room form state
   const [properties, setProperties] = useState([]);
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -578,30 +578,30 @@ export default function Users() {
   };
 
   const handleDeleteConfirm = async () => {
-  if (!deleteUserId) return;
+    if (!deleteUserId) return;
 
-  try {
-    setDeleting(true);
+    try {
+      setDeleting(true);
 
-    await axios.delete(`/api/admin/users/${deleteUserId}`, {
-      withCredentials: true,
-    });
+      await axios.delete(`/api/admin/users/${deleteUserId}`, {
+        withCredentials: true,
+      });
 
-    await fetchUsers();
-  } catch (err) {
-    console.error("delete user error:", err);
-    setAlertDialog({
-      isOpen: true,
-      title: 'Delete Failed',
-      message: err?.response?.data?.message || 'Failed to delete user',
-      type: 'error'
-    });
-  } finally {
-    setDeleting(false);
-    setShowDeleteModal(false);
-    setDeleteUserId(null);
-  }
-};
+      await fetchUsers();
+    } catch (err) {
+      console.error("delete user error:", err);
+      setAlertDialog({
+        isOpen: true,
+        title: 'Delete Failed',
+        message: err?.response?.data?.message || 'Failed to delete user',
+        type: 'error'
+      });
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+      setDeleteUserId(null);
+    }
+  };
 
   // Move Room Functions
   const fetchProperties = async () => {
@@ -617,7 +617,7 @@ export default function Users() {
     try {
       const res = await axios.get(`/api/properties/${propertyId}/rooms`, { withCredentials: true });
       const rooms = res.data || [];
-      
+
       // Group rooms by floor
       const floorMap = {};
       rooms.forEach((room) => {
@@ -625,7 +625,7 @@ export default function Users() {
         if (!floorMap[floor]) floorMap[floor] = [];
         floorMap[floor].push(room);
       });
-      
+
       setFloors(Object.keys(floorMap).sort());
       setAvailableRooms(floorMap);
       setSelectedFloor(null);
@@ -674,14 +674,14 @@ export default function Users() {
   const handlePropertyChange = (e) => {
     const propId = e.target.value;
     const property = properties.find((p) => p.id === parseInt(propId));
-    
+
     setMoveRoomFormData((prev) => ({
       ...prev,
       property_id: propId,
       property_name: property?.name || "",
     }));
     setSelectedProperty(property);
-    
+
     if (propId) {
       fetchRoomsForProperty(propId);
     }
@@ -696,7 +696,7 @@ export default function Users() {
   const handleRoomChange = (e) => {
     const roomId = e.target.value;
     const room = availableRooms[selectedFloor]?.find((r) => r.id === parseInt(roomId));
-    
+
     setMoveRoomFormData((prev) => ({
       ...prev,
       room_id: roomId,
@@ -730,7 +730,7 @@ export default function Users() {
       };
 
       await axios.post("/api/move-ins", payload, { withCredentials: true });
-      
+
       await fetchUsers();
       closeMoveRoom();
       setAlertDialog({
@@ -753,7 +753,7 @@ export default function Users() {
   };
 
 
-   
+
 
   const getStaffId = (u) => u?.staff_id || u?.emp_id || u?.employee_id || u?.id || "—";
   const getPhone = (u) => u?.phone || u?.mobile || u?.contact || "—";
@@ -889,7 +889,7 @@ export default function Users() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
   const [sortBy, setSortBy] = useState('name');
-  
+
   // Compute stats
   const stats = useMemo(() => {
     const total = users.length;
@@ -907,14 +907,14 @@ export default function Users() {
   // Filter users based on tab, search, and filters
   const filteredUsers = useMemo(() => {
     let list = [...users];
-    
+
     // Tab filter
     if (activeTab === 'active') {
       list = list.filter(u => String(getStatus(u)).toLowerCase() === 'active');
     } else if (activeTab === 'inactive') {
       list = list.filter(u => String(getStatus(u)).toLowerCase() !== 'active');
     }
-    
+
     // Search filter - improved to handle all cases
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -925,31 +925,31 @@ export default function Users() {
         const phone = String(getPhone(u)).toLowerCase();
         const role = (u.role || '').toLowerCase();
         const branch = (u.branch || '').toLowerCase();
-        
+
         return name.includes(q) ||
-               email.includes(q) ||
-               staffId.includes(q) ||
-               phone.includes(q) ||
-               role.includes(q) ||
-               branch.includes(q);
+          email.includes(q) ||
+          staffId.includes(q) ||
+          phone.includes(q) ||
+          role.includes(q) ||
+          branch.includes(q);
       });
     }
-    
+
     // Designation filter
     if (filterDesignation) {
       list = list.filter(u => (u.role || '').toLowerCase() === filterDesignation.toLowerCase());
     }
-    
+
     // Status filter
     if (filterStatus) {
       list = list.filter(u => String(getStatus(u)).toLowerCase() === filterStatus.toLowerCase());
     }
-    
+
     // Branch filter
     if (filterBranch) {
       list = list.filter(u => (u.branch || '') === filterBranch);
     }
-    
+
     // Sorting
     if (sortBy === 'name') {
       list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -966,7 +966,7 @@ export default function Users() {
         return dateB - dateA;
       });
     }
-    
+
     return list;
   }, [users, activeTab, searchQuery, filterDesignation, filterStatus, filterBranch, sortBy]);
 
@@ -987,7 +987,7 @@ export default function Users() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
-        
+
         {/* Page Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
@@ -1021,7 +1021,7 @@ export default function Users() {
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
             <div className="bg-green-100 text-green-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
               <UserCheck className="w-7 h-7" />
@@ -1031,7 +1031,7 @@ export default function Users() {
               <div className="text-2xl font-bold text-gray-900">{stats.active}</div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
             <div className="bg-red-100 text-red-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
               <UserX className="w-7 h-7" />
@@ -1041,7 +1041,7 @@ export default function Users() {
               <div className="text-2xl font-bold text-gray-900">{stats.inactive}</div>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
             <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
               <Calendar className="w-7 h-7" />
@@ -1059,31 +1059,28 @@ export default function Users() {
           <div className="mb-6 flex items-center gap-3 border-b border-gray-200">
             <button
               onClick={() => setActiveTab('all')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'all'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               All Employees
             </button>
             <button
               onClick={() => setActiveTab('active')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'active'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'active'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               Active
             </button>
             <button
               onClick={() => setActiveTab('inactive')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'inactive'
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'inactive'
                   ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               Inactive
             </button>
@@ -1094,8 +1091,8 @@ export default function Users() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-1">
-                  {activeTab === 'all' ? 'All Employees' : 
-                   activeTab === 'active' ? 'Active Employees' : 'Inactive Employees'}
+                  {activeTab === 'all' ? 'All Employees' :
+                    activeTab === 'active' ? 'Active Employees' : 'Inactive Employees'}
                 </h2>
                 <p className="text-sm text-gray-500">{filteredUsers.length} of {users.length} employees</p>
               </div>
@@ -1111,7 +1108,7 @@ export default function Users() {
                     className="bg-white border-2 border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 w-72 transition-all shadow-sm hover:shadow-md"
                   />
                 </div>
-                
+
                 {/* Filter Dropdown */}
                 <select
                   value={filterDesignation}
@@ -1123,7 +1120,7 @@ export default function Users() {
                     <option key={role} value={role}>{role.charAt(0).toUpperCase() + role.slice(1)}</option>
                   ))}
                 </select>
-                
+
                 {/* Branch Filter */}
                 <select
                   value={filterBranch}
@@ -1135,7 +1132,7 @@ export default function Users() {
                     <option key={branch} value={branch}>{branch}</option>
                   ))}
                 </select>
-                
+
                 {/* Status Filter */}
                 <select
                   value={filterStatus}
@@ -1206,10 +1203,10 @@ export default function Users() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden flex-shrink-0 border-2 border-gray-200">
                           {u.avatar || u.photo ? (
-                            <img src={u.avatar || u.photo} alt="" className="w-full h-full object-cover"/>
+                            <img src={u.avatar || u.photo} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs font-bold bg-gradient-to-br from-teal-100 to-cyan-100">
-                              {(u.name || "U").substring(0,2).toUpperCase()}
+                              {(u.name || "U").substring(0, 2).toUpperCase()}
                             </div>
                           )}
                         </div>
@@ -1246,27 +1243,25 @@ export default function Users() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${
-                        getStatus(u).toLowerCase() === 'active' 
-                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${getStatus(u).toLowerCase() === 'active'
+                          ? 'bg-green-100 text-green-700 border border-green-200'
                           : 'bg-red-100 text-red-700 border border-red-200'
-                      }`}>
-                        <span className={`w-2 h-2 rounded-full ${
-                          getStatus(u).toLowerCase() === 'active' ? 'bg-green-500' : 'bg-red-500'
-                        }`}></span>
+                        }`}>
+                        <span className={`w-2 h-2 rounded-full ${getStatus(u).toLowerCase() === 'active' ? 'bg-green-500' : 'bg-red-500'
+                          }`}></span>
                         {getStatus(u)}
                       </span>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button 
+                        <button
                           onClick={() => openMoveRoom(u.id)}
                           title="Move to another room"
                           className="text-gray-400 hover:text-purple-600 hover:bg-purple-50 border border-gray-200 p-2 rounded-lg bg-white transition-all hover:border-purple-300 hover:shadow-md"
                         >
                           <MapPin className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => openEdit(u.id)}
                           title="Edit details"
                           className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 p-2 rounded-lg bg-white transition-all hover:border-blue-300 hover:shadow-md"
@@ -1329,7 +1324,7 @@ export default function Users() {
             <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50">
               <h3 className="text-lg font-bold text-slate-800">Edit Employee Details</h3>
               <button onClick={closeEdit} className="text-gray-400 hover:text-gray-600 transition-colors">
-                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
 
@@ -1393,8 +1388,8 @@ export default function Users() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <select value={editUser?.status || ""} onChange={(e) => onEditChange("status", e.target.value)} className="w-full rounded-lg border border-gray-300 p-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 transition-all">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
                     </select>
                   </div>
                 </div>
@@ -1414,35 +1409,35 @@ export default function Users() {
       )}
 
       {showDeleteModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-    <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
-      <h3 className="text-lg font-semibold mb-2">Are you sure?</h3>
-      <p className="text-sm text-gray-500 mb-6">
-        This action cannot be undone. This will permanently delete the property.
-      </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
+            <h3 className="text-lg font-semibold mb-2">Are you sure?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              This action cannot be undone. This will permanently delete the property.
+            </p>
 
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => {
-            setShowDeleteModal(false);
-            setDeleteUserId(null);
-          }}
-          className="px-4 py-2 bg-gray-100 rounded-md"
-        >
-          Cancel
-        </button>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteUserId(null);
+                }}
+                className="px-4 py-2 bg-gray-100 rounded-md"
+              >
+                Cancel
+              </button>
 
-        <button
-          onClick={handleDeleteConfirm}
-          disabled={deleting}
-          className="px-4 py-2 bg-teal-400 hover:bg-teal-500 text-white rounded-md"
-        >
-          {deleting ? "Deleting..." : "Delete"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="px-4 py-2 bg-teal-400 hover:bg-teal-500 text-white rounded-md"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MOVE ROOM MODAL */}
       {showMoveRoomModal && (
@@ -1460,7 +1455,7 @@ export default function Users() {
 
             <div className="p-6 overflow-y-auto">
               <form onSubmit={handleMoveRoomSubmit} className="space-y-5">
-                
+
                 {/* Property Selection */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Select Property *</label>
@@ -1580,7 +1575,7 @@ export default function Users() {
                     ) : (
                       <>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 5v14M5 12l7 7 7-7"/>
+                          <path d="M12 5v14M5 12l7 7 7-7" />
                         </svg>
                         Move User to Room
                       </>

@@ -167,6 +167,19 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
     }
   }, [openAddModal, canCreateSU]);
 
+  // Hide sidebar and navbar when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.classList.add('form-modal-open');
+    } else {
+      document.body.classList.remove('form-modal-open');
+    }
+    // Cleanup on unmount
+    return () => {
+      document.body.classList.remove('form-modal-open');
+    };
+  }, [isModalOpen]);
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -992,8 +1005,8 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
 
       {/* MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto mt-15">
-          <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl relative flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl relative flex flex-col h-[70vh]">
             <div className="p-6 border-b border-gray-100 flex justify-between items-start shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">

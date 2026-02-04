@@ -15,6 +15,20 @@ export default function RoomDetails() {
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // Edit states for Overview tab
+  const [isEditingOverview, setIsEditingOverview] = useState(false);
+  const [overviewFormData, setOverviewFormData] = useState({});
+  
+  // Edit states for Inventory tab
+  const [isEditingInventory, setIsEditingInventory] = useState(false);
+  const [inventoryFormData, setInventoryFormData] = useState("");
+  
+  // Edit states for Residents tab
+  const [isEditingResidents, setIsEditingResidents] = useState(false);
+  const [residentsFormData, setResidentsFormData] = useState("");
+  
+  const [saving, setSaving] = useState(false);
 
   const roomNumber = useMemo(() => {
     const rn = room?.room_number ?? room?.room ?? room?.number ?? "";
@@ -36,7 +50,21 @@ export default function RoomDetails() {
 
         if (cancelled) return;
         setHotel(hotelRes?.data?.hotel ?? hotelRes?.data ?? null);
-        setRoom(roomRes?.data?.room ?? roomRes?.data ?? null);
+        const loadedRoom = roomRes?.data?.room ?? roomRes?.data ?? null;
+        setRoom(loadedRoom);
+        setOverviewFormData({
+          type: loadedRoom?.type || "",
+          length: loadedRoom?.length ?? loadedRoom?.room_length ?? "",
+          width: loadedRoom?.width ?? loadedRoom?.room_width ?? "",
+          bathroom_type: loadedRoom?.bathroom_type ?? loadedRoom?.bathroom ?? "",
+          has_kitchen: loadedRoom?.has_kitchen === true ? "yes" : loadedRoom?.has_kitchen === false ? "no" : "",
+          has_bathroom: loadedRoom?.has_bathroom === true ? "yes" : loadedRoom?.has_bathroom === false ? "no" : "",
+        });
+        setInventoryFormData(
+          Array.isArray(loadedRoom?.inventory) 
+            ? loadedRoom?.inventory?.join(", ") || ""
+            : loadedRoom?.inventory || ""
+        );
       } catch (err) {
         if (cancelled) return;
         const msg =
@@ -127,6 +155,175 @@ export default function RoomDetails() {
       }
     } catch {
       navigate(`/hotels/${hotelId}/rooms`);
+    }
+  };
+
+  // Edit handlers
+  const startEditingOverview = () => {
+    // Pre-populate form with current room data
+    if (room) {
+      setOverviewFormData({
+        type: room?.type || "",
+        length: room?.length ?? room?.room_length ?? "",
+        width: room?.width ?? room?.room_width ?? "",
+        bathroom_type: room?.bathroom_type ?? room?.bathroom ?? "",
+        has_kitchen: room?.has_kitchen === true ? "yes" : room?.has_kitchen === false ? "no" : "",
+        has_bathroom: room?.has_bathroom === true ? "yes" : room?.has_bathroom === false ? "no" : "",
+      });
+    }
+    setIsEditingOverview(true);
+  };
+
+  const cancelEditingOverview = () => {
+    setIsEditingOverview(false);
+    // Reset form to current room data (no API call, just reset form)
+    if (room) {
+      setOverviewFormData({
+        type: room?.type || "",
+        length: room?.length ?? room?.room_length ?? "",
+        width: room?.width ?? room?.room_width ?? "",
+        bathroom_type: room?.bathroom_type ?? room?.bathroom ?? "",
+        has_kitchen: room?.has_kitchen === true ? "yes" : room?.has_kitchen === false ? "no" : "",
+        has_bathroom: room?.has_bathroom === true ? "yes" : room?.has_bathroom === false ? "no" : "",
+      });
+    }
+  };
+
+  const saveOverviewChanges = async () => {
+    setSaving(true);
+    try {
+      const updateData = {
+        type: overviewFormData.type || null,
+        length: overviewFormData.length ? Number(overviewFormData.length) : null,
+        width: overviewFormData.width ? Number(overviewFormData.width) : null,
+        bathroom_type: overviewFormData.bathroom_type || null,
+        has_kitchen: overviewFormData.has_kitchen === "yes" ? true : overviewFormData.has_kitchen === "no" ? false : null,
+        has_bathroom: overviewFormData.has_bathroom === "yes" ? true : overviewFormData.has_bathroom === "no" ? false : null,
+      };
+      
+      const response = await axios.put(
+        `/api/hotels/${hotelId}/rooms/${roomId}`,
+        updateData,
+        { withCredentials: true }
+      );
+      
+      // Update room with response data
+      const updatedRoom = response?.data?.room || response?.data;
+      setRoom(updatedRoom);
+      
+      // Update form data with the saved data
+      setOverviewFormData({
+        type: updatedRoom?.type || "",
+        length: updatedRoom?.length ?? updatedRoom?.room_length ?? "",
+        width: updatedRoom?.width ?? updatedRoom?.room_width ?? "",
+        bathroom_type: updatedRoom?.bathroom_type ?? updatedRoom?.bathroom ?? "",
+        has_kitchen: updatedRoom?.has_kitchen === true ? "yes" : updatedRoom?.has_kitchen === false ? "no" : "",
+        has_bathroom: updatedRoom?.has_bathroom === true ? "yes" : updatedRoom?.has_bathroom === false ? "no" : "",
+      });
+      
+      setIsEditingOverview(false);
+    } catch (err) {
+      alert("Failed to save changes: " + (err?.response?.data?.message || err?.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEditingInventory = () => {
+    // Pre-populate with current inventory
+    if (room?.inventory) {
+      setInventoryFormData(
+        Array.isArray(room.inventory) 
+          ? room.inventory.join(", ")
+          : String(room.inventory)
+      );
+    }
+    setIsEditingInventory(true);
+  };
+
+  const cancelEditingInventory = () => {
+    setIsEditingInventory(false);
+    // Reset form to current room inventory
+    if (room?.inventory) {
+      setInventoryFormData(
+        Array.isArray(room.inventory) 
+          ? room.inventory.join(", ")
+          : String(room.inventory)
+      );
+    } else {
+      setInventoryFormData("");
+    }
+  };
+
+  const saveInventoryChanges = async () => {
+    setSaving(true);
+    try {
+      const items = inventoryFormData
+        .split(",")
+        .map(item => item.trim())
+        .filter(Boolean);
+      
+      const response = await axios.put(
+        `/api/hotels/${hotelId}/rooms/${roomId}`,
+        { inventory: items },
+        { withCredentials: true }
+      );
+      
+      // Update room with response data
+      const updatedRoom = response?.data?.room || response?.data;
+      setRoom(updatedRoom);
+      
+      // Update form with saved data
+      setInventoryFormData(
+        Array.isArray(updatedRoom?.inventory) 
+          ? updatedRoom.inventory.join(", ")
+          : updatedRoom?.inventory || ""
+      );
+      
+      setIsEditingInventory(false);
+    } catch (err) {
+      alert("Failed to save inventory: " + (err?.response?.data?.message || err?.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEditingResidents = () => {
+    // Pre-populate with current residents
+    setResidentsFormData(residents.join(", "));
+    setIsEditingResidents(true);
+  };
+
+  const cancelEditingResidents = () => {
+    setIsEditingResidents(false);
+    // Reset form to current residents (no API call, just reset form)
+    setResidentsFormData(residents.join(", "));
+  };
+
+  const saveResidentsChanges = async () => {
+    setSaving(true);
+    try {
+      const residentList = residentsFormData
+        .split(",")
+        .map(name => name.trim())
+        .filter(Boolean);
+      
+      const response = await axios.put(
+        `/api/hotels/${hotelId}/rooms/${roomId}`,
+        { residents: residentList },
+        { withCredentials: true }
+      );
+      
+      // Update residents with response data
+      const updatedRoom = response?.data?.room || response?.data;
+      setResidents(residentList);
+      setResidentsFormData(residentList.join(", "));
+      
+      setIsEditingResidents(false);
+    } catch (err) {
+      alert("Failed to save residents: " + (err?.response?.data?.message || err?.message));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -260,230 +457,470 @@ export default function RoomDetails() {
         {activeTab === "overview" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Room Details</h2>
-              <div className="space-y-4">
-                <div>
-                  <div className="text-xs text-gray-500">Room Type</div>
-                  <div className="text-sm font-semibold text-gray-900">{roomTypeLabel || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Total Bedspaces</div>
-                  <div className="text-sm font-semibold text-gray-900">{totalBedspacesLabel}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Occupied Bedspaces</div>
-                  <div className="text-sm font-semibold text-gray-900">{occupiedLabel}</div>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Room Details</h2>
+                {!isEditingOverview && (
+                  <button
+                    onClick={startEditingOverview}
+                    className="px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Dimensions</h2>
-              <div className="space-y-4">
-                <div>
-                  <div className="text-xs text-gray-500">Length</div>
-                  <div className="text-sm font-semibold text-gray-900">{lengthVal ? `${lengthVal}m` : "—"}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Width</div>
-                  <div className="text-sm font-semibold text-gray-900">{widthVal ? `${widthVal}m` : "—"}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Area</div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    {lengthVal && widthVal ? `${(Number(lengthVal) * Number(widthVal)).toFixed(2)} m²` : "—"}
+              {isEditingOverview ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Room Type</label>
+                    <select
+                      value={overviewFormData.type || ""}
+                      onChange={(e) => setOverviewFormData(prev => ({ ...prev, type: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Room Type</option>
+                      <option value="Single">Single</option>
+                      <option value="Double">Double</option>
+                      <option value="Twin">Twin</option>
+                      <option value="Family">Family</option>
+                      <option value="Studio">Studio</option>
+                      <option value="Deluxe">Deluxe</option>
+                      <option value="Standard">Standard</option>
+                      <option value="Suite">Suite</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={saveOverviewChanges}
+                      disabled={saving}
+                      className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={cancelEditingOverview}
+                      disabled={saving}
+                      className="flex-1 px-3 py-2 bg-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-400 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-gray-500">Room Type</div>
+                    <div className="text-sm font-semibold text-gray-900">{roomTypeLabel || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Total Bedspaces</div>
+                    <div className="text-sm font-semibold text-gray-900">{totalBedspacesLabel}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Occupied Bedspaces</div>
+                    <div className="text-sm font-semibold text-gray-900">{occupiedLabel}</div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Facilities</h2>
-              <div className="space-y-4">
-                <div>
-                  <div className="text-xs text-gray-500">Bathroom</div>
-                  <div className="text-sm font-semibold text-gray-900">{bathroomTypeVal || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Has Bathroom</div>
-                  <div className="text-sm font-semibold text-gray-900">{yesNoUnknown(hasBathroomVal)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Kitchen</div>
-                  <div className="text-sm font-semibold text-gray-900">{yesNoUnknown(hasKitchenVal)}</div>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Dimensions</h2>
               </div>
+              {isEditingOverview ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Length (m)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={overviewFormData.length}
+                      onChange={(e) => setOverviewFormData(prev => ({ ...prev, length: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Width (m)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={overviewFormData.width}
+                      onChange={(e) => setOverviewFormData(prev => ({ ...prev, width: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-gray-500">Length</div>
+                    <div className="text-sm font-semibold text-gray-900">{lengthVal ? `${lengthVal}m` : "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Width</div>
+                    <div className="text-sm font-semibold text-gray-900">{widthVal ? `${widthVal}m` : "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Area</div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {lengthVal && widthVal ? `${(Number(lengthVal) * Number(widthVal)).toFixed(2)} m²` : "—"}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Facilities</h2>
+              </div>
+              {isEditingOverview ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Bathroom Type</label>
+                    <select
+                      value={overviewFormData.bathroom_type || ""}
+                      onChange={(e) => setOverviewFormData(prev => ({ ...prev, bathroom_type: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select Bathroom Type</option>
+                      <option value="Ensuite">Ensuite</option>
+                      <option value="Shared">Shared</option>
+                      <option value="Private">Private</option>
+                      <option value="Bathroom">Bathroom</option>
+                      <option value="Half Bath">Half Bath</option>
+                      <option value="Full Bath">Full Bath</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Has Bathroom</label>
+                    <select
+                      value={overviewFormData.has_bathroom === true ? "yes" : overviewFormData.has_bathroom === false ? "no" : ""}
+                      onChange={(e) => {
+                        if (e.target.value === "yes") setOverviewFormData(prev => ({ ...prev, has_bathroom: true }));
+                        else if (e.target.value === "no") setOverviewFormData(prev => ({ ...prev, has_bathroom: false }));
+                        else setOverviewFormData(prev => ({ ...prev, has_bathroom: "" }));
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Unknown</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Kitchen</label>
+                    <select
+                      value={overviewFormData.has_kitchen === true ? "yes" : overviewFormData.has_kitchen === false ? "no" : ""}
+                      onChange={(e) => {
+                        if (e.target.value === "yes") setOverviewFormData(prev => ({ ...prev, has_kitchen: true }));
+                        else if (e.target.value === "no") setOverviewFormData(prev => ({ ...prev, has_kitchen: false }));
+                        else setOverviewFormData(prev => ({ ...prev, has_kitchen: "" }));
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Unknown</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={saveOverviewChanges}
+                      disabled={saving}
+                      className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50"
+                    >
+                      Save All
+                    </button>
+                    <button
+                      onClick={cancelEditingOverview}
+                      disabled={saving}
+                      className="flex-1 px-3 py-2 bg-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-400 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-gray-500">Bathroom</div>
+                    <div className="text-sm font-semibold text-gray-900">{bathroomTypeVal || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Has Bathroom</div>
+                    <div className="text-sm font-semibold text-gray-900">{yesNoUnknown(hasBathroomVal)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Kitchen</div>
+                    <div className="text-sm font-semibold text-gray-900">{yesNoUnknown(hasKitchenVal)}</div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {activeTab === "inventory" && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Inventory & Equipment</h2>
-            {(() => {
-              const inventoryData = room?.inventory;
-              if (!inventoryData || (Array.isArray(inventoryData) && inventoryData.length === 0)) {
-                return (
-                  <div className="text-gray-500">
-                    No inventory items assigned to this room.
-                  </div>
-                );
-              }
-
-              let inventoryItems = [];
-              if (Array.isArray(inventoryData)) {
-                inventoryItems = inventoryData;
-              } else if (typeof inventoryData === 'string') {
-                try {
-                  const parsed = JSON.parse(inventoryData);
-                  inventoryItems = Array.isArray(parsed) ? parsed : [inventoryData];
-                } catch {
-                  inventoryItems = inventoryData.split(',').map(item => item.trim()).filter(Boolean);
-                }
-              }
-
-              if (inventoryItems.length === 0) {
-                return (
-                  <div className="text-gray-500">
-                    No inventory items assigned to this room.
-                  </div>
-                );
-              }
-
-              const getInventoryIcon = (item) => {
-                const itemName = String(item).toLowerCase().trim();
-                
-                // Furniture items
-                if (itemName.includes('bed') || itemName.includes('mattress')) {
-                  return (
-                    <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 21v-4a2 2 0 012-2h4a2 2 0 012 2v4" />
-                    </svg>
-                  );
-                }
-                if (itemName.includes('chair') || itemName.includes('sofa') || itemName.includes('couch')) {
-                  return (
-                    <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  );
-                }
-                if (itemName.includes('table') || itemName.includes('desk')) {
-                  return (
-                    <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  );
-                }
-                if (itemName.includes('wardrobe') || itemName.includes('closet') || itemName.includes('drawer')) {
-                  return (
-                    <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                    </svg>
-                  );
-                }
-                
-                // Electronics
-                if (itemName.includes('tv') || itemName.includes('television')) {
-                  return (
-                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  );
-                }
-                if (itemName.includes('fan') || itemName.includes('ac') || itemName.includes('air')) {
-                  return (
-                    <svg className="w-5 h-5 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                  );
-                }
-                if (itemName.includes('fridge') || itemName.includes('refrigerator') || itemName.includes('microwave')) {
-                  return (
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  );
-                }
-                
-                // Bathroom items
-                if (itemName.includes('toilet') || itemName.includes('bathroom')) {
-                  return (
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  );
-                }
-                if (itemName.includes('shower') || itemName.includes('bathtub')) {
-                  return (
-                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                  );
-                }
-                
-                // Kitchen items
-                if (itemName.includes('stove') || itemName.includes('oven') || itemName.includes('cooking')) {
-                  return (
-                    <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
-                    </svg>
-                  );
-                }
-                
-                // Lighting
-                if (itemName.includes('lamp') || itemName.includes('light') || itemName.includes('bulb')) {
-                  return (
-                    <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  );
-                }
-                
-                // Default icon for other items
-                return (
-                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                );
-              };
-
-              return (
-                <div className="space-y-2">
-                  {inventoryItems.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-lg border border-gray-100"
-                    >
-                      {getInventoryIcon(item)}
-                      <span className="text-sm font-medium text-gray-800">
-                        {String(item).trim()}
-                      </span>
-                    </div>
-                  ))}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Inventory & Equipment</h2>
+              {!isEditingInventory && (
+                <button
+                  onClick={startEditingInventory}
+                  className="px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+            {isEditingInventory ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-600 block mb-2">
+                    Enter inventory items (comma-separated)
+                  </label>
+                  <textarea
+                    value={inventoryFormData}
+                    onChange={(e) => setInventoryFormData(e.target.value)}
+                    placeholder="e.g., Bed, Chair, Desk, Television, Fan, Refrigerator"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 h-32 font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Tip: Separate items with commas
+                  </p>
                 </div>
-              );
-            })()}
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveInventoryChanges}
+                    disabled={saving}
+                    className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={cancelEditingInventory}
+                    disabled={saving}
+                    className="flex-1 px-3 py-2 bg-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-400 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              (() => {
+                const inventoryData = room?.inventory;
+                if (!inventoryData || (Array.isArray(inventoryData) && inventoryData.length === 0)) {
+                  return (
+                    <div className="text-gray-500">
+                      No inventory items assigned to this room.
+                    </div>
+                  );
+                }
+
+                let inventoryItems = [];
+                if (Array.isArray(inventoryData)) {
+                  inventoryItems = inventoryData;
+                } else if (typeof inventoryData === 'string') {
+                  try {
+                    const parsed = JSON.parse(inventoryData);
+                    inventoryItems = Array.isArray(parsed) ? parsed : [inventoryData];
+                  } catch {
+                    inventoryItems = inventoryData.split(',').map(item => item.trim()).filter(Boolean);
+                  }
+                }
+
+                if (inventoryItems.length === 0) {
+                  return (
+                    <div className="text-gray-500">
+                      No inventory items assigned to this room.
+                    </div>
+                  );
+                }
+
+                const getInventoryIcon = (item) => {
+                  const itemName = String(item).toLowerCase().trim();
+                  
+                  // Furniture items
+                  if (itemName.includes('bed') || itemName.includes('mattress')) {
+                    return (
+                      <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 21v-4a2 2 0 012-2h4a2 2 0 012 2v4" />
+                      </svg>
+                    );
+                  }
+                  if (itemName.includes('chair') || itemName.includes('sofa') || itemName.includes('couch')) {
+                    return (
+                      <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    );
+                  }
+                  if (itemName.includes('table') || itemName.includes('desk')) {
+                    return (
+                      <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    );
+                  }
+                  if (itemName.includes('wardrobe') || itemName.includes('closet') || itemName.includes('drawer')) {
+                    return (
+                      <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                      </svg>
+                    );
+                  }
+                  
+                  // Electronics
+                  if (itemName.includes('tv') || itemName.includes('television')) {
+                    return (
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    );
+                  }
+                  if (itemName.includes('fan') || itemName.includes('ac') || itemName.includes('air')) {
+                    return (
+                      <svg className="w-5 h-5 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    );
+                  }
+                  if (itemName.includes('fridge') || itemName.includes('refrigerator') || itemName.includes('microwave')) {
+                    return (
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    );
+                  }
+                  
+                  // Bathroom items
+                  if (itemName.includes('toilet') || itemName.includes('bathroom')) {
+                    return (
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    );
+                  }
+                  if (itemName.includes('shower') || itemName.includes('bathtub')) {
+                    return (
+                      <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                      </svg>
+                    );
+                  }
+                  
+                  // Kitchen items
+                  if (itemName.includes('stove') || itemName.includes('oven') || itemName.includes('cooking')) {
+                    return (
+                      <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+                      </svg>
+                    );
+                  }
+                  
+                  // Lighting
+                  if (itemName.includes('lamp') || itemName.includes('light') || itemName.includes('bulb')) {
+                    return (
+                      <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                    );
+                  }
+                  
+                  // Default icon for other items
+                  return (
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  );
+                };
+
+                return (
+                  <div className="space-y-2">
+                    {inventoryItems.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-lg border border-gray-100"
+                      >
+                        {getInventoryIcon(item)}
+                        <span className="text-sm font-medium text-gray-800">
+                          {String(item).trim()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()
+            )}
           </div>
         )}
 
         {activeTab === "residents" && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            {residents.length === 0 ? (
-              <div className="text-gray-500">No residents assigned to this room.</div>
-            ) : (
-              <div className="space-y-2">
-                {residents.map((name, idx) => (
-                  <div
-                    key={`${name}-${idx}`}
-                    className="bg-gray-50 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-800 border border-gray-100"
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Residents ({residents.length})</h2>
+              {!isEditingResidents && (
+                <button
+                  onClick={startEditingResidents}
+                  className="px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+            {isEditingResidents ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-600 block mb-2">
+                    Enter resident names (comma-separated)
+                  </label>
+                  <textarea
+                    value={residentsFormData}
+                    onChange={(e) => setResidentsFormData(e.target.value)}
+                    placeholder="e.g., John Smith, Jane Doe, David Johnson"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 h-32 font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Tip: Separate resident names with commas
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveResidentsChanges}
+                    disabled={saving}
+                    className="flex-1 px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50"
                   >
-                    {name}
-                  </div>
-                ))}
+                    Save
+                  </button>
+                  <button
+                    onClick={cancelEditingResidents}
+                    disabled={saving}
+                    className="flex-1 px-3 py-2 bg-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-400 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
+            ) : (
+              <>
+                {residents.length === 0 ? (
+                  <div className="text-gray-500">No residents assigned to this room.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {residents.map((name, idx) => (
+                      <div
+                        key={`${name}-${idx}`}
+                        className="bg-gray-50 px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-800 border border-gray-100"
+                      >
+                        {name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

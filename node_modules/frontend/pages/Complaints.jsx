@@ -251,7 +251,6 @@ export default function Complaints({ user }) {
     "status",
     "assigned",
     "date",
-    "actions",
   ];
 
   // Column visibility state - load from localStorage or default to all visible
@@ -1174,15 +1173,15 @@ export default function Complaints({ user }) {
                   {visibleColumns.date && (
                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
                   )}
-                  {visibleColumns.actions && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
-                  )}
                   {/* Custom Columns */}
                   {customColumns.filter(col => visibleColumns[col]).map(col => (
                     <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-purple-600 uppercase tracking-wider">
                       {col.replace(/_/g, ' ')}
                     </th>
                   ))}
+                  {visibleColumns.actions && (
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -1263,6 +1262,12 @@ export default function Complaints({ user }) {
                           <span className="text-gray-700 text-sm">{formatDate(row.scheduled_date)}</span>
                         </td>
                       )}
+                      {/* Custom Column Cells */}
+                      {customColumns.filter(col => visibleColumns[col]).map(col => (
+                        <td key={col} className="py-4 px-4">
+                          <span className="text-gray-700 text-sm">{row[col] || '-'}</span>
+                        </td>
+                      ))}
                       {visibleColumns.actions && (
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
@@ -1294,12 +1299,6 @@ export default function Complaints({ user }) {
                           </div>
                         </td>
                       )}
-                      {/* Custom Column Cells */}
-                      {customColumns.filter(col => visibleColumns[col]).map(col => (
-                        <td key={col} className="py-4 px-4">
-                          <span className="text-gray-700 text-sm">{row[col] || '-'}</span>
-                        </td>
-                      ))}
                     </tr>
                   );
                 }) : (

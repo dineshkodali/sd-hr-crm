@@ -1,16 +1,17 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
-import { 
-  Home, 
-  Users, 
-  Shield, 
-  UserPlus, 
-  Edit, 
-  Trash2, 
-  X, 
-  Save, 
+import {
+  Home,
+  Users,
+  Shield,
+  UserPlus,
+  Edit,
+  Trash2,
+  X,
+  Save,
   Plus,
   Search,
   ChevronDown,
@@ -73,7 +74,7 @@ const PERMISSION_LEVELS = [
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("access-control");
   const [activeSubTab, setActiveSubTab] = useState("users");
-  
+
   // Access Control States
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -90,7 +91,7 @@ export default function Settings() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  
+
   // Modals
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -110,7 +111,7 @@ export default function Settings() {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'warning'
   });
 
@@ -668,7 +669,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
-        
+
         {/* Page Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
@@ -685,18 +686,18 @@ export default function Settings() {
 
         {/* Main Content */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
-          
+
           {/* Tabs */}
           <div className="border-b border-gray-200 px-8">
             <div className="flex gap-8">
-              <button 
+              <button
                 onClick={() => setActiveTab("access-control")}
                 className={`py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === "access-control" ? "border-teal-500 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
               >
                 <Shield className="w-4 h-4" />
                 <span>Access Control</span>
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab("general")}
                 className={`py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === "general" ? "border-teal-500 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
               >
@@ -763,7 +764,7 @@ export default function Settings() {
                               {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase())).map((user) => {
                                 const userPerms = permissions[user.id] || {};
                                 const moduleCount = Object.keys(userPerms).length;
-                                
+
                                 return (
                                   <button
                                     key={user.id}
@@ -774,9 +775,8 @@ export default function Settings() {
                                         [user.id]: userPerms
                                       });
                                     }}
-                                    className={`w-full text-left p-4 hover:bg-white transition-colors ${
-                                      selectedUser?.id === user.id ? "bg-white border-l-4 border-teal-500" : ""
-                                    }`}
+                                    className={`w-full text-left p-4 hover:bg-white transition-colors ${selectedUser?.id === user.id ? "bg-white border-l-4 border-teal-500" : ""
+                                      }`}
                                   >
                                     <div className="flex items-center gap-3">
                                       <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-semibold">
@@ -827,11 +827,10 @@ export default function Settings() {
                                   <button
                                     key={cat}
                                     onClick={() => setCategoryFilter(cat)}
-                                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
-                                      categoryFilter === cat 
-                                        ? "bg-teal-500 text-white" 
-                                        : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-300"
-                                    }`}
+                                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${categoryFilter === cat
+                                      ? "bg-teal-500 text-white"
+                                      : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-300"
+                                      }`}
                                   >
                                     {cat}
                                   </button>
@@ -867,14 +866,13 @@ export default function Settings() {
                                       <select
                                         value={currentLevel}
                                         onChange={(e) => handleBulkPermissionChange(selectedUser.id, module.key, e.target.value)}
-                                        className={`text-xs font-medium px-3 py-1.5 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                                          levelConfig?.color === 'gray' ? 'border-gray-300 text-gray-600' :
+                                        className={`text-xs font-medium px-3 py-1.5 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${levelConfig?.color === 'gray' ? 'border-gray-300 text-gray-600' :
                                           levelConfig?.color === 'blue' ? 'border-blue-300 text-blue-600 bg-blue-50' :
-                                          levelConfig?.color === 'green' ? 'border-green-300 text-green-600 bg-green-50' :
-                                          levelConfig?.color === 'yellow' ? 'border-yellow-300 text-yellow-600 bg-yellow-50' :
-                                          levelConfig?.color === 'teal' ? 'border-teal-300 text-teal-600 bg-teal-50' :
-                                          'border-purple-300 text-purple-600 bg-purple-50'
-                                        }`}
+                                            levelConfig?.color === 'green' ? 'border-green-300 text-green-600 bg-green-50' :
+                                              levelConfig?.color === 'yellow' ? 'border-yellow-300 text-yellow-600 bg-yellow-50' :
+                                                levelConfig?.color === 'teal' ? 'border-teal-300 text-teal-600 bg-teal-50' :
+                                                  'border-purple-300 text-purple-600 bg-purple-50'
+                                          }`}
                                       >
                                         {PERMISSION_LEVELS.map(level => (
                                           <option key={level.key} value={level.key}>{level.label}</option>
@@ -942,9 +940,8 @@ export default function Settings() {
                               <button
                                 onClick={handleSavePermissions}
                                 disabled={saving}
-                                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 shadow-md hover:shadow-lg ${
-                                  saving ? "bg-teal-600 text-white cursor-not-allowed" : "bg-teal-500 text-white hover:bg-teal-600"
-                                }`}
+                                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 shadow-md hover:shadow-lg ${saving ? "bg-teal-600 text-white cursor-not-allowed" : "bg-teal-500 text-white hover:bg-teal-600"
+                                  }`}
                               >
                                 {saving ? (
                                   <>
@@ -1101,14 +1098,13 @@ export default function Settings() {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
                                     <h4 className="font-semibold text-gray-900">{role.name}</h4>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                      levelConfig.color === 'gray' ? 'bg-gray-100 text-gray-600' :
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${levelConfig.color === 'gray' ? 'bg-gray-100 text-gray-600' :
                                       levelConfig.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                                      levelConfig.color === 'green' ? 'bg-green-100 text-green-600' :
-                                      levelConfig.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
-                                      levelConfig.color === 'teal' ? 'bg-teal-100 text-teal-600' :
-                                      'bg-purple-100 text-purple-600'
-                                    }`}>
+                                        levelConfig.color === 'green' ? 'bg-green-100 text-green-600' :
+                                          levelConfig.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
+                                            levelConfig.color === 'teal' ? 'bg-teal-100 text-teal-600' :
+                                              'bg-purple-100 text-purple-600'
+                                      }`}>
                                       {levelConfig.label}
                                     </span>
                                   </div>
@@ -1232,11 +1228,10 @@ export default function Settings() {
                               <button
                                 key={cat}
                                 onClick={() => setCategoryFilter(cat)}
-                                className={`px-3 py-1 text-xs font-medium rounded-lg ${
-                                  categoryFilter === cat 
-                                    ? "bg-teal-500 text-white" 
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                }`}
+                                className={`px-3 py-1 text-xs font-medium rounded-lg ${categoryFilter === cat
+                                  ? "bg-teal-500 text-white"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                  }`}
                               >
                                 {cat}
                               </button>
@@ -1256,14 +1251,13 @@ export default function Settings() {
                                   <select
                                     value={currentLevel}
                                     onChange={(e) => handleBulkGroupPermissionChange(module.key, e.target.value)}
-                                    className={`text-xs px-2 py-1 rounded border ${
-                                      levelConfig?.color === 'gray' ? 'border-gray-300 text-gray-600' :
+                                    className={`text-xs px-2 py-1 rounded border ${levelConfig?.color === 'gray' ? 'border-gray-300 text-gray-600' :
                                       levelConfig?.color === 'blue' ? 'border-blue-300 text-blue-600' :
-                                      levelConfig?.color === 'green' ? 'border-green-300 text-green-600' :
-                                      levelConfig?.color === 'yellow' ? 'border-yellow-300 text-yellow-600' :
-                                      levelConfig?.color === 'teal' ? 'border-teal-300 text-teal-600' :
-                                      'border-purple-300 text-purple-600'
-                                    }`}
+                                        levelConfig?.color === 'green' ? 'border-green-300 text-green-600' :
+                                          levelConfig?.color === 'yellow' ? 'border-yellow-300 text-yellow-600' :
+                                            levelConfig?.color === 'teal' ? 'border-teal-300 text-teal-600' :
+                                              'border-purple-300 text-purple-600'
+                                      }`}
                                   >
                                     {PERMISSION_LEVELS.map(level => (
                                       <option key={level.key} value={level.key}>{level.label}</option>
@@ -1396,11 +1390,10 @@ export default function Settings() {
                               <button
                                 key={cat}
                                 onClick={() => setCategoryFilter(cat)}
-                                className={`px-3 py-1 text-xs font-medium rounded-lg ${
-                                  categoryFilter === cat 
-                                    ? "bg-teal-500 text-white" 
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                }`}
+                                className={`px-3 py-1 text-xs font-medium rounded-lg ${categoryFilter === cat
+                                  ? "bg-teal-500 text-white"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                  }`}
                               >
                                 {cat}
                               </button>
@@ -1420,14 +1413,13 @@ export default function Settings() {
                                   <select
                                     value={currentLevel}
                                     onChange={(e) => handleBulkRolePermissionChange(module.key, e.target.value)}
-                                    className={`text-xs px-2 py-1 rounded border ${
-                                      levelConfig?.color === 'gray' ? 'border-gray-300 text-gray-600' :
+                                    className={`text-xs px-2 py-1 rounded border ${levelConfig?.color === 'gray' ? 'border-gray-300 text-gray-600' :
                                       levelConfig?.color === 'blue' ? 'border-blue-300 text-blue-600' :
-                                      levelConfig?.color === 'green' ? 'border-green-300 text-green-600' :
-                                      levelConfig?.color === 'yellow' ? 'border-yellow-300 text-yellow-600' :
-                                      levelConfig?.color === 'teal' ? 'border-teal-300 text-teal-600' :
-                                      'border-purple-300 text-purple-600'
-                                    }`}
+                                        levelConfig?.color === 'green' ? 'border-green-300 text-green-600' :
+                                          levelConfig?.color === 'yellow' ? 'border-yellow-300 text-yellow-600' :
+                                            levelConfig?.color === 'teal' ? 'border-teal-300 text-teal-600' :
+                                              'border-purple-300 text-purple-600'
+                                      }`}
                                   >
                                     {PERMISSION_LEVELS.map(level => (
                                       <option key={level.key} value={level.key}>{level.label}</option>
@@ -1501,8 +1493,8 @@ export default function Settings() {
         </div>
 
         {/* Group Modal */}
-        {showGroupModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showGroupModal && createPortal(
+          <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900">{editingGroup ? "Edit Group" : "Create New Group"}</h3>
@@ -1549,12 +1541,13 @@ export default function Settings() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Role Modal */}
-        {showRoleModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showRoleModal && createPortal(
+          <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900">{editingRole ? "Edit Role" : "Create New Role"}</h3>
@@ -1613,12 +1606,13 @@ export default function Settings() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Add Member Modal */}
-        {showAddMemberModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showAddMemberModal && createPortal(
+          <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[600px] flex flex-col">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900">Add Member to Group</h3>
@@ -1654,12 +1648,13 @@ export default function Settings() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Assign Role Modal */}
-        {showAssignRoleModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showAssignRoleModal && createPortal(
+          <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[600px] flex flex-col">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900">Assign Role to User</h3>
@@ -1695,7 +1690,8 @@ export default function Settings() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
         {/* Confirmation Dialog */}
         <ConfirmDialog

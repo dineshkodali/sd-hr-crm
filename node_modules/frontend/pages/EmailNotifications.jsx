@@ -67,6 +67,20 @@ export default function EmailNotifications({ user }) {
     loadModules();
   }, [activeTab]);
 
+  // Hide sidebar and navbar when modal is open
+  useEffect(() => {
+    const isAnyModalOpen = showTemplateModal || showPreviewModal || showTestEmailModal || showSettingsModal;
+    if (isAnyModalOpen) {
+      document.body.classList.add('form-modal-open');
+    } else {
+      document.body.classList.remove('form-modal-open');
+    }
+    // Cleanup on unmount
+    return () => {
+      document.body.classList.remove('form-modal-open');
+    };
+  }, [showTemplateModal, showPreviewModal, showTestEmailModal, showSettingsModal]);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -607,14 +621,14 @@ export default function EmailNotifications({ user }) {
 
       {/* Template Modal */}
       {showTemplateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full h-[70vh] flex flex-col relative">
+            <div className="p-6 border-b border-gray-200 shrink-0">
               <h2 className="text-xl font-bold text-gray-900">
                 {modalMode === 'create' ? 'Create Template' : 'Edit Template'}
               </h2>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Template Name *</label>
                 <input
@@ -681,7 +695,7 @@ export default function EmailNotifications({ user }) {
                 </label>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => setShowTemplateModal(false)}
                 className="px-5 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
@@ -701,7 +715,7 @@ export default function EmailNotifications({ user }) {
 
       {/* Test Email Modal */}
       {showTestEmailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-xl font-bold text-gray-900">Send Test Email</h2>
@@ -768,14 +782,14 @@ function SettingsModal({ settings, onClose, onSave }) {
   const roles = ['admin', 'manager', 'staff'];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col relative">
+        <div className="p-6 border-b border-gray-200 shrink-0">
           <h2 className="text-xl font-bold text-gray-900 capitalize">
             {settings.module} Settings
           </h2>
         </div>
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-medium text-gray-900">Enable Notifications</h3>
@@ -857,7 +871,7 @@ function SettingsModal({ settings, onClose, onSave }) {
             </div>
           </div>
         </div>
-        <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+        <div className="p-6 border-t border-gray-200 flex justify-end gap-3 shrink-0">
           <button
             onClick={onClose}
             className="px-5 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"

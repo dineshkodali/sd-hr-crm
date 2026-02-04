@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 // src/pages/HotelsList.jsx
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { useNavigate, useOutletContext } from "react-router-dom";
 // This imports the component code you provided in your prompt
@@ -59,9 +60,25 @@ export default function HotelsList({ user: userProp }) {
   const [accessSaving, setAccessSaving] = useState(false);
   const [accessMessage, setAccessMessage] = useState("");
 
+  // Staff list for manager dropdown in edit modal
+  const [managersList, setManagersList] = useState([]);
+
   // Property detail state
   const [detailProperty, setDetailProperty] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
+
+  // Toggle body class for hiding navbars
+  useEffect(() => {
+    const shouldHide = Boolean(showAdd || editingHotel);
+    if (shouldHide) {
+      document.body.classList.add("form-modal-open");
+    } else {
+      document.body.classList.remove("form-modal-open");
+    }
+    return () => {
+      document.body.classList.remove("form-modal-open");
+    };
+  }, [showAdd, editingHotel]);
 
   axios.defaults.withCredentials = true;
 
@@ -376,6 +393,7 @@ export default function HotelsList({ user: userProp }) {
           branch: u.branch ?? null,
         }));
         setAccessStaffList(normalized);
+        setManagersList(normalized);
         return;
       } catch (err) {
         console.warn(
@@ -385,10 +403,13 @@ export default function HotelsList({ user: userProp }) {
       }
       const rAll = await axios.get(`/api/staff`);
       const list = rAll?.data?.users ?? rAll?.data ?? [];
-      setAccessStaffList(Array.isArray(list) ? list : []);
+      const normalized = Array.isArray(list) ? list : [];
+      setAccessStaffList(normalized);
+      setManagersList(normalized);
     } catch (err) {
       console.error("fetchStaffForHotel critical error:", err);
       setAccessStaffList([]);
+      setManagersList([]);
     } finally {
       setLoadingStaff(false);
     }
@@ -1158,9 +1179,9 @@ export default function HotelsList({ user: userProp }) {
         </div>
 
         {/* Add Property Modal */}
-        {showAdd && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 mt-15">
-            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+        {showAdd && createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden h-[75vh] flex flex-col animate-in fade-in zoom-in duration-200 border border-gray-100">
               <div className="flex items-start justify-between p-5">
                 <div>
                   <h3 className="text-base font-semibold text-gray-900">
@@ -1182,7 +1203,7 @@ export default function HotelsList({ user: userProp }) {
 
               <form
                 onSubmit={handleCreate}
-                className="p-6 space-y-4 max-h-[80vh] overflow-y-auto"
+                className="p-6 space-y-4 overflow-y-auto flex-1 custom-scrollbar"
               >
                 {errorMsg && (
                   <div className="text-red-700 bg-red-50 p-2 rounded">
@@ -1402,15 +1423,16 @@ export default function HotelsList({ user: userProp }) {
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* Edit Modal (UNCHANGED) */}
-        {editingHotel && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 bg-black/40 p-4 overflow-y-auto mt-10">
+        {editingHotel && createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
             <div
               ref={modalRef}
-              className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-4 border border-gray-100"
+              className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden h-[75vh] flex flex-col animate-in fade-in zoom-in duration-200 border border-gray-100"
             >
               <div className="flex items-center justify-between p-4">
                 <h3 className="text-lg font-semibold">Edit Property</h3>
@@ -1458,7 +1480,7 @@ export default function HotelsList({ user: userProp }) {
                 </div>
               </div>
 
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
                 {editTab === "basic" && (
                   <div className="space-y-4">
                     <div>
@@ -1553,13 +1575,25 @@ export default function HotelsList({ user: userProp }) {
                         <label className="block text-sm text-gray-700 mb-1">
                           Manager Name
                         </label>
-                        <input
-                          value={editingHotel.manager_name}
-                          onChange={(e) =>
-                            handleEditChange("manager_name", e.target.value)
-                          }
-                          className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                        />
+                        <select
+                          value={editingHotel.manager_name || ""}
+                          onChange={(e) => {
+                            const selectedName = e.target.value;
+                            const selectedManager = managersList.find(m => m.name === selectedName);
+                            handleEditChange("manager_name", selectedName);
+                            if (selectedManager?.email) {
+                              handleEditChange("manager_email", selectedManager.email);
+                            }
+                          }}
+                          className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 bg-white"
+                        >
+                          <option value="">Select Manager</option>
+                          {managersList.map((manager) => (
+                            <option key={manager.id} value={manager.name}>
+                              {manager.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
                       <div>
@@ -1847,7 +1881,8 @@ export default function HotelsList({ user: userProp }) {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {showDeleteModal && (

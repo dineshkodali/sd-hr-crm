@@ -11,7 +11,7 @@ export default function RoomsManager({ user }) {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ room_number: "", type: "", rate: "", floor: "" });
+  const [form, setForm] = useState({ room_number: "", type: "", floor: "" });
   const [editing, setEditing] = useState(null);
   const [hotel, setHotel] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -167,7 +167,7 @@ export default function RoomsManager({ user }) {
         }
       });
       const res = await axios.post(`/api/hotels/${hotelId}/rooms`, payload);
-      setForm({ room_number: "", type: "", rate: "", floor: "" });
+      setForm({ room_number: "", type: "", floor: "" });
       await fetch();
       await fetchHotel();
       // optionally show server message
@@ -237,7 +237,7 @@ export default function RoomsManager({ user }) {
       // IMPORTANT: use the hotel-scoped route for editing
       await axios.put(`/api/hotels/${hotelId}/rooms/${editing}`, payload);
       setEditing(null);
-      setForm({ room_number: "", type: "", rate: "", floor: "" });
+      setForm({ room_number: "", type: "", floor: "" });
       await fetch();
       await fetchHotel();
     } catch (err) {
@@ -374,20 +374,6 @@ export default function RoomsManager({ user }) {
                     <option value="Deluxe">Deluxe</option>
                     <option value="Family">Family</option>
                   </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700">
-                    Rate (₹)
-                  </label>
-                  <input
-                    value={form.rate}
-                    onChange={(e) => setForm({ ...form, rate: e.target.value })}
-                    placeholder="e.g., 1500"
-                    type="number"
-                    step="0.01"
-                    className="w-full px-4 py-3 bg-[#f0faf9] border border-[#d3f1ec] rounded-xl focus:border-teal-500 focus:ring-2 focus:ring-[#d3f1ec] text-slate-700 placeholder-slate-400 transition-all outline-none"
-                  />
                 </div>
 
                 <div className="space-y-2">
@@ -672,7 +658,7 @@ export default function RoomsManager({ user }) {
                       type="button"
                       onClick={() => {
                         setEditing(null);
-                        setForm({ room_number: "", type: "", rate: "", floor: "" });
+                        setForm({ room_number: "", type: "", floor: "" });
                       }}
                       className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-semibold transition-all"
                     >
