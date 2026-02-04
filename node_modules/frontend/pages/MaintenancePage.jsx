@@ -306,16 +306,16 @@ export default function MaintenancePage({ user }) {
   const DEFAULT_COLUMNS = useMemo(() => [
     "checkbox",
     "type",
-      "reference",
-      "description",
-      "property",
-      "priority",
-      "status",
-      "assigned_to",
-      "start_date",
-      "due_date",
-      "actions",
-    ], []);
+    "reference",
+    "description",
+    "property",
+    "priority",
+    "status",
+    "assigned_to",
+    "start_date",
+    "due_date",
+    "actions",
+  ], []);
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState(() => {
@@ -479,7 +479,7 @@ export default function MaintenancePage({ user }) {
 
         return baseTask;
       });
-        setTasks(formattedTasks);
+      setTasks(formattedTasks);
       setLoading(false);
     } catch (err) {
       if (err.name === "AbortError" || err.code === "ERR_CANCELED") return;
@@ -788,8 +788,8 @@ export default function MaintenancePage({ user }) {
         start_date: formatDateISO(form.start) || null,
         category: form.category,
         hotel_name: form.hotelName,
-          hotel_id: form.hotelId || null,
-          property_id: form.hotelId || null,
+        hotel_id: form.hotelId || null,
+        property_id: form.hotelId || null,
         room: form.room,
         raised_by: form.raisedBy,
         assigned_to: form.assignedTo,
@@ -840,8 +840,8 @@ export default function MaintenancePage({ user }) {
         start_date: formatDateISO(form.start) || null,
         category: form.category,
         hotel_name: form.hotelName,
-          hotel_id: form.hotelId || null,
-          property_id: form.hotelId || null,
+        hotel_id: form.hotelId || null,
+        property_id: form.hotelId || null,
         room: form.room,
         raised_by: form.raisedBy,
         assigned_to: form.assignedTo,
@@ -1202,126 +1202,124 @@ export default function MaintenancePage({ user }) {
                                 <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                               </div>
                             </button>
-                            
+
                             {/* Column Visibility Panel */}
                             {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
-                            {/* Default Columns Section */}
-                            <div className="mb-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = true);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Show all
-                                  </button>
-                                  <span className="text-gray-300">|</span>
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = false);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Hide all
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
-                              <div className="space-y-1">
-                                {DEFAULT_COLUMNS.map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                      visibleColumns[col] 
-                                        ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                        : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                    }`}
-                                  >
-                                    <span className="capitalize font-medium">{col}</span>
+                              <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
+                                {/* Default Columns Section */}
+                                <div className="mb-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
                                     <div className="flex items-center gap-2">
-                                      {visibleColumns[col] ? (
-                                        <Eye className="w-4 h-4 text-teal-600" />
-                                      ) : (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
-                                      )}
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Show all
+                                      </button>
+                                      <span className="text-gray-300">|</span>
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Hide all
+                                      </button>
                                     </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
+                                  </div>
+                                  <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
+                                  <div className="space-y-1">
+                                    {DEFAULT_COLUMNS.map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                          }`}
+                                      >
+                                        <span className="capitalize font-medium">{col}</span>
+                                        <div className="flex items-center gap-2">
+                                          {visibleColumns[col] ? (
+                                            <Eye className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
 
-                            {/* Custom Columns Section - All custom columns */}
-                            {customColumns.length > 0 && (
-                              <div className="pt-4 border-t border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
-                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                                      {customColumns.length}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = true);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Show all
-                                    </button>
-                                    <span className="text-gray-300">|</span>
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = false);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Hide all
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="text-xs text-gray-500 mb-2">
-                                  Custom columns from Forms Builder 
-                                  <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
-                                </div>
-                                <div className="space-y-1">
-                                  {customColumns.map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                        visibleColumns[col] 
-                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                          : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                      }`}
-                                    >
-                                      <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                {/* Custom Columns Section - All custom columns */}
+                                {customColumns.length > 0 && (
+                                  <div className="pt-4 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
                                       <div className="flex items-center gap-2">
-                                        {visibleColumns[col] ? (
-                                          <Eye className="w-4 h-4 text-teal-600" />
-                                        ) : (
-                                          <EyeOff className="w-4 h-4 text-gray-400" />
-                                        )}
+                                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                          {customColumns.length}
+                                        </span>
                                       </div>
-                                    </button>
-                                  ))}
-                                </div>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = true);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Show all
+                                        </button>
+                                        <span className="text-gray-300">|</span>
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = false);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Hide all
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mb-2">
+                                      Custom columns from Forms Builder
+                                      <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                              ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                              : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            }`}
+                                        >
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          <div className="flex items-center gap-2">
+                                            {visibleColumns[col] ? (
+                                              <Eye className="w-4 h-4 text-teal-600" />
+                                            ) : (
+                                              <EyeOff className="w-4 h-4 text-gray-400" />
+                                            )}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
                             )}
                           </>
                         )}
@@ -1769,7 +1767,7 @@ export default function MaintenancePage({ user }) {
             </div>
 
             {/* Modal Body (Scrollable) */}
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto max-h-[72vh] p-4 custom-scrollbar">
               {showView ? (
                 <div className="space-y-6">
                   {/* Primary Info */}

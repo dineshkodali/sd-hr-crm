@@ -74,8 +74,14 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
 
   React.useEffect(() => {
     if (open) {
+      document.body.classList.add("form-modal-open");
       fetchBranches();
+    } else {
+      document.body.classList.remove("form-modal-open");
     }
+    return () => {
+      document.body.classList.remove("form-modal-open");
+    };
   }, [open]);
 
   const handleChange = (e) => {
@@ -176,14 +182,14 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all">
       <div
         className="absolute inset-0"
         onClick={onClose}
       />
 
-      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col h-[72vh]">
+        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100 shrink-0">
           <div>
             <h3 className="text-lg font-bold text-slate-800">Add Employee</h3>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -201,13 +207,13 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg shrink-0">
             <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="px-6 py-6 max-h-[calc(100vh-300px)] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="px-6 py-6 overflow-y-auto flex-1 custom-scrollbar">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">
@@ -530,6 +536,21 @@ export default function Users() {
     notes: "",
   });
   const [movingRoom, setMovingRoom] = useState(false);
+
+  // Toggle body class for Focus Mode (Hide Navbars)
+  useEffect(() => {
+    if (isEditOpen || showMoveRoomModal || showDeleteModal) {
+      document.body.classList.add("form-modal-open");
+    } else {
+      // clear only if add modal is also closed (handled by its own component, but safe to check)
+      // Actually AddEmployeeModal handles its own, but we should be careful not to remove it if Add is open?
+      // Since AddEmployeeModal adds it on mount/open, and we are in same parent
+      // styling might conflict if we race.
+      // However, usually only one modal is open at a time.
+      document.body.classList.remove("form-modal-open");
+    }
+    return () => document.body.classList.remove("form-modal-open");
+  }, [isEditOpen, showMoveRoomModal, showDeleteModal]);
 
   // --- EXISTING LOGIC & HANDLERS (UNCHANGED) ---
 
@@ -1060,8 +1081,8 @@ export default function Users() {
             <button
               onClick={() => setActiveTab('all')}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               All Employees
@@ -1069,8 +1090,8 @@ export default function Users() {
             <button
               onClick={() => setActiveTab('active')}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'active'
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Active
@@ -1078,8 +1099,8 @@ export default function Users() {
             <button
               onClick={() => setActiveTab('inactive')}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'inactive'
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Inactive
@@ -1244,8 +1265,8 @@ export default function Users() {
                     </td>
                     <td className="p-4">
                       <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${getStatus(u).toLowerCase() === 'active'
-                          ? 'bg-green-100 text-green-700 border border-green-200'
-                          : 'bg-red-100 text-red-700 border border-red-200'
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'bg-red-100 text-red-700 border border-red-200'
                         }`}>
                         <span className={`w-2 h-2 rounded-full ${getStatus(u).toLowerCase() === 'active' ? 'bg-green-500' : 'bg-red-500'
                           }`}></span>

@@ -2,20 +2,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
-import { 
-  Home, 
-  ClipboardCheck, 
-  Search, 
-  ChevronDown, 
-  Filter, 
-  Columns, 
-  Download, 
-  X, 
-  Edit, 
-  Trash2, 
-  Eye, 
+import {
+  Home,
+  ClipboardCheck,
+  Search,
+  ChevronDown,
+  Filter,
+  Columns,
+  Download,
+  X,
+  Edit,
+  Trash2,
+  Eye,
   EyeOff,
-  Check 
+  Check
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -37,10 +37,10 @@ function normalizeHotelsResponse(data) {
     }
   }
   return items.map((h) => {
-      const id = h?.id ?? h?.hotel_id ?? h?._id ?? null;
-      const name = h?.name ?? h?.title ?? h?.hotel_name ?? `${id ?? ''}`;
-      return { id, name };
-    }).filter((x) => x.id && x.name);
+    const id = h?.id ?? h?.hotel_id ?? h?._id ?? null;
+    const name = h?.name ?? h?.title ?? h?.hotel_name ?? `${id ?? ''}`;
+    return { id, name };
+  }).filter((x) => x.id && x.name);
 }
 
 /* Helper functions */
@@ -66,7 +66,7 @@ function getPriorityColor(p) {
   const low = String(p).toLowerCase();
   if (low === "urgent" || low === "high" || low === "critical") return { dot: "bg-red-500", text: "text-red-700" };
   if (low === "medium") return { dot: "bg-orange-500", text: "text-orange-700" };
-  return { dot: "bg-green-500", text: "text-green-700" }; 
+  return { dot: "bg-green-500", text: "text-green-700" };
 }
 
 function getStatusColor(s) {
@@ -95,7 +95,7 @@ const DetailField = ({ label, value }) => (
 );
 
 const categoryOptions = ['Internal Audit', 'External Audit', 'Compliance Check', 'Safety Inspection', 'Environmental', 'Other'];
-const priorities = ['Low','Medium','High','Urgent'];
+const priorities = ['Low', 'Medium', 'High', 'Urgent'];
 
 export default function HSEAudits({ user }) {
   // Get current user from props or localStorage
@@ -328,17 +328,17 @@ export default function HSEAudits({ user }) {
     try {
       const res = await api.get('/api/forms-builder/tables/hse_audits/columns');
       const columns = res?.data?.columns || res?.data || [];
-      
+
       // Default UI columns
       const defaultColumns = ["checkbox", "type", "reference", "description", "priority", "status", "assigned", "date", "actions"];
-      
+
       // System and known HSE Audits columns to exclude
       const systemColumns = [
         'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
         'title', 'description', 'property_id', 'property_name', 'category',
         'priority', 'reported_by', 'assigned_to', 'scheduled_date', 'status'
       ];
-      
+
       // Extract column names (handle both string arrays and object arrays)
       const columnNames = columns.map(col => {
         if (typeof col === 'string') return col;
@@ -346,18 +346,18 @@ export default function HSEAudits({ user }) {
         if (col.name) return col.name;
         return String(col);
       });
-      
+
       const customCols = columnNames
         .filter(col => !systemColumns.includes(col) && !defaultColumns.includes(col));
-      
+
       // Insert custom columns before "actions" column
       const newColumns = [...defaultColumns.slice(0, -1), ...customCols, defaultColumns[defaultColumns.length - 1]];
-      
+
       // Only update if columns have changed
       if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
         setCustomColumns(customCols);
         setAvailableColumns(newColumns);
-        
+
         // Update visible columns - restore from localStorage or default to hidden
         setVisibleColumns(prev => {
           const updated = { ...prev };
@@ -389,17 +389,17 @@ export default function HSEAudits({ user }) {
   // Auto-refresh columns every 5 seconds
   useEffect(() => {
     let mounted = true;
-    
+
     // Initial fetch
     fetchAvailableColumns();
-    
+
     // Set up polling interval
     const intervalId = setInterval(() => {
       if (mounted) {
         fetchAvailableColumns();
       }
     }, 5000); // Check every 5 seconds
-    
+
     return () => {
       mounted = false;
       clearInterval(intervalId);
@@ -452,18 +452,18 @@ export default function HSEAudits({ user }) {
 
   const refresh = async () => { try { setLoading(true); const r = await api.get('/api/hse/audits?limit=500'); setRecords(Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? [])); } catch (err) { console.warn('refresh failed', err); } finally { setLoading(false); } };
 
-  const openModal = (m='create', rec=null) => {
+  const openModal = (m = 'create', rec = null) => {
     setMode(m);
     if (m === 'create') {
-      setFormData({ 
-        title:'', description:'', property_id:'', property_name:'', category:'', 
-        priority:'Medium', reported_by:'', assigned_to:'', scheduled_date:'', status:'Open',
+      setFormData({
+        title: '', description: '', property_id: '', property_name: '', category: '',
+        priority: 'Medium', reported_by: '', assigned_to: '', scheduled_date: '', status: 'Open',
         ...customColumns.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
       });
     } else {
-      setFormData({ 
-        ...rec, 
-        property_id: rec?.property_id || '', 
+      setFormData({
+        ...rec,
+        property_id: rec?.property_id || '',
         property_name: rec?.property_name || '',
         ...customColumns.reduce((acc, col) => ({ ...acc, [col]: rec?.[col] || '' }), {})
       });
@@ -504,11 +504,11 @@ export default function HSEAudits({ user }) {
       result.sort((a, b) => new Date(b.scheduled_date || b.created_at || 0) - new Date(a.scheduled_date || a.created_at || 0));
     } else if (sortBy === "priority") {
       const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-      result.sort((a, b) => (priorityOrder[String(a.priority||'').toLowerCase()] ?? 4) - (priorityOrder[String(b.priority||'').toLowerCase()] ?? 4));
+      result.sort((a, b) => (priorityOrder[String(a.priority || '').toLowerCase()] ?? 4) - (priorityOrder[String(b.priority || '').toLowerCase()] ?? 4));
     } else if (sortBy === "status") {
-      result.sort((a, b) => String(a.status||'').localeCompare(String(b.status||'')));
+      result.sort((a, b) => String(a.status || '').localeCompare(String(b.status || '')));
     } else if (sortBy === "title") {
-      result.sort((a, b) => String(a.title||'').localeCompare(String(b.title||'')));
+      result.sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
     }
 
     return result;
@@ -603,10 +603,10 @@ export default function HSEAudits({ user }) {
 
   // Calculate stats
   const stats = useMemo(() => {
-  const total = records.length;
-  const overdue = records.filter(r => (r.status||'').toLowerCase() === 'overdue').length;
-  const dueThisWeek = 0; // placeholder
-  const completed = records.filter(r => (r.status||'').toLowerCase() === 'completed').length;
+    const total = records.length;
+    const overdue = records.filter(r => (r.status || '').toLowerCase() === 'overdue').length;
+    const dueThisWeek = 0; // placeholder
+    const completed = records.filter(r => (r.status || '').toLowerCase() === 'completed').length;
     return { total, overdue, dueThisWeek, completed };
   }, [records]);
 
@@ -628,7 +628,7 @@ export default function HSEAudits({ user }) {
           {hasCreate && (
             <div className="flex items-center gap-3">
               <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
-              <button 
+              <button
                 onClick={() => openModal('create')}
                 className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2 px-4 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
               >
@@ -727,39 +727,39 @@ export default function HSEAudits({ user }) {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
             <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
               <ClipboardCheck className="w-7 h-7" />
-              </div>
+            </div>
             <div className="flex-1 min-w-0">
               <div className="text-gray-500 text-sm mb-1">Total Audits</div>
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              </div>
-           </div>
+            </div>
+          </div>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
             <div className="bg-red-100 text-red-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
               <ClipboardCheck className="w-7 h-7" />
-              </div>
+            </div>
             <div className="flex-1 min-w-0">
               <div className="text-gray-500 text-sm mb-1">Overdue</div>
               <div className="text-2xl font-bold text-gray-900">{stats.overdue}</div>
-              </div>
-           </div>
+            </div>
+          </div>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
             <div className="bg-orange-100 text-orange-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
               <ClipboardCheck className="w-7 h-7" />
-              </div>
+            </div>
             <div className="flex-1 min-w-0">
               <div className="text-gray-500 text-sm mb-1">Due This Week</div>
               <div className="text-2xl font-bold text-gray-900">{stats.dueThisWeek}</div>
-              </div>
-           </div>
+            </div>
+          </div>
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 flex items-center gap-4 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1">
             <div className="bg-green-100 text-green-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
               <ClipboardCheck className="w-7 h-7" />
-              </div>
+            </div>
             <div className="flex-1 min-w-0">
               <div className="text-gray-500 text-sm mb-1">Completed</div>
               <div className="text-2xl font-bold text-gray-900">{stats.completed}</div>
-              </div>
-           </div>
+            </div>
+          </div>
         </div>
 
         {/* Main Content Area - HSE Audits Table */}
@@ -799,36 +799,34 @@ export default function HSEAudits({ user }) {
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       <div className="p-4">
                         <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
-                        
+
                         {/* View Mode Selector */}
                         <div className="mb-3 pb-3 border-b border-gray-200">
                           <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => setViewMode('table')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'table'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
                             >
                               <Columns className="w-4 h-4" />
                               <span>Table</span>
                             </button>
                             <button
                               onClick={() => setViewMode('board')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'board'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
                             >
                               <ClipboardCheck className="w-4 h-4" />
                               <span>Board</span>
                             </button>
                           </div>
                         </div>
-                        
+
                         {viewMode === 'table' && (
                           <>
                             <button
@@ -843,126 +841,124 @@ export default function HSEAudits({ user }) {
                                 <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                               </div>
                             </button>
-                            
+
                             {/* Column Visibility Panel */}
                             {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
-                            {/* Default Columns Section */}
-                            <div className="mb-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = true);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Show all
-                                  </button>
-                                  <span className="text-gray-300">|</span>
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = false);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Hide all
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
-                              <div className="space-y-1">
-                                {DEFAULT_COLUMNS.map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                      visibleColumns[col] 
-                                        ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                        : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                    }`}
-                                  >
-                                    <span className="capitalize font-medium">{col}</span>
+                              <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
+                                {/* Default Columns Section */}
+                                <div className="mb-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
                                     <div className="flex items-center gap-2">
-                                      {visibleColumns[col] ? (
-                                        <Eye className="w-4 h-4 text-teal-600" />
-                                      ) : (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
-                                      )}
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Show all
+                                      </button>
+                                      <span className="text-gray-300">|</span>
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Hide all
+                                      </button>
                                     </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Custom Columns Section - All custom columns */}
-                            {customColumns.length > 0 && (
-                              <div className="pt-4 border-t border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
-                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                                      {customColumns.length}
-                                    </span>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = true);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Show all
-                                    </button>
-                                    <span className="text-gray-300">|</span>
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = false);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Hide all
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="text-xs text-gray-500 mb-2">
-                                  Custom columns from Forms Builder 
-                                  <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
-                                </div>
-                                <div className="space-y-1">
-                                  {customColumns.map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                        visibleColumns[col] 
-                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                  <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
+                                  <div className="space-y-1">
+                                    {DEFAULT_COLUMNS.map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
                                           : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                      }`}
-                                    >
-                                      <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                      <div className="flex items-center gap-2">
-                                        {visibleColumns[col] ? (
-                                          <Eye className="w-4 h-4 text-teal-600" />
-                                        ) : (
-                                          <EyeOff className="w-4 h-4 text-gray-400" />
-                                        )}
-                                      </div>
-                                    </button>
-                                  ))}
+                                          }`}
+                                      >
+                                        <span className="capitalize font-medium">{col}</span>
+                                        <div className="flex items-center gap-2">
+                                          {visibleColumns[col] ? (
+                                            <Eye className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {/* Custom Columns Section - All custom columns */}
+                                {customColumns.length > 0 && (
+                                  <div className="pt-4 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                          {customColumns.length}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = true);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Show all
+                                        </button>
+                                        <span className="text-gray-300">|</span>
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = false);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Hide all
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mb-2">
+                                      Custom columns from Forms Builder
+                                      <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            }`}
+                                        >
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          <div className="flex items-center gap-2">
+                                            {visibleColumns[col] ? (
+                                              <Eye className="w-4 h-4 text-teal-600" />
+                                            ) : (
+                                              <EyeOff className="w-4 h-4 text-gray-400" />
+                                            )}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
                             )}
                           </>
                         )}
@@ -972,8 +968,8 @@ export default function HSEAudits({ user }) {
                 </div>
 
                 {hasCreate && (
-                  <button 
-                    onClick={() => openModal('create')} 
+                  <button
+                    onClick={() => openModal('create')}
                     className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
                   >
                     <span>+</span>
@@ -1067,25 +1063,25 @@ export default function HSEAudits({ user }) {
 
             {/* Old Filter Row - Keep for backward compatibility */}
             <div className="hidden">
-              <select 
-                value={filterPriority} 
-                onChange={(e)=>setFilterPriority(e.target.value)} 
+              <select
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
                 className="bg-gray-100 border border-gray-200 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
-                      <option value="All">All Priority</option>
-                      {priorities.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-              <select 
-                value={filterStatus} 
-                onChange={(e)=>setFilterStatus(e.target.value)} 
+                <option value="All">All Priority</option>
+                {priorities.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
                 className="bg-gray-100 border border-gray-200 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
-                      <option value="All">All Status</option>
-                      <option>Open</option>
-                      <option>Pending</option>
-                      <option>Completed</option>
-                      <option>Overdue</option>
-                    </select>
+                <option value="All">All Status</option>
+                <option>Open</option>
+                <option>Pending</option>
+                <option>Completed</option>
+                <option>Overdue</option>
+              </select>
               <select className="bg-gray-100 border border-gray-200 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
                 <option>All Properties</option>
                 {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -1096,172 +1092,172 @@ export default function HSEAudits({ user }) {
           {/* Data Display - Table or Board View */}
           {viewMode === 'table' ? (
             <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  {visibleColumns.checkbox && (
-                    <th className="text-left py-3 px-4">
-                      <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                    </th>
-                  )}
-                  {visibleColumns.type && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">CATEGORY</th>
-                  )}
-                  {visibleColumns.reference && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
-                  )}
-                  {visibleColumns.description && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
-                  )}
-                  {visibleColumns.priority && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
-                  )}
-                  {visibleColumns.status && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
-                  )}
-                  {visibleColumns.assigned && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
-                  )}
-                  {visibleColumns.date && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
-                  )}
-                  {/* Custom columns */}
-                  {customColumns.filter(col => visibleColumns[col]).map(col => (
-                    <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-purple-600 uppercase tracking-wider">
-                      {col.replace(/_/g, ' ')}
-                    </th>
-                  ))}
-                  {visibleColumns.actions && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {loading ? (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    {visibleColumns.checkbox && (
+                      <th className="text-left py-3 px-4">
+                        <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                      </th>
+                    )}
+                    {visibleColumns.type && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">CATEGORY</th>
+                    )}
+                    {visibleColumns.reference && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
+                    )}
+                    {visibleColumns.description && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                    )}
+                    {visibleColumns.priority && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
+                    )}
+                    {visibleColumns.status && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
+                    )}
+                    {visibleColumns.assigned && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                    )}
+                    {visibleColumns.date && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
+                    )}
+                    {/* Custom columns */}
+                    {customColumns.filter(col => visibleColumns[col]).map(col => (
+                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-purple-600 uppercase tracking-wider">
+                        {col.replace(/_/g, ' ')}
+                      </th>
+                    ))}
+                    {visibleColumns.actions && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                    )}
                   </tr>
-                ) : filtered.length > 0 ? filtered.map((r, idx) => {
-                  const priorityStyle = getPriorityColor(r.priority || "Medium");
-                  const statusStyle = getStatusColor(r.status || "Open");
-                  
-                  return (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      {visibleColumns.checkbox && (
-                        <td className="py-4 px-4">
-                          <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                        </td>
-                      )}
-                      {visibleColumns.type && (
-                        <td className="py-4 px-4">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
-                            {r.category || "General"}
-                          </span>
-                        </td>
-                      )}
-                      {visibleColumns.reference && (
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700 font-medium">{r.reference || `AUD-${r.id || idx}`}</span>
-                        </td>
-                      )}
-                      {visibleColumns.description && (
-                        <td className="py-4 px-4">
-                          <div>
-                            <div 
-                              className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
-                              onClick={hasUpdate ? () => openModal('edit', r) : undefined}
-                            >
-                              {r.title || "Audit Title"}
-                            </div>
-                            <div className="text-gray-500 text-xs mt-1">
-                              {r.description || "Audit description and information."}
-                            </div>
-                            {r.property_name && <div className="text-gray-500 text-xs mt-1">Property: {r.property_name}</div>}
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.priority && (
-                        <td className="py-4 px-4">
-                           <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                            <span className={`text-sm ${priorityStyle.text}`}>{r.priority || "Medium"}</span>
-                              </div>
-                        </td>
-                      )}
-                      {visibleColumns.status && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                            <span className={`text-sm ${statusStyle.text}`}>{r.status || "Open"}</span>
-                           </div>
-                        </td>
-                      )}
-                      {visibleColumns.assigned && (
-                        <td className="py-4 px-4">
-                          {!r.assigned_to ? (
-                            <span className="text-gray-500 text-sm">Unassigned</span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-full ${getAvatarColor(r.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
-                                {getInitials(r.assigned_to)}
-                              </div>
-                              <span className="text-gray-900 text-sm">{r.assigned_to}</span>
-                            </div>
-                          )}
-                        </td>
-                      )}
-                      {visibleColumns.date && (
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700 text-sm">{formatDate(r.scheduled_date)}</span>
-                        </td>
-                      )}
-                      {/* Custom columns */}
-                      {customColumns.filter(col => visibleColumns[col]).map(col => (
-                        <td key={col} className="py-4 px-4">
-                          <span className="text-purple-700 text-sm">{r[col] || '-'}</span>
-                        </td>
-                      ))}
-                      {visibleColumns.actions && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => openModal('view', r)}
-                              className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
-                              title="View"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            {hasUpdate && (
-                              <button
-                                onClick={() => openModal('edit', r)}
-                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
-                                title="Edit"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                            )}
-                            {hasDelete && (
-                              <button
-                                onClick={() => doDelete(r.id)}
-                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
                     </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">No audits found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : filtered.length > 0 ? filtered.map((r, idx) => {
+                    const priorityStyle = getPriorityColor(r.priority || "Medium");
+                    const statusStyle = getStatusColor(r.status || "Open");
+
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                        {visibleColumns.checkbox && (
+                          <td className="py-4 px-4">
+                            <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                          </td>
+                        )}
+                        {visibleColumns.type && (
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
+                              {r.category || "General"}
+                            </span>
+                          </td>
+                        )}
+                        {visibleColumns.reference && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 font-medium">{r.reference || `AUD-${r.id || idx}`}</span>
+                          </td>
+                        )}
+                        {visibleColumns.description && (
+                          <td className="py-4 px-4">
+                            <div>
+                              <div
+                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
+                                onClick={hasUpdate ? () => openModal('edit', r) : undefined}
+                              >
+                                {r.title || "Audit Title"}
+                              </div>
+                              <div className="text-gray-500 text-xs mt-1">
+                                {r.description || "Audit description and information."}
+                              </div>
+                              {r.property_name && <div className="text-gray-500 text-xs mt-1">Property: {r.property_name}</div>}
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.priority && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
+                              <span className={`text-sm ${priorityStyle.text}`}>{r.priority || "Medium"}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.status && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
+                              <span className={`text-sm ${statusStyle.text}`}>{r.status || "Open"}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.assigned && (
+                          <td className="py-4 px-4">
+                            {!r.assigned_to ? (
+                              <span className="text-gray-500 text-sm">Unassigned</span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(r.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
+                                  {getInitials(r.assigned_to)}
+                                </div>
+                                <span className="text-gray-900 text-sm">{r.assigned_to}</span>
+                              </div>
+                            )}
+                          </td>
+                        )}
+                        {visibleColumns.date && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{formatDate(r.scheduled_date)}</span>
+                          </td>
+                        )}
+                        {/* Custom columns */}
+                        {customColumns.filter(col => visibleColumns[col]).map(col => (
+                          <td key={col} className="py-4 px-4">
+                            <span className="text-purple-700 text-sm">{r[col] || '-'}</span>
+                          </td>
+                        ))}
+                        {visibleColumns.actions && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => openModal('view', r)}
+                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                title="View"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              {hasUpdate && (
+                                <button
+                                  onClick={() => openModal('edit', r)}
+                                  className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              )}
+                              {hasDelete && (
+                                <button
+                                  onClick={() => doDelete(r.id)}
+                                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">No audits found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           ) : (
             /* Board/Kanban View */
             <div className="overflow-x-auto -mx-6 px-6">
@@ -1270,7 +1266,7 @@ export default function HSEAudits({ user }) {
                   const statusItems = filtered.filter((audit) => {
                     return (audit.status || 'Open').toLowerCase() === status.toLowerCase();
                   });
-                  
+
                   const getStatusStyle = (status) => {
                     if (status === 'Open') {
                       return {
@@ -1326,7 +1322,7 @@ export default function HSEAudits({ user }) {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                           {statusItems.length === 0 ? (
                             <div className="text-center py-8 px-4">
@@ -1336,12 +1332,12 @@ export default function HSEAudits({ user }) {
                           ) : (
                             statusItems.map((audit) => {
                               const priorityColor = getPriorityColor(audit.priority || "Medium");
-                              
+
                               return (
                                 <div
                                   key={audit.id}
                                   className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
-                                  onClick={() => {setSelected(audit); setMode('view'); setShowModal(true);}}
+                                  onClick={() => { setSelected(audit); setMode('view'); setShowModal(true); }}
                                 >
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-mono text-gray-500">{audit.reference || `AUD-${audit.id}`}</span>
@@ -1352,17 +1348,17 @@ export default function HSEAudits({ user }) {
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
                                     {audit.title}
                                   </h4>
-                                  
+
                                   {audit.description && (
                                     <p className="text-xs text-gray-500 mb-3 line-clamp-2">
                                       {audit.description}
                                     </p>
                                   )}
-                                  
+
                                   <div className="flex items-center gap-2 mb-3">
                                     {audit.category && (
                                       <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-medium">
@@ -1370,7 +1366,7 @@ export default function HSEAudits({ user }) {
                                       </span>
                                     )}
                                   </div>
-                                  
+
                                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
                                     <div className="flex items-center gap-2">
                                       {audit.assigned_to && audit.assigned_to !== 'Unassigned' ? (
@@ -1386,12 +1382,12 @@ export default function HSEAudits({ user }) {
                                         <span className="text-xs text-gray-400">Unassigned</span>
                                       )}
                                     </div>
-                                    
+
                                     <span className="text-xs text-gray-500">
                                       {formatDate(audit.scheduled_date)}
                                     </span>
                                   </div>
-                                  
+
                                   <div className="flex items-center gap-1">
                                     <button
                                       onClick={(e) => {
@@ -1408,7 +1404,7 @@ export default function HSEAudits({ user }) {
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setSelected(audit); setMode('edit'); setFormData({...audit}); setShowModal(true);
+                                          setSelected(audit); setMode('edit'); setFormData({ ...audit }); setShowModal(true);
                                         }}
                                         className="p-1.5 bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
                                         title="Edit"
@@ -1448,7 +1444,7 @@ export default function HSEAudits({ user }) {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <div className="flex items-center gap-3">
@@ -1456,17 +1452,16 @@ export default function HSEAudits({ user }) {
                   {mode === 'create' ? "New HSE Audit" : mode === 'edit' ? "Edit Audit" : "View Audit"}
                 </h3>
                 {mode === 'view' && (
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${
-                    (formData.status||'').toLowerCase() === 'open' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
-                    (formData.status||'').toLowerCase() === 'overdue' ? 'bg-red-50 text-red-600 border-red-100' :
-                    'bg-green-50 text-green-600 border-green-100'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${(formData.status || '').toLowerCase() === 'open' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                    (formData.status || '').toLowerCase() === 'overdue' ? 'bg-red-50 text-red-600 border-red-100' :
+                      'bg-green-50 text-green-600 border-green-100'
+                    }`}>
                     {formData.status}
                   </span>
                 )}
               </div>
-              <button 
-                onClick={closeModal} 
+              <button
+                onClick={closeModal}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -1479,22 +1474,22 @@ export default function HSEAudits({ user }) {
                 <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
                   <DetailField label="TITLE" value={formData.title} />
                   <DetailField label="PROPERTY" value={formData.property_name} />
-                  
+
                   <DetailField label="CATEGORY" value={formData.category} />
                   <DetailField label="PRIORITY" value={formData.priority} />
-                  
+
                   <DetailField label="REPORTED BY" value={formData.reported_by} />
                   <DetailField label="ASSIGNED TO" value={formData.assigned_to} />
-                  
+
                   <DetailField label="SCHEDULED DATE" value={formatDate(formData.scheduled_date)} />
                   <DetailField label="STATUS" value={formData.status} />
-                  
+
                   {/* Custom columns in view mode */}
                   {customColumns.map(col => (
-                    <DetailField 
-                      key={col} 
-                      label={col.replace(/_/g, ' ').toUpperCase()} 
-                      value={formData[col]} 
+                    <DetailField
+                      key={col}
+                      label={col.replace(/_/g, ' ').toUpperCase()}
+                      value={formData[col]}
                     />
                   ))}
                 </div>
@@ -1507,8 +1502,8 @@ export default function HSEAudits({ user }) {
                 </div>
 
                 <div className="flex justify-end pt-4 border-t border-gray-100">
-                  <button 
-                    onClick={closeModal} 
+                  <button
+                    onClick={closeModal}
                     className="px-5 py-2 border border-slate-200 text-slate-700 font-medium rounded hover:bg-slate-50 transition-colors"
                   >
                     Close
@@ -1520,41 +1515,41 @@ export default function HSEAudits({ user }) {
               <form onSubmit={submit} className="p-4">
                 {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-                  
+
                   {/* Row 1: Title & Description */}
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
-                    <input 
-                      required 
-                      value={formData.title} 
-                      onChange={(e)=>setFormData({...formData, title: e.target.value})} 
-                      placeholder="Brief description of task" 
+                    <input
+                      required
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="Brief description of task"
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     />
                   </div>
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
-                    <textarea 
-                      required 
-                      value={formData.description} 
-                      onChange={(e)=>setFormData({...formData, description: e.target.value})} 
+                    <textarea
+                      required
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={3}
-                      placeholder="Detailed description of the audit..." 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" 
+                      placeholder="Detailed description of the audit..."
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
                     />
                   </div>
 
                   {/* Row 2: Property & Category */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
-                    <select 
-                      required 
-                      value={formData.property_id} 
-                      onChange={(e)=>{
-                        const id=e.target.value;
-                        const h=hotels.find(h=>h.id==id);
-                        setFormData({ ...formData, property_id:id, property_name: h?.name||'', reported_by:'', assigned_to:'' });
-                      }} 
+                    <select
+                      required
+                      value={formData.property_id}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const h = hotels.find(h => h.id == id);
+                        setFormData({ ...formData, property_id: id, property_name: h?.name || '', reported_by: '', assigned_to: '' });
+                      }}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
                       <option value="">Select property</option>
@@ -1563,10 +1558,10 @@ export default function HSEAudits({ user }) {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
-                    <select 
-                      required 
-                      value={formData.category} 
-                      onChange={handleCategoryChange} 
+                    <select
+                      required
+                      value={formData.category}
+                      onChange={handleCategoryChange}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
                       <option value="">Select category</option>
@@ -1613,10 +1608,10 @@ export default function HSEAudits({ user }) {
                   {/* Row 3: Priority & Reported By */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Priority <span className="text-red-500">*</span></label>
-                    <select 
-                      required 
-                      value={formData.priority} 
-                      onChange={(e)=>setFormData({...formData, priority: e.target.value})} 
+                    <select
+                      required
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
                       {priorities.map(p => <option key={p} value={p}>{p}</option>)}
@@ -1627,7 +1622,7 @@ export default function HSEAudits({ user }) {
                     <select
                       required
                       value={formData.reported_by || ''}
-                      onChange={(e)=>setFormData({...formData, reported_by: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, reported_by: e.target.value })}
                       disabled={!formData.property_id || staffLoading}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
@@ -1635,8 +1630,8 @@ export default function HSEAudits({ user }) {
                         {!formData.property_id
                           ? "Select property first"
                           : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
+                            ? "Loading staff..."
+                            : "Select staff"}
                       </option>
                       {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
                         <option value={formData.reported_by}>{formData.reported_by}</option>
@@ -1652,7 +1647,7 @@ export default function HSEAudits({ user }) {
                     <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
                     <select
                       value={formData.assigned_to || ''}
-                      onChange={(e)=>setFormData({...formData, assigned_to: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
                       disabled={!formData.property_id || staffLoading}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
@@ -1660,8 +1655,8 @@ export default function HSEAudits({ user }) {
                         {!formData.property_id
                           ? "Select property first"
                           : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
+                            ? "Loading staff..."
+                            : "Select staff"}
                       </option>
                       {!!formData.assigned_to && !staffUsers.some((u) => String(u.name) === String(formData.assigned_to)) && (
                         <option value={formData.assigned_to}>{formData.assigned_to}</option>
@@ -1673,11 +1668,11 @@ export default function HSEAudits({ user }) {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
-                    <input 
-                      type="date" 
-                      value={formatDateISO(formData.scheduled_date)} 
-                      onChange={(e)=>setFormData({...formData, scheduled_date: e.target.value})} 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                    <input
+                      type="date"
+                      value={formatDateISO(formData.scheduled_date)}
+                      onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                     />
                   </div>
 
@@ -1687,12 +1682,12 @@ export default function HSEAudits({ user }) {
                       <label className="block text-xs font-medium text-purple-600 mb-1">
                         {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </label>
-                      <input 
-                        type="text" 
-                        value={formData[col] || ''} 
-                        onChange={(e) => setFormData({ ...formData, [col]: e.target.value })} 
+                      <input
+                        type="text"
+                        value={formData[col] || ''}
+                        onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
                         placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                        className="w-full border border-purple-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" 
+                        className="w-full border border-purple-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                       />
                     </div>
                   ))}
@@ -1701,9 +1696,9 @@ export default function HSEAudits({ user }) {
                   {mode !== 'create' && (
                     <div className="col-span-1">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                      <select 
-                        value={formData.status} 
-                        onChange={(e)=>setFormData({...formData, status: e.target.value})} 
+                      <select
+                        value={formData.status}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                         className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                       >
                         <option>Open</option>
@@ -1716,15 +1711,15 @@ export default function HSEAudits({ user }) {
 
                 {/* Footer Buttons */}
                 <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
-                  <button 
-                    type="button" 
-                    onClick={closeModal} 
+                  <button
+                    type="button"
+                    onClick={closeModal}
                     className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={submitting}
                     className="px-4 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 font-medium shadow-sm transition-colors text-sm"
                   >

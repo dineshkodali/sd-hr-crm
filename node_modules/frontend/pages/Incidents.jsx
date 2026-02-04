@@ -1063,8 +1063,8 @@ export default function Incidents({ user }) {
                             <button
                               onClick={() => setViewMode('table')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <Columns className="w-4 h-4" />
@@ -1073,8 +1073,8 @@ export default function Incidents({ user }) {
                             <button
                               onClick={() => setViewMode('board')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <ClipboardList className="w-4 h-4" />
@@ -1097,126 +1097,124 @@ export default function Incidents({ user }) {
                                 <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                               </div>
                             </button>
-                            
+
                             {/* Column Visibility Panel */}
                             {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
-                            {/* Default Columns Section */}
-                            <div className="mb-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = true);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Show all
-                                  </button>
-                                  <span className="text-gray-300">|</span>
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = false);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Hide all
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
-                              <div className="space-y-1">
-                                {DEFAULT_COLUMNS.map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                      visibleColumns[col] 
-                                        ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                        : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                    }`}
-                                  >
-                                    <span className="capitalize font-medium">{col}</span>
+                              <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
+                                {/* Default Columns Section */}
+                                <div className="mb-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
                                     <div className="flex items-center gap-2">
-                                      {visibleColumns[col] ? (
-                                        <Eye className="w-4 h-4 text-teal-600" />
-                                      ) : (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
-                                      )}
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Show all
+                                      </button>
+                                      <span className="text-gray-300">|</span>
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Hide all
+                                      </button>
                                     </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Custom Columns Section - All custom columns */}
-                            {customColumns.length > 0 && (
-                              <div className="pt-4 border-t border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
-                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                                      {customColumns.length}
-                                    </span>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = true);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Show all
-                                    </button>
-                                    <span className="text-gray-300">|</span>
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = false);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Hide all
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="text-xs text-gray-500 mb-2">
-                                  Custom columns from Forms Builder 
-                                  <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
-                                </div>
-                                <div className="space-y-1">
-                                  {customColumns.map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                        visibleColumns[col] 
-                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                  <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
+                                  <div className="space-y-1">
+                                    {DEFAULT_COLUMNS.map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
                                           : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                      }`}
-                                    >
-                                      <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                      <div className="flex items-center gap-2">
-                                        {visibleColumns[col] ? (
-                                          <Eye className="w-4 h-4 text-teal-600" />
-                                        ) : (
-                                          <EyeOff className="w-4 h-4 text-gray-400" />
-                                        )}
-                                      </div>
-                                    </button>
-                                  ))}
+                                          }`}
+                                      >
+                                        <span className="capitalize font-medium">{col}</span>
+                                        <div className="flex items-center gap-2">
+                                          {visibleColumns[col] ? (
+                                            <Eye className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {/* Custom Columns Section - All custom columns */}
+                                {customColumns.length > 0 && (
+                                  <div className="pt-4 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                          {customColumns.length}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = true);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Show all
+                                        </button>
+                                        <span className="text-gray-300">|</span>
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = false);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Hide all
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mb-2">
+                                      Custom columns from Forms Builder
+                                      <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            }`}
+                                        >
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          <div className="flex items-center gap-2">
+                                            {visibleColumns[col] ? (
+                                              <Eye className="w-4 h-4 text-teal-600" />
+                                            ) : (
+                                              <EyeOff className="w-4 h-4 text-gray-400" />
+                                            )}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
                             )}
                           </>
                         )}
@@ -1656,11 +1654,11 @@ export default function Incidents({ user }) {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative my-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative my-4 flex flex-col max-h-[90vh]">
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <div className="shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingId ? "Edit Incident" : "Report Incident"}
               </h3>
@@ -1677,216 +1675,216 @@ export default function Incidents({ user }) {
             </div>
 
             {/* Modal Form Content */}
-            <form onSubmit={handleSubmit} className="p-4 flex flex-col">
+            <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
               {/* Error Message Display */}
               {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="mb-4 mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
                   <p className="text-sm text-red-700">{error}</p>
                 </div>
               )}
-              <div className="max-h-[70vh] overflow-y-auto pr-1">
+              <div className="flex-1 overflow-y-auto max-h-[72vh] p-4 custom-scrollbar">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-                {/* Form fields same as original */}
-                <div className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Incident Type <span className="text-red-500">*</span></label>
-                  <select
-                    name="incidentType"
-                    required
-                    value={formData.incidentType}
-                    onChange={handleIncidentTypeChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                  >
-                    <option value="">Select type</option>
-                    {[...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                    {!!formData.incidentType &&
-                      ![...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].some((t) => String(t) === String(formData.incidentType)) && (
-                        <option value={formData.incidentType}>{formData.incidentType}</option>
-                      )}
-                    <option value="__add_new__">+ Add new...</option>
-                  </select>
-                  {showCustomIncidentTypeInput && (
-                    <div className="mt-2 flex gap-2">
+                  {/* Form fields same as original */}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Incident Type <span className="text-red-500">*</span></label>
+                    <select
+                      name="incidentType"
+                      required
+                      value={formData.incidentType}
+                      onChange={handleIncidentTypeChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                    >
+                      <option value="">Select type</option>
+                      {[...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                      {!!formData.incidentType &&
+                        ![...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].some((t) => String(t) === String(formData.incidentType)) && (
+                          <option value={formData.incidentType}>{formData.incidentType}</option>
+                        )}
+                      <option value="__add_new__">+ Add new...</option>
+                    </select>
+                    {showCustomIncidentTypeInput && (
+                      <div className="mt-2 flex gap-2">
+                        <input
+                          type="text"
+                          value={customIncidentTypeValue}
+                          onChange={(e) => setCustomIncidentTypeValue(e.target.value)}
+                          placeholder="Enter new incident type"
+                          className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={saveCustomIncidentType}
+                          className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCustomIncidentTypeInput(false);
+                            setCustomIncidentTypeValue('');
+                          }}
+                          className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {/* Render dynamic custom columns as input fields */}
+                  {customColumns && customColumns.length > 0 && customColumns.map(col => (
+                    <div className="col-span-1" key={col}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{col.replace(/_/g, ' ').toUpperCase()}</label>
                       <input
-                        type="text"
-                        value={customIncidentTypeValue}
-                        onChange={(e) => setCustomIncidentTypeValue(e.target.value)}
-                        placeholder="Enter new incident type"
-                        className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        name={col}
+                        value={formData[col] || ''}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                       />
-                      <button
-                        type="button"
-                        onClick={saveCustomIncidentType}
-                        className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium"
-                      >
-                        Add
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowCustomIncidentTypeInput(false);
-                          setCustomIncidentTypeValue('');
-                        }}
-                        className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium"
-                      >
-                        Cancel
-                      </button>
                     </div>
-                  )}
-                </div>
-                {/* Render dynamic custom columns as input fields */}
-                {customColumns && customColumns.length > 0 && customColumns.map(col => (
-                  <div className="col-span-1" key={col}>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">{col.replace(/_/g, ' ').toUpperCase()}</label>
+                  ))}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Severity <span className="text-red-500">*</span></label>
+                    <select
+                      name="severity"
+                      required
+                      value={formData.severity}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Urgent">Urgent</option>
+                    </select>
+                  </div>
+
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
+                    <select
+                      name="propertyId"
+                      required
+                      value={formData.propertyId}
+                      onChange={handlePropertyChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                    >
+                      <option value="">Select property</option>
+                      {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    </select>
+                    {hotelsLoading && <div className="text-xs text-gray-400 mt-0.5">Loading hotels...</div>}
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Service User</label>
+                    <select
+                      name="serviceUserId"
+                      value={formData.serviceUserId}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                    >
+                      <option value="">Select service user</option>
+                      {serviceUsers.map((s) => <option key={s.id} value={s.id}>{s.first_name}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="col-span-1 md:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
+                    <textarea
+                      name="description"
+                      required
+                      rows={3}
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      placeholder="Detailed description of the incident..."
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                    />
+                  </div>
+
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
+                    <select
+                      name="reportedBy"
+                      required
+                      value={formData.reportedBy}
+                      onChange={handleInputChange}
+                      disabled={!formData.propertyId || staffLoading}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.propertyId
+                          ? "Select property first"
+                          : staffLoading
+                            ? "Loading staff..."
+                            : "Select staff"}
+                      </option>
+                      {!!formData.reportedBy && !staffUsers.some((u) => String(u.name) === String(formData.reportedBy)) && (
+                        <option value={formData.reportedBy}>{formData.reportedBy}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Reported Date <span className="text-red-500">*</span></label>
                     <input
-                      name={col}
-                      value={formData[col] || ''}
+                      type="date"
+                      name="reportedDate"
+                      required
+                      value={formatDateISO(formData.reportedDate)}
                       onChange={handleInputChange}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                     />
                   </div>
-                ))}
-                <div className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Severity <span className="text-red-500">*</span></label>
-                  <select
-                    name="severity"
-                    required
-                    value={formData.severity}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                  </select>
-                </div>
 
-                <div className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
-                  <select
-                    name="propertyId"
-                    required
-                    value={formData.propertyId}
-                    onChange={handlePropertyChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                  >
-                    <option value="">Select property</option>
-                    {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-                  </select>
-                  {hotelsLoading && <div className="text-xs text-gray-400 mt-0.5">Loading hotels...</div>}
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Service User</label>
-                  <select
-                    name="serviceUserId"
-                    value={formData.serviceUserId}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                  >
-                    <option value="">Select service user</option>
-                    {serviceUsers.map((s) => <option key={s.id} value={s.id}>{s.first_name}</option>)}
-                  </select>
-                </div>
-
-                <div className="col-span-1 md:col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
-                  <textarea
-                    name="description"
-                    required
-                    rows={3}
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Detailed description of the incident..."
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
-                  />
-                </div>
-
-                <div className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                  <select
-                    name="reportedBy"
-                    required
-                    value={formData.reportedBy}
-                    onChange={handleInputChange}
-                    disabled={!formData.propertyId || staffLoading}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  >
-                    <option value="">
-                      {!formData.propertyId
-                        ? "Select property first"
-                        : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
-                    </option>
-                    {!!formData.reportedBy && !staffUsers.some((u) => String(u.name) === String(formData.reportedBy)) && (
-                      <option value={formData.reportedBy}>{formData.reportedBy}</option>
-                    )}
-                    {staffUsers.map((u) => (
-                      <option key={u.id} value={u.name}>
-                        {u.name}
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                    <select
+                      name="assignedTo"
+                      value={formData.assignedTo}
+                      onChange={handleInputChange}
+                      disabled={!formData.propertyId || staffLoading}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!formData.propertyId
+                          ? "Select property first"
+                          : staffLoading
+                            ? "Loading staff..."
+                            : "Select staff"}
                       </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Reported Date <span className="text-red-500">*</span></label>
-                  <input
-                    type="date"
-                    name="reportedDate"
-                    required
-                    value={formatDateISO(formData.reportedDate)}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  />
-                </div>
-
-                <div className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                  <select
-                    name="assignedTo"
-                    value={formData.assignedTo}
-                    onChange={handleInputChange}
-                    disabled={!formData.propertyId || staffLoading}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  >
-                    <option value="">
-                      {!formData.propertyId
-                        ? "Select property first"
-                        : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
-                    </option>
-                    {!!formData.assignedTo && !staffUsers.some((u) => String(u.name) === String(formData.assignedTo)) && (
-                      <option value={formData.assignedTo}>{formData.assignedTo}</option>
-                    )}
-                    {staffUsers.map((u) => (
-                      <option key={u.id} value={u.name}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Status <span className="text-red-500">*</span></label>
-                  <select
-                    name="status"
-                    required
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                  >
-                    <option value="Open">Open</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
-                  </select>
-                </div>
+                      {!!formData.assignedTo && !staffUsers.some((u) => String(u.name) === String(formData.assignedTo)) && (
+                        <option value={formData.assignedTo}>{formData.assignedTo}</option>
+                      )}
+                      {staffUsers.map((u) => (
+                        <option key={u.id} value={u.name}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Status <span className="text-red-500">*</span></label>
+                    <select
+                      name="status"
+                      required
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                    >
+                      <option value="Open">Open</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               {/* Footer Buttons */}
-              <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
+              <div className="shrink-0 flex justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
                 <button
                   type="button"
                   onClick={() => {

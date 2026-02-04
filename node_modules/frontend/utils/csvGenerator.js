@@ -22,14 +22,14 @@ function formatDateForCSV(dateString) {
  */
 function escapeCSVField(field) {
   if (field === null || field === undefined) return '';
-  
+
   const str = String(field);
-  
+
   // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
-  
+
   return str;
 }
 
@@ -41,53 +41,65 @@ function escapeCSVField(field) {
  */
 export function generateCSV(data, columns, filename = 'download') {
   try {
-    
+
     if (!data || !Array.isArray(data)) {
       console.error('Invalid data provided to generateCSV:', data);
       alert('No data available to export');
       return;
     }
-    
+
     if (!columns || !Array.isArray(columns) || columns.length === 0) {
       console.error('Invalid columns provided to generateCSV:', columns);
       alert('Invalid CSV configuration');
       return;
     }
-    
+
     if (data.length === 0) {
       alert('No data to export');
       return;
     }
-    
+
+    // Normalize columns
+    const normalizedColumns = columns.map(col => {
+      if (typeof col === 'string') {
+        // Create readable header from snake_case key
+        const header = col.split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        return { header, key: col };
+      }
+      return col;
+    });
+
     // Create header row
-    const headers = columns.map(col => escapeCSVField(col.header));
+    const headers = normalizedColumns.map(col => escapeCSVField(col.header));
     const csvRows = [headers.join(',')];
-    
+
     // Create data rows
     data.forEach(row => {
-      const values = columns.map(col => {
+      const values = normalizedColumns.map(col => {
         const value = row[col.key];
         return escapeCSVField(value);
       });
       csvRows.push(values.join(','));
     });
-    
+
     // Combine all rows
     const csvContent = csvRows.join('\n');
-    
+
     // Create blob and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `${filename}.csv`);
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
   } catch (error) {
     console.error('Error generating CSV:', error);
     alert('Failed to generate CSV. Please try again.');

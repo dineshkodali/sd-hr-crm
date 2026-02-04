@@ -843,126 +843,124 @@ export default function HSEIncidents({ user }) {
                                 <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                               </div>
                             </button>
-                            
+
                             {/* Column Visibility Panel */}
                             {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
-                            {/* Default Columns Section */}
-                            <div className="mb-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = true);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Show all
-                                  </button>
-                                  <span className="text-gray-300">|</span>
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = false);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Hide all
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
-                              <div className="space-y-1">
-                                {DEFAULT_COLUMNS.map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                      visibleColumns[col] 
-                                        ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                        : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                    }`}
-                                  >
-                                    <span className="capitalize font-medium">{col}</span>
+                              <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
+                                {/* Default Columns Section */}
+                                <div className="mb-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
                                     <div className="flex items-center gap-2">
-                                      {visibleColumns[col] ? (
-                                        <Eye className="w-4 h-4 text-teal-600" />
-                                      ) : (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
-                                      )}
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Show all
+                                      </button>
+                                      <span className="text-gray-300">|</span>
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Hide all
+                                      </button>
                                     </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Custom Columns Section - All custom columns */}
-                            {customColumns.length > 0 && (
-                              <div className="pt-4 border-t border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
-                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                                      {customColumns.length}
-                                    </span>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = true);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Show all
-                                    </button>
-                                    <span className="text-gray-300">|</span>
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = false);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Hide all
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="text-xs text-gray-500 mb-2">
-                                  Custom columns from Forms Builder 
-                                  <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
-                                </div>
-                                <div className="space-y-1">
-                                  {customColumns.map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                        visibleColumns[col] 
-                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                  <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
+                                  <div className="space-y-1">
+                                    {DEFAULT_COLUMNS.map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
                                           : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                      }`}
-                                    >
-                                      <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                      <div className="flex items-center gap-2">
-                                        {visibleColumns[col] ? (
-                                          <Eye className="w-4 h-4 text-teal-600" />
-                                        ) : (
-                                          <EyeOff className="w-4 h-4 text-gray-400" />
-                                        )}
-                                      </div>
-                                    </button>
-                                  ))}
+                                          }`}
+                                      >
+                                        <span className="capitalize font-medium">{col}</span>
+                                        <div className="flex items-center gap-2">
+                                          {visibleColumns[col] ? (
+                                            <Eye className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {/* Custom Columns Section - All custom columns */}
+                                {customColumns.length > 0 && (
+                                  <div className="pt-4 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                          {customColumns.length}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = true);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Show all
+                                        </button>
+                                        <span className="text-gray-300">|</span>
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = false);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Hide all
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mb-2">
+                                      Custom columns from Forms Builder
+                                      <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            }`}
+                                        >
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          <div className="flex items-center gap-2">
+                                            {visibleColumns[col] ? (
+                                              <Eye className="w-4 h-4 text-teal-600" />
+                                            ) : (
+                                              <EyeOff className="w-4 h-4 text-gray-400" />
+                                            )}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
                             )}
                           </>
                         )}
@@ -1511,184 +1509,184 @@ export default function HSEIncidents({ user }) {
                 <div className="max-h-[70vh] overflow-y-auto pr-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
 
-                  {/* Row 1: Incident Type & Severity */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Incident Type <span className="text-red-500">*</span></label>
-                    <select
-                      required
-                      value={formData.incident_type}
-                      onChange={handleIncidentTypeChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                    >
-                      <option value="">Select type...</option>
-                      {[...incidentTypes, ...customIncidentTypes].map(t => <option key={t} value={t}>{t}</option>)}
-                      {!!formData.incident_type &&
-                        ![...incidentTypes, ...customIncidentTypes].some((t) => String(t) === String(formData.incident_type)) && (
-                          <option value={formData.incident_type}>{formData.incident_type}</option>
-                        )}
-                      <option value="__add_new__">+ Add new...</option>
-                    </select>
-                    {showCustomIncidentTypeInput && (
-                      <div className="mt-2 flex gap-2">
-                        <input
-                          type="text"
-                          value={customIncidentTypeValue}
-                          onChange={(e) => setCustomIncidentTypeValue(e.target.value)}
-                          placeholder="Enter new incident type"
-                          className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={saveCustomIncidentType}
-                          className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium"
-                        >
-                          Add
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowCustomIncidentTypeInput(false);
-                            setCustomIncidentTypeValue('');
-                          }}
-                          className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Severity Level <span className="text-red-500">*</span></label>
-                    <select
-                      value={formData.severity}
-                      onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                    >
-                      {severities.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Row 2: Property Location & Incident Date */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Property Location <span className="text-red-500">*</span></label>
-                    <select
-                      required
-                      value={formData.property_id}
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        const h = hotels.find(h => h.id == id);
-                        setFormData({ ...formData, property_id: id, property_name: h?.name || '', reported_by: '', assigned_investigator: '' });
-                      }}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                    >
-                      <option value="">Select property...</option>
-                      {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Incident Date</label>
-                    <input
-                      type="date"
-                      value={formatDateISO(formData.incident_date)}
-                      onChange={(e) => setFormData({ ...formData, incident_date: e.target.value })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                    />
-                  </div>
-
-                  {/* Row 3: Reported By & Assigned To */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                    <select
-                      required
-                      value={formData.reported_by || ''}
-                      onChange={(e) => setFormData({ ...formData, reported_by: e.target.value })}
-                      disabled={!formData.property_id || staffLoading}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="">
-                        {!formData.property_id
-                          ? "Select property first"
-                          : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
-                      </option>
-                      {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
-                        <option value={formData.reported_by}>{formData.reported_by}</option>
+                    {/* Row 1: Incident Type & Severity */}
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Incident Type <span className="text-red-500">*</span></label>
+                      <select
+                        required
+                        value={formData.incident_type}
+                        onChange={handleIncidentTypeChange}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      >
+                        <option value="">Select type...</option>
+                        {[...incidentTypes, ...customIncidentTypes].map(t => <option key={t} value={t}>{t}</option>)}
+                        {!!formData.incident_type &&
+                          ![...incidentTypes, ...customIncidentTypes].some((t) => String(t) === String(formData.incident_type)) && (
+                            <option value={formData.incident_type}>{formData.incident_type}</option>
+                          )}
+                        <option value="__add_new__">+ Add new...</option>
+                      </select>
+                      {showCustomIncidentTypeInput && (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            type="text"
+                            value={customIncidentTypeValue}
+                            onChange={(e) => setCustomIncidentTypeValue(e.target.value)}
+                            placeholder="Enter new incident type"
+                            className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={saveCustomIncidentType}
+                            className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium"
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowCustomIncidentTypeInput(false);
+                              setCustomIncidentTypeValue('');
+                            }}
+                            className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       )}
-                      {staffUsers.map((u) => (
-                        <option key={u.id} value={u.name}>{u.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                    <select
-                      value={formData.assigned_investigator || ''}
-                      onChange={(e) => setFormData({ ...formData, assigned_investigator: e.target.value })}
-                      disabled={!formData.property_id || staffLoading}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="">
-                        {!formData.property_id
-                          ? "Select property first"
-                          : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
-                      </option>
-                      {!!formData.assigned_investigator && !staffUsers.some((u) => String(u.name) === String(formData.assigned_investigator)) && (
-                        <option value={formData.assigned_investigator}>{formData.assigned_investigator}</option>
-                      )}
-                      {staffUsers.map((u) => (
-                        <option key={u.id} value={u.name}>{u.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Severity Level <span className="text-red-500">*</span></label>
+                      <select
+                        value={formData.severity}
+                        onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      >
+                        {severities.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
 
-                  {/* Row 4: Incident Details (Full Width) */}
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Incident Details <span className="text-red-500">*</span></label>
-                    <textarea
-                      required
-                      value={formData.details}
-                      onChange={(e) => setFormData({ ...formData, details: e.target.value })}
-                      rows={3}
-                      placeholder="Describe exactly what happened..."
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
-                    />
-                  </div>
-
-                  {/* Row 5: Status */}
-                  {mode !== 'create' && (
-                    <>
-                      <div className="col-span-1">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                        <select
-                          value={formData.status}
-                          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                        >
-                          <option>Open</option>
-                          <option>Investigating</option>
-                          <option>Closed</option>
-                        </select>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Custom Columns from Forms Builder */}
-                  {displayCustomColumns.map(col => (
-                    <div key={col} className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        {col.replace(/_/g, ' ')}
-                      </label>
+                    {/* Row 2: Property Location & Incident Date */}
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Property Location <span className="text-red-500">*</span></label>
+                      <select
+                        required
+                        value={formData.property_id}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          const h = hotels.find(h => h.id == id);
+                          setFormData({ ...formData, property_id: id, property_name: h?.name || '', reported_by: '', assigned_investigator: '' });
+                        }}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      >
+                        <option value="">Select property...</option>
+                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Incident Date</label>
                       <input
-                        type="text"
+                        type="date"
+                        value={formatDateISO(formData.incident_date)}
+                        onChange={(e) => setFormData({ ...formData, incident_date: e.target.value })}
                         className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                        value={formData[col] || ''}
-                        onChange={e => setFormData({ ...formData, [col]: e.target.value })}
                       />
                     </div>
-                  ))}
+
+                    {/* Row 3: Reported By & Assigned To */}
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
+                      <select
+                        required
+                        value={formData.reported_by || ''}
+                        onChange={(e) => setFormData({ ...formData, reported_by: e.target.value })}
+                        disabled={!formData.property_id || staffLoading}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        <option value="">
+                          {!formData.property_id
+                            ? "Select property first"
+                            : staffLoading
+                              ? "Loading staff..."
+                              : "Select staff"}
+                        </option>
+                        {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
+                          <option value={formData.reported_by}>{formData.reported_by}</option>
+                        )}
+                        {staffUsers.map((u) => (
+                          <option key={u.id} value={u.name}>{u.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                      <select
+                        value={formData.assigned_investigator || ''}
+                        onChange={(e) => setFormData({ ...formData, assigned_investigator: e.target.value })}
+                        disabled={!formData.property_id || staffLoading}
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        <option value="">
+                          {!formData.property_id
+                            ? "Select property first"
+                            : staffLoading
+                              ? "Loading staff..."
+                              : "Select staff"}
+                        </option>
+                        {!!formData.assigned_investigator && !staffUsers.some((u) => String(u.name) === String(formData.assigned_investigator)) && (
+                          <option value={formData.assigned_investigator}>{formData.assigned_investigator}</option>
+                        )}
+                        {staffUsers.map((u) => (
+                          <option key={u.id} value={u.name}>{u.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Row 4: Incident Details (Full Width) */}
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Incident Details <span className="text-red-500">*</span></label>
+                      <textarea
+                        required
+                        value={formData.details}
+                        onChange={(e) => setFormData({ ...formData, details: e.target.value })}
+                        rows={3}
+                        placeholder="Describe exactly what happened..."
+                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                      />
+                    </div>
+
+                    {/* Row 5: Status */}
+                    {mode !== 'create' && (
+                      <>
+                        <div className="col-span-1">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                          <select
+                            value={formData.status}
+                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                          >
+                            <option>Open</option>
+                            <option>Investigating</option>
+                            <option>Closed</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Custom Columns from Forms Builder */}
+                    {displayCustomColumns.map(col => (
+                      <div key={col} className="col-span-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {col.replace(/_/g, ' ')}
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          value={formData[col] || ''}
+                          onChange={e => setFormData({ ...formData, [col]: e.target.value })}
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
 

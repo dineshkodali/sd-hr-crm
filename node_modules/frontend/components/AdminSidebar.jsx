@@ -329,6 +329,7 @@ export default function AdminSidebar(props) {
       label: "Access",
       items: [
         { path: "/admin/access", label: "User Access Control", icon: <Icons.ShieldCheck /> },
+        { path: "/admin/reports", label: "Reports", icon: <Icons.Chart /> },
       ]
     }] : []),
     {

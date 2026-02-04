@@ -425,7 +425,7 @@ export default function App() {
         <div className="flex flex-col h-screen overflow-hidden bg-[#f8f9fa]">
 
           {/* TOP NAVIGATION: Fixed Height, non-scrolling */}
-          <div className="shrink-0 z-50">
+          <div className="shrink-0 z-50 top-navbar">
             <NavbarSafe user={user} setUser={setUser} />
           </div>
 

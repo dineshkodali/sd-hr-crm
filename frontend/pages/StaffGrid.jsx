@@ -376,14 +376,14 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
         params: { limit: 1000 }, // Get all users to extract branches
         withCredentials: true
       });
-      
+
       const allUsers = res.data.users || [];
       const uniqueBranches = [...new Set(
         allUsers
           .map(user => user.branch)
           .filter(branch => branch && branch.trim() !== '')
       )].sort();
-      
+
       setBranches(uniqueBranches);
     } catch (err) {
       console.error('Failed to fetch branches:', err);
@@ -394,8 +394,14 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
   // Fetch branches when modal opens
   React.useEffect(() => {
     if (open) {
+      document.body.classList.add("form-modal-open");
       fetchBranches();
+    } else {
+      document.body.classList.remove("form-modal-open");
     }
+    return () => {
+      document.body.classList.remove("form-modal-open");
+    };
   }, [open]);
 
   const handleChange = (e) => {
@@ -505,7 +511,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all">
       {/* Backdrop */}
       <div
         className="absolute inset-0"
@@ -513,10 +519,10 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className="relative bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col h-[72vh]">
 
         {/* Header */}
-        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100 shrink-0">
           <div>
             <h3 className="text-lg font-bold text-slate-800">Add Employee</h3>
             <p className="text-sm text-gray-500 mt-0.5">
@@ -535,14 +541,14 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
 
         {/* Error Message */}
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg shrink-0">
             <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
-          <div className="px-6 py-6 max-h-[calc(100vh-300px)] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="px-6 py-6 overflow-y-auto flex-1 custom-scrollbar">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
 
               {/* Name */}
@@ -637,15 +643,15 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                                focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
                     placeholder="Select existing branch or type new one"
                   />
-                  <ChevronDown 
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" 
+                  <ChevronDown
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
                   />
-                  
+
                   {/* Branch Dropdown */}
                   {showBranchDropdown && branches.length > 0 && (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                       {branches
-                        .filter(branch => 
+                        .filter(branch =>
                           branch.toLowerCase().includes(formData.branch.toLowerCase())
                         )
                         .map((branch, index) => (
@@ -663,17 +669,17 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                           </button>
                         ))
                       }
-                      
+
                       {/* Show "Create new branch" option when typing */}
-                      {formData.branch && 
-                       !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
-                        <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
-                          <div className="flex items-center gap-2">
-                            <UserPlus className="w-4 h-4 text-teal-500" />
-                            <span>Create new branch: <strong className="text-teal-600">"{formData.branch}"</strong></span>
+                      {formData.branch &&
+                        !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
+                          <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
+                            <div className="flex items-center gap-2">
+                              <UserPlus className="w-4 h-4 text-teal-500" />
+                              <span>Create new branch: <strong className="text-teal-600">"{formData.branch}"</strong></span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   )}
                 </div>
@@ -853,14 +859,14 @@ function EditEmployeeModal({ open, onClose, employee, onSuccess }) {
         params: { limit: 1000 }, // Get all users to extract branches
         withCredentials: true
       });
-      
+
       const allUsers = res.data.users || [];
       const uniqueBranches = [...new Set(
         allUsers
           .map(user => user.branch)
           .filter(branch => branch && branch.trim() !== '')
       )].sort();
-      
+
       setBranches(uniqueBranches);
     } catch (err) {
       console.error('Failed to fetch branches:', err);
@@ -1069,10 +1075,10 @@ function EditEmployeeModal({ open, onClose, employee, onSuccess }) {
                                focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
                     placeholder="Select existing branch or type new one"
                   />
-                  <ChevronDown 
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" 
+                  <ChevronDown
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
                   />
-                  
+
                   {/* Branch Dropdown */}
                   {showBranchDropdown && branches.length > 0 && (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -1100,18 +1106,18 @@ function EditEmployeeModal({ open, onClose, employee, onSuccess }) {
                           </button>
                         ))
                       }
-                      
+
                       {/* Show "Create new branch" option when typing */}
-                      {formData.branch && 
-                       formData.branch !== originalBranchValue &&
-                       !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
-                        <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
-                          <div className="flex items-center gap-2">
-                            <UserPlus className="w-4 h-4 text-teal-500" />
-                            <span>Create new branch: <strong className="text-teal-600">"{formData.branch}"</strong></span>
+                      {formData.branch &&
+                        formData.branch !== originalBranchValue &&
+                        !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
+                          <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
+                            <div className="flex items-center gap-2">
+                              <UserPlus className="w-4 h-4 text-teal-500" />
+                              <span>Create new branch: <strong className="text-teal-600">"{formData.branch}"</strong></span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   )}
                 </div>

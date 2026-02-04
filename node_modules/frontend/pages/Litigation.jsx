@@ -657,8 +657,8 @@ export default function Litigation({ user }) {
                             <button
                               onClick={() => setViewMode('table')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <Columns className="w-4 h-4" />
@@ -667,8 +667,8 @@ export default function Litigation({ user }) {
                             <button
                               onClick={() => setViewMode('board')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <Gavel className="w-4 h-4" />
@@ -691,126 +691,124 @@ export default function Litigation({ user }) {
                                 <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                               </div>
                             </button>
-                            
+
                             {/* Column Visibility Panel */}
                             {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
-                            {/* Default Columns Section */}
-                            <div className="mb-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = true);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Show all
-                                  </button>
-                                  <span className="text-gray-300">|</span>
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = false);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Hide all
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
-                              <div className="space-y-1">
-                                {DEFAULT_COLUMNS.map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                      visibleColumns[col] 
-                                        ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                        : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                    }`}
-                                  >
-                                    <span className="capitalize font-medium">{col}</span>
+                              <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
+                                {/* Default Columns Section */}
+                                <div className="mb-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
                                     <div className="flex items-center gap-2">
-                                      {visibleColumns[col] ? (
-                                        <Eye className="w-4 h-4 text-teal-600" />
-                                      ) : (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
-                                      )}
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Show all
+                                      </button>
+                                      <span className="text-gray-300">|</span>
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Hide all
+                                      </button>
                                     </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Custom Columns Section - All custom columns */}
-                            {customColumns.length > 0 && (
-                              <div className="pt-4 border-t border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
-                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                                      {customColumns.length}
-                                    </span>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = true);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Show all
-                                    </button>
-                                    <span className="text-gray-300">|</span>
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = false);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Hide all
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="text-xs text-gray-500 mb-2">
-                                  Custom columns from Forms Builder 
-                                  <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
-                                </div>
-                                <div className="space-y-1">
-                                  {customColumns.map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${
-                                        visibleColumns[col] 
-                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                  <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
+                                  <div className="space-y-1">
+                                    {DEFAULT_COLUMNS.map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
                                           : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                      }`}
-                                    >
-                                      <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                      <div className="flex items-center gap-2">
-                                        {visibleColumns[col] ? (
-                                          <Eye className="w-4 h-4 text-teal-600" />
-                                        ) : (
-                                          <EyeOff className="w-4 h-4 text-gray-400" />
-                                        )}
-                                      </div>
-                                    </button>
-                                  ))}
+                                          }`}
+                                      >
+                                        <span className="capitalize font-medium">{col}</span>
+                                        <div className="flex items-center gap-2">
+                                          {visibleColumns[col] ? (
+                                            <Eye className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {/* Custom Columns Section - All custom columns */}
+                                {customColumns.length > 0 && (
+                                  <div className="pt-4 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                          {customColumns.length}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = true);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Show all
+                                        </button>
+                                        <span className="text-gray-300">|</span>
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = false);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Hide all
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mb-2">
+                                      Custom columns from Forms Builder
+                                      <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            }`}
+                                        >
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          <div className="flex items-center gap-2">
+                                            {visibleColumns[col] ? (
+                                              <Eye className="w-4 h-4 text-teal-600" />
+                                            ) : (
+                                              <EyeOff className="w-4 h-4 text-gray-400" />
+                                            )}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
                             )}
                           </>
                         )}
@@ -1596,10 +1594,10 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
 
   // --- EDIT/CREATE FORM UI ---
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
           <h3 className="text-lg font-bold text-gray-900">
             {isEdit ? "Edit Case" : "New Case"}
           </h3>
@@ -1612,201 +1610,203 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
         </div>
 
         {/* Modal Form Content */}
-        <form id="lit-form" onSubmit={submit} className="p-4">
-          {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-            {/* Row 1: Title (Full Width) */}
-            <div className="col-span-1 md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
-              <input
-                required
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-              />
-            </div>
-            {/* Row 2: Description (Full Width) */}
-            <div className="col-span-1 md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-              <textarea
-                required
-                rows={2}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
-              />
-            </div>
-            {/* Row 3: Property & Category */}
-            <div className="col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
-              <select
-                required
-                value={form.property}
-                onChange={handlePropertyChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-              >
-                <option value="">Select property</option>
-                {hotelsLoading ? <option>Loading...</option> : hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-              </select>
-            </div>
-            <div className="col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
-              <select
-                required
-                value={form.category}
-                onChange={handleCategoryChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-              >
-                <option value="">Select category</option>
-                {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-                {!!form.category && ![...CATEGORY_OPTIONS, ...customCategories].some((c) => String(c) === String(form.category)) && (
-                  <option value={form.category}>{form.category}</option>
-                )}
-                <option value="__add_new__">+ Add new...</option>
-              </select>
-              {showCustomCategoryInput && (
-                <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
-                  <input
-                    type="text"
-                    value={customCategoryValue}
-                    onChange={(e) => setCustomCategoryValue(e.target.value)}
-                    placeholder="Enter new category"
-                    className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  />
-                  <div className="flex items-center gap-2 sm:shrink-0">
-                    <button
-                      type="button"
-                      onClick={saveCustomCategory}
-                      className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium whitespace-nowrap"
-                    >
-                      Add
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCustomCategoryInput(false);
-                        setCustomCategoryValue('');
-                      }}
-                      className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium whitespace-nowrap"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-            {/* Row 4: Priority & Assigned To */}
-            <div className="col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
-              <select
-                value={form.priority}
-                onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-            <div className="col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-              {form.property ? (
-                <select
-                  value={form.assignedTo || ''}
-                  onChange={(e) => setForm((p)=>({...p, assignedTo: e.target.value, assignedToId: ''}))}
-                  disabled={!form.property || staffLoading}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">
-                    {!form.property
-                      ? "Select property first"
-                      : staffLoading
-                      ? "Loading staff..."
-                      : "Select staff"}
-                  </option>
-                  {!!form.assignedTo && !staffUsers.some((u) => String(u.name) === String(form.assignedTo)) && (
-                    <option value={form.assignedTo}>{form.assignedTo}</option>
-                  )}
-                  {staffUsers.map((u) => (
-                    <option key={u.id} value={u.name}>{u.name}</option>
-                  ))}
-                </select>
-              ) : (
+        <form id="lit-form" onSubmit={submit} className="flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto max-h-[72vh] p-4 custom-scrollbar">
+            {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+              {/* Row 1: Title (Full Width) */}
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
                 <input
-                  value={form.assignedTo}
-                  onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
-                  disabled={!form.property}
-                  placeholder={!form.property ? "Select property first" : "Name"}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                />
-              )}
-            </div>
-            {/* Row 5: Reported By & Date */}
-            <div className="col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
-              {form.property ? (
-                <select
-                  value={form.reportedBy}
-                  onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
-                  disabled={!form.property || staffLoading}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                >
-                  <option value="">
-                    {!form.property
-                      ? "Select property first"
-                      : staffLoading
-                      ? "Loading staff..."
-                      : "Select staff"}
-                  </option>
-                  {!!form.reportedBy && !staffUsers.some((u) => String(u.name) === String(form.reportedBy)) && (
-                    <option value={form.reportedBy}>{form.reportedBy}</option>
-                  )}
-                  {staffUsers.map((u) => (
-                    <option key={u.id} value={u.name}>{u.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  value={form.reportedBy}
-                  onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
-                  disabled={!form.property}
-                  placeholder={!form.property ? "Select property first" : "Name of person"}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                />
-              )}
-            </div>
-            <div className="col-span-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
-              <input
-                type="date"
-                value={form.scheduledDate}
-                onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-              />
-            </div>
-
-            {/* Custom Columns from Forms Builder */}
-            {customColumns.map(col => (
-              <div key={col} className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </label>
-                <input
-                  type="text"
-                  value={form[col] || ''}
-                  onChange={e => setForm({ ...form, [col]: e.target.value })}
+                  required
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
                   className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                  placeholder={`Enter ${col.replace(/_/g, ' ')}`}
                 />
               </div>
-            ))}
+              {/* Row 2: Description (Full Width) */}
+              <div className="col-span-1 md:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                />
+              </div>
+              {/* Row 3: Property & Category */}
+              <div className="col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
+                <select
+                  required
+                  value={form.property}
+                  onChange={handlePropertyChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                >
+                  <option value="">Select property</option>
+                  {hotelsLoading ? <option>Loading...</option> : hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                </select>
+              </div>
+              <div className="col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                <select
+                  required
+                  value={form.category}
+                  onChange={handleCategoryChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                >
+                  <option value="">Select category</option>
+                  {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  {!!form.category && ![...CATEGORY_OPTIONS, ...customCategories].some((c) => String(c) === String(form.category)) && (
+                    <option value={form.category}>{form.category}</option>
+                  )}
+                  <option value="__add_new__">+ Add new...</option>
+                </select>
+                {showCustomCategoryInput && (
+                  <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                    <input
+                      type="text"
+                      value={customCategoryValue}
+                      onChange={(e) => setCustomCategoryValue(e.target.value)}
+                      placeholder="Enter new category"
+                      className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    />
+                    <div className="flex items-center gap-2 sm:shrink-0">
+                      <button
+                        type="button"
+                        onClick={saveCustomCategory}
+                        className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium whitespace-nowrap"
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomCategoryInput(false);
+                          setCustomCategoryValue('');
+                        }}
+                        className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium whitespace-nowrap"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Row 4: Priority & Assigned To */}
+              <div className="col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+                <select
+                  value={form.priority}
+                  onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              <div className="col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                {form.property ? (
+                  <select
+                    value={form.assignedTo || ''}
+                    onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value, assignedToId: '' }))}
+                    disabled={!form.property || staffLoading}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {!form.property
+                        ? "Select property first"
+                        : staffLoading
+                          ? "Loading staff..."
+                          : "Select staff"}
+                    </option>
+                    {!!form.assignedTo && !staffUsers.some((u) => String(u.name) === String(form.assignedTo)) && (
+                      <option value={form.assignedTo}>{form.assignedTo}</option>
+                    )}
+                    {staffUsers.map((u) => (
+                      <option key={u.id} value={u.name}>{u.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={form.assignedTo}
+                    onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
+                    disabled={!form.property}
+                    placeholder={!form.property ? "Select property first" : "Name"}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                )}
+              </div>
+              {/* Row 5: Reported By & Date */}
+              <div className="col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
+                {form.property ? (
+                  <select
+                    value={form.reportedBy}
+                    onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
+                    disabled={!form.property || staffLoading}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {!form.property
+                        ? "Select property first"
+                        : staffLoading
+                          ? "Loading staff..."
+                          : "Select staff"}
+                    </option>
+                    {!!form.reportedBy && !staffUsers.some((u) => String(u.name) === String(form.reportedBy)) && (
+                      <option value={form.reportedBy}>{form.reportedBy}</option>
+                    )}
+                    {staffUsers.map((u) => (
+                      <option key={u.id} value={u.name}>{u.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={form.reportedBy}
+                    onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
+                    disabled={!form.property}
+                    placeholder={!form.property ? "Select property first" : "Name of person"}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                )}
+              </div>
+              <div className="col-span-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={form.scheduledDate}
+                  onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                />
+              </div>
+
+              {/* Custom Columns from Forms Builder */}
+              {customColumns.map(col => (
+                <div key={col} className="col-span-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </label>
+                  <input
+                    type="text"
+                    value={form[col] || ''}
+                    onChange={e => setForm({ ...form, [col]: e.target.value })}
+                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
+          <div className="shrink-0 flex justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
             <button
               onClick={onClose}
               className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"

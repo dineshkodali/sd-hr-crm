@@ -91,6 +91,7 @@ export default function Settings() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [accessDenied, setAccessDenied] = useState(false);
 
   // Modals
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -135,6 +136,7 @@ export default function Settings() {
 
   const loadAccessData = async () => {
     setLoading(true);
+    setAccessDenied(false);
     try {
       const res = await axios.get("/api/access", { withCredentials: true });
       if (res?.data) {
@@ -144,7 +146,11 @@ export default function Settings() {
         setLocalPermissions(JSON.parse(JSON.stringify(perms)));
       }
     } catch (err) {
-      console.error("Error loading access data:", err);
+      if (err.response && err.response.status === 403) {
+        setAccessDenied(true);
+      } else {
+        console.error("Error loading access data:", err);
+      }
     } finally {
       setLoading(false);
     }
@@ -158,7 +164,9 @@ export default function Settings() {
         setGroups(res.data.groups || []);
       }
     } catch (err) {
-      console.error("Error loading groups:", err);
+      if (err.response && err.response.status !== 403) {
+        console.error("Error loading groups:", err);
+      }
     } finally {
       setLoading(false);
     }
@@ -172,7 +180,9 @@ export default function Settings() {
         setRoles(res.data.roles || []);
       }
     } catch (err) {
-      console.error("Error loading roles:", err);
+      if (err.response && err.response.status !== 403) {
+        console.error("Error loading roles:", err);
+      }
     } finally {
       setLoading(false);
     }
@@ -737,237 +747,245 @@ export default function Settings() {
 
                 {/* Users & Permissions Tab */}
                 {activeSubTab === "users" && (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* User List */}
-                    <div className="lg:col-span-1">
-                      <div className="bg-gray-50 rounded-xl border border-gray-200">
-                        <div className="p-4 border-b border-gray-200">
-                          <h3 className="font-semibold text-gray-900 mb-3">Users</h3>
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                              type="text"
-                              placeholder="Search users..."
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                            />
+                  accessDenied ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+                      <Shield className="w-16 h-16 text-red-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-red-800 mb-2">Access Denied</h3>
+                      <p className="text-red-600">You do not have permission to view or manage access controls.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* User List */}
+                      <div className="lg:col-span-1">
+                        <div className="bg-gray-50 rounded-xl border border-gray-200">
+                          <div className="p-4 border-b border-gray-200">
+                            <h3 className="font-semibold text-gray-900 mb-3">Users</h3>
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <input
+                                type="text"
+                                placeholder="Search users..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                              />
+                            </div>
                           </div>
-                        </div>
-                        <div className="max-h-[600px] overflow-y-auto">
-                          {loading ? (
-                            <div className="p-4 text-center text-gray-500 text-sm">Loading...</div>
-                          ) : users.length === 0 ? (
-                            <div className="p-4 text-center text-gray-500 text-sm">No users found</div>
-                          ) : (
-                            <div className="divide-y divide-gray-200">
-                              {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase())).map((user) => {
-                                const userPerms = permissions[user.id] || {};
-                                const moduleCount = Object.keys(userPerms).length;
+                          <div className="max-h-[600px] overflow-y-auto">
+                            {loading ? (
+                              <div className="p-4 text-center text-gray-500 text-sm">Loading...</div>
+                            ) : users.length === 0 ? (
+                              <div className="p-4 text-center text-gray-500 text-sm">No users found</div>
+                            ) : (
+                              <div className="divide-y divide-gray-200">
+                                {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase())).map((user) => {
+                                  const userPerms = permissions[user.id] || {};
+                                  const moduleCount = Object.keys(userPerms).length;
 
-                                return (
-                                  <button
-                                    key={user.id}
-                                    onClick={() => {
-                                      setSelectedUser(user);
-                                      setLocalPermissions({
-                                        ...localPermissions,
-                                        [user.id]: userPerms
-                                      });
-                                    }}
-                                    className={`w-full text-left p-4 hover:bg-white transition-colors ${selectedUser?.id === user.id ? "bg-white border-l-4 border-teal-500" : ""
-                                      }`}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-semibold">
-                                        {user.name.charAt(0).toUpperCase()}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="font-semibold text-gray-900 truncate">{user.name}</div>
-                                        <div className="text-xs text-gray-500 truncate">{user.email}</div>
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">{user.role}</span>
-                                          <span className="text-xs text-gray-400">{moduleCount} modules</span>
+                                  return (
+                                    <button
+                                      key={user.id}
+                                      onClick={() => {
+                                        setSelectedUser(user);
+                                        setLocalPermissions({
+                                          ...localPermissions,
+                                          [user.id]: userPerms
+                                        });
+                                      }}
+                                      className={`w-full text-left p-4 hover:bg-white transition-colors ${selectedUser?.id === user.id ? "bg-white border-l-4 border-teal-500" : ""
+                                        }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-semibold">
+                                          {user.name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="font-semibold text-gray-900 truncate">{user.name}</div>
+                                          <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                                          <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">{user.role}</span>
+                                            <span className="text-xs text-gray-400">{moduleCount} modules</span>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Permissions Panel */}
-                    <div className="lg:col-span-2">
-                      {selectedUser ? (
-                        <div className="bg-gray-50 rounded-xl border border-gray-200">
-                          {/* Header */}
-                          <div className="p-6 border-b border-gray-200 bg-white rounded-t-xl">
-                            <div className="flex items-center justify-between mb-4">
-                              <div>
-                                <h3 className="text-xl font-bold text-gray-900">Module Permissions</h3>
-                                <p className="text-sm text-gray-600 mt-1">{selectedUser.name} ({selectedUser.email})</p>
-                              </div>
-                              <button
-                                onClick={() => setSelectedUser(null)}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                              >
-                                <X className="w-5 h-5" />
-                              </button>
-                            </div>
-
-                            {/* Category Filter */}
-                            <div className="flex items-center gap-3">
-                              <span className="text-sm text-gray-600">Category:</span>
-                              <div className="flex flex-wrap gap-2">
-                                {categories.map(cat => (
-                                  <button
-                                    key={cat}
-                                    onClick={() => setCategoryFilter(cat)}
-                                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${categoryFilter === cat
-                                      ? "bg-teal-500 text-white"
-                                      : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-300"
-                                      }`}
-                                  >
-                                    {cat}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Module Permissions */}
-                          <div className="p-6">
-                            {successMessage && (
-                              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700 text-sm">
-                                <Check className="w-4 h-4" />
-                                <span>{successMessage}</span>
+                                    </button>
+                                  );
+                                })}
                               </div>
                             )}
+                          </div>
+                        </div>
+                      </div>
 
-                            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                              {filteredModules.map((module) => {
-                                const modulePerms = userPermissions[module.key] || { read: false, create: false, update: false, delete: false };
-                                const currentLevel = getPermissionLevel(modulePerms);
-                                const levelConfig = PERMISSION_LEVELS.find(l => l.key === currentLevel);
+                      {/* Permissions Panel */}
+                      <div className="lg:col-span-2">
+                        {selectedUser ? (
+                          <div className="bg-gray-50 rounded-xl border border-gray-200">
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-200 bg-white rounded-t-xl">
+                              <div className="flex items-center justify-between mb-4">
+                                <div>
+                                  <h3 className="text-xl font-bold text-gray-900">Module Permissions</h3>
+                                  <p className="text-sm text-gray-600 mt-1">{selectedUser.name} ({selectedUser.email})</p>
+                                </div>
+                                <button
+                                  onClick={() => setSelectedUser(null)}
+                                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                  <X className="w-5 h-5" />
+                                </button>
+                              </div>
 
-                                return (
-                                  <div key={module.key} className="p-4 bg-white rounded-lg border border-gray-200 hover:border-teal-300 transition-colors">
-                                    <div className="flex items-center justify-between mb-3">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-sm font-semibold text-gray-900">{module.label}</span>
-                                          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{module.category}</span>
+                              {/* Category Filter */}
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm text-gray-600">Category:</span>
+                                <div className="flex flex-wrap gap-2">
+                                  {categories.map(cat => (
+                                    <button
+                                      key={cat}
+                                      onClick={() => setCategoryFilter(cat)}
+                                      className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors ${categoryFilter === cat
+                                        ? "bg-teal-500 text-white"
+                                        : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-300"
+                                        }`}
+                                    >
+                                      {cat}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Module Permissions */}
+                            <div className="p-6">
+                              {successMessage && (
+                                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700 text-sm">
+                                  <Check className="w-4 h-4" />
+                                  <span>{successMessage}</span>
+                                </div>
+                              )}
+
+                              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                                {filteredModules.map((module) => {
+                                  const modulePerms = userPermissions[module.key] || { read: false, create: false, update: false, delete: false };
+                                  const currentLevel = getPermissionLevel(modulePerms);
+                                  const levelConfig = PERMISSION_LEVELS.find(l => l.key === currentLevel);
+
+                                  return (
+                                    <div key={module.key} className="p-4 bg-white rounded-lg border border-gray-200 hover:border-teal-300 transition-colors">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-gray-900">{module.label}</span>
+                                            <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{module.category}</span>
+                                          </div>
                                         </div>
+                                        <select
+                                          value={currentLevel}
+                                          onChange={(e) => handleBulkPermissionChange(selectedUser.id, module.key, e.target.value)}
+                                          className={`text-xs font-medium px-3 py-1.5 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${levelConfig?.color === 'gray' ? 'border-gray-300 text-gray-600' :
+                                            levelConfig?.color === 'blue' ? 'border-blue-300 text-blue-600 bg-blue-50' :
+                                              levelConfig?.color === 'green' ? 'border-green-300 text-green-600 bg-green-50' :
+                                                levelConfig?.color === 'yellow' ? 'border-yellow-300 text-yellow-600 bg-yellow-50' :
+                                                  levelConfig?.color === 'teal' ? 'border-teal-300 text-teal-600 bg-teal-50' :
+                                                    'border-purple-300 text-purple-600 bg-purple-50'
+                                            }`}
+                                        >
+                                          {PERMISSION_LEVELS.map(level => (
+                                            <option key={level.key} value={level.key}>{level.label}</option>
+                                          ))}
+                                        </select>
                                       </div>
-                                      <select
-                                        value={currentLevel}
-                                        onChange={(e) => handleBulkPermissionChange(selectedUser.id, module.key, e.target.value)}
-                                        className={`text-xs font-medium px-3 py-1.5 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-teal-500 ${levelConfig?.color === 'gray' ? 'border-gray-300 text-gray-600' :
-                                          levelConfig?.color === 'blue' ? 'border-blue-300 text-blue-600 bg-blue-50' :
-                                            levelConfig?.color === 'green' ? 'border-green-300 text-green-600 bg-green-50' :
-                                              levelConfig?.color === 'yellow' ? 'border-yellow-300 text-yellow-600 bg-yellow-50' :
-                                                levelConfig?.color === 'teal' ? 'border-teal-300 text-teal-600 bg-teal-50' :
-                                                  'border-purple-300 text-purple-600 bg-purple-50'
-                                          }`}
-                                      >
-                                        {PERMISSION_LEVELS.map(level => (
-                                          <option key={level.key} value={level.key}>{level.label}</option>
-                                        ))}
-                                      </select>
-                                    </div>
 
-                                    {/* Individual Checkboxes */}
-                                    <div className="flex flex-wrap gap-3">
-                                      <label className="flex items-center cursor-pointer group">
-                                        <input
-                                          type="checkbox"
-                                          checked={modulePerms.read}
-                                          onChange={(e) => handlePermissionChange(selectedUser.id, module.key, 'read', e.target.checked)}
-                                          className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                                        />
-                                        <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">Read</span>
-                                      </label>
-                                      <label className="flex items-center cursor-pointer group">
-                                        <input
-                                          type="checkbox"
-                                          checked={modulePerms.create}
-                                          onChange={(e) => handlePermissionChange(selectedUser.id, module.key, 'create', e.target.checked)}
-                                          className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                                        />
-                                        <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">Create</span>
-                                      </label>
-                                      <label className="flex items-center cursor-pointer group">
-                                        <input
-                                          type="checkbox"
-                                          checked={modulePerms.update}
-                                          onChange={(e) => handlePermissionChange(selectedUser.id, module.key, 'update', e.target.checked)}
-                                          className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                                        />
-                                        <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">Update</span>
-                                      </label>
-                                      <label className="flex items-center cursor-pointer group">
-                                        <input
-                                          type="checkbox"
-                                          checked={modulePerms.delete}
-                                          onChange={(e) => handlePermissionChange(selectedUser.id, module.key, 'delete', e.target.checked)}
-                                          className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                                        />
-                                        <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">Delete</span>
-                                      </label>
+                                      {/* Individual Checkboxes */}
+                                      <div className="flex flex-wrap gap-3">
+                                        <label className="flex items-center cursor-pointer group">
+                                          <input
+                                            type="checkbox"
+                                            checked={modulePerms.read}
+                                            onChange={(e) => handlePermissionChange(selectedUser.id, module.key, 'read', e.target.checked)}
+                                            className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                                          />
+                                          <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">Read</span>
+                                        </label>
+                                        <label className="flex items-center cursor-pointer group">
+                                          <input
+                                            type="checkbox"
+                                            checked={modulePerms.create}
+                                            onChange={(e) => handlePermissionChange(selectedUser.id, module.key, 'create', e.target.checked)}
+                                            className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                                          />
+                                          <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">Create</span>
+                                        </label>
+                                        <label className="flex items-center cursor-pointer group">
+                                          <input
+                                            type="checkbox"
+                                            checked={modulePerms.update}
+                                            onChange={(e) => handlePermissionChange(selectedUser.id, module.key, 'update', e.target.checked)}
+                                            className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                                          />
+                                          <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">Update</span>
+                                        </label>
+                                        <label className="flex items-center cursor-pointer group">
+                                          <input
+                                            type="checkbox"
+                                            checked={modulePerms.delete}
+                                            onChange={(e) => handlePermissionChange(selectedUser.id, module.key, 'delete', e.target.checked)}
+                                            className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                                          />
+                                          <span className="ml-2 text-sm text-gray-700 group-hover:text-gray-900">Delete</span>
+                                        </label>
+                                      </div>
                                     </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="p-6 border-t border-gray-200 bg-white rounded-b-xl">
+                              <div className="flex justify-end gap-4">
+                                <button
+                                  onClick={() => {
+                                    setLocalPermissions(JSON.parse(JSON.stringify(permissions)));
+                                    setSelectedUser(null);
+                                  }}
+                                  className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={handleSavePermissions}
+                                  disabled={saving}
+                                  className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 shadow-md hover:shadow-lg ${saving ? "bg-teal-600 text-white cursor-not-allowed" : "bg-teal-500 text-white hover:bg-teal-600"
+                                    }`}
+                                >
+                                  {saving ? (
+                                    <>
+                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      <span>Saving...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Save className="w-4 h-4" />
+                                      <span>Save Permissions</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             </div>
                           </div>
-
-                          {/* Actions */}
-                          <div className="p-6 border-t border-gray-200 bg-white rounded-b-xl">
-                            <div className="flex justify-end gap-4">
-                              <button
-                                onClick={() => {
-                                  setLocalPermissions(JSON.parse(JSON.stringify(permissions)));
-                                  setSelectedUser(null);
-                                }}
-                                className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                onClick={handleSavePermissions}
-                                disabled={saving}
-                                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 shadow-md hover:shadow-lg ${saving ? "bg-teal-600 text-white cursor-not-allowed" : "bg-teal-500 text-white hover:bg-teal-600"
-                                  }`}
-                              >
-                                {saving ? (
-                                  <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    <span>Saving...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Save className="w-4 h-4" />
-                                    <span>Save Permissions</span>
-                                  </>
-                                )}
-                              </button>
+                        ) : (
+                          <div className="bg-gray-50 rounded-xl border border-gray-200 h-[600px] flex items-center justify-center">
+                            <div className="text-center">
+                              <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                              <p className="text-gray-500 text-sm">Select a user to manage permissions</p>
                             </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 rounded-xl border border-gray-200 h-[600px] flex items-center justify-center">
-                          <div className="text-center">
-                            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500 text-sm">Select a user to manage permissions</p>
-                          </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )
                 )}
 
                 {/* Groups Tab */}
