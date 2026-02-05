@@ -469,7 +469,7 @@ export default function HSEIncidents({ user }) {
   const openModal = (m = 'create', rec = null) => {
     setMode(m);
     if (m === 'create') {
-      setFormData({ incident_type: '', severity: 'Medium', property_id: '', property_name: '', affected_person: '', reported_by: '', details: '', assigned_investigator: '', status: 'Open', incident_date: '' });
+      setFormData({ incident_type: '', severity: 'Medium', property_id: '', property_name: '', affected_person: '', reported_by: currentUser?.name || '', details: '', assigned_investigator: '', status: 'Open', incident_date: '' });
     } else {
       const baseData = { ...rec, property_id: rec?.property_id || '', property_name: rec?.property_name || '' };
       // Include custom column values
@@ -1443,8 +1443,8 @@ export default function HSEIncidents({ user }) {
 
       {/* ----------------- MODAL SECTION ----------------- */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative my-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl h-[70vh] flex flex-col relative my-4">
 
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -1504,19 +1504,19 @@ export default function HSEIncidents({ user }) {
               </div>
             ) : (
               /* Create/Edit Form Content */
-              <form onSubmit={submit} className="p-4 flex flex-col">
-                {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
-                <div className="max-h-[70vh] overflow-y-auto pr-1">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+              <form onSubmit={submit} className="flex flex-col flex-1 min-h-0">
+                {error && <div className="mb-4 mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                     {/* Row 1: Incident Type & Severity */}
                     <div className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Incident Type <span className="text-red-500">*</span></label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Incident Type <span className="text-red-500">*</span></label>
                       <select
                         required
                         value={formData.incident_type}
                         onChange={handleIncidentTypeChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                       >
                         <option value="">Select type...</option>
                         {[...incidentTypes, ...customIncidentTypes].map(t => <option key={t} value={t}>{t}</option>)}
@@ -1533,7 +1533,7 @@ export default function HSEIncidents({ user }) {
                             value={customIncidentTypeValue}
                             onChange={(e) => setCustomIncidentTypeValue(e.target.value)}
                             placeholder="Enter new incident type"
-                            className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                           />
                           <button
                             type="button"
@@ -1560,7 +1560,7 @@ export default function HSEIncidents({ user }) {
                       <select
                         value={formData.severity}
                         onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                       >
                         {severities.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
@@ -1575,9 +1575,9 @@ export default function HSEIncidents({ user }) {
                         onChange={(e) => {
                           const id = e.target.value;
                           const h = hotels.find(h => h.id == id);
-                          setFormData({ ...formData, property_id: id, property_name: h?.name || '', reported_by: '', assigned_investigator: '' });
+                          setFormData({ ...formData, property_id: id, property_name: h?.name || '', reported_by: currentUser?.name || '', assigned_investigator: '' });
                         }}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                       >
                         <option value="">Select property...</option>
                         {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -1589,34 +1589,19 @@ export default function HSEIncidents({ user }) {
                         type="date"
                         value={formatDateISO(formData.incident_date)}
                         onChange={(e) => setFormData({ ...formData, incident_date: e.target.value })}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                       />
                     </div>
 
                     {/* Row 3: Reported By & Assigned To */}
                     <div className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                      <select
-                        required
-                        value={formData.reported_by || ''}
-                        onChange={(e) => setFormData({ ...formData, reported_by: e.target.value })}
-                        disabled={!formData.property_id || staffLoading}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      >
-                        <option value="">
-                          {!formData.property_id
-                            ? "Select property first"
-                            : staffLoading
-                              ? "Loading staff..."
-                              : "Select staff"}
-                        </option>
-                        {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
-                          <option value={formData.reported_by}>{formData.reported_by}</option>
-                        )}
-                        {staffUsers.map((u) => (
-                          <option key={u.id} value={u.name}>{u.name}</option>
-                        ))}
-                      </select>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
+                      <input
+                        type="text"
+                        value={formData.reported_by}
+                        readOnly
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-gray-100 cursor-not-allowed"
+                      />
                     </div>
                     <div className="col-span-1">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
@@ -1624,7 +1609,7 @@ export default function HSEIncidents({ user }) {
                         value={formData.assigned_investigator || ''}
                         onChange={(e) => setFormData({ ...formData, assigned_investigator: e.target.value })}
                         disabled={!formData.property_id || staffLoading}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                       >
                         <option value="">
                           {!formData.property_id
@@ -1651,7 +1636,7 @@ export default function HSEIncidents({ user }) {
                         onChange={(e) => setFormData({ ...formData, details: e.target.value })}
                         rows={3}
                         placeholder="Describe exactly what happened..."
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 resize-y"
                       />
                     </div>
 
@@ -1663,7 +1648,7 @@ export default function HSEIncidents({ user }) {
                           <select
                             value={formData.status}
                             onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                           >
                             <option>Open</option>
                             <option>Investigating</option>
@@ -1681,7 +1666,7 @@ export default function HSEIncidents({ user }) {
                         </label>
                         <input
                           type="text"
-                          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                           value={formData[col] || ''}
                           onChange={e => setFormData({ ...formData, [col]: e.target.value })}
                         />
@@ -1691,7 +1676,7 @@ export default function HSEIncidents({ user }) {
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
+                <div className="flex justify-end gap-3 p-4 border-t border-gray-200 bg-white">
                   <button
                     type="button"
                     onClick={closeModal}

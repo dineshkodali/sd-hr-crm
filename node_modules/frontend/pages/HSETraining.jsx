@@ -457,7 +457,7 @@ export default function HSETraining({ user }) {
     if (m === 'create') {
       setFormData({
         title: '', description: '', property_id: '', property_name: '', category: '',
-        priority: 'Medium', reported_by: '', assigned_to: '', scheduled_date: '', status: 'Open',
+        priority: 'Medium', reported_by: currentUser?.name || '', assigned_to: '', scheduled_date: '', status: 'Open',
         ...customColumns.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
       });
     } else {
@@ -808,8 +808,8 @@ export default function HSETraining({ user }) {
                             <button
                               onClick={() => setViewMode('table')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <Columns className="w-4 h-4" />
@@ -818,8 +818,8 @@ export default function HSETraining({ user }) {
                             <button
                               onClick={() => setViewMode('board')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <GraduationCap className="w-4 h-4" />
@@ -881,8 +881,8 @@ export default function HSETraining({ user }) {
                                         key={col}
                                         onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
                                         className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${visibleColumns[col]
-                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
-                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                          : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
                                           }`}
                                       >
                                         <span className="capitalize font-medium">{col}</span>
@@ -942,8 +942,8 @@ export default function HSETraining({ user }) {
                                           key={col}
                                           onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
                                           className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${visibleColumns[col]
-                                              ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
-                                              : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
                                             }`}
                                         >
                                           <span className="capitalize">{col.replace(/_/g, ' ')}</span>
@@ -1443,8 +1443,8 @@ export default function HSETraining({ user }) {
 
       {/* ----------------- MODAL SECTION ----------------- */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl h-[70vh] flex flex-col relative">
 
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -1454,8 +1454,8 @@ export default function HSETraining({ user }) {
                 </h3>
                 {mode === 'view' && (
                   <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${(formData.status || '').toLowerCase() === 'open' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                      (formData.status || '').toLowerCase() === 'overdue' ? 'bg-red-50 text-red-600 border-red-100' :
-                        'bg-green-50 text-green-600 border-green-100'
+                    (formData.status || '').toLowerCase() === 'overdue' ? 'bg-red-50 text-red-600 border-red-100' :
+                      'bg-green-50 text-green-600 border-green-100'
                     }`}>
                     {formData.status}
                   </span>
@@ -1471,7 +1471,7 @@ export default function HSETraining({ user }) {
 
             {/* View Mode Content */}
             {mode === 'view' ? (
-              <div className="p-6">
+              <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
                 <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
                   <DetailField label="TITLE" value={formData.title} />
                   <DetailField label="PROPERTY" value={formData.property_name} />
@@ -1513,205 +1513,193 @@ export default function HSETraining({ user }) {
               </div>
             ) : (
               /* Edit/Create Form Content */
-              <form onSubmit={submit} className="p-4">
-                {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+              <form onSubmit={submit} className="flex flex-col flex-1 min-h-0">
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                  {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                  {/* Row 1: Title & Description */}
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
-                    <input
-                      required
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Brief description of task"
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                    />
-                  </div>
-                  <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
-                    <textarea
-                      required
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={3}
-                      placeholder="Detailed description of the training..."
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
-                    />
-                  </div>
+                    {/* Row 1: Title & Description */}
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
+                      <input
+                        required
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="Brief description of task"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                      />
+                    </div>
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
+                      <textarea
+                        required
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        rows={3}
+                        placeholder="Detailed description of the training..."
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 resize-y"
+                      />
+                    </div>
 
-                  {/* Row 2: Property & Category */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
-                    <select
-                      required
-                      value={formData.property_id}
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        const h = hotels.find(h => h.id == id);
-                        setFormData({ ...formData, property_id: id, property_name: h?.name || '', reported_by: '', assigned_to: '' });
-                      }}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                    >
-                      <option value="">Select property</option>
-                      {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
-                    <select
-                      required
-                      value={formData.category}
-                      onChange={handleCategoryChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                    >
-                      <option value="">Select category</option>
-                      {[...categoryOptions, ...customCategories].map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                      {!!formData.category && ![...categoryOptions, ...customCategories].some((c) => String(c) === String(formData.category)) && (
-                        <option value={formData.category}>{formData.category}</option>
+                    {/* Row 2: Property & Category */}
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
+                      <select
+                        required
+                        value={formData.property_id}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          const h = hotels.find(h => h.id == id);
+                          setFormData({ ...formData, property_id: id, property_name: h?.name || '', reported_by: currentUser?.name || '', assigned_to: '' });
+                        }}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                      >
+                        <option value="">Select property</option>
+                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
+                      <select
+                        required
+                        value={formData.category}
+                        onChange={handleCategoryChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                      >
+                        <option value="">Select category</option>
+                        {[...categoryOptions, ...customCategories].map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                        {!!formData.category && ![...categoryOptions, ...customCategories].some((c) => String(c) === String(formData.category)) && (
+                          <option value={formData.category}>{formData.category}</option>
+                        )}
+                        <option value="__add_new__">+ Add new...</option>
+                      </select>
+                      {showCustomCategoryInput && (
+                        <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                          <input
+                            type="text"
+                            value={customCategoryValue}
+                            onChange={(e) => setCustomCategoryValue(e.target.value)}
+                            placeholder="Enter new category"
+                            className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                          />
+                          <div className="flex items-center gap-2 sm:shrink-0">
+                            <button
+                              type="button"
+                              onClick={saveCustomCategory}
+                              className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium whitespace-nowrap"
+                            >
+                              Add
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowCustomCategoryInput(false);
+                                setCustomCategoryValue('');
+                              }}
+                              className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium whitespace-nowrap"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
                       )}
-                      <option value="__add_new__">+ Add new...</option>
-                    </select>
-                    {showCustomCategoryInput && (
-                      <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                    </div>
+
+                    {/* Row 3: Priority & Reported By */}
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Priority <span className="text-red-500">*</span></label>
+                      <select
+                        required
+                        value={formData.priority}
+                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                      >
+                        {priorities.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
+                      <input
+                        type="text"
+                        value={formData.reported_by}
+                        readOnly
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-gray-100 cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Row 4: Assigned To & Scheduled Date */}
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                      <select
+                        value={formData.assigned_to || ''}
+                        onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                        disabled={!formData.property_id || staffLoading}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      >
+                        <option value="">
+                          {!formData.property_id
+                            ? "Select property first"
+                            : staffLoading
+                              ? "Loading staff..."
+                              : "Select staff"}
+                        </option>
+                        {!!formData.assigned_to && !staffUsers.some((u) => String(u.name) === String(formData.assigned_to)) && (
+                          <option value={formData.assigned_to}>{formData.assigned_to}</option>
+                        )}
+                        {staffUsers.map((u) => (
+                          <option key={u.id} value={u.name}>{u.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
+                      <input
+                        type="date"
+                        value={formatDateISO(formData.scheduled_date)}
+                        onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                      />
+                    </div>
+
+                    {/* Custom columns from Forms Builder */}
+                    {customColumns.map(col => (
+                      <div key={col} className="col-span-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </label>
                         <input
                           type="text"
-                          value={customCategoryValue}
-                          onChange={(e) => setCustomCategoryValue(e.target.value)}
-                          placeholder="Enter new category"
-                          className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          value={formData[col] || ''}
+                          onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                          placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                         />
-                        <div className="flex items-center gap-2 sm:shrink-0">
-                          <button
-                            type="button"
-                            onClick={saveCustomCategory}
-                            className="px-3 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm font-medium whitespace-nowrap"
-                          >
-                            Add
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowCustomCategoryInput(false);
-                              setCustomCategoryValue('');
-                            }}
-                            className="px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium whitespace-nowrap"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                      </div>
+                    ))}
+
+                    {/* Row 5: Status (Only for edit) */}
+                    {mode !== 'create' && (
+                      <div className="col-span-1">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                        <select
+                          value={formData.status}
+                          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                        >
+                          <option>Open</option>
+                          <option>Overdue</option>
+                          <option>Completed</option>
+                        </select>
                       </div>
                     )}
                   </div>
 
-                  {/* Row 3: Priority & Reported By */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Priority <span className="text-red-500">*</span></label>
-                    <select
-                      required
-                      value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                    >
-                      {priorities.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                    <select
-                      required
-                      value={formData.reported_by || ''}
-                      onChange={(e) => setFormData({ ...formData, reported_by: e.target.value })}
-                      disabled={!formData.property_id || staffLoading}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="">
-                        {!formData.property_id
-                          ? "Select property first"
-                          : staffLoading
-                            ? "Loading staff..."
-                            : "Select staff"}
-                      </option>
-                      {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
-                        <option value={formData.reported_by}>{formData.reported_by}</option>
-                      )}
-                      {staffUsers.map((u) => (
-                        <option key={u.id} value={u.name}>{u.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Row 4: Assigned To & Scheduled Date */}
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
-                    <select
-                      value={formData.assigned_to || ''}
-                      onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                      disabled={!formData.property_id || staffLoading}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="">
-                        {!formData.property_id
-                          ? "Select property first"
-                          : staffLoading
-                            ? "Loading staff..."
-                            : "Select staff"}
-                      </option>
-                      {!!formData.assigned_to && !staffUsers.some((u) => String(u.name) === String(formData.assigned_to)) && (
-                        <option value={formData.assigned_to}>{formData.assigned_to}</option>
-                      )}
-                      {staffUsers.map((u) => (
-                        <option key={u.id} value={u.name}>{u.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
-                    <input
-                      type="date"
-                      value={formatDateISO(formData.scheduled_date)}
-                      onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                    />
-                  </div>
-
-                  {/* Custom columns from Forms Builder */}
-                  {customColumns.map(col => (
-                    <div key={col} className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </label>
-                      <input
-                        type="text"
-                        value={formData[col] || ''}
-                        onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
-                        placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                      />
-                    </div>
-                  ))}
-
-                  {/* Row 5: Status (Only for edit) */}
-                  {mode !== 'create' && (
-                    <div className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                      >
-                        <option>Open</option>
-                        <option>Overdue</option>
-                        <option>Completed</option>
-                      </select>
-                    </div>
-                  )}
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
+                <div className="flex justify-end gap-3 p-4 border-t border-gray-200 bg-white">
                   <button
                     type="button"
                     onClick={closeModal}
@@ -1731,7 +1719,8 @@ export default function HSETraining({ user }) {
             )}
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 }

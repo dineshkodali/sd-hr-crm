@@ -261,7 +261,7 @@ const CaseManagement = () => {
     status: 'Pending',
     property: '',
     assigned_to: '',
-    reported_by: '',
+    reported_by: currentUser?.name || '',
     scheduled_date: '',
   };
   const [formData, setFormData] = useState(initialForm);
@@ -891,8 +891,8 @@ const CaseManagement = () => {
                             <button
                               onClick={() => setViewMode('table')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <Columns className="w-4 h-4" />
@@ -901,8 +901,8 @@ const CaseManagement = () => {
                             <button
                               onClick={() => setViewMode('board')}
                               className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                             >
                               <Briefcase className="w-4 h-4" />
@@ -963,11 +963,10 @@ const CaseManagement = () => {
                                       <button
                                         key={col}
                                         onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
-                                          visibleColumns[col] 
-                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                        }`}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${visibleColumns[col]
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                          : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                          }`}
                                       >
                                         <span className="capitalize font-medium">{col}</span>
                                         <div className="flex items-center gap-2">
@@ -1017,7 +1016,7 @@ const CaseManagement = () => {
                                       </div>
                                     </div>
                                     <div className="text-xs text-gray-500 mb-2">
-                                      Custom columns from Forms Builder 
+                                      Custom columns from Forms Builder
                                       <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
                                     </div>
                                     <div className="space-y-1">
@@ -1025,11 +1024,10 @@ const CaseManagement = () => {
                                         <button
                                           key={col}
                                           onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
-                                            visibleColumns[col] 
-                                              ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                              : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                          }`}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${visibleColumns[col]
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            }`}
                                         >
                                           <span className="capitalize">{col.replace(/_/g, ' ')}</span>
                                           <div className="flex items-center gap-2">
@@ -1532,7 +1530,7 @@ const CaseManagement = () => {
         {/* --- FORM MODAL (Create/Edit) --- */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
+            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative h-[70vh] flex flex-col">
 
               {/* Modal Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -1548,7 +1546,7 @@ const CaseManagement = () => {
               </div>
 
               {/* Modal Form Content */}
-              <form onSubmit={handleSubmit} className="p-4">
+              <form onSubmit={handleSubmit} className="p-4 flex-1 overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
 
                   {/* Row 1: Title & Priority */}
@@ -1556,7 +1554,7 @@ const CaseManagement = () => {
                     <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
                     <input
                       required
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
                     />
@@ -1564,7 +1562,7 @@ const CaseManagement = () => {
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
                     <select
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                       value={formData.priority}
                       onChange={e => setFormData({ ...formData, priority: e.target.value })}
                     >
@@ -1581,7 +1579,7 @@ const CaseManagement = () => {
                       value={formData.property}
                       onChange={async (e) => {
                         const propId = e.target.value;
-                        setFormData({ ...formData, property: propId, assigned_to: '', reported_by: '' });
+                        setFormData({ ...formData, property: propId, assigned_to: '', reported_by: currentUser?.name || '' });
                         // Fetch staff members for the selected property
                         if (propId) {
                           try {
@@ -1625,7 +1623,7 @@ const CaseManagement = () => {
                           value={customCategoryValue}
                           onChange={(e) => setCustomCategoryValue(e.target.value)}
                           placeholder="Enter new category"
-                          className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                         />
                         <div className="flex items-center gap-2 sm:shrink-0">
                           <button
@@ -1666,7 +1664,7 @@ const CaseManagement = () => {
                       </select>
                     ) : (
                       <input
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-gray-50"
                         value={formData.assigned_to}
                         onChange={e => setFormData({ ...formData, assigned_to: e.target.value })}
                         placeholder={formData.property ? "Loading staff..." : "Select property first"}
@@ -1676,26 +1674,12 @@ const CaseManagement = () => {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
-                    {formData.property && staffMembers.length > 0 ? (
-                      <select
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                        value={formData.reported_by}
-                        onChange={e => setFormData({ ...formData, reported_by: e.target.value })}
-                      >
-                        <option value="">Select staff member</option>
-                        {staffMembers.map(staff => (
-                          <option key={staff.id} value={staff.name}>{staff.name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50"
-                        value={formData.reported_by}
-                        onChange={e => setFormData({ ...formData, reported_by: e.target.value })}
-                        placeholder={formData.property ? "Loading staff..." : "Select property first"}
-                        disabled={!formData.property}
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={formData.reported_by}
+                      readOnly
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-gray-100 cursor-not-allowed"
+                    />
                   </div>
 
                   {/* Row 4: Scheduled Date (Full Width) */}
@@ -1703,7 +1687,7 @@ const CaseManagement = () => {
                     <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
                     <input
                       type="date"
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                       value={formData.scheduled_date}
                       onChange={e => setFormData({ ...formData, scheduled_date: e.target.value })}
                     />
@@ -1715,7 +1699,7 @@ const CaseManagement = () => {
                     <textarea
                       rows={3}
                       required
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 resize-y"
                       value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
                     />

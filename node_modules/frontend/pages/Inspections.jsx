@@ -705,7 +705,8 @@ export default function Inspections({ user }) {
       propertyName: hotel ? hotel.name : "",
       serviceUserId: "",
       serviceUserName: "",
-      inspectorName: "", // Reset inspectorName
+      serviceUserName: "",
+      inspectorName: currentUser?.name || "", // Set to current user
     }));
     setServiceUsers([]);
     setStaffUsers([]);
@@ -1074,7 +1075,8 @@ export default function Inspections({ user }) {
       propertyName: "",
       serviceUserId: "",
       serviceUserName: "",
-      inspectorName: "",
+      serviceUserName: "",
+      inspectorName: currentUser?.name || "",
       inspectionDate: "",
       findings: "",
       issuesFound: 0,
@@ -1967,10 +1969,10 @@ export default function Inspections({ user }) {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative my-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative flex flex-col h-[70vh]">
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingId ? "Edit Inspection" : "Create Inspection"}
               </h3>
@@ -1983,23 +1985,23 @@ export default function Inspections({ user }) {
             </div>
 
             {/* Modal Form Content */}
-            <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto max-h-[72vh] p-4 custom-scrollbar">
+            <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1">
+              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                 {error && (
                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                     {error}
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Same form fields as original */}
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Inspection Type <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Inspection Type <span className="text-red-500">*</span></label>
                     <select
                       name="inspectionType"
                       required
                       value={formData.inspectionType}
                       onChange={handleInspectionTypeChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white transition-all"
                     >
                       <option value="">Select inspection type</option>
                       {[...BUILTIN_INSPECTION_TYPES, ...customInspectionTypes].map((t) => (
@@ -2018,7 +2020,7 @@ export default function Inspections({ user }) {
                           value={customInspectionTypeValue}
                           onChange={(e) => setCustomInspectionTypeValue(e.target.value)}
                           placeholder="Enter new inspection type"
-                          className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                         />
                         <button
                           type="button"
@@ -2042,13 +2044,13 @@ export default function Inspections({ user }) {
                   </div>
 
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Property <span className="text-red-500">*</span></label>
                     <select
                       name="propertyId"
                       required
                       value={formData.propertyId}
                       onChange={handlePropertyChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white transition-all"
                     >
                       <option value="">Select property</option>
                       {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -2056,12 +2058,12 @@ export default function Inspections({ user }) {
                     {hotelsLoading && <div className="text-xs text-gray-400 mt-0.5">Loading hotels...</div>}
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Service User</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Service User</label>
                     <select
                       name="serviceUserId"
                       value={formData.serviceUserId}
                       onChange={handleServiceUserChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white transition-all"
                     >
                       <option value="">Select service user</option>
                       {serviceUsers.map((s) => <option key={s.id} value={s.id}>{s.first_name}</option>)}
@@ -2069,79 +2071,52 @@ export default function Inspections({ user }) {
                   </div>
 
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Inspector Name <span className="text-red-500">*</span></label>
-                    {formData.propertyId ? (
-                      <select
-                        name="inspectorName"
-                        value={formData.inspectorName}
-                        onChange={handleInputChange}
-                        disabled={!formData.propertyId || staffLoading}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                        required
-                      >
-                        <option value="">
-                          {!formData.propertyId
-                            ? "Select property first"
-                            : staffLoading
-                              ? "Loading staff..."
-                              : "Select inspector"}
-                        </option>
-                        {!!formData.inspectorName && !staffUsers.some((u) => String(u.name) === String(formData.inspectorName)) && (
-                          <option value={formData.inspectorName}>{formData.inspectorName}</option>
-                        )}
-                        {staffUsers.map((u) => (
-                          <option key={u.id} value={u.name}>{u.name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        name="inspectorName"
-                        required={!!formData.propertyId}
-                        value={formData.inspectorName}
-                        onChange={handleInputChange}
-                        disabled={!formData.propertyId}
-                        placeholder={!formData.propertyId ? "Select property first" : "Name of inspector"}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      />
-                    )}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Inspector Name <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      name="inspectorName"
+                      value={formData.inspectorName}
+                      readOnly
+                      title="Inspector name is automatically set to your user name"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none"
+                    />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Inspection Date <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Inspection Date <span className="text-red-500">*</span></label>
                     <input
                       type="date"
                       name="inspectionDate"
                       required
                       value={formData.inspectionDate}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none transition-all"
                     />
                   </div>
 
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Findings</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Findings</label>
                     <textarea
                       name="findings"
                       rows={3}
                       value={formData.findings}
                       onChange={handleInputChange}
                       placeholder="Describe inspection findings..."
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y transition-all"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none resize-y transition-all"
                     />
                   </div>
 
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Issues Found</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Issues Found</label>
                     <input
                       type="number"
                       name="issuesFound"
                       value={formData.issuesFound}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none transition-all"
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Action Required</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Action Required</label>
                     <div className="flex items-center gap-3 h-[38px]">
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -2158,13 +2133,13 @@ export default function Inspections({ user }) {
                   </div>
 
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Status <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status <span className="text-red-500">*</span></label>
                     <select
                       name="status"
                       required
                       value={formData.status}
                       onChange={handleInputChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white transition-all"
                     >
                       <option value="pending">Pending</option>
                       <option value="completed">Completed</option>
@@ -2175,7 +2150,7 @@ export default function Inspections({ user }) {
                   {/* Custom Columns from Forms Builder */}
                   {customColumns.map(col => (
                     <div key={col} className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </label>
                       {customColumnTypes[col] === 'boolean' ? (
@@ -2198,7 +2173,7 @@ export default function Inspections({ user }) {
                           name={col}
                           value={formData[col] || ''}
                           onChange={handleInputChange}
-                          className={`w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${fieldErrors[col] ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                          className={`w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none transition-all ${fieldErrors[col] ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                           placeholder={`Enter ${col.replace(/_/g, ' ')} (${typeLabel(customColumnTypes[col] || 'text')})`}
                         />
                       )}

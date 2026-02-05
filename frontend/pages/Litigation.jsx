@@ -1248,6 +1248,7 @@ export default function Litigation({ user }) {
       {showModal && (
         <LitigationModal
           api={api} hotels={hotels} hotelsLoading={hotelsLoading}
+          currentUser={currentUser}
           onClose={() => setShowModal(false)}
           submitting={submitting} setSubmitting={setSubmitting}
           error={error} setError={setError}
@@ -1277,10 +1278,10 @@ export default function Litigation({ user }) {
 }
 
 
-function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, submitting, setSubmitting, error, setError, refreshTasks = () => { }, initialData = null, mode = 'create', customColumns = [] }) {
+function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, submitting, setSubmitting, error, setError, refreshTasks = () => { }, initialData = null, mode = 'create', customColumns = [], currentUser }) {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
-  const [form, setForm] = useState({ title: '', description: '', property: '', propertyName: '', category: '', priority: 'medium', reportedBy: '', assignedTo: '', assignedToId: '', serviceUserId: '', scheduledDate: '', status: 'Pending' });
+  const [form, setForm] = useState({ title: '', description: '', property: '', propertyName: '', category: '', priority: 'medium', reportedBy: currentUser?.name || '', assignedTo: '', assignedToId: '', serviceUserId: '', scheduledDate: '', status: 'Pending' });
   const [serviceUsers, setServiceUsers] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [staffLoading, setStaffLoading] = useState(false);
@@ -1470,7 +1471,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
       ...p,
       property: hotelId,
       propertyName: hotel ? hotel.name : '',
-      reportedBy: '',
+      reportedBy: currentUser?.name || '',
       assignedTo: '',
       assignedToId: '',
       serviceUserId: '',
@@ -1595,7 +1596,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
   // --- EDIT/CREATE FORM UI ---
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-hidden">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative flex flex-col max-h-[90vh]">
+      <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl relative flex flex-col h-[70vh]">
         {/* Modal Header */}
         <div className="shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
           <h3 className="text-lg font-bold text-gray-900">
@@ -1611,50 +1612,50 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
 
         {/* Modal Form Content */}
         <form id="lit-form" onSubmit={submit} className="flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto max-h-[72vh] p-4 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Row 1: Title (Full Width) */}
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
                 <input
                   required
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 />
               </div>
               {/* Row 2: Description (Full Width) */}
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   required
                   rows={2}
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none resize-y"
                 />
               </div>
               {/* Row 3: Property & Category */}
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Property <span className="text-red-500">*</span></label>
                 <select
                   required
                   value={form.property}
                   onChange={handlePropertyChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
                 >
                   <option value="">Select property</option>
                   {hotelsLoading ? <option>Loading...</option> : hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                 </select>
               </div>
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <select
                   required
                   value={form.category}
                   onChange={handleCategoryChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
                 >
                   <option value="">Select category</option>
                   {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
@@ -1672,7 +1673,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
                       value={customCategoryValue}
                       onChange={(e) => setCustomCategoryValue(e.target.value)}
                       placeholder="Enter new category"
-                      className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                     />
                     <div className="flex items-center gap-2 sm:shrink-0">
                       <button
@@ -1698,11 +1699,11 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
               </div>
               {/* Row 4: Priority & Assigned To */}
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
                 <select
                   value={form.priority}
                   onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -1711,13 +1712,13 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
                 </select>
               </div>
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
                 {form.property ? (
                   <select
                     value={form.assignedTo || ''}
                     onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value, assignedToId: '' }))}
                     disabled={!form.property || staffLoading}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="">
                       {!form.property
@@ -1739,58 +1740,33 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, sub
                     onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
                     disabled={!form.property}
                     placeholder={!form.property ? "Select property first" : "Name"}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 )}
               </div>
               {/* Row 5: Reported By & Date */}
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
-                {form.property ? (
-                  <select
-                    value={form.reportedBy}
-                    onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
-                    disabled={!form.property || staffLoading}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  >
-                    <option value="">
-                      {!form.property
-                        ? "Select property first"
-                        : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
-                    </option>
-                    {!!form.reportedBy && !staffUsers.some((u) => String(u.name) === String(form.reportedBy)) && (
-                      <option value={form.reportedBy}>{form.reportedBy}</option>
-                    )}
-                    {staffUsers.map((u) => (
-                      <option key={u.id} value={u.name}>{u.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    value={form.reportedBy}
-                    onChange={(e) => setForm({ ...form, reportedBy: e.target.value })}
-                    disabled={!form.property}
-                    placeholder={!form.property ? "Select property first" : "Name of person"}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reported By</label>
+                <input
+                  value={form.reportedBy}
+                  readOnly
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-gray-100 cursor-not-allowed"
+                />
               </div>
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                 <input
                   type="date"
                   value={form.scheduledDate}
                   onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 />
               </div>
 
               {/* Custom Columns from Forms Builder */}
               {customColumns.map(col => (
                 <div key={col} className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </label>
                   <input

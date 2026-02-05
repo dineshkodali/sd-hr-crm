@@ -1487,6 +1487,7 @@ export default function AIRETasks({ user }) {
           error={modalError}
           submitting={modalSubmitting}
           customColumns={customColumns}
+          currentUser={currentUser}
           onClose={() => { setShowModal(false); setModalError(null); setEditingTask(null); setIsViewing(false); }}
           onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
         />
@@ -1515,7 +1516,7 @@ export default function AIRETasks({ user }) {
 }
 
 // Modal Component
-function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, onSubmit, customColumns = [] }) {
+function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, onSubmit, customColumns = [], currentUser }) {
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -1523,7 +1524,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
     propertyName: '',
     category: '',
     priority: 'Medium',
-    reportedBy: '',
+    reportedBy: currentUser?.name || '',
     assignedTo: '',
     assignedToId: '',
     serviceUserId: '',
@@ -1755,7 +1756,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
       ...prev,
       property: hotelId,
       propertyName: hotel ? hotel.name : '',
-      reportedBy: '',
+      reportedBy: currentUser?.name || '',
       assignedTo: '',
       assignedToId: '',
     }));
@@ -1874,7 +1875,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
   // --- CREATE/EDIT RENDER ---
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-hidden">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative flex flex-col max-h-[90vh]">
+      <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl relative flex flex-col h-[70vh]">
         {/* Modal Header */}
         <div className="shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
           <h3 className="text-lg font-bold text-gray-900">
@@ -1890,47 +1891,47 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
 
         {/* Modal Form Content */}
         <form id="aire-form" onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto max-h-[72vh] p-4 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                 {error}
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Row 1: Title (Full Width) */}
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   name="title"
                   value={form.title}
                   onChange={handleChange}
                   placeholder="Brief description of task"
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                   required
                 />
               </div>
               {/* Row 2: Description (Full Width) */}
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-red-500">*</span></label>
                 <textarea
                   name="description"
                   value={form.description}
                   onChange={handleChange}
                   rows={2}
                   placeholder="Detailed description of the task..."
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none resize-y"
                   required
                 />
               </div>
               {/* Row 3: Property & Category */}
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Property <span className="text-red-500">*</span></label>
                 <select
                   name="property"
                   value={form.property}
                   onChange={handlePropertyChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
                   required
                 >
                   <option value="">Select property</option>
@@ -1938,12 +1939,12 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                 </select>
               </div>
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
                 <select
                   name="category"
                   value={form.category}
                   onChange={handleCategoryChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
                   required
                 >
                   <option value="">Select category</option>
@@ -1962,7 +1963,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                       value={customCategoryValue}
                       onChange={(e) => setCustomCategoryValue(e.target.value)}
                       placeholder="Enter new category"
-                      className="flex-1 min-w-0 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                     />
                     <div className="flex items-center gap-2 sm:shrink-0">
                       <button
@@ -1988,12 +1989,12 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
               </div>
               {/* Row 4: Priority & Reported By */}
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Priority <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Priority <span className="text-red-500">*</span></label>
                 <select
                   name="priority"
                   value={form.priority}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
                 >
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
@@ -2002,53 +2003,25 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                 </select>
               </div>
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                {form.property ? (
-                  <select
-                    name="reportedBy"
-                    value={form.reportedBy}
-                    onChange={handleChange}
-                    disabled={!form.property || staffLoading}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    required
-                  >
-                    <option value="">
-                      {!form.property
-                        ? "Select property first"
-                        : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
-                    </option>
-                    {!!form.reportedBy && !staffUsers.some((u) => String(u.name) === String(form.reportedBy)) && (
-                      <option value={form.reportedBy}>{form.reportedBy}</option>
-                    )}
-                    {staffUsers.map((u) => (
-                      <option key={u.id} value={u.name}>{u.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    name="reportedBy"
-                    value={form.reportedBy}
-                    onChange={handleChange}
-                    disabled={!form.property}
-                    placeholder={!form.property ? "Select property first" : "Name of person"}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    required={!!form.property}
-                  />
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reported By</label>
+                <input
+                  type="text"
+                  name="reportedBy"
+                  value={form.reportedBy}
+                  readOnly
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-gray-100 cursor-not-allowed"
+                />
               </div>
               {/* Row 5: Assigned To & Scheduled Date */}
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
                 {form.property ? (
                   <select
                     name="assignedTo"
                     value={form.assignedTo || ''}
                     onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value, assignedToId: '' }))}
                     disabled={!form.property || staffLoading}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
                   >
                     <option value="">
                       {!form.property
@@ -2070,25 +2043,25 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                     onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value, assignedToId: '', serviceUserId: '' }))}
                     disabled={!form.property}
                     placeholder={!form.property ? "Select property first" : "Name"}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 )}
               </div>
               <div className="col-span-1">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Scheduled Date</label>
                 <input
                   type="date"
                   name="scheduledDate"
                   value={form.scheduledDate}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 />
               </div>
 
               {/* Custom columns from Forms Builder */}
               {customColumns.map(col => (
                 <div key={col} className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </label>
                   <input
@@ -2097,7 +2070,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                     value={form[col] || ''}
                     onChange={handleChange}
                     placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                    className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                   />
                 </div>
               ))}

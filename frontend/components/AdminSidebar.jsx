@@ -132,6 +132,23 @@ export default function AdminSidebar(props) {
   const cur = (location?.pathname || "") + (location?.search || "");
   const navigate = useNavigate();
   const [userPermissions, setUserPermissions] = useState({});
+  const [showAccessMenu, setShowAccessMenu] = useState(localStorage.getItem('showAccessMenu') === 'true');
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setShowAccessMenu(localStorage.getItem('showAccessMenu') === 'true');
+    };
+
+    // Listen for custom event from Settings page
+    window.addEventListener('accessMenuChanged', handleStorageChange);
+    // Listen for cross-tab changes
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('accessMenuChanged', handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   // Helper to get the correct path prefix based on user role
   const pathPrefix = user?.role === 'manager' ? '/manager' : '/admin';
@@ -323,7 +340,7 @@ export default function AdminSidebar(props) {
       ]
     },
     // Access Management (Admin Only)
-    ...(user?.role === 'admin' ? [{
+    ...(user?.role === 'admin' && showAccessMenu ? [{
       id: "access",
       icon: <Icons.ShieldCheck />,
       label: "Access",

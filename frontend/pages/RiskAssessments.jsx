@@ -2,20 +2,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
-import { 
-  Home, 
-  Shield, 
-  Search, 
-  ChevronDown, 
-  Filter, 
-  Columns, 
-  Download, 
-  X, 
-  Edit, 
-  Trash2, 
-  Eye, 
+import {
+  Home,
+  Shield,
+  Search,
+  ChevronDown,
+  Filter,
+  Columns,
+  Download,
+  X,
+  Edit,
+  Trash2,
+  Eye,
   EyeOff,
-  Check 
+  Check
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -37,10 +37,10 @@ function normalizeHotelsResponse(data) {
     }
   }
   return items.map((h) => {
-      const id = h?.id ?? h?.hotel_id ?? h?._id ?? null;
-      const name = h?.name ?? h?.title ?? h?.hotel_name ?? `${id ?? ''}`;
-      return { id, name };
-    }).filter((x) => x.id && x.name);
+    const id = h?.id ?? h?.hotel_id ?? h?._id ?? null;
+    const name = h?.name ?? h?.title ?? h?.hotel_name ?? `${id ?? ''}`;
+    return { id, name };
+  }).filter((x) => x.id && x.name);
 }
 
 /* Helper functions */
@@ -66,7 +66,7 @@ function getPriorityColor(p) {
   const low = String(p).toLowerCase();
   if (low === "urgent" || low === "high" || low === "critical") return { dot: "bg-red-500", text: "text-red-700" };
   if (low === "medium") return { dot: "bg-orange-500", text: "text-orange-700" };
-  return { dot: "bg-green-500", text: "text-green-700" }; 
+  return { dot: "bg-green-500", text: "text-green-700" };
 }
 
 function getStatusColor(s) {
@@ -133,12 +133,12 @@ export default function RiskAssessments({ user }) {
 
   const [staffUsers, setStaffUsers] = useState([]);
   const [staffLoading, setStaffLoading] = useState(false);
-   
+
   // Filter States
   const [query, setQuery] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  
+
   // Enhanced Filter and Sort State
   const [propertyFilter, setPropertyFilter] = useState("");
   const [sortBy, setSortBy] = useState("");
@@ -320,12 +320,12 @@ export default function RiskAssessments({ user }) {
   // Fetch available columns from Forms Builder with polling
   useEffect(() => {
     let mounted = true;
-    
+
     const fetchAvailableColumns = async () => {
       try {
         const res = await api.get('/api/forms-builder/tables/risk_assessments/columns');
         if (!mounted) return;
-        
+
         const cols = res?.data?.columns || res?.data || [];
         const columnNames = cols.map(col => {
           if (typeof col === 'string') return col;
@@ -333,22 +333,22 @@ export default function RiskAssessments({ user }) {
           if (col.name) return col.name;
           return String(col);
         });
-        
+
         setAvailableColumns(columnNames);
-        
+
         const standardCols = ['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by', 'title', 'description', 'property_id', 'property_name', 'category', 'risk_level', 'assigned_to', 'reported_by', 'assessment_date', 'status', 'findings', 'recommendations'];
         const customCols = columnNames.filter(col => !standardCols.includes(col));
-        
+
         // Only update if columns have changed
         if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
           setCustomColumns(customCols);
-          
+
           // Update visible columns - default new columns to visible
           setVisibleColumns(prev => {
             const updated = { ...prev };
             customCols.forEach(col => {
               if (prev[col] === undefined) {
-                 updated[col] = true; 
+                updated[col] = true;
               }
             });
             return updated;
@@ -434,7 +434,7 @@ export default function RiskAssessments({ user }) {
       ...prev,
       property_id: propId,
       property_name: prop?.name || '',
-      reported_by: '',
+      reported_by: currentUser?.name || '',
       assigned_to: '',
     }));
   };
@@ -460,7 +460,7 @@ export default function RiskAssessments({ user }) {
         category: '',
         risk_level: 'Medium',
         assigned_to: '',
-        reported_by: '',
+        reported_by: currentUser?.name || '',
         assessment_date: '',
         status: 'New',
         findings: '',
@@ -537,7 +537,7 @@ export default function RiskAssessments({ user }) {
   const filteredAssessments = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
     let filtered = assessments.filter(a => {
-      const matchSearch = !q || 
+      const matchSearch = !q ||
         a.title?.toLowerCase().includes(q) ||
         a.description?.toLowerCase().includes(q) ||
         a.reference?.toLowerCase().includes(q);
@@ -833,7 +833,7 @@ export default function RiskAssessments({ user }) {
                     className="bg-white border-2 border-gray-200 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 w-72 transition-all shadow-sm hover:shadow-md"
                   />
                 </div>
-                
+
                 {/* View Dropdown */}
                 <div className="relative" ref={viewRef}>
                   <button
@@ -850,172 +850,168 @@ export default function RiskAssessments({ user }) {
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       <div className="p-4">
                         <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
-                        
+
                         {/* View Mode Selector */}
                         <div className="mb-3 pb-3 border-b border-gray-200">
                           <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => setViewMode('table')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'table'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
                             >
                               <Columns className="w-4 h-4" />
                               <span>Table</span>
                             </button>
                             <button
                               onClick={() => setViewMode('board')}
-                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                                viewMode === 'board'
-                                  ? 'bg-teal-500 text-white shadow-sm'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              }`}
+                              className={`flex-1 px-3 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
                             >
                               <Shield className="w-4 h-4" />
                               <span>Board</span>
                             </button>
                           </div>
                         </div>
-                        
+
                         {viewMode === 'table' && (
                           <>
-                        <button
-                          onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
-                          className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                        >
-                          <span>Column visibility</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">
-                              {Object.values(visibleColumns).filter(Boolean).length} shown
-                            </span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
-                          </div>
-                        </button>
-                        
-                        {/* Column Visibility Panel */}
-                        {showPropertyVisibility && (
-                          <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
-                            {/* Default Columns Section */}
-                            <div className="mb-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = true);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Show all
-                                  </button>
-                                  <span className="text-gray-300">|</span>
-                                  <button
-                                    onClick={() => {
-                                      const updates = {};
-                                      DEFAULT_COLUMNS.forEach(c => updates[c] = false);
-                                      setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                    }}
-                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                  >
-                                    Hide all
-                                  </button>
-                                </div>
+                            <button
+                              onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
+                              className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                            >
+                              <span>Column visibility</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {Object.values(visibleColumns).filter(Boolean).length} shown
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                               </div>
-                              <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
-                              <div className="space-y-1">
-                                {DEFAULT_COLUMNS.map(col => (
-                                  <button
-                                    key={col}
-                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
-                                      visibleColumns[col] 
-                                        ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                        : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                    }`}
-                                  >
-                                    <span className="capitalize font-medium">{col}</span>
-                                    <div className="flex items-center gap-2">
-                                      {visibleColumns[col] ? (
-                                        <Eye className="w-4 h-4 text-teal-600" />
-                                      ) : (
-                                        <EyeOff className="w-4 h-4 text-gray-400" />
-                                      )}
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
+                            </button>
 
-                            {/* Custom Columns Section - All custom columns */}
-                            {customColumns.length > 0 && (
-                              <div className="pt-4 border-t border-gray-200">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
-                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                                      {customColumns.length}
-                                    </span>
+                            {/* Column Visibility Panel */}
+                            {showPropertyVisibility && (
+                              <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
+                                {/* Default Columns Section */}
+                                <div className="mb-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Show all
+                                      </button>
+                                      <span className="text-gray-300">|</span>
+                                      <button
+                                        onClick={() => {
+                                          const updates = {};
+                                          DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                          setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                        }}
+                                        className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                      >
+                                        Hide all
+                                      </button>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = true);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Show all
-                                    </button>
-                                    <span className="text-gray-300">|</span>
-                                    <button
-                                      onClick={() => {
-                                        const updates = {};
-                                        customColumns.forEach(c => updates[c] = false);
-                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                      }}
-                                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
-                                    >
-                                      Hide all
-                                    </button>
-                                  </div>
-                                </div>
-                                <div className="text-xs text-gray-500 mb-2">
-                                  Custom columns from Forms Builder 
-                                  <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
-                                </div>
-                                <div className="space-y-1">
-                                  {customColumns.map(col => (
-                                    <button
-                                      key={col}
-                                      onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                      className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
-                                        visibleColumns[col] 
-                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
+                                  <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
+                                  <div className="space-y-1">
+                                    {DEFAULT_COLUMNS.map(col => (
+                                      <button
+                                        key={col}
+                                        onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${visibleColumns[col]
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
                                           : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                      }`}
-                                    >
-                                      <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                      <div className="flex items-center gap-2">
-                                        {visibleColumns[col] ? (
-                                          <Eye className="w-4 h-4 text-teal-600" />
-                                        ) : (
-                                          <EyeOff className="w-4 h-4 text-gray-400" />
-                                        )}
-                                      </div>
-                                    </button>
-                                  ))}
+                                          }`}
+                                      >
+                                        <span className="capitalize font-medium">{col}</span>
+                                        <div className="flex items-center gap-2">
+                                          {visibleColumns[col] ? (
+                                            <Eye className="w-4 h-4 text-teal-600" />
+                                          ) : (
+                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                          )}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
+
+                                {/* Custom Columns Section - All custom columns */}
+                                {customColumns.length > 0 && (
+                                  <div className="pt-4 border-t border-gray-200">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                          {customColumns.length}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = true);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Show all
+                                        </button>
+                                        <span className="text-gray-300">|</span>
+                                        <button
+                                          onClick={() => {
+                                            const updates = {};
+                                            customColumns.forEach(c => updates[c] = false);
+                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                          }}
+                                          className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                                        >
+                                          Hide all
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-500 mb-2">
+                                      Custom columns from Forms Builder
+                                      <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {customColumns.map(col => (
+                                        <button
+                                          key={col}
+                                          onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${visibleColumns[col]
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            }`}
+                                        >
+                                          <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                          <div className="flex items-center gap-2">
+                                            {visibleColumns[col] ? (
+                                              <Eye className="w-4 h-4 text-teal-600" />
+                                            ) : (
+                                              <EyeOff className="w-4 h-4 text-gray-400" />
+                                            )}
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
-                          </div>
-                        )}
-                          </> 
+                          </>
                         )}
                       </div>
                     </div>
@@ -1040,7 +1036,7 @@ export default function RiskAssessments({ user }) {
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <select
                   value={filterPriority}
-                  onChange={(e)=>setFilterPriority(e.target.value)} 
+                  onChange={(e) => setFilterPriority(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">All Priority</option>
@@ -1051,12 +1047,12 @@ export default function RiskAssessments({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <select
                   value={filterStatus}
-                  onChange={(e)=>setFilterStatus(e.target.value)} 
+                  onChange={(e) => setFilterStatus(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">All Status</option>
@@ -1067,12 +1063,12 @@ export default function RiskAssessments({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <select
                   value={propertyFilter}
-                  onChange={(e)=>setPropertyFilter(e.target.value)}
+                  onChange={(e) => setPropertyFilter(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">All Properties</option>
@@ -1080,12 +1076,12 @@ export default function RiskAssessments({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <select
                   value={sortBy}
-                  onChange={(e)=>setSortBy(e.target.value)}
+                  onChange={(e) => setSortBy(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">Sort By</option>
@@ -1096,7 +1092,7 @@ export default function RiskAssessments({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               {(filterPriority || filterStatus || propertyFilter || sortBy) && (
                 <button
                   onClick={() => {
@@ -1116,173 +1112,173 @@ export default function RiskAssessments({ user }) {
 
           {/* Data Display - Table or Board View */}
           {viewMode === 'table' ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  {visibleColumns.checkbox && (
-                    <th className="text-left py-3 px-4">
-                      <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                    </th>
-                  )}
-                  {visibleColumns.type && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">CATEGORY</th>
-                  )}
-                  {visibleColumns.reference && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
-                  )}
-                  {visibleColumns.description && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
-                  )}
-                  {visibleColumns.priority && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">RISK LEVEL</th>
-                  )}
-                  {visibleColumns.status && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
-                  )}
-                  {visibleColumns.assigned && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
-                  )}
-                  {visibleColumns.date && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
-                  )}
-                  {/* Custom column headers - UI Matched to other columns */}
-                  {customColumns.map(col => visibleColumns[col] && (
-                    <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {col.replace(/_/g, ' ')}
-                    </th>
-                  ))}
-                  {visibleColumns.actions && (
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {assessmentsLoading ? (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    {visibleColumns.checkbox && (
+                      <th className="text-left py-3 px-4">
+                        <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                      </th>
+                    )}
+                    {visibleColumns.type && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">CATEGORY</th>
+                    )}
+                    {visibleColumns.reference && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
+                    )}
+                    {visibleColumns.description && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                    )}
+                    {visibleColumns.priority && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">RISK LEVEL</th>
+                    )}
+                    {visibleColumns.status && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
+                    )}
+                    {visibleColumns.assigned && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                    )}
+                    {visibleColumns.date && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
+                    )}
+                    {/* Custom column headers - UI Matched to other columns */}
+                    {customColumns.map(col => visibleColumns[col] && (
+                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        {col.replace(/_/g, ' ')}
+                      </th>
+                    ))}
+                    {visibleColumns.actions && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                    )}
                   </tr>
-                ) : filteredAssessments.length > 0 ? filteredAssessments.map((assess, idx) => {
-                  const priorityStyle = getPriorityColor(assess.risk_level || "Medium");
-                  const statusStyle = getStatusColor(assess.status || "New");
-                  
-                  return (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      {visibleColumns.checkbox && (
-                        <td className="py-4 px-4">
-                          <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
-                        </td>
-                      )}
-                      {visibleColumns.type && (
-                        <td className="py-4 px-4">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
-                            {assess.category || "Risk Assessment"}
-                          </span>
-                        </td>
-                      )}
-                      {visibleColumns.reference && (
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700 font-medium">{assess.reference || `RAST-${assess.id || idx}`}</span>
-                        </td>
-                      )}
-                      {visibleColumns.description && (
-                        <td className="py-4 px-4">
-                          <div>
-                            <div 
-                              className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
-                              onClick={hasUpdate ? () => handleOpenModal('edit', assess) : undefined}
-                            >
-                              {assess.title || "Risk Assessment Title"}
-                            </div>
-                            <div className="text-gray-500 text-xs mt-1">
-                              {assess.description || "Risk assessment description and information."}
-                            </div>
-                            {assess.property_name && <div className="text-gray-500 text-xs mt-1">Property: {assess.property_name}</div>}
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.priority && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                            <span className={`text-sm ${priorityStyle.text}`}>{assess.risk_level || "Medium"}</span>
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.status && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                            <span className={`text-sm ${statusStyle.text}`}>{assess.status || "New"}</span>
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.assigned && (
-                        <td className="py-4 px-4">
-                          {!assess.assigned_to ? (
-                            <span className="text-gray-500 text-sm">Unassigned</span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-full ${getAvatarColor(assess.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
-                                {getInitials(assess.assigned_to)}
-                              </div>
-                              <span className="text-gray-900 text-sm">{assess.assigned_to}</span>
-                            </div>
-                          )}
-                        </td>
-                      )}
-                      {visibleColumns.date && (
-                        <td className="py-4 px-4">
-                          <span className="text-gray-700 text-sm">{formatDate(assess.assessment_date)}</span>
-                        </td>
-                      )}
-                      {/* Custom column cells - UI Matched to other columns */}
-                      {customColumns.map(col => visibleColumns[col] && (
-                        <td key={col} className="py-4 px-4">
-                          <span className="text-gray-700 text-sm">{assess[col] || '-'}</span>
-                        </td>
-                      ))}
-                      {visibleColumns.actions && (
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleOpenModal('view', assess)}
-                              className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
-                              title="View"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            {hasUpdate && (
-                              <button
-                                onClick={() => handleOpenModal('edit', assess)}
-                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
-                                title="Edit"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                            )}
-                            {hasDelete && (
-                              <button
-                                onClick={() => handleDelete(assess.id)}
-                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {assessmentsLoading ? (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
                     </tr>
-                  );
-                }) : (
-                  <tr>
-                    <td colSpan="9" className="py-8 text-center text-gray-500">No assessments found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : filteredAssessments.length > 0 ? filteredAssessments.map((assess, idx) => {
+                    const priorityStyle = getPriorityColor(assess.risk_level || "Medium");
+                    const statusStyle = getStatusColor(assess.status || "New");
+
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                        {visibleColumns.checkbox && (
+                          <td className="py-4 px-4">
+                            <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
+                          </td>
+                        )}
+                        {visibleColumns.type && (
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
+                              {assess.category || "Risk Assessment"}
+                            </span>
+                          </td>
+                        )}
+                        {visibleColumns.reference && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 font-medium">{assess.reference || `RAST-${assess.id || idx}`}</span>
+                          </td>
+                        )}
+                        {visibleColumns.description && (
+                          <td className="py-4 px-4">
+                            <div>
+                              <div
+                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
+                                onClick={hasUpdate ? () => handleOpenModal('edit', assess) : undefined}
+                              >
+                                {assess.title || "Risk Assessment Title"}
+                              </div>
+                              <div className="text-gray-500 text-xs mt-1">
+                                {assess.description || "Risk assessment description and information."}
+                              </div>
+                              {assess.property_name && <div className="text-gray-500 text-xs mt-1">Property: {assess.property_name}</div>}
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.priority && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
+                              <span className={`text-sm ${priorityStyle.text}`}>{assess.risk_level || "Medium"}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.status && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
+                              <span className={`text-sm ${statusStyle.text}`}>{assess.status || "New"}</span>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.assigned && (
+                          <td className="py-4 px-4">
+                            {!assess.assigned_to ? (
+                              <span className="text-gray-500 text-sm">Unassigned</span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(assess.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
+                                  {getInitials(assess.assigned_to)}
+                                </div>
+                                <span className="text-gray-900 text-sm">{assess.assigned_to}</span>
+                              </div>
+                            )}
+                          </td>
+                        )}
+                        {visibleColumns.date && (
+                          <td className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{formatDate(assess.assessment_date)}</span>
+                          </td>
+                        )}
+                        {/* Custom column cells - UI Matched to other columns */}
+                        {customColumns.map(col => visibleColumns[col] && (
+                          <td key={col} className="py-4 px-4">
+                            <span className="text-gray-700 text-sm">{assess[col] || '-'}</span>
+                          </td>
+                        ))}
+                        {visibleColumns.actions && (
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleOpenModal('view', assess)}
+                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                title="View"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              {hasUpdate && (
+                                <button
+                                  onClick={() => handleOpenModal('edit', assess)}
+                                  className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              )}
+                              {hasDelete && (
+                                <button
+                                  onClick={() => handleDelete(assess.id)}
+                                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  }) : (
+                    <tr>
+                      <td colSpan="9" className="py-8 text-center text-gray-500">No assessments found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           ) : (
             /* Board/Kanban View */
             <div className="overflow-x-auto -mx-6 px-6">
@@ -1291,7 +1287,7 @@ export default function RiskAssessments({ user }) {
                   const statusItems = filteredAssessments.filter((assessment) => {
                     return (assessment.status || 'New').toLowerCase() === status.toLowerCase();
                   });
-                  
+
                   const getStatusStyle = (status) => {
                     if (status === 'New') {
                       return {
@@ -1347,7 +1343,7 @@ export default function RiskAssessments({ user }) {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                           {statusItems.length === 0 ? (
                             <div className="text-center py-8 px-4">
@@ -1357,12 +1353,12 @@ export default function RiskAssessments({ user }) {
                           ) : (
                             statusItems.map((assessment) => {
                               const priorityColor = getPriorityColor(assessment.risk_level || "Medium");
-                              
+
                               return (
                                 <div
                                   key={assessment.id}
                                   className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
-                                  onClick={() => {setSelectedAssessment(assessment); setModalMode('view'); setShowModal(true);}}
+                                  onClick={() => { setSelectedAssessment(assessment); setModalMode('view'); setShowModal(true); }}
                                 >
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-mono text-gray-500">{assessment.reference || `RISK-${assessment.id}`}</span>
@@ -1373,17 +1369,17 @@ export default function RiskAssessments({ user }) {
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
                                     {assessment.title || "Risk Assessment"}
                                   </h4>
-                                  
+
                                   {assessment.description && (
                                     <p className="text-xs text-gray-500 mb-3 line-clamp-2">
                                       {assessment.description}
                                     </p>
                                   )}
-                                  
+
                                   <div className="flex items-center gap-2 mb-3">
                                     {assessment.category && (
                                       <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-medium">
@@ -1391,7 +1387,7 @@ export default function RiskAssessments({ user }) {
                                       </span>
                                     )}
                                   </div>
-                                  
+
                                   <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
                                     <div className="flex items-center gap-2">
                                       {assessment.assessed_by && assessment.assessed_by !== 'Unassigned' ? (
@@ -1407,12 +1403,12 @@ export default function RiskAssessments({ user }) {
                                         <span className="text-xs text-gray-400">Unassigned</span>
                                       )}
                                     </div>
-                                    
+
                                     <span className="text-xs text-gray-500">
                                       {formatDate(assessment.assessment_date)}
                                     </span>
                                   </div>
-                                  
+
                                   <div className="flex items-center gap-1">
                                     <button
                                       onClick={(e) => {
@@ -1468,8 +1464,8 @@ export default function RiskAssessments({ user }) {
       {/* ----------------- MODAL SECTION ----------------- */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
-            
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative h-[70vh] flex flex-col">
+
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <div className="flex items-center gap-3">
@@ -1477,17 +1473,16 @@ export default function RiskAssessments({ user }) {
                   {modalMode === 'create' ? "New Risk Assessment" : modalMode === 'edit' ? "Edit Risk Assessment" : "View Risk Assessment"}
                 </h3>
                 {modalMode === 'view' && (
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${
-                    (formData.status||'').toLowerCase() === 'open' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
-                    (formData.status||'').toLowerCase() === 'overdue' ? 'bg-red-50 text-red-600 border-red-100' :
-                    'bg-green-50 text-green-600 border-green-100'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${(formData.status || '').toLowerCase() === 'open' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                    (formData.status || '').toLowerCase() === 'overdue' ? 'bg-red-50 text-red-600 border-red-100' :
+                      'bg-green-50 text-green-600 border-green-100'
+                    }`}>
                     {formData.status}
                   </span>
                 )}
               </div>
-              <button 
-                onClick={handleCloseModal} 
+              <button
+                onClick={handleCloseModal}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -1496,26 +1491,26 @@ export default function RiskAssessments({ user }) {
 
             {/* View Mode Content */}
             {modalMode === 'view' ? (
-              <div className="p-6">
+              <div className="p-6 flex-1 overflow-y-auto">
                 <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
                   <DetailField label="TITLE" value={formData.title} />
                   <DetailField label="PROPERTY" value={formData.property_name} />
-                  
+
                   <DetailField label="CATEGORY" value={formData.category} />
                   <DetailField label="RISK LEVEL" value={formData.risk_level} />
-                  
+
                   <DetailField label="REPORTED BY" value={formData.reported_by} />
                   <DetailField label="ASSIGNED TO" value={formData.assigned_to} />
-                  
+
                   <DetailField label="ASSESSMENT DATE" value={formatDate(formData.assessment_date)} />
                   <DetailField label="STATUS" value={formData.status} />
-                  
+
                   {/* Custom columns in view mode */}
                   {customColumns.map(col => (
-                    <DetailField 
-                      key={col} 
-                      label={col.replace(/_/g, ' ').toUpperCase()} 
-                      value={formData[col]} 
+                    <DetailField
+                      key={col}
+                      label={col.replace(/_/g, ' ').toUpperCase()}
+                      value={formData[col]}
                     />
                   ))}
                 </div>
@@ -1534,7 +1529,7 @@ export default function RiskAssessments({ user }) {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="mb-4">
                   <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">RECOMMENDATIONS</div>
                   <div className="bg-slate-50 p-4 rounded-md text-sm text-slate-600 border border-slate-100 min-h-[60px]">
@@ -1543,8 +1538,8 @@ export default function RiskAssessments({ user }) {
                 </div>
 
                 <div className="flex justify-end pt-4 border-t border-gray-100">
-                  <button 
-                    onClick={handleCloseModal} 
+                  <button
+                    onClick={handleCloseModal}
                     className="px-5 py-2 border border-slate-200 text-slate-700 font-medium rounded hover:bg-slate-50 transition-colors"
                   >
                     Close
@@ -1553,39 +1548,39 @@ export default function RiskAssessments({ user }) {
               </div>
             ) : (
               /* Create/Edit Form Content */
-              <form onSubmit={submit} className="p-4">
+              <form onSubmit={submit} className="p-4 flex-1 overflow-y-auto">
                 {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-                  
+
                   {/* Row 1: Title & Description */}
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
-                    <input 
-                      required 
-                      value={formData.title || ''} 
+                    <input
+                      required
+                      value={formData.title || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Brief description of task" 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      placeholder="Brief description of task"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                     />
                   </div>
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
-                    <textarea 
-                      required 
-                      value={formData.description || ''} 
+                    <textarea
+                      required
+                      value={formData.description || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       rows={2}
-                      placeholder="Detailed description of the risk assessment..." 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" 
+                      placeholder="Detailed description of the risk assessment..."
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 resize-y"
                     />
                   </div>
 
                   {/* Row 2: Property & Category */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
-                    <select 
-                      required 
-                      value={formData.property_id || ''} 
+                    <select
+                      required
+                      value={formData.property_id || ''}
                       onChange={(e) => handlePropertyChange(e.target.value)}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
@@ -1595,9 +1590,9 @@ export default function RiskAssessments({ user }) {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
-                    <select 
-                      required 
-                      value={formData.category || ''} 
+                    <select
+                      required
+                      value={formData.category || ''}
                       onChange={handleCategoryChange}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
@@ -1645,8 +1640,8 @@ export default function RiskAssessments({ user }) {
                   {/* Row 3: Risk Level & Reported By */}
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Risk Level <span className="text-red-500">*</span></label>
-                    <select 
-                      value={formData.risk_level || 'Medium'} 
+                    <select
+                      value={formData.risk_level || 'Medium'}
                       onChange={(e) => setFormData(prev => ({ ...prev, risk_level: e.target.value }))}
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                     >
@@ -1657,28 +1652,13 @@ export default function RiskAssessments({ user }) {
                     </select>
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                    <select
-                      required
-                      value={formData.reported_by || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, reported_by: e.target.value }))}
-                      disabled={!formData.property_id || staffLoading}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="">
-                        {!formData.property_id
-                          ? "Select property first"
-                          : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
-                      </option>
-                      {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
-                        <option value={formData.reported_by}>{formData.reported_by}</option>
-                      )}
-                      {staffUsers.map((u) => (
-                        <option key={u.id} value={u.name}>{u.name}</option>
-                      ))}
-                    </select>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
+                    <input
+                      type="text"
+                      value={formData.reported_by}
+                      readOnly
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-gray-100 cursor-not-allowed"
+                    />
                   </div>
 
                   {/* Row 4: Assigned To & Assessment Date */}
@@ -1694,8 +1674,8 @@ export default function RiskAssessments({ user }) {
                         {!formData.property_id
                           ? "Select property first"
                           : staffLoading
-                          ? "Loading staff..."
-                          : "Select staff"}
+                            ? "Loading staff..."
+                            : "Select staff"}
                       </option>
                       {!!formData.assigned_to && !staffUsers.some((u) => String(u.name) === String(formData.assigned_to)) && (
                         <option value={formData.assigned_to}>{formData.assigned_to}</option>
@@ -1707,35 +1687,35 @@ export default function RiskAssessments({ user }) {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Assessment Date</label>
-                    <input 
-                      type="date" 
-                      value={formatDateISO(formData.assessment_date) || ''} 
+                    <input
+                      type="date"
+                      value={formatDateISO(formData.assessment_date) || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, assessment_date: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" 
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                     />
                   </div>
 
                   {/* Row 5: Findings (Full Width) */}
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Findings</label>
-                    <textarea 
-                      value={formData.findings || ''} 
+                    <textarea
+                      value={formData.findings || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, findings: e.target.value }))}
                       rows={2}
-                      placeholder="Assessment findings..." 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" 
+                      placeholder="Assessment findings..."
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
                     />
                   </div>
 
                   {/* Row 6: Recommendations (Full Width) */}
                   <div className="col-span-1 md:col-span-2">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Recommendations</label>
-                    <textarea 
-                      value={formData.recommendations || ''} 
+                    <textarea
+                      value={formData.recommendations || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, recommendations: e.target.value }))}
                       rows={2}
-                      placeholder="Recommended actions..." 
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" 
+                      placeholder="Recommended actions..."
+                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
                     />
                   </div>
 
@@ -1745,12 +1725,12 @@ export default function RiskAssessments({ user }) {
                       <label className="block text-xs font-medium text-purple-600 mb-1">
                         {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </label>
-                      <input 
-                        type="text" 
-                        value={formData[col] || ''} 
-                        onChange={(e) => setFormData({ ...formData, [col]: e.target.value })} 
+                      <input
+                        type="text"
+                        value={formData[col] || ''}
+                        onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
                         placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                        className="w-full border border-purple-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500" 
+                        className="w-full border border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                       />
                     </div>
                   ))}
@@ -1759,8 +1739,8 @@ export default function RiskAssessments({ user }) {
                   {modalMode !== 'create' && (
                     <div className="col-span-1 md:col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                      <select 
-                        value={formData.status || 'New'} 
+                      <select
+                        value={formData.status || 'New'}
                         onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
                         className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                       >
@@ -1775,15 +1755,15 @@ export default function RiskAssessments({ user }) {
 
                 {/* Footer Buttons */}
                 <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
-                  <button 
-                    type="button" 
-                    onClick={handleCloseModal} 
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
                     className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={submitting}
                     className="px-4 py-1.5 bg-teal-500 text-white rounded-md hover:bg-teal-600 font-medium shadow-sm transition-colors text-sm"
                   >

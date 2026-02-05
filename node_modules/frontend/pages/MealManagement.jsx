@@ -78,7 +78,7 @@ export default function MealManagement({ user }) {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'warning'
   });
 
@@ -217,9 +217,9 @@ export default function MealManagement({ user }) {
         setProperties(
           Array.isArray(ps)
             ? ps.map((p) => ({
-                id: p.id,
-                name: p.name || p._displayName || `${p.id}`,
-              }))
+              id: p.id,
+              name: p.name || p._displayName || `${p.id}`,
+            }))
             : []
         );
 
@@ -232,17 +232,17 @@ export default function MealManagement({ user }) {
         setServiceUsers(
           Array.isArray(sus)
             ? sus.map((s) => ({
-                id: s.id,
-                name: s.first_name ?? s.name ?? s.full_name ?? `${s.id}`,
-                propertyId:
-                  s.hotel_id ??
-                  s.property_id ??
-                  s.hotelId ??
-                  s.propertyId ??
-                  s.hotel ??
-                  s.property ??
-                  "",
-              }))
+              id: s.id,
+              name: s.first_name ?? s.name ?? s.full_name ?? `${s.id}`,
+              propertyId:
+                s.hotel_id ??
+                s.property_id ??
+                s.hotelId ??
+                s.propertyId ??
+                s.hotel ??
+                s.property ??
+                "",
+            }))
             : []
         );
 
@@ -280,8 +280,8 @@ export default function MealManagement({ user }) {
                 (m.consumed
                   ? "Consumed"
                   : m.is_consumed
-                  ? "Consumed"
-                  : "Pending") ??
+                    ? "Consumed"
+                    : "Pending") ??
                 "Pending",
               scheduledDate: m.scheduled_date ?? m.scheduledDate ?? date,
               notes: m.notes || "",
@@ -332,19 +332,19 @@ export default function MealManagement({ user }) {
     let list = meals.filter((m) => {
       if (selectedProperty && String(m.property) !== String(selectedProperty))
         return false;
-      
+
       // Filter by meal type
       if (filterMealType !== 'All Meals') {
         const type = m.mealType ? String(m.mealType).toLowerCase() : "";
         if (type !== filterMealType.toLowerCase()) return false;
       }
-      
+
       // Filter by status
       if (filterStatus !== 'All Status') {
         const status = String(m.status).toLowerCase();
         if (status !== filterStatus.toLowerCase()) return false;
       }
-      
+
       const type = m.mealType ? String(m.mealType).toLowerCase() : "";
       if (activeTab === "breakfast") return type === "breakfast";
       if (activeTab === "lunch") return type === "lunch";
@@ -519,55 +519,55 @@ export default function MealManagement({ user }) {
   // }
 
   const handleDeleteMealConfirm = async () => {
-  if (!canDeletePage) {
-    setAlertDialog({
-      isOpen: true,
-      title: 'Permission Denied',
-      message: 'You do not have permission to delete meals.',
-      type: 'warning'
-    });
-    setShowDeleteModal(false);
-    setDeleteMeal(null);
-    return;
-  }
-  if (!deleteMeal) return;
-
-  try {
-    setDeleting(true);
-
-    // UI update first (same as before)
-    setMeals((prev) =>
-      prev.filter((x) => String(x.id) !== String(deleteMeal.id))
-    );
-
-    // Skip API for temporary items (same logic)
-    if (
-      deleteMeal.id &&
-      String(deleteMeal.id).startsWith("tmp-")
-    ) {
+    if (!canDeletePage) {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Permission Denied',
+        message: 'You do not have permission to delete meals.',
+        type: 'warning'
+      });
       setShowDeleteModal(false);
       setDeleteMeal(null);
       return;
     }
+    if (!deleteMeal) return;
 
-    await api
-      .delete(`/api/meals/${encodeURIComponent(deleteMeal.id)}`)
-      .catch(() => null);
+    try {
+      setDeleting(true);
 
-    setShowDeleteModal(false);
-    setDeleteMeal(null);
-  } catch (err) {
-    console.warn("Failed to delete meal", err?.message || err);
-    setAlertDialog({
-      isOpen: true,
-      title: 'Error',
-      message: 'Failed to delete meal.',
-      type: 'error'
-    });
-  } finally {
-    setDeleting(false);
-  }
-};
+      // UI update first (same as before)
+      setMeals((prev) =>
+        prev.filter((x) => String(x.id) !== String(deleteMeal.id))
+      );
+
+      // Skip API for temporary items (same logic)
+      if (
+        deleteMeal.id &&
+        String(deleteMeal.id).startsWith("tmp-")
+      ) {
+        setShowDeleteModal(false);
+        setDeleteMeal(null);
+        return;
+      }
+
+      await api
+        .delete(`/api/meals/${encodeURIComponent(deleteMeal.id)}`)
+        .catch(() => null);
+
+      setShowDeleteModal(false);
+      setDeleteMeal(null);
+    } catch (err) {
+      console.warn("Failed to delete meal", err?.message || err);
+      setAlertDialog({
+        isOpen: true,
+        title: 'Error',
+        message: 'Failed to delete meal.',
+        type: 'error'
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
 
   async function updateMeal(id, payload) {
@@ -587,17 +587,17 @@ export default function MealManagement({ user }) {
       prev.map((m) =>
         String(m.id) === String(id)
           ? {
-              ...m,
-              serviceUser: payload.service_user_name ?? m.serviceUser,
-              property: payload.property_name ?? m.property,
-              mealType: payload.meal_type ?? m.mealType,
-              portion: payload.portion ?? m.portion,
-              dietary: payload.dietary ?? m.dietary,
-              status: payload.status ?? m.status,
-              serviceUserId: payload.service_user_id ?? m.serviceUserId,
-              propertyId: payload.property_id ?? m.propertyId,
-              notes: payload.notes ?? m.notes,
-            }
+            ...m,
+            serviceUser: payload.service_user_name ?? m.serviceUser,
+            property: payload.property_name ?? m.property,
+            mealType: payload.meal_type ?? m.mealType,
+            portion: payload.portion ?? m.portion,
+            dietary: payload.dietary ?? m.dietary,
+            status: payload.status ?? m.status,
+            serviceUserId: payload.service_user_id ?? m.serviceUserId,
+            propertyId: payload.property_id ?? m.propertyId,
+            notes: payload.notes ?? m.notes,
+          }
           : m
       )
     );
@@ -754,45 +754,45 @@ export default function MealManagement({ user }) {
           />
         )}
 
-                             {showDeleteModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-    <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6">
 
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        Delete Meal?
-      </h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Delete Meal?
+              </h3>
 
-      <p className="text-sm text-gray-500 mb-6">
-        This action cannot be undone.
-      </p>
+              <p className="text-sm text-gray-500 mb-6">
+                This action cannot be undone.
+              </p>
 
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => {
-            setShowDeleteModal(false);
-            setDeleteMeal(null);
-          }}
-          className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
-        >
-          Cancel
-        </button>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteMeal(null);
+                  }}
+                  className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
 
-        <button
-          onClick={handleDeleteMealConfirm}
-          disabled={deleting}
-          className="
+                <button
+                  onClick={handleDeleteMealConfirm}
+                  disabled={deleting}
+                  className="
             px-4 py-2 rounded-md
             bg-teal-400 hover:bg-teal-500
             text-white font-medium
             disabled:opacity-50
           "
-        >
-          {deleting ? "Deleting..." : "Delete"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+                >
+                  {deleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* --- UPDATED STAT CARDS (Litigation-style) --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -881,7 +881,7 @@ export default function MealManagement({ user }) {
               <div className="flex items-center gap-3">
                 {/* View Menu */}
                 <div className="relative" ref={viewRef}>
-                  <button 
+                  <button
                     onClick={() => setShowViewMenu(!showViewMenu)}
                     className="bg-white border border-gray-300 text-gray-700 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-all flex items-center gap-2"
                   >
@@ -889,7 +889,7 @@ export default function MealManagement({ user }) {
                     <span>View</span>
                     <ChevronDown className="w-4 h-4" />
                   </button>
-                  
+
                   {/* View Settings Dropdown */}
                   {showViewMenu && (
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
@@ -907,7 +907,7 @@ export default function MealManagement({ user }) {
                             <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                           </div>
                         </button>
-                        
+
                         {/* Column Visibility Panel */}
                         {showPropertyVisibility && (
                           <div className="mt-2 border-t border-gray-200 pt-3">
@@ -940,8 +940,8 @@ export default function MealManagement({ user }) {
                                 const label = col === 'serviceUser'
                                   ? 'Service User'
                                   : col === 'mealType'
-                                  ? 'Meal Type'
-                                  : col.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+                                    ? 'Meal Type'
+                                    : col.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
 
                                 return (
                                   <button
@@ -988,9 +988,9 @@ export default function MealManagement({ user }) {
             <div className="flex items-center gap-3 flex-wrap">
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={filterMealType} 
-                  onChange={e => setFilterMealType(e.target.value)} 
+                <select
+                  value={filterMealType}
+                  onChange={e => setFilterMealType(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option>All Meals</option>
@@ -1000,12 +1000,12 @@ export default function MealManagement({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={filterStatus} 
-                  onChange={e => setFilterStatus(e.target.value)} 
+                <select
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option>All Status</option>
@@ -1014,12 +1014,12 @@ export default function MealManagement({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={selectedProperty} 
-                  onChange={e => setSelectedProperty(e.target.value)} 
+                <select
+                  value={selectedProperty}
+                  onChange={e => setSelectedProperty(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">All Properties</option>
@@ -1027,12 +1027,12 @@ export default function MealManagement({ user }) {
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               <div className="relative">
                 <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select 
-                  value={sortBy} 
-                  onChange={e => setSortBy(e.target.value)} 
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value)}
                   className="bg-white border border-gray-300 rounded-lg pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                 >
                   <option value="">Sort By</option>
@@ -1050,7 +1050,7 @@ export default function MealManagement({ user }) {
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
-              
+
               {(filterMealType !== 'All Meals' || filterStatus !== 'All Status' || selectedProperty || sortBy) && (
                 <button
                   onClick={() => {
@@ -1068,49 +1068,45 @@ export default function MealManagement({ user }) {
             </div>
           </div>
 
-        {/* Tab Switcher - Bookings Style */}
-        <div className="mb-6 flex items-center gap-3 border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "all"
-                ? 'border-teal-500 text-teal-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            All Meals
-          </button>
-          <button
-            onClick={() => setActiveTab("breakfast")}
-            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "breakfast"
-                ? 'border-teal-500 text-teal-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Breakfast
-          </button>
-          <button
-            onClick={() => setActiveTab("lunch")}
-            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "lunch"
-                ? 'border-teal-500 text-teal-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Lunch
-          </button>
-          <button
-            onClick={() => setActiveTab("dinner")}
-            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === "dinner"
-                ? 'border-teal-500 text-teal-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Dinner
-          </button>
-        </div>
+          {/* Tab Switcher - Bookings Style */}
+          <div className="mb-6 flex items-center gap-3 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("all")}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "all"
+                  ? 'border-teal-500 text-teal-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              All Meals
+            </button>
+            <button
+              onClick={() => setActiveTab("breakfast")}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "breakfast"
+                  ? 'border-teal-500 text-teal-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Breakfast
+            </button>
+            <button
+              onClick={() => setActiveTab("lunch")}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "lunch"
+                  ? 'border-teal-500 text-teal-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Lunch
+            </button>
+            <button
+              onClick={() => setActiveTab("dinner")}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "dinner"
+                  ? 'border-teal-500 text-teal-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              Dinner
+            </button>
+          </div>
 
           {/* Data Table */}
           <div className="overflow-x-auto">
@@ -1172,54 +1168,54 @@ export default function MealManagement({ user }) {
                       {visibleColumns.actions && (
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          title="View Details"
-                          onClick={() => handleView(m)}
-                          className="group relative p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
-                        >
-                          <IconEye />
-                        </button>
-                        {canUpdatePage && (
-                          <button
-                            title="Edit"
-                            onClick={() => handleEdit(m)}
-                            className="group relative p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
-                          >
-                            <IconEdit />
-                          </button>
-                        )}
-                        {canDeletePage && (
-                          <button
-                           title="Delete"
-                           onClick={() => {
-                             setDeleteMeal(m);
-                             setShowDeleteModal(true);
-                           }}
-                           className="group relative p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
-                          >
-                            <IconTrash />
-                          </button>
-                        )}
+                            <button
+                              title="View Details"
+                              onClick={() => handleView(m)}
+                              className="group relative p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                            >
+                              <IconEye />
+                            </button>
+                            {canUpdatePage && (
+                              <button
+                                title="Edit"
+                                onClick={() => handleEdit(m)}
+                                className="group relative p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                              >
+                                <IconEdit />
+                              </button>
+                            )}
+                            {canDeletePage && (
+                              <button
+                                title="Delete"
+                                onClick={() => {
+                                  setDeleteMeal(m);
+                                  setShowDeleteModal(true);
+                                }}
+                                className="group relative p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                              >
+                                <IconTrash />
+                              </button>
+                            )}
 
-                        {canUpdatePage && (
-                          String(m.status).toLowerCase() === "consumed" ? (
-                            <button
-                              onClick={() => markNotConsumed(m.id)}
-                              className="ml-1 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-700 hover:text-white text-xs font-medium transition-all duration-200 border border-amber-200 hover:border-amber-500"
-                              title="Mark as Not Consumed"
-                            >
-                              Not Consumed
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => markConsumed(m.id)}
-                              className="ml-1 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500 text-teal-700 hover:text-white text-xs font-medium transition-all duration-200 border border-teal-200 hover:border-teal-500"
-                              title="Mark as Consumed"
-                            >
-                              Mark Consumed
-                            </button>
-                          )
-                        )}
+                            {canUpdatePage && (
+                              String(m.status).toLowerCase() === "consumed" ? (
+                                <button
+                                  onClick={() => markNotConsumed(m.id)}
+                                  className="ml-1 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500 text-amber-700 hover:text-white text-xs font-medium transition-all duration-200 border border-amber-200 hover:border-amber-500"
+                                  title="Mark as Not Consumed"
+                                >
+                                  Not Consumed
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => markConsumed(m.id)}
+                                  className="ml-1 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500 text-teal-700 hover:text-white text-xs font-medium transition-all duration-200 border border-teal-200 hover:border-teal-500"
+                                  title="Mark as Consumed"
+                                >
+                                  Mark Consumed
+                                </button>
+                              )
+                            )}
                           </div>
                         </td>
                       )}
@@ -1366,10 +1362,10 @@ function ScheduleMealModal({
   properties = [],
   initialDate = null,
   initialData = null,
-  onClose = () => {},
-  onCreate = async () => {},
-  onUpdate = async () => {},
-  onError = () => {},
+  onClose = () => { },
+  onCreate = async () => { },
+  onUpdate = async () => { },
+  onError = () => { },
 }) {
   const [form, setForm] = useState({
     serviceUserId: "",
@@ -1460,7 +1456,7 @@ function ScheduleMealModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden h-[70vh] flex flex-col">
         <div className="flex justify-between items-start p-6 border-b border-slate-100 bg-slate-50/50">
           <div>
             <h2 className="text-xl font-bold text-slate-800">
@@ -1492,15 +1488,15 @@ function ScheduleMealModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 flex-1 overflow-y-auto space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Service User
               </label>
               <select
                 required
-                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 value={form.serviceUserId}
                 onChange={(e) => handleChange("serviceUserId", e.target.value)}
               >
@@ -1514,12 +1510,12 @@ function ScheduleMealModal({
             </div>
 
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Property
               </label>
               <select
                 required
-                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 value={form.propertyId}
                 onChange={(e) => handleChange("propertyId", e.target.value)}
               >
@@ -1533,11 +1529,11 @@ function ScheduleMealModal({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Meal Type
               </label>
               <select
-                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 value={form.mealType}
                 onChange={(e) => handleChange("mealType", e.target.value)}
               >
@@ -1548,24 +1544,24 @@ function ScheduleMealModal({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Scheduled Date
               </label>
               <input
                 required
                 type="date"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 value={form.scheduledDate}
                 onChange={(e) => handleChange("scheduledDate", e.target.value)}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Portion Size
               </label>
               <select
-                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 value={form.portion}
                 onChange={(e) => handleChange("portion", e.target.value)}
               >
@@ -1576,11 +1572,11 @@ function ScheduleMealModal({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Dietary Requirements
               </label>
               <input
-                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 value={form.dietary}
                 onChange={(e) => handleChange("dietary", e.target.value)}
                 placeholder="e.g., Vegetarian, Halal, Gluten-free"
@@ -1588,11 +1584,11 @@ function ScheduleMealModal({
             </div>
 
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Notes
               </label>
               <textarea
-                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white resize-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white resize-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                 rows={3}
                 value={form.notes}
                 onChange={(e) => handleChange("notes", e.target.value)}

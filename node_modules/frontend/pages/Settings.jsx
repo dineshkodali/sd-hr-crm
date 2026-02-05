@@ -23,6 +23,7 @@ import {
   Settings as SettingsIcon,
   Grid
 } from "lucide-react";
+import Reports from "./Reports";
 
 // All available modules in the system
 const ALL_MODULES = [
@@ -106,6 +107,19 @@ export default function Settings() {
   const [roleForm, setRoleForm] = useState({ name: "", description: "", level: "view" });
   const [editingGroup, setEditingGroup] = useState(null);
   const [editingRole, setEditingRole] = useState(null);
+
+  // General Settings State
+  const [showAccessMenu, setShowAccessMenu] = useState(localStorage.getItem('showAccessMenu') === 'true');
+
+  const handleToggleAccessMenu = () => {
+    const newValue = !showAccessMenu;
+    setShowAccessMenu(newValue);
+    localStorage.setItem('showAccessMenu', newValue);
+    // Dispatch custom event for Sidebar to pick up
+    window.dispatchEvent(new Event('accessMenuChanged'));
+    setSuccessMessage(`Access Control menu ${newValue ? 'enabled' : 'disabled'} in sidebar`);
+    setTimeout(() => setSuccessMessage(""), 3000);
+  };
 
   /* Dialog State */
   const [confirmDialog, setConfirmDialog] = useState({
@@ -730,6 +744,13 @@ export default function Settings() {
                     Users & Permissions
                   </button>
                   <button
+                    onClick={() => setActiveSubTab("reports")}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeSubTab === "reports" ? "bg-teal-50 text-teal-600" : "text-gray-600 hover:bg-gray-50"}`}
+                  >
+                    <Grid className="w-4 h-4 inline mr-2" />
+                    Reports
+                  </button>
+                  <button
                     onClick={() => setActiveSubTab("groups")}
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeSubTab === "groups" ? "bg-teal-50 text-teal-600" : "text-gray-600 hover:bg-gray-50"}`}
                   >
@@ -746,6 +767,11 @@ export default function Settings() {
                 </div>
 
                 {/* Users & Permissions Tab */}
+                {activeSubTab === "reports" && (
+                  <div className="p-0 -m-8">
+                    <Reports />
+                  </div>
+                )}
                 {activeSubTab === "users" && (
                   accessDenied ? (
                     <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
@@ -1501,10 +1527,53 @@ export default function Settings() {
             )}
 
             {activeTab === "general" && (
-              <div className="text-center py-12">
-                <SettingsIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">General Settings</h3>
-                <p className="text-gray-500 text-sm">System configuration and preferences</p>
+              <div className="max-w-2xl mx-auto">
+                <div className="text-center mb-8">
+                  <SettingsIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">General Settings</h3>
+                  <p className="text-gray-500 text-sm">System configuration and preferences</p>
+                </div>
+
+                {successMessage && (
+                  <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+                    <Check className="w-5 h-5" />
+                    <span>{successMessage}</span>
+                  </div>
+                )}
+
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="p-6 border-b border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-1">Sidebar Navigation</h4>
+                    <p className="text-sm text-gray-500">Configure visibility of sidebar menu items</p>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-teal-50 rounded-lg text-teal-600">
+                          <Shield className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">Access Control Menu</div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            Show "Access" (User Access Control & Reports) in the main sidebar.
+                            <br />
+                            <span className="text-xs text-amber-600">Only visible to Admins regardless of this setting.</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleToggleAccessMenu}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${showAccessMenu ? 'bg-teal-600' : 'bg-gray-200'}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showAccessMenu ? 'translate-x-6' : 'translate-x-1'}`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

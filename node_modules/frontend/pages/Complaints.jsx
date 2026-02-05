@@ -468,7 +468,7 @@ export default function Complaints({ user }) {
       category: '',
       priority: 'medium',
       property_id: '',
-      reported_by: '',
+      reported_by: currentUser?.name || '',
       reported_date: '',
       assigned_to: '',
       scheduled_date: '',
@@ -1501,10 +1501,10 @@ export default function Complaints({ user }) {
       {/* --- FORM MODAL --- */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-hidden">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative my-4 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative flex flex-col h-[70vh]">
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <div className="shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingId ? "Edit Complaint" : "Create Complaint"}
               </h3>
@@ -1518,33 +1518,33 @@ export default function Complaints({ user }) {
 
             {/* Modal Form Content */}
             <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto max-h-[72vh] p-4 custom-scrollbar">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                   {/* Row 1: Title & Description */}
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Title <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
                     <input
                       required
                       value={formData.title}
                       onChange={e => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                     />
                   </div>
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Description <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-red-500">*</span></label>
                     <textarea
                       required
                       rows={3}
                       value={formData.description}
                       onChange={e => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 resize-y"
                     />
                   </div>
 
                   {/* Row 2: Property & Category */}
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Property <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Property <span className="text-red-500">*</span></label>
                     <select
                       required
                       value={formData.property_id}
@@ -1553,25 +1553,25 @@ export default function Complaints({ user }) {
                         setFormData({
                           ...formData,
                           property_id: nextPropertyId,
-                          reported_by: '',
+                          reported_by: currentUser?.name || '',
                           assigned_to: '',
                         });
                         setStaffUsers([]);
                         if (nextPropertyId) fetchStaffForHotel(nextPropertyId);
                       }}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                     >
                       <option value="">Select Property</option>
                       {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Category <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
                     <select
                       required
                       value={formData.category}
                       onChange={handleCategoryChange}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                     >
                       <option value="">Select Category</option>
                       {[...BUILTIN_CATEGORIES, ...customCategories].map((category) => (
@@ -1590,7 +1590,7 @@ export default function Complaints({ user }) {
                           value={customCategoryValue}
                           onChange={(e) => setCustomCategoryValue(e.target.value)}
                           placeholder="Enter new category"
-                          className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                         />
                         <button
                           type="button"
@@ -1615,11 +1615,11 @@ export default function Complaints({ user }) {
 
                   {/* Row 3: Priority & Status */}
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Priority</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
                     <select
                       value={formData.priority}
                       onChange={e => setFormData({ ...formData, priority: e.target.value })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
@@ -1628,48 +1628,32 @@ export default function Complaints({ user }) {
                     </select>
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Reported By</label>
-                    <select
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Reported By</label>
+                    <input
+                      type="text"
                       value={formData.reported_by}
-                      onChange={e => setFormData({ ...formData, reported_by: e.target.value })}
-                      disabled={!formData.property_id || staffLoading}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    >
-                      <option value="">
-                        {!formData.property_id
-                          ? "Select property first"
-                          : staffLoading
-                            ? "Loading staff..."
-                            : "Select staff"}
-                      </option>
-                      {!!formData.reported_by && !staffUsers.some((u) => String(u.name) === String(formData.reported_by)) && (
-                        <option value={formData.reported_by}>{formData.reported_by}</option>
-                      )}
-                      {staffUsers.map((u) => (
-                        <option key={u.id} value={u.name}>
-                          {u.name}
-                        </option>
-                      ))}
-                    </select>
+                      readOnly
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-gray-100 cursor-not-allowed"
+                    />
                   </div>
 
                   {/* Row 4: Dates & Assignment */}
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Reported Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Reported Date</label>
                     <input
                       type="date"
                       value={formData.reported_date}
                       onChange={e => setFormData({ ...formData, reported_date: e.target.value })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                     />
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Assigned To</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
                     <select
                       value={formData.assigned_to}
                       onChange={e => setFormData({ ...formData, assigned_to: e.target.value })}
                       disabled={!formData.property_id || staffLoading}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
                       <option value="">
                         {!formData.property_id
@@ -1689,26 +1673,26 @@ export default function Complaints({ user }) {
                     </select>
                   </div>
                   <div className="col-span-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Scheduled Date</label>
                     <input
                       type="date"
                       value={formData.scheduled_date}
                       onChange={e => setFormData({ ...formData, scheduled_date: e.target.value })}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                     />
                   </div>
 
                   {/* Custom Columns from Forms Builder */}
                   {customColumns.map(col => (
                     <div key={col} className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </label>
                       <input
                         type="text"
                         value={formData[col] || ''}
                         onChange={e => setFormData({ ...formData, [col]: e.target.value })}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                         placeholder={`Enter ${col.replace(/_/g, ' ')}`}
                       />
                     </div>

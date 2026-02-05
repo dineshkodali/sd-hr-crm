@@ -1098,7 +1098,7 @@ export default function Bookings({ user }) {
       {/* New Booking Modal */}
       {showModal && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
-          <div className="bg-white w-full max-w-3xl rounded-xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200 border border-gray-100">
+          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden h-[70vh] flex flex-col animate-in fade-in zoom-in duration-200 border border-gray-100">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
               <div>
@@ -1132,7 +1132,7 @@ export default function Bookings({ user }) {
                     value={formData.first_name}
                     onChange={e => setFormData({ ...formData, first_name: e.target.value })}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
                 <div>
@@ -1144,7 +1144,7 @@ export default function Bookings({ user }) {
                     value={formData.last_name}
                     onChange={e => setFormData({ ...formData, last_name: e.target.value })}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
               </div>
@@ -1159,7 +1159,7 @@ export default function Bookings({ user }) {
                     value={formData.date_of_birth}
                     onChange={e => setFormData({ ...formData, date_of_birth: e.target.value })}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
                 <div>
@@ -1171,7 +1171,7 @@ export default function Bookings({ user }) {
                     value={formData.nationality}
                     onChange={e => setFormData({ ...formData, nationality: e.target.value })}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
               </div>
@@ -1185,7 +1185,7 @@ export default function Bookings({ user }) {
                   value={formData.home_office_reference}
                   onChange={e => setFormData({ ...formData, home_office_reference: e.target.value })}
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                 />
               </div>
 
@@ -1199,7 +1199,7 @@ export default function Bookings({ user }) {
                     value={formData.property_id}
                     onChange={e => handlePropertyChange(e.target.value)}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                   >
                     <option value="">Select</option>
                     {properties.map(p => (
@@ -1216,7 +1216,7 @@ export default function Bookings({ user }) {
                     onChange={e => setFormData({ ...formData, room_id: e.target.value })}
                     required
                     disabled={!formData.property_id}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white disabled:bg-gray-100"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white disabled:bg-gray-100"
                   >
                     <option value="">{formData.property_id ? 'Select' : 'Select property first'}</option>
                     {rooms.map(r => (
@@ -1233,7 +1233,7 @@ export default function Bookings({ user }) {
                     value={formData.check_in_date}
                     onChange={e => setFormData({ ...formData, check_in_date: e.target.value })}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
               </div>
@@ -1246,7 +1246,7 @@ export default function Bookings({ user }) {
                   value={formData.vulnerabilities}
                   onChange={e => setFormData({ ...formData, vulnerabilities: e.target.value })}
                   placeholder="Separate multiple items with commas"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                 />
               </div>
 
@@ -1257,7 +1257,7 @@ export default function Bookings({ user }) {
                     value={formData.medical_conditions}
                     onChange={e => setFormData({ ...formData, medical_conditions: e.target.value })}
                     rows={2}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
                 <div>
@@ -1266,7 +1266,7 @@ export default function Bookings({ user }) {
                     value={formData.dietary_requirements}
                     onChange={e => setFormData({ ...formData, dietary_requirements: e.target.value })}
                     rows={2}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
               </div>
@@ -1419,7 +1419,7 @@ export default function Bookings({ user }) {
       {/* Edit Modal */}
       {showEditModal && selectedBooking && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 border border-gray-100">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full h-[70vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200 border border-gray-100">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Edit Booking</h2>
@@ -1541,7 +1541,7 @@ export default function Bookings({ user }) {
                     required
                     value={formData.first_name}
                     onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
                 <div>
@@ -1551,7 +1551,7 @@ export default function Bookings({ user }) {
                     required
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
               </div>
@@ -1564,7 +1564,7 @@ export default function Bookings({ user }) {
                     required
                     value={formData.date_of_birth}
                     onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
                 <div>
@@ -1574,7 +1574,7 @@ export default function Bookings({ user }) {
                     required
                     value={formData.nationality}
                     onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
               </div>
@@ -1586,7 +1586,7 @@ export default function Bookings({ user }) {
                   required
                   value={formData.home_office_reference}
                   onChange={(e) => setFormData({ ...formData, home_office_reference: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                 />
               </div>
 
@@ -1601,7 +1601,7 @@ export default function Bookings({ user }) {
                       setFormData({ ...formData, property_id: val, room_id: '' });
                       handlePropertyChange(val);
                     }}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   >
                     <option value="">Select Property</option>
                     {properties.map(p => (
@@ -1615,7 +1615,7 @@ export default function Bookings({ user }) {
                     required
                     value={formData.room_id}
                     onChange={(e) => setFormData({ ...formData, room_id: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                     disabled={!formData.property_id}
                   >
                     <option value="">Select Room</option>
@@ -1631,7 +1631,7 @@ export default function Bookings({ user }) {
                     required
                     value={formData.check_in_date}
                     onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
               </div>
@@ -1642,7 +1642,7 @@ export default function Bookings({ user }) {
                   rows="2"
                   value={formData.vulnerabilities}
                   onChange={(e) => setFormData({ ...formData, vulnerabilities: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                 />
               </div>
 
@@ -1653,7 +1653,7 @@ export default function Bookings({ user }) {
                     rows="2"
                     value={formData.medical_conditions}
                     onChange={(e) => setFormData({ ...formData, medical_conditions: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
                 <div>
@@ -1662,7 +1662,7 @@ export default function Bookings({ user }) {
                     rows="2"
                     value={formData.dietary_requirements}
                     onChange={(e) => setFormData({ ...formData, dietary_requirements: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                   />
                 </div>
               </div>

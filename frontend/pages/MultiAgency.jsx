@@ -376,7 +376,7 @@ export default function MultiAgency({ user }) {
       property_name: prop?.name || '',
       // Reset assigned_to and reported_by when property changes
       assigned_to: '',
-      reported_by: '',
+      reported_by: currentUser?.name || '',
     }));
 
     // Fetch staff members for the selected property
@@ -405,7 +405,7 @@ export default function MultiAgency({ user }) {
         category: '',
         priority: 'Medium',
         assigned_to: '',
-        reported_by: '',
+        reported_by: currentUser?.name || '',
         scheduled_date: '',
         status: 'New',
       };
@@ -900,11 +900,10 @@ export default function MultiAgency({ user }) {
                                       <button
                                         key={col}
                                         onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
-                                          visibleColumns[col] 
-                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                        }`}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${visibleColumns[col]
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                          : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                          }`}
                                       >
                                         <span className="capitalize font-medium">{col}</span>
                                         <div className="flex items-center gap-2">
@@ -954,7 +953,7 @@ export default function MultiAgency({ user }) {
                                       </div>
                                     </div>
                                     <div className="text-xs text-gray-500 mb-2">
-                                      Custom columns from Forms Builder 
+                                      Custom columns from Forms Builder
                                       <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
                                     </div>
                                     <div className="space-y-1">
@@ -962,11 +961,10 @@ export default function MultiAgency({ user }) {
                                         <button
                                           key={col}
                                           onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${
-                                            visibleColumns[col] 
-                                              ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white' 
-                                              : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
-                                          }`}
+                                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors border ${visibleColumns[col]
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            }`}
                                         >
                                           <span className="capitalize">{col.replace(/_/g, ' ')}</span>
                                           <div className="flex items-center gap-2">
@@ -1436,7 +1434,7 @@ export default function MultiAgency({ user }) {
       {/* ----------------- MODAL SECTION ----------------- */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative h-[70vh] flex flex-col">
 
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -1464,7 +1462,7 @@ export default function MultiAgency({ user }) {
 
             {/* View Mode Content */}
             {modalMode === 'view' ? (
-              <div className="p-6">
+              <div className="p-6 flex-1 overflow-y-auto">
                 <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
                   <DetailField label="TITLE" value={formData.title} />
                   <DetailField label="PROPERTY" value={formData.property_name} />
@@ -1501,7 +1499,7 @@ export default function MultiAgency({ user }) {
               </div>
             ) : (
               /* Create/Edit Form Content */
-              <form onSubmit={submit} className="p-4">
+              <form onSubmit={submit} className="p-4 flex-1 overflow-y-auto">
                 {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
 
@@ -1513,7 +1511,7 @@ export default function MultiAgency({ user }) {
                       value={formData.title || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="Brief description of task"
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                     />
                   </div>
                   <div className="col-span-1 md:col-span-2">
@@ -1524,7 +1522,7 @@ export default function MultiAgency({ user }) {
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
                       placeholder="Detailed description of the referral..."
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 resize-y"
                     />
                   </div>
 
@@ -1604,28 +1602,12 @@ export default function MultiAgency({ user }) {
                   </div>
                   <div className="col-span-1">
                     <label className="block text-xs font-medium text-gray-600 mb-1">Reported By <span className="text-red-500">*</span></label>
-                    {formData.property_id && staffMembers.length > 0 ? (
-                      <select
-                        required
-                        value={formData.reported_by || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, reported_by: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                      >
-                        <option value="">Select staff member</option>
-                        {staffMembers.map(staff => (
-                          <option key={staff.id} value={staff.name}>{staff.name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        required
-                        value={formData.reported_by || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, reported_by: e.target.value }))}
-                        placeholder={formData.property_id ? "Loading staff..." : "Select property first"}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50"
-                        disabled={!formData.property_id}
-                      />
-                    )}
+                    <input
+                      type="text"
+                      value={formData.reported_by}
+                      readOnly
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-gray-100 cursor-not-allowed"
+                    />
                   </div>
 
                   {/* Row 4: Assigned To & Scheduled Date */}
@@ -1658,7 +1640,7 @@ export default function MultiAgency({ user }) {
                       type="date"
                       value={formatDateISO(formData.scheduled_date) || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                     />
                   </div>
 
@@ -1689,7 +1671,7 @@ export default function MultiAgency({ user }) {
                         value={formData[col] || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
                         placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                       />
                     </div>
                   ))}

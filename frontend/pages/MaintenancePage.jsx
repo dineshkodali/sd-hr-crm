@@ -123,7 +123,7 @@ const DetailField = ({ label, value, icon: Icon }) => (
 /* Form Input Component */
 const FormInput = ({ label, value, onChange, type = "text", required = false, placeholder, icon: Icon }) => (
   <div className="w-full">
-    <label className="block text-xs font-medium text-gray-600 mb-1">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <div className="relative">
@@ -138,7 +138,7 @@ const FormInput = ({ label, value, onChange, type = "text", required = false, pl
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={`w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all ${Icon ? 'pl-10' : ''}`}
+        className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 transition-all ${Icon ? 'pl-10' : ''}`}
       />
     </div>
   </div>
@@ -147,7 +147,7 @@ const FormInput = ({ label, value, onChange, type = "text", required = false, pl
 /* Form Select Component */
 const FormSelect = ({ label, value, onChange, options, required = false, disabled = false, icon: Icon }) => (
   <div className="w-full">
-    <label className="block text-xs font-medium text-gray-600 mb-1">
+    <label className="block text-sm font-medium text-gray-700 mb-1">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <div className="relative">
@@ -161,7 +161,7 @@ const FormSelect = ({ label, value, onChange, options, required = false, disable
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className={`w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all ${Icon ? 'pl-10' : ''} ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+        className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white transition-all ${Icon ? 'pl-10' : ''} ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
       >
         {options}
       </select>
@@ -250,7 +250,7 @@ export default function MaintenancePage({ user }) {
     title: "",
     room: "",
     start: "",
-    raisedBy: "",
+    raisedBy: currentUser?.name || '',
     assignedTo: "",
     category: "",
     status: "Open",
@@ -261,7 +261,7 @@ export default function MaintenancePage({ user }) {
     closed: "",
     description: "",
     priority: "Medium"
-  }), []);
+  }), [currentUser?.name]);
   const [form, setForm] = useState(initialForm);
 
   // Custom columns from Forms Builder
@@ -954,6 +954,7 @@ export default function MaintenancePage({ user }) {
         hotelId: hotelId,
         hotelName: hotel ? hotel.name : '',
         room: changed ? '' : p.room,
+        raisedBy: currentUser?.name || '',
       };
     });
     setStaffUsers([]);
@@ -1241,8 +1242,8 @@ export default function MaintenancePage({ user }) {
                                         key={col}
                                         onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
                                         className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
-                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
-                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                          ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                          : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
                                           }`}
                                       >
                                         <span className="capitalize font-medium">{col}</span>
@@ -1302,8 +1303,8 @@ export default function MaintenancePage({ user }) {
                                           key={col}
                                           onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
                                           className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors border ${visibleColumns[col]
-                                              ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
-                                              : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
+                                            ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                            : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
                                             }`}
                                         >
                                           <span className="capitalize">{col.replace(/_/g, ' ')}</span>
@@ -1746,7 +1747,7 @@ export default function MaintenancePage({ user }) {
       {/* ----------------- MODAL SECTION ----------------- */}
       {(showCreate || showEdit || showView) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col h-[70vh] animate-in fade-in zoom-in duration-200">
 
             {/* Modal Header (Fixed) */}
             <div className="shrink-0 flex items-center justify-between p-5 border-b border-gray-100">
@@ -1767,7 +1768,7 @@ export default function MaintenancePage({ user }) {
             </div>
 
             {/* Modal Body (Scrollable) */}
-            <div className="flex-1 overflow-y-auto max-h-[72vh] p-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               {showView ? (
                 <div className="space-y-6">
                   {/* Primary Info */}
@@ -1827,7 +1828,7 @@ export default function MaintenancePage({ user }) {
               ) : (
                 /* Edit/Create Form Content */
                 <form id="maintenance-form" onSubmit={showEdit ? handleEditSubmit : handleCreateSubmit}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                     {/* Row 1 */}
                     <FormInput
@@ -1933,32 +1934,20 @@ export default function MaintenancePage({ user }) {
                     />
 
                     {/* Row 5 */}
-                    <FormSelect
-                      label="Raised By"
-                      value={form.raisedBy}
-                      onChange={e => handleFormChange("raisedBy", e.target.value)}
-                      disabled={!form.hotelId || staffLoading}
-                      icon={User}
-                      options={
-                        <>
-                          <option value="">
-                            {!form.hotelId
-                              ? "Select property first"
-                              : staffLoading
-                                ? "Loading staff..."
-                                : "Select staff"}
-                          </option>
-                          {form.raisedBy && !staffUsers.some((u) => String(u.name) === String(form.raisedBy)) && (
-                            <option value={form.raisedBy}>{form.raisedBy} (Current)</option>
-                          )}
-                          {staffUsers.map((u) => (
-                            <option key={u.id} value={u.name}>
-                              {u.name}
-                            </option>
-                          ))}
-                        </>
-                      }
-                    />
+                    <div className="w-full">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Raised By</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <User className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input
+                          type="text"
+                          value={form.raisedBy}
+                          readOnly
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-gray-100 cursor-not-allowed pl-10"
+                        />
+                      </div>
+                    </div>
                     <FormSelect
                       label="Assigned To"
                       value={form.assignedTo}
@@ -1996,10 +1985,10 @@ export default function MaintenancePage({ user }) {
 
                     {/* Description */}
                     <div className="col-span-1 md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                       <textarea
                         rows={3}
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y transition-all"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 resize-y transition-all"
                         value={form.description}
                         onChange={e => handleFormChange("description", e.target.value)}
                         placeholder="Detailed description of the issue..."
@@ -2013,12 +2002,12 @@ export default function MaintenancePage({ user }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
                           {customColumns.map(col => (
                             <div key={col}>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
                                 {col.replace(/_/g, ' ')}
                               </label>
                               <input
                                 type="text"
-                                className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white transition-all"
                                 value={form[col] || ''}
                                 onChange={e => handleFormChange(col, e.target.value)}
                               />

@@ -689,7 +689,7 @@ export default function Compliance() {
         {/* Modal Logic (Same as before but styled) */}
         {modalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl relative flex flex-col h-[70vh]">
               <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">{viewMode ? "View Certificate" : isEditing ? "Edit Certificate" : "New Certificate"}</h2>
@@ -700,13 +700,13 @@ export default function Compliance() {
                 </button>
               </div>
 
-              <form onSubmit={submitCertificate} className="p-8 space-y-6 overflow-y-auto">
+              <form onSubmit={submitCertificate} className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
                 {formError && <div className="p-4 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2 border border-red-100"><AlertTriangle size={16} /> {formError}</div>}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Form fields here (same logic as provided code but consistent styling) */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Certificate Type <span className="text-red-500">*</span></label>
-                    <select required value={form.certificate_type} onChange={handleCertificateTypeChange} disabled={viewMode} className="w-full rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Certificate Type <span className="text-red-500">*</span></label>
+                    <select required value={form.certificate_type} onChange={handleCertificateTypeChange} disabled={viewMode} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none">
                       <option value="">Select type...</option>
                       {[...CERTIFICATE_TYPES, ...customCertificateTypes].map((t) => <option key={t} value={t}>{t}</option>)}
                       {!!form.certificate_type &&
@@ -722,7 +722,7 @@ export default function Compliance() {
                           value={customCertificateTypeValue}
                           onChange={(e) => setCustomCertificateTypeValue(e.target.value)}
                           placeholder="Enter new certificate type"
-                          className="flex-1 rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5"
+                          className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
                         />
                         <button
                           type="button"
@@ -745,35 +745,35 @@ export default function Compliance() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Property <span className="text-red-500">*</span></label>
-                    <select required value={form.property_id} onChange={(e) => { const pid = e.target.value; setForm({ ...form, property_id: pid, issued_by: '' }); if (pid) fetchStaffForHotel(pid); }} disabled={viewMode} className="w-full rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Property <span className="text-red-500">*</span></label>
+                    <select required value={form.property_id} onChange={(e) => { const pid = e.target.value; setForm({ ...form, property_id: pid, issued_by: '' }); if (pid) fetchStaffForHotel(pid); }} disabled={viewMode} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none">
                       <option value="">Select property...</option>
                       {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status</label>
-                    <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} disabled={viewMode} className="w-full rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} disabled={viewMode} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none">
                       <option value="valid">Valid</option>
                       <option value="expiring-soon">Expiring Soon</option>
                       <option value="expired">Expired</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Issue Date</label>
-                    <input type="date" value={form.issue_date} onChange={(e) => setForm({ ...form, issue_date: e.target.value })} disabled={viewMode} className="w-full rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Issue Date</label>
+                    <input type="date" value={form.issue_date} onChange={(e) => setForm({ ...form, issue_date: e.target.value })} disabled={viewMode} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none" />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Expiry Date</label>
-                    <input type="date" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} disabled={viewMode} className="w-full rounded-lg border-slate-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm py-2.5" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                    <input type="date" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} disabled={viewMode} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none" />
                   </div>
                   {/* ... other fields ... */}
                 </div>
 
                 {/* File Upload Section */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Document</label>
-                  <label className={`border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all ${viewMode ? 'bg-slate-50' : 'hover:border-teal-400 hover:bg-teal-50/30 cursor-pointer'}`}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Document</label>
+                  <label className={`border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all ${viewMode ? 'bg-gray-50' : 'hover:border-emerald-400 hover:bg-emerald-50/30 cursor-pointer'}`}>
                     <input type="file" className="hidden" disabled={viewMode} onChange={(e) => setDocumentFile(e.target.files?.[0])} accept="application/pdf,image/*" />
                     <div className="bg-teal-100 text-teal-600 p-3 rounded-full mb-3"><Download size={24} /></div>
                     <p className="text-sm font-medium text-slate-700">{documentFile ? documentFile.name : "Click to upload certificate (PDF/Image)"}</p>
