@@ -549,6 +549,17 @@ router.post('/tables/:tableName/columns', authenticateToken, async (req, res) =>
       } else {
         columnDef += ` DEFAULT ${default_value}`;
       }
+    } else if (!nullable) {
+      // If NOT NULL and no default value provided, we MUST provide one for existing rows
+      if (data_type === 'VARCHAR' || data_type === 'TEXT' || data_type === 'CHAR') {
+        columnDef += ` DEFAULT ''`;
+      } else if (['INTEGER', 'BIGINT', 'SMALLINT', 'NUMERIC', 'DECIMAL', 'REAL', 'DOUBLE PRECISION'].includes(data_type)) {
+        columnDef += ` DEFAULT 0`;
+      } else if (data_type === 'BOOLEAN') {
+        columnDef += ` DEFAULT FALSE`;
+      } else if (data_type === 'DATE' || data_type === 'TIMESTAMP') {
+        columnDef += ` DEFAULT CURRENT_TIMESTAMP`;
+      }
     }
 
     // Execute ALTER TABLE

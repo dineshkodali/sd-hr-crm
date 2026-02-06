@@ -92,6 +92,7 @@ const CaseManagement = () => {
 
   // Custom columns and available columns
   const [customColumns, setCustomColumns] = useState([]);
+  const [customColumnMetadata, setCustomColumnMetadata] = useState({});
   const [availableColumns, setAvailableColumns] = useState(DEFAULT_COLUMNS);
 
   // Define all available columns
@@ -136,6 +137,17 @@ const CaseManagement = () => {
       // Insert custom columns before "actions"
       const newColumns = [...defaultColumns.slice(0, -1), ...customCols, defaultColumns[defaultColumns.length - 1]];
       if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
+        const nextMetadata = {};
+        columns.forEach(col => {
+          const cName = typeof col === 'string' ? col : (col.column_name || col.name);
+          if (cName) {
+            nextMetadata[cName] = {
+              input_type: col.input_type || 'text',
+              input_options: col.input_options || []
+            };
+          }
+        });
+        setCustomColumnMetadata(nextMetadata);
         setCustomColumns(customCols);
         setAvailableColumns(newColumns);
         setVisibleColumns(prev => {
@@ -1143,56 +1155,56 @@ const CaseManagement = () => {
 
           {/* Data Display - Table or Board View */}
           {viewMode === 'table' ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-md">
               <table className="w-full">
-                <thead>
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr className="border-b border-gray-200">
                     {/* Standard columns */}
                     {visibleColumns.checkbox && (
-                      <th className="text-left py-3 px-4">
+                      <th className="text-left py-4 px-4">
                         <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
                       </th>
                     )}
                     {visibleColumns.type && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">TYPE</th>
                     )}
                     {visibleColumns.reference && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">REFERENCE</th>
                     )}
                     {visibleColumns.description && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>
                     )}
                     {visibleColumns.priority && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>
                     )}
                     {visibleColumns.status && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">STATUS</th>
                     )}
                     {visibleColumns.assigned && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>
                     )}
                     {visibleColumns.date && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DATE</th>
                     )}
                     {/* Custom columns - Styled exactly like other columns */}
                     {customColumns && customColumns.map(col => visibleColumns[col] && (
-                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <th key={col} className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         {col}
                       </th>
                     ))}
                     {visibleColumns.actions && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ACTIONS</th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="bg-white divide-y divide-gray-100">
                   {loading ? (
                     <tr><td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td></tr>
                   ) : filteredCases.length > 0 ? filteredCases.map((row) => {
                     const priorityStyle = getPriorityColor(row.priority);
                     const statusStyle = getStatusColor(row.status);
                     return (
-                      <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={row.id} className="hover:bg-teal-50/30 transition-all border-b border-gray-100 last:border-0">
                         {/* Standard columns */}
                         {visibleColumns.checkbox && (
                           <td className="py-4 px-4">
@@ -1201,24 +1213,28 @@ const CaseManagement = () => {
                         )}
                         {visibleColumns.type && (
                           <td className="py-4 px-4">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">
                               {row.type || "General"}
                             </span>
                           </td>
                         )}
                         {visibleColumns.reference && (
                           <td className="py-4 px-4">
-                            <span className="text-gray-700 font-medium font-mono text-xs">{row.reference}</span>
+                            <span className="text-slate-900 font-semibold text-sm whitespace-nowrap">{row.reference}</span>
                           </td>
                         )}
                         {visibleColumns.description && (
                           <td className="py-4 px-4">
                             <div>
-                              <div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''}`} onClick={hasUpdate ? () => handleEdit(row) : undefined}>
-                                {row.title}
+                              <div
+                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`}
+                                onClick={hasUpdate ? () => handleEdit(row) : undefined}
+                              >
+                                <Home className="w-4 h-4 text-gray-400" />
+                                <span>{row.property_name || 'Unknown Property'}</span>
                               </div>
                               <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">
-                                {row.description}
+                                {row.title}
                               </div>
                             </div>
                           </td>
@@ -1226,36 +1242,36 @@ const CaseManagement = () => {
                         {visibleColumns.priority && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                              <span className={`text-sm ${priorityStyle.text}`}>{row.priority}</span>
+                              <span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span>
+                              <span className={`text-sm font-semibold ${priorityStyle.text}`}>{row.priority}</span>
                             </div>
                           </td>
                         )}
                         {visibleColumns.status && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                              <span className={`text-sm ${statusStyle.text}`}>{row.status}</span>
+                              <span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span>
+                              <span className={`text-sm font-semibold ${statusStyle.text}`}>{row.status}</span>
                             </div>
                           </td>
                         )}
                         {visibleColumns.assigned && (
                           <td className="py-4 px-4">
                             {row.assigned_to === "Unassigned" || !row.assigned_to ? (
-                              <span className="text-gray-500 text-sm">Unassigned</span>
+                              <span className="text-gray-400 text-sm">Unassigned</span>
                             ) : (
                               <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned_to)} flex items-center justify-center text-xs font-semibold shadow-sm`}>
                                   {getInitials(row.assigned_to)}
                                 </div>
-                                <span className="text-gray-900 text-sm">{row.assigned_to}</span>
+                                <span className="text-gray-900 text-sm font-medium">{row.assigned_to}</span>
                               </div>
                             )}
                           </td>
                         )}
                         {visibleColumns.date && (
                           <td className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{formatDate(row.scheduled_date)}</span>
+                            <span className="text-gray-600 text-sm">{formatDate(row.scheduled_date)}</span>
                           </td>
                         )}
                         {/* Custom columns - Styled exactly like other columns */}
@@ -1267,16 +1283,16 @@ const CaseManagement = () => {
                         {visibleColumns.actions && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <button onClick={() => handleView(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="View">
+                              <button onClick={() => handleView(row)} className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all" title="View">
                                 <Eye className="w-4 h-4" />
                               </button>
                               {hasUpdate && (
-                                <button onClick={() => handleEdit(row)} className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors" title="Edit">
+                                <button onClick={() => handleEdit(row)} className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
                                   <Edit className="w-4 h-4" />
                                 </button>
                               )}
                               {hasDelete && (
-                                <button onClick={() => handleDelete(row.id)} className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="Delete">
+                                <button onClick={() => handleDelete(row.id)} className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete">
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               )}
@@ -1705,16 +1721,63 @@ const CaseManagement = () => {
                     />
                   </div>
                   {/* Custom columns - Standardized UI to Gray */}
-                  {customColumns && customColumns.map(col => (
-                    <div key={col} className="col-span-1 md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">{col}</label>
-                      <input
-                        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                        value={formData[col] || ''}
-                        onChange={e => setFormData({ ...formData, [col]: e.target.value })}
-                      />
-                    </div>
-                  ))}
+                  {customColumns && customColumns.map(col => {
+                    const meta = customColumnMetadata[col] || {};
+                    const inputType = meta.input_type || 'text';
+                    const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                    return (
+                      <div key={col} className="col-span-1 md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {col.replace(/_/g, ' ').toUpperCase()}
+                        </label>
+                        {inputType === 'checkbox' ? (
+                          <div className="flex items-center h-10">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                              checked={!!formData[col]}
+                              onChange={(e) => setFormData({ ...formData, [col]: e.target.checked })}
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Yes</span>
+                          </div>
+                        ) : inputType === 'dropdown' || inputType === 'select' ? (
+                          <select
+                            value={formData[col] || ''}
+                            onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                          >
+                            <option value="">Select...</option>
+                            {options.map((opt, idx) => (
+                              <option key={idx} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : inputType === 'textarea' ? (
+                          <textarea
+                            rows={3}
+                            value={formData[col] || ''}
+                            onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                          />
+                        ) : inputType === 'date' ? (
+                          <input
+                            type="date"
+                            value={formData[col] ? formatDateISO(formData[col]) : ''}
+                            onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                          />
+                        ) : (
+                          <input
+                            type={inputType}
+                            value={formData[col] || ''}
+                            onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                            placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Footer Buttons */}

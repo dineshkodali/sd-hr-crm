@@ -61,6 +61,16 @@ const UserManagement = () => {
     fetchBranches();
   }, [currentPage, search, roleFilter, statusFilter]);
 
+  // Focus Mode: Hide navbars when modal is open
+  useEffect(() => {
+    if (showModal) {
+      document.body.classList.add('form-modal-open');
+    } else {
+      document.body.classList.remove('form-modal-open');
+    }
+    return () => document.body.classList.remove('form-modal-open');
+  }, [showModal]);
+
   const fetchBranches = async () => {
     try {
       // Get unique branches from existing users
@@ -68,14 +78,14 @@ const UserManagement = () => {
         params: { limit: 1000 }, // Get all users to extract branches
         withCredentials: true
       });
-      
+
       const allUsers = res.data.users || [];
       const uniqueBranches = [...new Set(
         allUsers
           .map(user => user.branch)
           .filter(branch => branch && branch.trim() !== '')
       )].sort();
-      
+
       setBranches(uniqueBranches);
     } catch (err) {
       console.error('Failed to fetch branches:', err);
@@ -546,8 +556,8 @@ const UserManagement = () => {
                       key={i + 1}
                       onClick={() => setCurrentPage(i + 1)}
                       className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${currentPage === i + 1
-                          ? 'bg-teal-500 text-white shadow-md'
-                          : 'text-gray-600 hover:bg-gray-100'
+                        ? 'bg-teal-500 text-white shadow-md'
+                        : 'text-gray-600 hover:bg-gray-100'
                         }`}
                     >
                       {i + 1}
@@ -588,7 +598,7 @@ const UserManagement = () => {
                 {modalType !== 'password' ? (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="md:col-span-2">
+                      <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">Full Name *</label>
                         <input
                           type="text"
@@ -601,7 +611,7 @@ const UserManagement = () => {
                         />
                       </div>
 
-                      <div className="md:col-span-2">
+                      <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address *</label>
                         <input
                           type="email"
@@ -643,10 +653,9 @@ const UserManagement = () => {
                                 {/* Password Strength Bar */}
                                 <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
                                   <div
-                                    className={`h-full transition-all duration-300 ${
-                                      pwStrengthLabelState === 'Weak' ? 'bg-red-500' :
-                                      pwStrengthLabelState === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
-                                    }`}
+                                    className={`h-full transition-all duration-300 ${pwStrengthLabelState === 'Weak' ? 'bg-red-500' :
+                                        pwStrengthLabelState === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                      }`}
                                     style={{ width: `${pwPercent}%` }}
                                   />
                                 </div>
@@ -658,25 +667,25 @@ const UserManagement = () => {
                                 <div className="mt-4 space-y-2">
                                   {(() => {
                                     const requirements = [
-                                      { 
-                                        text: 'Include at least one uppercase letter', 
-                                        met: /[A-Z]/.test(formData.password) 
+                                      {
+                                        text: 'Include at least one uppercase letter',
+                                        met: /[A-Z]/.test(formData.password)
                                       },
-                                      { 
-                                        text: 'Include at least one lowercase letter', 
-                                        met: /[a-z]/.test(formData.password) 
+                                      {
+                                        text: 'Include at least one lowercase letter',
+                                        met: /[a-z]/.test(formData.password)
                                       },
-                                      { 
-                                        text: 'Include at least one number', 
-                                        met: /[0-9]/.test(formData.password) 
+                                      {
+                                        text: 'Include at least one number',
+                                        met: /[0-9]/.test(formData.password)
                                       },
-                                      { 
-                                        text: 'Include at least one special character', 
-                                        met: /[^A-Za-z0-9]/.test(formData.password) 
+                                      {
+                                        text: 'Include at least one special character',
+                                        met: /[^A-Za-z0-9]/.test(formData.password)
                                       },
-                                      { 
-                                        text: 'Password must be 8-14 characters long', 
-                                        met: formData.password.length >= 8 && formData.password.length <= 14 
+                                      {
+                                        text: 'Password must be 8-14 characters long',
+                                        met: formData.password.length >= 8 && formData.password.length <= 14
                                       }
                                     ];
 
@@ -774,10 +783,10 @@ const UserManagement = () => {
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none pr-10"
                             placeholder="Select existing branch or type new one"
                           />
-                          <ChevronDown 
-                            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" 
+                          <ChevronDown
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
                           />
-                          
+
                           {/* Branch Dropdown */}
                           {showBranchDropdown && branches.length > 0 && (
                             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -805,33 +814,33 @@ const UserManagement = () => {
                                   </button>
                                 ))
                               }
-                              
+
                               {/* Show "Create new branch" option when typing */}
-                              {formData.branch && 
-                               (modalType !== 'edit' || formData.branch !== originalBranchValue) &&
-                               !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
-                                <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
-                                  <div className="flex items-center gap-2">
-                                    <UserPlus className="w-4 h-4 text-teal-500" />
-                                    <span>Create new branch: <strong className="text-teal-600">"{formData.branch}"</strong></span>
+                              {formData.branch &&
+                                (modalType !== 'edit' || formData.branch !== originalBranchValue) &&
+                                !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
+                                  <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
+                                    <div className="flex items-center gap-2">
+                                      <UserPlus className="w-4 h-4 text-teal-500" />
+                                      <span>Create new branch: <strong className="text-teal-600">"{formData.branch}"</strong></span>
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                              
+                                )}
+
                               {/* No matches found */}
-                              {formData.branch && 
-                               branches.filter(branch => 
-                                 branch.toLowerCase().includes(formData.branch.toLowerCase())
-                               ).length === 0 && 
-                               branches.some(b => b.toLowerCase() !== formData.branch.toLowerCase()) && (
-                                <div className="px-4 py-2.5 text-sm text-gray-400 text-center">
-                                  No existing branches match your search
-                                </div>
-                              )}
+                              {formData.branch &&
+                                branches.filter(branch =>
+                                  branch.toLowerCase().includes(formData.branch.toLowerCase())
+                                ).length === 0 &&
+                                branches.some(b => b.toLowerCase() !== formData.branch.toLowerCase()) && (
+                                  <div className="px-4 py-2.5 text-sm text-gray-400 text-center">
+                                    No existing branches match your search
+                                  </div>
+                                )}
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Helper text */}
                         <div className="mt-1 text-xs text-gray-500">
                           {branches.length > 0 ? (
@@ -872,7 +881,7 @@ const UserManagement = () => {
                 ) : (
                   <div className="space-y-4">
                     <p className="text-sm text-gray-500">Updating password for <span className="font-semibold text-gray-700">{selectedUser?.name}</span></p>
-                    
+
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1">
                         Password <span className="text-gray-400 text-xs font-normal ml-2">(Auto-generated if left blank)</span>
@@ -901,10 +910,9 @@ const UserManagement = () => {
                           {/* Password Strength Bar */}
                           <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
                             <div
-                              className={`h-full transition-all duration-300 ${
-                                pwStrengthLabelState === 'Weak' ? 'bg-red-500' :
-                                pwStrengthLabelState === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
-                              }`}
+                              className={`h-full transition-all duration-300 ${pwStrengthLabelState === 'Weak' ? 'bg-red-500' :
+                                  pwStrengthLabelState === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                }`}
                               style={{ width: `${pwPercent}%` }}
                             />
                           </div>
@@ -916,25 +924,25 @@ const UserManagement = () => {
                           <div className="mt-4 space-y-2">
                             {(() => {
                               const requirements = [
-                                { 
-                                  text: 'Include at least one uppercase letter', 
-                                  met: /[A-Z]/.test(formData.password) 
+                                {
+                                  text: 'Include at least one uppercase letter',
+                                  met: /[A-Z]/.test(formData.password)
                                 },
-                                { 
-                                  text: 'Include at least one lowercase letter', 
-                                  met: /[a-z]/.test(formData.password) 
+                                {
+                                  text: 'Include at least one lowercase letter',
+                                  met: /[a-z]/.test(formData.password)
                                 },
-                                { 
-                                  text: 'Include at least one number', 
-                                  met: /[0-9]/.test(formData.password) 
+                                {
+                                  text: 'Include at least one number',
+                                  met: /[0-9]/.test(formData.password)
                                 },
-                                { 
-                                  text: 'Include at least one special character', 
-                                  met: /[^A-Za-z0-9]/.test(formData.password) 
+                                {
+                                  text: 'Include at least one special character',
+                                  met: /[^A-Za-z0-9]/.test(formData.password)
                                 },
-                                { 
-                                  text: 'Password must be 8-14 characters long', 
-                                  met: formData.password.length >= 8 && formData.password.length <= 14 
+                                {
+                                  text: 'Password must be 8-14 characters long',
+                                  met: formData.password.length >= 8 && formData.password.length <= 14
                                 }
                               ];
 

@@ -27,9 +27,47 @@ router.get('/', protect, async (req, res) => {
   try {
     const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit, 10) || 100));
     const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
-    const params = [limit, offset];
-    const q = `SELECT * FROM public.litigation_tasks ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
-    const r = await pool.query(q, params);
+    const params = [];
+    const where = [];
+
+    // Role-Based Restriction logic (Litigation)
+    const currentUser = req.user;
+    if (currentUser && currentUser.role !== 'admin') {
+      let restrictedIds = [];
+      if (currentUser.role === 'manager') {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+        let branchIds = [];
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          branchIds = branchRes.rows.map(r => r.id);
+        }
+        restrictedIds = [...new Set([...managedIds, ...branchIds])];
+      } else if (currentUser.role === 'staff') {
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          restrictedIds = branchRes.rows.map(r => r.id);
+        }
+      }
+
+      if (restrictedIds.length === 0) {
+        return res.json([]);
+      }
+
+      params.push(restrictedIds);
+      where.push(`property_id = ANY($${params.length})`);
+    }
+
+    params.push(limit);
+    params.push(offset);
+
+    let sql = `SELECT * FROM public.litigation_tasks`;
+    if (where.length > 0) {
+      sql += ` WHERE ${where.join(' AND ')}`;
+    }
+    sql += ` ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
+
+    const r = await pool.query(sql, params);
     return res.json(r.rows || []);
   } catch (err) {
     console.error('GET /api/litigation error:', err && (err.stack || err));

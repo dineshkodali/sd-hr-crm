@@ -837,10 +837,10 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
                     </h3>
                     <span
                       className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${user.status === "Active"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : user.status === "Moved Out"
-                            ? "bg-purple-100 text-purple-700"
-                            : "bg-gray-100 text-gray-700"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : user.status === "Moved Out"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-gray-100 text-gray-700"
                         }`}
                     >
                       {user.status || "N/A"}

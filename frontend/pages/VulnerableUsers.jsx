@@ -196,6 +196,7 @@ export default function VulnerableUsers({ user }) {
   ];
 
   const [customColumns, setCustomColumns] = useState([]);
+  const [customColumnMetadata, setCustomColumnMetadata] = useState({});
   const [availableColumns, setAvailableColumns] = useState([]); // Corrected useState destructuring
 
   // Define all available columns
@@ -336,6 +337,17 @@ export default function VulnerableUsers({ user }) {
 
         const cols = res?.data?.columns || res?.data || [];
 
+        // Parse metadata
+        const nextMetadata = {};
+        (Array.isArray(cols) ? cols : []).forEach((col) => {
+          const name = col?.column_name || col?.name || (typeof col === 'string' ? col : null);
+          if (!name) return;
+          nextMetadata[name] = {
+            input_type: col.input_type || 'text',
+            input_options: col.input_options || []
+          };
+        });
+
         // Extract column names if cols contains objects
         const columnNames = cols.map(c => typeof c === 'string' ? c : c.column_name || c.name || c);
 
@@ -349,6 +361,7 @@ export default function VulnerableUsers({ user }) {
         // Only update if changes detected
         if (JSON.stringify(custom) !== JSON.stringify(customColumns)) {
           setCustomColumns(custom);
+          setCustomColumnMetadata((prev) => ({ ...prev, ...nextMetadata }));
 
           // Update visibleColumns for new custom columns (default to visible)
           setVisibleColumns(prev => {
@@ -361,6 +374,7 @@ export default function VulnerableUsers({ user }) {
             return updated;
           });
         }
+        setCustomColumnMetadata((prev) => ({ ...prev, ...nextMetadata }));
       } catch (err) {
         console.error('Failed to fetch columns:', err);
       }
@@ -1144,48 +1158,48 @@ export default function VulnerableUsers({ user }) {
 
           {/* Data Display - Table or Board View */}
           {viewMode === 'table' ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-md">
               <table className="w-full">
-                <thead>
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr className="border-b border-gray-200">
                     {visibleColumns.checkbox && (
-                      <th className="text-left py-3 px-4">
+                      <th className="text-left py-4 px-4">
                         <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
                       </th>
                     )}
                     {visibleColumns.type && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">CATEGORY</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">CATEGORY</th>
                     )}
                     {visibleColumns.reference && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">REFERENCE</th>
                     )}
                     {visibleColumns.description && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>
                     )}
                     {visibleColumns.priority && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>
                     )}
                     {visibleColumns.status && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">STATUS</th>
                     )}
                     {visibleColumns.assigned && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>
                     )}
                     {visibleColumns.date && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DATE</th>
                     )}
                     {/* Custom column headers - UI Matched to other columns */}
                     {customColumns.map(col => visibleColumns[col] && (
-                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <th key={col} className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         {col.replace(/_/g, ' ')}
                       </th>
                     ))}
                     {visibleColumns.actions && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ACTIONS</th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="bg-white divide-y divide-gray-100">
                   {recordsLoading ? (
                     <tr>
                       <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
@@ -1195,7 +1209,7 @@ export default function VulnerableUsers({ user }) {
                     const statusStyle = getStatusColor(rec.status || "New");
 
                     return (
-                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                      <tr key={idx} className="hover:bg-teal-50/30 transition-all border-b border-gray-100 last:border-0">
                         {visibleColumns.checkbox && (
                           <td className="py-4 px-4">
                             <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -1203,65 +1217,65 @@ export default function VulnerableUsers({ user }) {
                         )}
                         {visibleColumns.type && (
                           <td className="py-4 px-4">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">
                               {rec.category || "Vulnerable Users"}
                             </span>
                           </td>
                         )}
                         {visibleColumns.reference && (
                           <td className="py-4 px-4">
-                            <span className="text-gray-700 font-medium">{rec.reference || `VUS-${rec.id || idx}`}</span>
+                            <span className="text-slate-900 font-semibold text-sm whitespace-nowrap">{rec.reference || `VUS-${rec.id || idx}`}</span>
                           </td>
                         )}
                         {visibleColumns.description && (
                           <td className="py-4 px-4">
                             <div>
                               <div
-                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
+                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`}
                                 onClick={hasUpdate ? () => handleOpenModal('edit', rec) : undefined}
                               >
+                                <Home className="w-4 h-4 text-gray-400" />
+                                <span>{rec.property_name || 'Unknown Property'}</span>
+                              </div>
+                              <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">
                                 {rec.title || "Record Title"}
                               </div>
-                              <div className="text-gray-500 text-xs mt-1">
-                                {rec.description || "Record description and information."}
-                              </div>
-                              {rec.property_name && <div className="text-gray-500 text-xs mt-1">Property: {rec.property_name}</div>}
                             </div>
                           </td>
                         )}
                         {visibleColumns.priority && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                              <span className={`text-sm ${priorityStyle.text}`}>{rec.priority || "Medium"}</span>
+                              <span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span>
+                              <span className={`text-sm font-semibold ${priorityStyle.text}`}>{rec.priority || "Medium"}</span>
                             </div>
                           </td>
                         )}
                         {visibleColumns.status && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                              <span className={`text-sm ${statusStyle.text}`}>{rec.status || "New"}</span>
+                              <span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span>
+                              <span className={`text-sm font-semibold ${statusStyle.text}`}>{rec.status || "New"}</span>
                             </div>
                           </td>
                         )}
                         {visibleColumns.assigned && (
                           <td className="py-4 px-4">
                             {!rec.assigned_to ? (
-                              <span className="text-gray-500 text-sm">Unassigned</span>
+                              <span className="text-gray-400 text-sm">Unassigned</span>
                             ) : (
                               <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(rec.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(rec.assigned_to)} flex items-center justify-center text-xs font-semibold shadow-sm`}>
                                   {getInitials(rec.assigned_to)}
                                 </div>
-                                <span className="text-gray-900 text-sm">{rec.assigned_to}</span>
+                                <span className="text-gray-900 text-sm font-medium">{rec.assigned_to}</span>
                               </div>
                             )}
                           </td>
                         )}
                         {visibleColumns.date && (
                           <td className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{formatDate(rec.scheduled_date)}</span>
+                            <span className="text-gray-600 text-sm">{formatDate(rec.scheduled_date)}</span>
                           </td>
                         )}
                         {/* Custom column cells - UI Matched to other columns */}
@@ -1275,7 +1289,7 @@ export default function VulnerableUsers({ user }) {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleOpenModal('view', rec)}
-                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
                                 title="View"
                               >
                                 <Eye className="w-4 h-4" />
@@ -1283,7 +1297,7 @@ export default function VulnerableUsers({ user }) {
                               {hasUpdate && (
                                 <button
                                   onClick={() => handleOpenModal('edit', rec)}
-                                  className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                   title="Edit"
                                 >
                                   <Edit className="w-4 h-4" />
@@ -1292,7 +1306,7 @@ export default function VulnerableUsers({ user }) {
                               {hasDelete && (
                                 <button
                                   onClick={() => handleDelete(rec.id)}
-                                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                   title="Delete"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -1724,19 +1738,71 @@ export default function VulnerableUsers({ user }) {
                   )}
 
                   {/* Custom Columns */}
-                  {customColumns.map(col => (
-                    <div key={col} className="col-span-1 md:col-span-2">
-                      <label className="block text-xs font-medium text-purple-600 mb-1">
-                        {col.replace(/_/g, ' ').toUpperCase()}
-                      </label>
-                      <input
-                        value={formData[col] || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
-                        placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                        className="w-full border border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white"
-                      />
-                    </div>
-                  ))}
+                  {customColumns.map(col => {
+                    const meta = customColumnMetadata[col] || {};
+                    const inputType = meta.input_type || 'text';
+                    const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                    // Parse options if string
+                    let parsedOptions = options;
+                    if (typeof options === 'string') {
+                      try { parsedOptions = JSON.parse(options); } catch { parsedOptions = []; }
+                    }
+                    // Handle case where options is an array of strings but might be wrapped/stringified
+                    if (Array.isArray(parsedOptions) && parsedOptions.length === 1 && typeof parsedOptions[0] === 'string' && parsedOptions[0].startsWith('[')) {
+                      try { parsedOptions = JSON.parse(parsedOptions[0]); } catch { }
+                    }
+
+                    return (
+                      <div key={col} className="col-span-1 md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {col.replace(/_/g, ' ').toUpperCase()}
+                        </label>
+                        {inputType === 'checkbox' ? (
+                          <div className="flex items-center gap-3 h-[38px]">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                name={col}
+                                checked={!!formData[col]}
+                                onChange={(e) => setFormData(prev => ({ ...prev, [col]: e.target.checked }))}
+                                className="sr-only peer"
+                              />
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
+                              <span className="ml-3 text-sm font-medium text-gray-700">Yes / No</span>
+                            </label>
+                          </div>
+                        ) : inputType === 'dropdown' || inputType === 'select' ? (
+                          <select
+                            value={formData[col] || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
+                            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                          >
+                            <option value="">Select {col.replace(/_/g, ' ')}</option>
+                            {parsedOptions.map((opt, idx) => (
+                              <option key={idx} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : inputType === 'textarea' ? (
+                          <textarea
+                            value={formData[col] || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
+                            rows={3}
+                            placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                          />
+                        ) : (
+                          <input
+                            type={inputType === 'number' ? 'number' : inputType === 'date' ? 'date' : 'text'}
+                            value={formData[col] || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
+                            placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                            className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Footer Buttons */}

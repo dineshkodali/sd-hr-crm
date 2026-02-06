@@ -53,13 +53,57 @@ function makeReference() {
 }
 
 /* LIST */
-router.get('/', async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
     const ready = await ensureComplaintsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
 
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+
+    // Role-Based Restriction
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        restrictedHotelIds = branchRes.rows.map(r => r.id);
+      } else {
+        restrictedHotelIds = [];
+      }
+    }
+
     const { limit = 200, offset = 0 } = req.query;
-    const { rows } = await pool.query(`SELECT * FROM public.complaints ORDER BY created_at DESC LIMIT $1 OFFSET $2`, [limit, offset]);
+
+    let queryText = `SELECT * FROM public.complaints`;
+    const params = [];
+    const where = [];
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      // Assuming 'property_id' is the column name in complaints table
+      where.push(`property_id = ANY($${params.length + 1})`);
+      params.push(restrictedHotelIds);
+    }
+
+    if (where.length > 0) {
+      queryText += ` WHERE ${where.join(' AND ')}`;
+    }
+
+    queryText += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+
+    const { rows } = await pool.query(queryText, params);
     res.json({ success: true, data: rows });
   } catch (err) {
     console.error('GET /api/complaints error:', err);
@@ -106,7 +150,7 @@ router.post('/', async (req, res) => {
     }
 
     const ref = makeReference();
-    
+
     // Get existing columns in complaints table
     const { rows: colRows } = await pool.query(`
       SELECT column_name
@@ -114,37 +158,37 @@ router.post('/', async (req, res) => {
       WHERE table_name = 'complaints' AND table_schema = 'public'
     `);
     const existingCols = colRows.map(r => r.column_name);
-    
+
     // Build dynamic INSERT
     const columnsToInsert = ['reference', 'title', 'description'];
     const valuesToInsert = [ref, title, description];
     let paramIndex = valuesToInsert.length + 1;
-    
+
     // Standard optional fields
     const standardFields = {
       category, priority, property_id: propertyId, property_name: propertyName,
       status, reported_by: reportedBy, reported_date: reportedDate,
       assigned_to: assignedTo, scheduled_date: scheduledDate, notes
     };
-    
+
     for (const [key, value] of Object.entries(standardFields)) {
       if (existingCols.includes(key) && value !== undefined) {
         columnsToInsert.push(key);
         valuesToInsert.push(value);
       }
     }
-    
+
     // Handle custom columns from Forms Builder
     const standardCols = ['id', 'reference', 'title', 'description', 'category', 'priority',
-                         'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
-                         'assigned_to', 'scheduled_date', 'notes', 'created_at', 'updated_at'];
+      'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
+      'assigned_to', 'scheduled_date', 'notes', 'created_at', 'updated_at'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         columnsToInsert.push(col);
         valuesToInsert.push(req.body[col]);
       }
     }
-    
+
     const placeholders = columnsToInsert.map((_, i) => `$${i + 1}`).join(', ');
     const { rows } = await pool.query(
       `INSERT INTO public.complaints (${columnsToInsert.join(', ')}) 
@@ -196,8 +240,8 @@ router.put('/:id', async (req, res) => {
 
     // Handle custom columns from Forms Builder
     const standardCols = ['id', 'reference', 'title', 'description', 'category', 'priority',
-                         'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
-                         'assigned_to', 'scheduled_date', 'notes', 'created_at', 'updated_at'];
+      'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
+      'assigned_to', 'scheduled_date', 'notes', 'created_at', 'updated_at'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         updates.push(`${col} = $${idx}`);

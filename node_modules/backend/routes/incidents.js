@@ -1,5 +1,6 @@
 import express from 'express';
 import poolImport from '../config/db.js';
+import { protect } from '../middleware/auth.js';
 const router = express.Router();
 const pool = poolImport && poolImport.default ? poolImport.default : poolImport;
 
@@ -47,10 +48,33 @@ function makeReference() {
 }
 
 /* LIST */
-router.get('/', async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
     const ready = await ensureIncidentsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
+
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+
+    // Role-Based Restriction
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        restrictedHotelIds = branchRes.rows.map(r => r.id);
+      } else {
+        restrictedHotelIds = [];
+      }
+    }
 
     const { limit = 200, offset = 0, property_id, propertyId } = req.query;
     const pidRaw = property_id ?? propertyId ?? null;
@@ -59,13 +83,29 @@ router.get('/', async (req, res) => {
     const values = [];
     let idx = 1;
 
+    // Apply strict filtering if restricted
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      where.push(`property_id = ANY($${idx++})`);
+      values.push(restrictedHotelIds);
+    }
+
     if (pidRaw !== null && pidRaw !== undefined && String(pidRaw).trim() !== '') {
-      where.push(`CAST(property_id AS text) = $${idx++}`);
+      where.push(`CAST(property_id AS text) = $${idx++}::text`);
       values.push(String(pidRaw));
     }
 
     values.push(Number(limit));
     values.push(Number(offset));
+
+    // Adjust indices for limit/offset
+    // If we added restrictedHotelIds, idx was 2. If pidRaw too, idx was 3.
+    // The LIMIT $X OFFSET $Y parameters need to match the push order.
+    // Actually, safer to rebuild SQL string with specific parameter positions if mixed,
+    // but here we pushed them in order: restrictedIds, pidRaw, limit, offset.
+
     const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
     const { rows } = await pool.query(
       `SELECT * FROM maintenance.incidents ${whereClause} ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`,
@@ -145,7 +185,7 @@ router.post('/', async (req, res) => {
           try {
             const r = await pool.query('SELECT name FROM hotels WHERE id = $1 LIMIT 1', [propertyId]);
             if (r.rows && r.rows[0] && r.rows[0].name) val = r.rows[0].name;
-          } catch (e) {}
+          } catch (e) { }
         }
         if (!val) val = String(propertyId ?? '');
       } else {
@@ -169,7 +209,7 @@ router.post('/', async (req, res) => {
         values.push(val);
       }
     }
-    const placeholders = columns.map((_, i) => `$${i+1}`).join(',');
+    const placeholders = columns.map((_, i) => `$${i + 1}`).join(',');
     const query = `INSERT INTO maintenance.incidents (${columns.join(',')}) VALUES (${placeholders}) RETURNING *`;
     console.log('POST /api/incidents - request body:', req.body);
     console.log('POST /api/incidents - columns:', columns);
@@ -230,7 +270,7 @@ router.put('/:id', async (req, res) => {
             try {
               const r = await pool.query(`SELECT name FROM hotels WHERE id = $1 LIMIT 1`, [finalProperty]);
               if (r.rows && r.rows[0] && r.rows[0].name) val = r.rows[0].name;
-            } catch (e) {}
+            } catch (e) { }
           }
         }
         if (val === null || val === undefined) {
@@ -260,34 +300,34 @@ router.put('/:id', async (req, res) => {
     if (!updates.length) {
       return res.status(400).json({ success: false, message: 'No fields to update' });
     }
-    
+
     // Always update the updated_at timestamp
     if (colRows.map(r => r.column_name).includes('updated_at')) {
       updates.push('updated_at = CURRENT_TIMESTAMP');
     }
-    
+
     const query = `UPDATE maintenance.incidents SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
     values.push(id);
-    
+
     console.log('PUT /api/incidents/:id - request body:', req.body);
     console.log('PUT /api/incidents/:id - incident ID:', id);
     console.log('PUT /api/incidents/:id - updates:', updates);
     console.log('PUT /api/incidents/:id - values:', values);
     console.log('PUT /api/incidents/:id - executing query:', query);
-    
+
     try {
       const { rows } = await pool.query(query, values);
       console.log('PUT /api/incidents/:id - updated row:', rows[0]);
-      
+
       if (!rows || rows.length === 0) {
         return res.status(404).json({ success: false, message: 'Incident not found or update failed' });
       }
-      
+
       res.json({ success: true, data: rows[0] });
     } catch (err2) {
       console.error('PUT /api/incidents/:id DB error:', err2 && err2.stack ? err2.stack : err2);
-      return res.status(500).json({ 
-        success: false, 
+      return res.status(500).json({
+        success: false,
         message: err2 && err2.message ? err2.message : String(err2),
         error: err2?.code || 'DATABASE_ERROR'
       });

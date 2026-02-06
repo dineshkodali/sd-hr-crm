@@ -1,6 +1,7 @@
 // Backend/routes/inspections.js
 import express from "express";
 import poolImport from "../config/db.js"; // adjust path if needed
+import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 const pool = poolImport && poolImport.default ? poolImport.default : poolImport;
@@ -108,8 +109,10 @@ function coerceValueByPgType(pgType, value) {
   return value;
 }
 
+
+
 /* LIST */
-router.get("/", async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
     const ready = await ensureInspectionsTable();
     if (!ready) {
@@ -132,6 +135,34 @@ router.get("/", async (req, res) => {
       offset = 0,
     } = req.query;
 
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+
+    // --- Role-Based Restriction Logic ---
+    if (currentUser.role === "manager") {
+      // Managers see hotels they manage OR hotels in their branch
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      // Staff see hotels in their branch
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        restrictedHotelIds = branchRes.rows.map(r => r.id);
+      } else {
+        // Staff with no branch sees nothing (or maybe everything? Safest is nothing)
+        restrictedHotelIds = [];
+      }
+    }
+    // Admin sees everything (restrictedHotelIds remains null)
+
     // Detect which property column exists in current inspections table
     const { rows: colRows } = await pool.query(
       `SELECT column_name
@@ -145,9 +176,16 @@ router.get("/", async (req, res) => {
         ? "hotel_id"
         : existingCols.has("property_name")
           ? "property_name"
-        : existingCols.has("property")
-          ? "property"
-          : null;
+          : existingCols.has("property")
+            ? "property"
+            : null;
+
+    // Determine the column to use for ID-based filtering (property, property_id, hotel_id)
+    // We prefer an ID column for reliable filtering.
+    const idColumn = existingCols.has("property") ? "property" :
+      existingCols.has("property_id") ? "property_id" :
+        existingCols.has("hotel_id") ? "hotel_id" : null;
+
 
     const propertyIdValue = property_id ?? propertyId ?? hotel_id ?? hotelId ?? property ?? null;
     const propertyNameValue = property_name ?? propertyName ?? hotel_name ?? hotelName ?? null;
@@ -171,6 +209,27 @@ router.get("/", async (req, res) => {
     let text = `SELECT * FROM inspections`;
     const where = [];
     const params = [];
+
+    // Apply Restriction
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        // User has access to NO hotels -> return empty immediately
+        return res.json({ success: true, data: [] });
+      }
+
+      if (idColumn) {
+        // Filter by ID column
+        // casting to int if needed, assuming IDs are ints in DB
+        where.push(`"${idColumn}"::int = ANY($${params.length + 1}::int[])`);
+        params.push(restrictedHotelIds);
+      } else if (existingCols.has("property_name")) {
+        // Fallback: If we only have property_name, we must fetch names for these IDs
+        const nameRes = await pool.query("SELECT name FROM hotels WHERE id = ANY($1::int[])", [restrictedHotelIds]);
+        const allowedNames = nameRes.rows.map(r => r.name);
+        where.push(`property_name = ANY($${params.length + 1}::text[])`);
+        params.push(allowedNames);
+      }
+    }
 
     if (q) {
       params.push(`%${q}%`);
@@ -326,9 +385,9 @@ router.post("/", async (req, res) => {
     }
 
     // Handle custom columns from Forms Builder
-    const standardCols = ['id', 'reference', 'inspection_type', 'inspector_name', 'inspection_date', 
-                          'status', 'property', 'property_name', 'service_user', 'findings', 
-                          'issues_found', 'action_required', 'priority', 'created_at', 'updated_at'];
+    const standardCols = ['id', 'reference', 'inspection_type', 'inspector_name', 'inspection_date',
+      'status', 'property', 'property_name', 'service_user', 'findings',
+      'issues_found', 'action_required', 'priority', 'created_at', 'updated_at'];
     try {
       for (const col of existingCols) {
         if (standardCols.includes(col)) continue;
@@ -374,77 +433,77 @@ router.put("/:id", async (req, res) => {
     }
 
     const { id } = req.params;
-      // get existing columns so we only try to update columns that exist
-      const { rows: colRows } = await pool.query(`
+    // get existing columns so we only try to update columns that exist
+    const { rows: colRows } = await pool.query(`
         SELECT column_name, data_type
         FROM information_schema.columns
         WHERE table_name = 'inspections'
       `);
-      const existingCols = colRows.map(r => r.column_name);
-      const colTypeMap = new Map(colRows.map(r => [String(r.column_name), String(r.data_type)]));
+    const existingCols = colRows.map(r => r.column_name);
+    const colTypeMap = new Map(colRows.map(r => [String(r.column_name), String(r.data_type)]));
 
-      const fields = [
-        "reference",
-        "inspection_type",
-        "property",
-        "service_user",
-        "inspector_name",
-        "inspection_date",
-        "findings",
-        "issues_found",
-        "action_required",
-        "status",
-        "priority",
-        "property_name"
-      ];
+    const fields = [
+      "reference",
+      "inspection_type",
+      "property",
+      "service_user",
+      "inspector_name",
+      "inspection_date",
+      "findings",
+      "issues_found",
+      "action_required",
+      "status",
+      "priority",
+      "property_name"
+    ];
 
-      // Build dynamic set clause only for existing columns
-      const updates = [];
-      const values = [];
-      let idx = 1;
-      for (const key of fields) {
-        if (!existingCols.includes(key)) continue; // skip columns that don't exist in DB
+    // Build dynamic set clause only for existing columns
+    const updates = [];
+    const values = [];
+    let idx = 1;
+    for (const key of fields) {
+      if (!existingCols.includes(key)) continue; // skip columns that don't exist in DB
 
-        // accept camelCase keys from frontend (e.g., inspectionType)
-        const camel = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
-        const camelAlt = camel; // e.g., inspectionType
-        let bodyValue = req.body[camelAlt] !== undefined ? req.body[camelAlt] : req.body[key];
+      // accept camelCase keys from frontend (e.g., inspectionType)
+      const camel = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+      const camelAlt = camel; // e.g., inspectionType
+      let bodyValue = req.body[camelAlt] !== undefined ? req.body[camelAlt] : req.body[key];
 
-        // special handling for property_name: allow propertyName/property_name/property or lookup
-        if (key === 'property_name') {
-          bodyValue = bodyValue ?? req.body.propertyName ?? req.body.property_name ?? null;
-          // if not provided, try to resolve from property/propertyId in body
-          if (!bodyValue) {
-            const finalProperty = req.body.property ?? req.body.propertyId ?? req.body.property_id ?? null;
-            if (finalProperty) {
-              try {
-                const r = await pool.query(`SELECT name FROM hotels WHERE id = $1 LIMIT 1`, [finalProperty]);
-                if (r.rows && r.rows[0] && r.rows[0].name) bodyValue = r.rows[0].name;
-              } catch (e) {
-                // ignore lookup errors
-              }
+      // special handling for property_name: allow propertyName/property_name/property or lookup
+      if (key === 'property_name') {
+        bodyValue = bodyValue ?? req.body.propertyName ?? req.body.property_name ?? null;
+        // if not provided, try to resolve from property/propertyId in body
+        if (!bodyValue) {
+          const finalProperty = req.body.property ?? req.body.propertyId ?? req.body.property_id ?? null;
+          if (finalProperty) {
+            try {
+              const r = await pool.query(`SELECT name FROM hotels WHERE id = $1 LIMIT 1`, [finalProperty]);
+              if (r.rows && r.rows[0] && r.rows[0].name) bodyValue = r.rows[0].name;
+            } catch (e) {
+              // ignore lookup errors
             }
           }
-          // fallback to string of property id if still empty (avoid NOT NULL)
-          if (bodyValue === null || bodyValue === undefined) {
-            bodyValue = String(req.body.property ?? req.body.propertyId ?? req.body.property_id ?? "");
-          }
         }
-
-        if (bodyValue !== undefined) {
-          updates.push(`${key} = $${idx}`);
-          let val = bodyValue;
-          if (key === "issues_found") val = Number(bodyValue) || 0;
-          if (key === "action_required") val = !!bodyValue;
-          values.push(val);
-          idx++;
+        // fallback to string of property id if still empty (avoid NOT NULL)
+        if (bodyValue === null || bodyValue === undefined) {
+          bodyValue = String(req.body.property ?? req.body.propertyId ?? req.body.property_id ?? "");
         }
       }
 
+      if (bodyValue !== undefined) {
+        updates.push(`${key} = $${idx}`);
+        let val = bodyValue;
+        if (key === "issues_found") val = Number(bodyValue) || 0;
+        if (key === "action_required") val = !!bodyValue;
+        values.push(val);
+        idx++;
+      }
+    }
+
     // Handle custom columns from Forms Builder
-    const standardCols = ['id', 'reference', 'inspection_type', 'inspector_name', 'inspection_date', 
-                          'status', 'property', 'property_name', 'service_user', 'findings', 
-                          'issues_found', 'action_required', 'priority', 'created_at', 'updated_at'];
+    const standardCols = ['id', 'reference', 'inspection_type', 'inspector_name', 'inspection_date',
+      'status', 'property', 'property_name', 'service_user', 'findings',
+      'issues_found', 'action_required', 'priority', 'created_at', 'updated_at'];
     try {
       for (const col of existingCols) {
         if (standardCols.includes(col)) continue;

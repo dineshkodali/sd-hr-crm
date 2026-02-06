@@ -109,6 +109,7 @@ export default function AIRETasks({ user }) {
     "actions",
   ]);
   const [customColumns, setCustomColumns] = useState([]); // Columns from Forms Builder
+  const [customColumnMetadata, setCustomColumnMetadata] = useState({});
   const [lastColumnCheck, setLastColumnCheck] = useState(Date.now());
 
   const BASE_EXPORT_COLUMNS = useMemo(
@@ -356,6 +357,18 @@ export default function AIRETasks({ user }) {
 
       // Insert custom columns before "actions" column
       const newColumns = [...defaultColumns.slice(0, -1), ...customCols, defaultColumns[defaultColumns.length - 1]];
+
+      const nextMetadata = {};
+      columns.forEach(col => {
+        const cName = typeof col === 'string' ? col : (col.column_name || col.name);
+        if (cName) {
+          nextMetadata[cName] = {
+            input_type: col.input_type || 'text',
+            input_options: col.input_options || []
+          };
+        }
+      });
+      setCustomColumnMetadata(nextMetadata);
 
       // Only update if columns have changed
       if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
@@ -1147,31 +1160,31 @@ export default function AIRETasks({ user }) {
 
           {/* Data Display - Table or Board View */}
           {viewMode === 'table' ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-md">
               <table className="w-full">
-                <thead>
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr className="border-b border-gray-200">
                     {visibleColumns.checkbox && (
-                      <th className="text-left py-3 px-4">
+                      <th className="text-left py-4 px-4">
                         <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
                       </th>
                     )}
-                    {visibleColumns.type && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>}
-                    {visibleColumns.reference && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>}
-                    {visibleColumns.description && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>}
-                    {visibleColumns.priority && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>}
-                    {visibleColumns.status && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>}
-                    {visibleColumns.assigned && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>}
-                    {visibleColumns.date && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>}
+                    {visibleColumns.type && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">TYPE</th>}
+                    {visibleColumns.reference && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">REFERENCE</th>}
+                    {visibleColumns.description && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>}
+                    {visibleColumns.priority && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>}
+                    {visibleColumns.status && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">STATUS</th>}
+                    {visibleColumns.assigned && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>}
+                    {visibleColumns.date && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DATE</th>}
                     {customColumns.filter(col => visibleColumns[col]).map(col => (
-                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <th key={col} className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         {col.replace(/_/g, ' ').toUpperCase()}
                       </th>
                     ))}
-                    {visibleColumns.actions && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>}
+                    {visibleColumns.actions && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ACTIONS</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="bg-white divide-y divide-gray-100">
                   {loading ? (
                     <tr>
                       <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
@@ -1181,7 +1194,7 @@ export default function AIRETasks({ user }) {
                     const statusStyle = getStatusColor(task.status || "Pending");
 
                     return (
-                      <tr key={task.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={task.id} className="hover:bg-teal-50/30 transition-all border-b border-gray-100 last:border-0">
                         {visibleColumns.checkbox && (
                           <td className="py-4 px-4">
                             <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -1189,27 +1202,28 @@ export default function AIRETasks({ user }) {
                         )}
                         {visibleColumns.type && (
                           <td className="py-4 px-4">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">
                               {task.type || "AIRE Tasks"}
                             </span>
                           </td>
                         )}
                         {visibleColumns.reference && (
                           <td className="py-4 px-4">
-                            <span className="text-gray-700 font-medium">{task.reference}</span>
+                            <span className="text-slate-900 font-semibold text-sm whitespace-nowrap">{task.reference}</span>
                           </td>
                         )}
                         {visibleColumns.description && (
                           <td className="py-4 px-4">
                             <div>
                               <div
-                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
+                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`}
                                 onClick={hasUpdate ? () => handleEdit(task) : undefined}
                               >
-                                {task.title || task.description || "Task"}
+                                <Home className="w-4 h-4 text-gray-400" />
+                                <span>{task.propertyName || task.property_name || 'Unknown Property'}</span>
                               </div>
-                              <div className="text-gray-500 text-xs mt-1">
-                                {task.description || "AIRE task details and requirements."}
+                              <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">
+                                {task.title || task.description || "Task"}
                               </div>
                             </div>
                           </td>
@@ -1217,36 +1231,36 @@ export default function AIRETasks({ user }) {
                         {visibleColumns.priority && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                              <span className={`text-sm ${priorityStyle.text}`}>{task.priority || "Medium"}</span>
+                              <span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span>
+                              <span className={`text-sm font-semibold ${priorityStyle.text}`}>{task.priority || "Medium"}</span>
                             </div>
                           </td>
                         )}
                         {visibleColumns.status && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                              <span className={`text-sm ${statusStyle.text}`}>{task.status || "Pending"}</span>
+                              <span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span>
+                              <span className={`text-sm font-semibold ${statusStyle.text}`}>{task.status || "Pending"}</span>
                             </div>
                           </td>
                         )}
                         {visibleColumns.assigned && (
                           <td className="py-4 px-4">
                             {task.assignedTo === "Unassigned" || !task.assignedTo ? (
-                              <span className="text-gray-500 text-sm">Unassigned</span>
+                              <span className="text-gray-400 text-sm">Unassigned</span>
                             ) : (
                               <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(task.assignedTo)} flex items-center justify-center text-xs font-semibold`}>
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(task.assignedTo)} flex items-center justify-center text-xs font-semibold shadow-sm`}>
                                   {getInitials(task.assignedTo)}
                                 </div>
-                                <span className="text-gray-900 text-sm">{task.assignedTo}</span>
+                                <span className="text-gray-900 text-sm font-medium">{task.assignedTo}</span>
                               </div>
                             )}
                           </td>
                         )}
                         {visibleColumns.date && (
                           <td className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{formatDate(task.date)}</span>
+                            <span className="text-gray-600 text-sm">{formatDate(task.date)}</span>
                           </td>
                         )}
                         {customColumns.filter(col => visibleColumns[col]).map(col => (
@@ -1259,7 +1273,7 @@ export default function AIRETasks({ user }) {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleView(task)}
-                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
                                 title="View"
                               >
                                 <Eye className="w-4 h-4" />
@@ -1267,7 +1281,7 @@ export default function AIRETasks({ user }) {
                               {hasUpdate && (
                                 <button
                                   onClick={() => handleEdit(task)}
-                                  className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                   title="Edit"
                                 >
                                   <Edit className="w-4 h-4" />
@@ -1275,8 +1289,8 @@ export default function AIRETasks({ user }) {
                               )}
                               {hasDelete && (
                                 <button
-                                  onClick={() => handleDelete(task)}
-                                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  onClick={() => handleDelete(task.id)}
+                                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                   title="Delete"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -2059,21 +2073,67 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
               </div>
 
               {/* Custom columns from Forms Builder */}
-              {customColumns.map(col => (
-                <div key={col} className="col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </label>
-                  <input
-                    type="text"
-                    name={col}
-                    value={form[col] || ''}
-                    onChange={handleChange}
-                    placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
-                  />
-                </div>
-              ))}
+              {customColumns.map(col => {
+                const meta = customColumnMetadata[col] || {};
+                const inputType = meta.input_type || 'text';
+                const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                return (
+                  <div key={col} className="col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </label>
+                    {inputType === 'checkbox' ? (
+                      <div className="flex items-center h-10">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                          checked={!!form[col]}
+                          onChange={(e) => handleChange({ target: { name: col, value: e.target.checked } })}
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Yes</span>
+                      </div>
+                    ) : inputType === 'dropdown' || inputType === 'select' ? (
+                      <select
+                        name={col}
+                        value={form[col] || ''}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
+                      >
+                        <option value="">Select...</option>
+                        {options.map((opt, idx) => (
+                          <option key={idx} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : inputType === 'textarea' ? (
+                      <textarea
+                        name={col}
+                        rows={3}
+                        value={form[col] || ''}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                      />
+                    ) : inputType === 'date' ? (
+                      <input
+                        type="date"
+                        name={col}
+                        value={form[col] ? formatDateISO(form[col]) : ''}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                      />
+                    ) : (
+                      <input
+                        type={inputType}
+                        name={col}
+                        value={form[col] || ''}
+                        onChange={handleChange}
+                        placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

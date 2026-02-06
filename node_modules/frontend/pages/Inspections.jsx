@@ -218,6 +218,7 @@ export default function Inspections({ user }) {
   // Custom columns from Forms Builder
   const [customColumns, setCustomColumns] = useState([]);
   const [customColumnTypes, setCustomColumnTypes] = useState({});
+  const [customColumnMetadata, setCustomColumnMetadata] = useState({});
   // ...existing code...
   const [availableColumns, setAvailableColumns] = useState(["checkbox", "type", "reference", "description", "priority", "status", "assigned", "date", "actions"]);
 
@@ -413,6 +414,16 @@ export default function Inspections({ user }) {
         nextTypes[name] = normalizeColumnDataType(col?.data_type ?? col?.udt_name ?? col?.type);
       });
 
+      const nextMetadata = {};
+      (Array.isArray(columns) ? columns : []).forEach((col) => {
+        const name = col?.column_name;
+        if (!name) return;
+        nextMetadata[name] = {
+          input_type: col.input_type || 'text',
+          input_options: col.input_options || []
+        };
+      });
+
       // Insert custom columns before "actions" column
       const newColumns = [...DEFAULT_COLUMNS.slice(0, -1), ...customCols, DEFAULT_COLUMNS[DEFAULT_COLUMNS.length - 1]];
 
@@ -421,6 +432,7 @@ export default function Inspections({ user }) {
         // Only trigger update if columns actually changed
         if (JSON.stringify(customCols) !== JSON.stringify(prevCols)) {
           setCustomColumnTypes((prev) => ({ ...prev, ...nextTypes }));
+          setCustomColumnMetadata((prev) => ({ ...prev, ...nextMetadata }));
           setAvailableColumns(newColumns);
 
           // Update visible columns - restore from localStorage or default to hidden
@@ -449,6 +461,7 @@ export default function Inspections({ user }) {
           return customCols;
         }
         setCustomColumnTypes((prev) => ({ ...prev, ...nextTypes }));
+        setCustomColumnMetadata((prev) => ({ ...prev, ...nextMetadata }));
         return prevCols;
       });
     } catch (err) {
@@ -704,7 +717,6 @@ export default function Inspections({ user }) {
       propertyId: hotelId,
       propertyName: hotel ? hotel.name : "",
       serviceUserId: "",
-      serviceUserName: "",
       serviceUserName: "",
       inspectorName: currentUser?.name || "", // Set to current user
     }));
@@ -1074,7 +1086,6 @@ export default function Inspections({ user }) {
       propertyId: "",
       propertyName: "",
       serviceUserId: "",
-      serviceUserName: "",
       serviceUserName: "",
       inspectorName: currentUser?.name || "",
       inspectionDate: "",
@@ -2148,42 +2159,81 @@ export default function Inspections({ user }) {
                   </div>
 
                   {/* Custom Columns from Forms Builder */}
-                  {customColumns.map(col => (
-                    <div key={col} className="col-span-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </label>
-                      {customColumnTypes[col] === 'boolean' ? (
-                        <div className="flex items-center gap-3 h-[38px]">
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              name={col}
-                              checked={!!formData[col]}
-                              onChange={handleInputChange}
-                              className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
-                            <span className="ml-3 text-sm font-medium text-gray-700">Yes / No</span>
-                          </label>
-                        </div>
-                      ) : (
-                        <input
-                          type={customColumnTypes[col] === 'number' ? 'number' : customColumnTypes[col] === 'date' ? 'date' : 'text'}
-                          name={col}
-                          value={formData[col] || ''}
-                          onChange={handleInputChange}
-                          className={`w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none transition-all ${fieldErrors[col] ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
-                          placeholder={`Enter ${col.replace(/_/g, ' ')} (${typeLabel(customColumnTypes[col] || 'text')})`}
-                        />
-                      )}
-                      {fieldErrors[col] && (
-                        <div className="mt-1 text-xs text-red-600 font-medium">
-                          {fieldErrors[col]}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {/* Custom Columns from Forms Builder */}
+                  {customColumns.map(col => {
+                    const meta = customColumnMetadata[col] || {};
+                    const inputType = meta.input_type || 'text';
+                    const isCheckbox = inputType === 'checkbox' || customColumnTypes[col] === 'boolean';
+                    const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                    // Parse options if string
+                    let parsedOptions = options;
+                    if (typeof options === 'string') {
+                      try { parsedOptions = JSON.parse(options); } catch { parsedOptions = []; }
+                    }
+                    // Handle case where options is an array of strings but might be wrapped/stringified
+                    if (Array.isArray(parsedOptions) && parsedOptions.length === 1 && typeof parsedOptions[0] === 'string' && parsedOptions[0].startsWith('[')) {
+                      try { parsedOptions = JSON.parse(parsedOptions[0]); } catch { }
+                    }
+
+                    return (
+                      <div key={col} className="col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </label>
+                        {isCheckbox ? (
+                          <div className="flex items-center gap-3 h-[38px]">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                name={col}
+                                checked={!!formData[col]}
+                                onChange={handleInputChange}
+                                className="sr-only peer"
+                              />
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
+                              <span className="ml-3 text-sm font-medium text-gray-700">Yes / No</span>
+                            </label>
+                          </div>
+                        ) : inputType === 'dropdown' || inputType === 'select' ? (
+                          <select
+                            name={col}
+                            value={formData[col] || ''}
+                            onChange={handleInputChange}
+                            className={`w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none transition-all ${fieldErrors[col] ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                          >
+                            <option value="">Select {col.replace(/_/g, ' ')}</option>
+                            {parsedOptions.map((opt, idx) => (
+                              <option key={idx} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : inputType === 'textarea' ? (
+                          <textarea
+                            name={col}
+                            value={formData[col] || ''}
+                            onChange={handleInputChange}
+                            rows={3}
+                            className={`w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none transition-all resize-y ${fieldErrors[col] ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                            placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                          />
+                        ) : (
+                          <input
+                            type={inputType === 'number' || customColumnTypes[col] === 'number' ? 'number' : inputType === 'date' || customColumnTypes[col] === 'date' ? 'date' : 'text'}
+                            name={col}
+                            value={formData[col] || ''}
+                            onChange={handleInputChange}
+                            className={`w-full border rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none transition-all ${fieldErrors[col] ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                            placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                          />
+                        )}
+                        {fieldErrors[col] && (
+                          <div className="mt-1 text-xs text-red-600 font-medium">
+                            {fieldErrors[col]}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

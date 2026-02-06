@@ -355,22 +355,44 @@ export default function HotelsList({ user: userProp }) {
 
   // --- EDIT LOGIC ---
   const handleEditChange = (field, value) => {
-    if (!editingHotel) return;
-    if (field === "rating" || field === "reviews") {
-      if (value === "" || value === null) {
-        setEditingHotel({ ...editingHotel, [field]: "" });
-        return;
+    setEditingHotel((prev) => {
+      if (!prev) return prev;
+      let newVal = value;
+      if (field === "rating" || field === "reviews") {
+        if (value === "" || value === null) {
+          newVal = "";
+        } else {
+          const asNum = Number(value);
+          if (!Number.isNaN(asNum)) {
+            newVal = asNum;
+          }
+        }
       }
-      const asNum = Number(value);
-      if (!Number.isNaN(asNum)) {
-        setEditingHotel({ ...editingHotel, [field]: asNum });
-      } else {
-        setEditingHotel({ ...editingHotel, [field]: value });
-      }
-    } else {
-      setEditingHotel({ ...editingHotel, [field]: value });
-    }
+      return { ...prev, [field]: newVal };
+    });
   };
+
+  // Fetch all staff (potentially filtered by branch/role server-side) for the manager dropdown
+  async function fetchAllManagers() {
+    try {
+      const res = await axios.get("/api/staff");
+      const list = res?.data?.users ?? res.data ?? [];
+      const normalized = (Array.isArray(list) ? list : []).map((u) => ({
+        id: u.id,
+        name: u.name || u.email || "Unknown",
+        email: u.email || null,
+        avatar: u.avatar || u.photo || null,
+        role: u.role || "staff",
+        manager_id: u.manager_id ?? null,
+        branch: u.branch ?? null,
+      }));
+      setManagersList(normalized);
+    } catch (err) {
+      console.error("fetchAllManagers error:", err);
+      // fallback to empty or handle gracefully
+      setManagersList([]);
+    }
+  }
 
   async function fetchStaffForHotel(hotelOrId) {
     setLoadingStaff(true);
@@ -393,7 +415,7 @@ export default function HotelsList({ user: userProp }) {
           branch: u.branch ?? null,
         }));
         setAccessStaffList(normalized);
-        setManagersList(normalized);
+        // Do NOT set managersList here anymore; we want the full list
         return;
       } catch (err) {
         console.warn(
@@ -401,15 +423,14 @@ export default function HotelsList({ user: userProp }) {
           err.message
         );
       }
+      // Fallback
       const rAll = await axios.get(`/api/staff`);
       const list = rAll?.data?.users ?? rAll?.data ?? [];
       const normalized = Array.isArray(list) ? list : [];
       setAccessStaffList(normalized);
-      setManagersList(normalized);
     } catch (err) {
       console.error("fetchStaffForHotel critical error:", err);
       setAccessStaffList([]);
-      setManagersList([]);
     } finally {
       setLoadingStaff(false);
     }
@@ -468,6 +489,7 @@ export default function HotelsList({ user: userProp }) {
     setTimeout(() => {
       setEditingHotel(init);
       fetchStaffForHotel(init);
+      fetchAllManagers(); // Fetch full list for the dropdown
       fetchAllowedUsersForHotel(init.id);
     }, 0);
   };

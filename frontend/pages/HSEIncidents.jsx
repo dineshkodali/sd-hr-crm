@@ -274,6 +274,7 @@ export default function HSEIncidents({ user }) {
 
   // Custom columns from Forms Builder
   const [customColumns, setCustomColumns] = useState([]);
+  const [customColumnMetadata, setCustomColumnMetadata] = useState({});
   const [availableColumns, setAvailableColumns] = useState([]);
 
   const STANDARD_FORM_COLS = useMemo(() => ([
@@ -368,9 +369,22 @@ export default function HSEIncidents({ user }) {
           return String(col);
         });
 
+        // Parse metadata
+        const nextMetadata = {};
+        cols.forEach(col => {
+          const cName = typeof col === 'string' ? col : (col.column_name || col.name);
+          if (cName) {
+            nextMetadata[cName] = {
+              input_type: col.input_type || 'text',
+              input_options: col.input_options || []
+            };
+          }
+        });
+        setCustomColumnMetadata(nextMetadata);
+
         setAvailableColumns(columnNames);
 
-        const standardCols = DEFAULT_COLUMNS;
+        const standardCols = DEFAULT_COLUMNS; // Note: This refers to the local DEFAULT_COLUMNS variable, ensuring consistency
         const customCols = columnNames.filter(col => !standardCols.includes(col));
 
         setCustomColumns(prevCustom => {
@@ -1092,48 +1106,48 @@ export default function HSEIncidents({ user }) {
 
           {/* Data Display - Table or Board View */}
           {viewMode === 'table' ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-md">
               <table className="w-full">
-                <thead>
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr className="border-b border-gray-200">
                     {visibleColumns.checkbox && (
-                      <th className="text-left py-3 px-4">
+                      <th className="text-left py-4 px-4">
                         <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
                       </th>
                     )}
                     {visibleColumns.type && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">TYPE</th>
                     )}
                     {visibleColumns.reference && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">REFERENCE</th>
                     )}
                     {visibleColumns.description && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>
                     )}
                     {visibleColumns.priority && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>
                     )}
                     {visibleColumns.status && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">STATUS</th>
                     )}
                     {visibleColumns.assigned && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>
                     )}
                     {visibleColumns.date && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DATE</th>
                     )}
                     {visibleColumns.actions && (
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ACTIONS</th>
                     )}
                     {/* Custom Columns */}
                     {customColumns.filter(col => visibleColumns[col]).map(col => (
-                      <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <th key={col} className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         {col.replace(/_/g, ' ')}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="bg-white divide-y divide-gray-100">
                   {loading ? (
                     <tr>
                       <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
@@ -1143,7 +1157,7 @@ export default function HSEIncidents({ user }) {
                     const statusStyle = getStatusColor(r.status || "Open");
 
                     return (
-                      <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                      <tr key={idx} className="hover:bg-teal-50/30 transition-all border-b border-gray-100 last:border-0">
                         {visibleColumns.checkbox && (
                           <td className="py-4 px-4">
                             <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -1151,65 +1165,65 @@ export default function HSEIncidents({ user }) {
                         )}
                         {visibleColumns.type && (
                           <td className="py-4 px-4">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">
                               {r.incident_type || "HSE Incident"}
                             </span>
                           </td>
                         )}
                         {visibleColumns.reference && (
                           <td className="py-4 px-4">
-                            <span className="text-gray-700 font-medium">{r.reference || `HSE-${r.id || idx}`}</span>
+                            <span className="text-slate-900 font-semibold text-sm whitespace-nowrap">{r.reference || `HSE-${r.id || idx}`}</span>
                           </td>
                         )}
                         {visibleColumns.description && (
                           <td className="py-4 px-4">
                             <div>
                               <div
-                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors`}
+                                className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`}
                                 onClick={hasUpdate ? () => openModal('edit', r) : undefined}
                               >
-                                {r.incident_type || "HSE Incident"}
+                                <Home className="w-4 h-4 text-gray-400" />
+                                <span>{r.property_name || 'Unknown Property'}</span>
                               </div>
-                              <div className="text-gray-500 text-xs mt-1">
-                                {r.details || "HSE incident details and information."}
+                              <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">
+                                {r.details || r.incident_type || "HSE Incident"}
                               </div>
-                              {r.property_name && <div className="text-gray-500 text-xs mt-1">Property: {r.property_name}</div>}
                             </div>
                           </td>
                         )}
                         {visibleColumns.priority && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                              <span className={`text-sm ${priorityStyle.text}`}>{r.severity || "Medium"}</span>
+                              <span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span>
+                              <span className={`text-sm font-semibold ${priorityStyle.text}`}>{r.severity || "Medium"}</span>
                             </div>
                           </td>
                         )}
                         {visibleColumns.status && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`}></span>
-                              <span className={`text-sm ${statusStyle.text}`}>{r.status || "Open"}</span>
+                              <span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span>
+                              <span className={`text-sm font-semibold ${statusStyle.text}`}>{r.status || "Open"}</span>
                             </div>
                           </td>
                         )}
                         {visibleColumns.assigned && (
                           <td className="py-4 px-4">
                             {!r.assigned_investigator ? (
-                              <span className="text-gray-500 text-sm">Unassigned</span>
+                              <span className="text-gray-400 text-sm">Unassigned</span>
                             ) : (
                               <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(r.assigned_investigator)} flex items-center justify-center text-xs font-semibold`}>
+                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(r.assigned_investigator)} flex items-center justify-center text-xs font-semibold shadow-sm`}>
                                   {getInitials(r.assigned_investigator)}
                                 </div>
-                                <span className="text-gray-900 text-sm">{r.assigned_investigator}</span>
+                                <span className="text-gray-900 text-sm font-medium">{r.assigned_investigator}</span>
                               </div>
                             )}
                           </td>
                         )}
                         {visibleColumns.date && (
                           <td className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{formatDate(r.incident_date)}</span>
+                            <span className="text-gray-600 text-sm">{formatDate(r.incident_date)}</span>
                           </td>
                         )}
                         {visibleColumns.actions && (
@@ -1217,7 +1231,7 @@ export default function HSEIncidents({ user }) {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => openModal('view', r)}
-                                className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all"
                                 title="View"
                               >
                                 <Eye className="w-4 h-4" />
@@ -1225,7 +1239,7 @@ export default function HSEIncidents({ user }) {
                               {hasUpdate && (
                                 <button
                                   onClick={() => openModal('edit', r)}
-                                  className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
+                                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                   title="Edit"
                                 >
                                   <Edit className="w-4 h-4" />
@@ -1234,7 +1248,7 @@ export default function HSEIncidents({ user }) {
                               {hasDelete && (
                                 <button
                                   onClick={() => doDelete(r.id)}
-                                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                   title="Delete"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -1484,6 +1498,11 @@ export default function HSEIncidents({ user }) {
 
                   <DetailField label="AFFECTED PERSON" value={formData.affected_person} />
                   <DetailField label="INVESTIGATOR" value={formData.assigned_investigator} />
+
+                  {/* Custom Columns Display */}
+                  {customColumns.map(col => (
+                    <DetailField key={col} label={col.replace(/_/g, ' ')} value={formData[col]} />
+                  ))}
                 </div>
 
                 <div className="mb-4">
@@ -1658,20 +1677,64 @@ export default function HSEIncidents({ user }) {
                       </>
                     )}
 
-                    {/* Custom Columns from Forms Builder */}
-                    {displayCustomColumns.map(col => (
-                      <div key={col} className="col-span-1">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                          {col.replace(/_/g, ' ')}
-                        </label>
-                        <input
-                          type="text"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                          value={formData[col] || ''}
-                          onChange={e => setFormData({ ...formData, [col]: e.target.value })}
-                        />
-                      </div>
-                    ))}
+                    {/* Custom Columns from Forms Builder - Dynamic Rendering */}
+                    {customColumns.map(col => {
+                      const meta = customColumnMetadata[col] || {};
+                      const inputType = meta.input_type || 'text';
+                      const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                      return (
+                        <div key={col} className="col-span-1">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </label>
+
+                          {inputType === 'checkbox' ? (
+                            <div className="flex items-center h-9">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                                checked={!!formData[col]}
+                                onChange={e => setFormData(prev => ({ ...prev, [col]: e.target.checked }))}
+                              />
+                              <span className="ml-2 text-sm text-gray-700">Yes</span>
+                            </div>
+                          ) : inputType === 'dropdown' || inputType === 'select' ? (
+                            <select
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                              value={formData[col] || ''}
+                              onChange={e => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
+                            >
+                              <option value="">Select...</option>
+                              {options.map((opt, idx) => (
+                                <option key={idx} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          ) : inputType === 'textarea' ? (
+                            <textarea
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                              rows={3}
+                              value={formData[col] || ''}
+                              onChange={e => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
+                            />
+                          ) : inputType === 'date' ? (
+                            <input
+                              type="date"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                              value={formData[col] ? formatDateISO(formData[col]) : ''}
+                              onChange={e => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
+                            />
+                          ) : (
+                            <input
+                              type={inputType}
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                              value={formData[col] || ''}
+                              onChange={e => setFormData(prev => ({ ...prev, [col]: e.target.value }))}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

@@ -206,6 +206,60 @@ export default function Compliance() {
     notes: "",
   });
 
+  const [customColumns, setCustomColumns] = useState([]);
+  const [customColumnMetadata, setCustomColumnMetadata] = useState({});
+  const [availableColumns, setAvailableColumns] = useState([]);
+
+  // When customColumns change, add new fields to form state
+  useEffect(() => {
+    setForm(prev => {
+      const newForm = { ...prev };
+      customColumns.forEach(col => {
+        if (!(col in newForm)) newForm[col] = '';
+      });
+      return newForm;
+    });
+  }, [customColumns]);
+
+  const fetchAvailableColumns = async () => {
+    try {
+      const res = await api.get('/api/forms-builder/tables/certificates/columns');
+      const columns = res?.data?.columns || res?.data || [];
+
+      const systemColumns = [
+        'id', 'certificate_type', 'property_id', 'hotel_id', 'certificate_number',
+        'issue_date', 'expiry_date', 'issued_by', 'status', 'notes',
+        'created_at', 'updated_at', 'document_data', 'document_name', 'file_path', 'hotel_name', 'property_name'
+      ];
+
+      const columnNames = columns.map(col => {
+        if (typeof col === 'string') return col;
+        if (col.column_name) return col.column_name;
+        if (col.name) return col.name;
+        return String(col);
+      });
+
+      const customCols = columnNames.filter(col => !systemColumns.includes(col));
+
+      if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
+        const nextMetadata = {};
+        columns.forEach(col => {
+          const cName = typeof col === 'string' ? col : (col.column_name || col.name);
+          if (cName) {
+            nextMetadata[cName] = {
+              input_type: col.input_type || 'text',
+              input_options: col.input_options || []
+            };
+          }
+        });
+        setCustomColumnMetadata(nextMetadata);
+        setCustomColumns(customCols);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch columns:', err);
+    }
+  };
+
   // Debounce
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -347,7 +401,12 @@ export default function Compliance() {
     fetchHotels(controller.signal);
     fetchStats(controller.signal);
     fetchData(controller.signal);
-    return () => controller.abort();
+    fetchAvailableColumns();
+    const intervalId = setInterval(fetchAvailableColumns, 5000);
+    return () => {
+      controller.abort();
+      clearInterval(intervalId);
+    };
   }, []);
 
   const fetchStaffForHotel = async (hotelId) => {
@@ -386,6 +445,7 @@ export default function Compliance() {
       certificate_type: "", property_id: hotels.length === 1 ? hotels[0].id : "",
       certificate_number: "", issue_date: getTodayYMD(), expiry_date: getTodayYMD(1),
       issued_by: "", status: "valid", notes: "",
+      ...customColumns.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
     });
     setStaffUsers([]); setDocumentFile(null); setFormError(""); setIsEditing(false); setViewMode(false); setEditId(null);
   }
@@ -440,6 +500,7 @@ export default function Compliance() {
         issued_by: cert.issued_by ?? "",
         status: cert.status ?? "valid",
         notes: cert.notes ?? "",
+        ...customColumns.reduce((acc, col) => ({ ...acc, [col]: cert[col] || '' }), {})
       });
       setEditId(cert.id);
       if (cert.property_id ?? cert.hotel_id) fetchStaffForHotel(cert.property_id ?? cert.hotel_id);
@@ -456,7 +517,14 @@ export default function Compliance() {
     const hotelName = hotels.find((h) => String(h.id) === String(selectedHotelId))?.name;
     const clean = (v) => (v === "" ? null : v);
 
-    const payload = { ...form, [PROPERTY_FIELD]: selectedHotelId, hotel_name: hotelName, certificate_type: clean(form.certificate_type), certificate_number: clean(form.certificate_number) };
+    const payload = {
+      ...form,
+      [PROPERTY_FIELD]: selectedHotelId,
+      hotel_name: hotelName,
+      certificate_type: clean(form.certificate_type),
+      certificate_number: clean(form.certificate_number),
+      ...Object.fromEntries(customColumns.map(col => [col, clean(form[col])]))
+    };
 
     try {
       const url = isEditing ? `/api/compliance/${editId}` : "/api/compliance";
@@ -483,8 +551,8 @@ export default function Compliance() {
     });
   };
 
-  const EXPORT_COLUMNS = useMemo(
-    () => [
+  const EXPORT_COLUMNS = useMemo(() => {
+    const base = [
       { header: 'Certificate Type', key: 'certificate_type' },
       { header: 'Property', key: 'hotel_name' },
       { header: 'Certificate Number', key: 'certificate_number' },
@@ -493,13 +561,17 @@ export default function Compliance() {
       { header: 'Status', key: 'status' },
       { header: 'Issued By', key: 'issued_by' },
       { header: 'Notes', key: 'notes' },
-    ],
-    []
-  );
+    ];
+    const custom = (customColumns || []).map(col => ({
+      header: String(col).replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase()),
+      key: col,
+    }));
+    return [...base, ...custom];
+  }, [customColumns]);
 
   const normalizeComplianceExportRow = (c) => {
     const computedStatus = c?.status || computeStatusFromExpiry(c?.expiry_date);
-    return {
+    const row = {
       certificate_type: c?.certificate_type || 'N/A',
       hotel_name: c?.hotel_name || c?.property_name || 'N/A',
       certificate_number: c?.certificate_number || 'N/A',
@@ -509,6 +581,10 @@ export default function Compliance() {
       issued_by: c?.issued_by || 'N/A',
       notes: c?.notes || '',
     };
+    (customColumns || []).forEach(col => {
+      row[col] = c[col] || '';
+    });
+    return row;
   };
 
   const handleDownloadPDF = () => {
@@ -768,6 +844,69 @@ export default function Compliance() {
                     <input type="date" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} disabled={viewMode} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none" />
                   </div>
                   {/* ... other fields ... */}
+                  {/* Custom columns */}
+                  {customColumns.map(col => {
+                    const meta = customColumnMetadata[col] || {};
+                    const inputType = meta.input_type || 'text';
+                    const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                    return (
+                      <div key={col} className={inputType === 'textarea' ? "md:col-span-2" : ""}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </label>
+                        {inputType === 'checkbox' ? (
+                          <div className="flex items-center h-10">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                              checked={!!form[col]}
+                              onChange={(e) => setForm({ ...form, [col]: e.target.checked })}
+                              disabled={viewMode}
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Yes</span>
+                          </div>
+                        ) : inputType === 'dropdown' || inputType === 'select' ? (
+                          <select
+                            value={form[col] || ''}
+                            onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                            disabled={viewMode}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
+                          >
+                            <option value="">Select...</option>
+                            {options.map((opt, idx) => (
+                              <option key={idx} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : inputType === 'textarea' ? (
+                          <textarea
+                            rows={3}
+                            value={form[col] || ''}
+                            onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                            disabled={viewMode}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                          />
+                        ) : inputType === 'date' ? (
+                          <input
+                            type="date"
+                            value={form[col] ? toInputYMD(form[col]) : ''}
+                            onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                            disabled={viewMode}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                          />
+                        ) : (
+                          <input
+                            type={inputType}
+                            value={form[col] || ''}
+                            onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                            placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                            disabled={viewMode}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* File Upload Section */}
