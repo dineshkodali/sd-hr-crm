@@ -1,6 +1,7 @@
 // C:\PostgreAuth\Backend\routes\compliance.js
 import express from "express";
 import multer from "multer";
+import { protect } from "../middleware/auth.js";
 
 let pool;
 try {
@@ -56,6 +57,55 @@ async function safeQuery(sql, params = []) {
   }
 }
 
+async function getAllowedHotelIds(user) {
+  if (!user) return [];
+  if (user.role === "admin") return null;
+
+  let query = "";
+  let params = [];
+
+  if (user.role === "manager") {
+    query = "SELECT id FROM public.hotels WHERE manager_id = $1";
+    params = [user.id];
+    if (user.branch) {
+      query += " OR branch = $2";
+      params.push(user.branch);
+    }
+  } else if (user.role === "staff") {
+    if (!user.branch) return [];
+    query = "SELECT id FROM public.hotels WHERE branch = $1";
+    params = [user.branch];
+  } else {
+    return [];
+  }
+
+  const r = await safeQuery(query, params);
+  if (!r.ok) return [];
+  return (r.rows || []).map((x) => x.id);
+}
+
+async function getAllowedHotelNamesLower(allowedHotelIds) {
+  if (allowedHotelIds === null) return null;
+  if (!Array.isArray(allowedHotelIds) || allowedHotelIds.length === 0) return [];
+  const r = await safeQuery("SELECT name FROM public.hotels WHERE id = ANY($1::int[])", [allowedHotelIds]);
+  if (!r.ok) return [];
+  return (r.rows || []).map((x) => String(x.name || "").trim().toLowerCase()).filter(Boolean);
+}
+
+function recordAllowedByScope(row, allowedHotelIds, allowedHotelNamesLower) {
+  if (allowedHotelIds === null) return true;
+  if (!row) return false;
+
+  const allowedIdTexts = Array.isArray(allowedHotelIds) ? allowedHotelIds.map((x) => String(x)) : [];
+  const propIdText = row.property_id != null && String(row.property_id).trim() !== "" ? String(row.property_id).trim() : null;
+  if (propIdText && allowedIdTexts.includes(propIdText)) return true;
+
+  const hn = row.hotel_name != null ? String(row.hotel_name).trim().toLowerCase() : "";
+  if (hn && Array.isArray(allowedHotelNamesLower) && allowedHotelNamesLower.includes(hn)) return true;
+
+  return false;
+}
+
 let HOTEL_PK_COL = null;
 async function getHotelsPkColumn() {
   if (HOTEL_PK_COL) return HOTEL_PK_COL;
@@ -104,15 +154,34 @@ const HOTEL_JOIN = `
 `;
 
 /* stats */
-router.get("/stats/summary", requireAuth, async (req, res) => {
+router.get("/stats/summary", protect, async (req, res) => {
   try {
+    const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
+    if (allowedHotelIds !== null && allowedHotelIds.length === 0) {
+      return res.json({ ok: true, data: { valid_count: 0, expiring_count: 0, expired_count: 0 } });
+    }
+
+    const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
+
+    const where = ["is_active IS TRUE"];
+    const params = [];
+    let idx = 1;
+
+    if (allowedHotelIds !== null) {
+      where.push(`(property_id::text = ANY($${idx}::text[]) OR (hotel_name IS NOT NULL AND lower(hotel_name) = ANY($${idx + 1}::text[])))`);
+      params.push(allowedHotelIds.map((x) => String(x)));
+      params.push(allowedHotelNamesLower);
+      idx += 2;
+    }
+
     const q = `SELECT
       COUNT(*) FILTER (WHERE expiry_date > (current_date + INTERVAL '30 days') AND is_active IS TRUE) AS valid_count,
       COUNT(*) FILTER (WHERE expiry_date <= (current_date + INTERVAL '30 days') AND expiry_date >= current_date AND is_active IS TRUE) AS expiring_count,
       COUNT(*) FILTER (WHERE expiry_date < current_date AND is_active IS TRUE) AS expired_count
-    FROM public.certificates;`;
+    FROM public.certificates
+    WHERE ${where.join(" AND ")};`;
 
-    const r = await safeQuery(q);
+    const r = await safeQuery(q, params);
     if (!r.ok) return res.json({ ok: true, data: { valid_count: 0, expiring_count: 0, expired_count: 0 } });
     return res.json({ ok: true, data: r.rows[0] || { valid_count: 0, expiring_count: 0, expired_count: 0 } });
   } catch (err) {
@@ -122,26 +191,59 @@ router.get("/stats/summary", requireAuth, async (req, res) => {
 });
 
 /* list */
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
     // Support both hotel_id (or property_id) param; treat it as either hotel id or hotel name fragment
     const hotelParam = req.query.hotel_id ?? req.query.property_id;
     const hotelNameParam = req.query.hotel_name ?? req.query.site;
     const { status, search } = req.query;
 
-    // Always match stats logic: only is_active IS TRUE, and status filter if set. No join unless hotel filter is applied.
+    const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
+    if (allowedHotelIds !== null && allowedHotelIds.length === 0) {
+      return res.json({ ok: true, data: [] });
+    }
+
+    const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
+
     const where = ["is_active IS TRUE"];
     const params = [];
+    let idx = 1;
+
+    if (allowedHotelIds !== null) {
+      where.push(`(property_id::text = ANY($${idx}::text[]) OR (hotel_name IS NOT NULL AND lower(hotel_name) = ANY($${idx + 1}::text[])))`);
+      params.push(allowedHotelIds.map((x) => String(x)));
+      params.push(allowedHotelNamesLower);
+      idx += 2;
+    }
 
     if (status === "expired") where.push("expiry_date < current_date");
     else if (status === "expiring") where.push("expiry_date BETWEEN current_date AND (current_date + INTERVAL '30 days')");
     else if (status === "valid") where.push("expiry_date > (current_date + INTERVAL '30 days')");
 
+    if (search) {
+      where.push(`(certificate_type ILIKE $${idx} OR issued_by ILIKE $${idx} OR notes ILIKE $${idx} OR hotel_name ILIKE $${idx})`);
+      params.push(`%${search}%`);
+      idx++;
+    }
+
+    if (hotelParam && String(hotelParam).trim() !== "") {
+      const n = Number(hotelParam);
+      if (Number.isFinite(n) && Number.isInteger(n)) {
+        where.push(`property_id::text = $${idx}`);
+        params.push(String(n));
+        idx++;
+      }
+    }
+
+    if (hotelNameParam && String(hotelNameParam).trim() !== "") {
+      where.push(`hotel_name ILIKE $${idx}`);
+      params.push(`%${String(hotelNameParam)}%`);
+      idx++;
+    }
+
     // limit & offset
     const limit = Math.max(Math.min(parseInt(req.query.limit || "50", 10) || 50, 100), 1);
     const offset = Math.max(parseInt(req.query.offset || "0", 10) || 0, 0);
-    params.push(limit);
-    params.push(offset);
 
     const sql = `SELECT *,
       CASE
@@ -152,10 +254,10 @@ router.get("/", requireAuth, async (req, res) => {
     FROM public.certificates
     WHERE ${where.join(" AND ")}
     ORDER BY expiry_date ASC
-    LIMIT $1 OFFSET $2;`;
+    LIMIT $${idx} OFFSET $${idx + 1};`;
 
     const start = Date.now();
-    const r = await safeQuery(sql, [limit, offset]);
+    const r = await safeQuery(sql, [...params, limit, offset]);
     const elapsed = Date.now() - start;
     if (elapsed > 1000) {
       console.warn(`[PERF] /api/compliance query took ${elapsed}ms (limit=${limit}, offset=${offset})`);
@@ -179,10 +281,17 @@ router.get("/", requireAuth, async (req, res) => {
 });
 
 /* get one */
-router.get("/:id", requireAuth, async (req, res) => {
+router.get("/:id", protect, async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
+
+    const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
+    if (allowedHotelIds !== null && allowedHotelIds.length === 0) {
+      return res.status(404).json({ ok: false, error: "Not found" });
+    }
+
+    const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
 
     const sql = `
       SELECT c.*,
@@ -196,6 +305,10 @@ router.get("/:id", requireAuth, async (req, res) => {
     if (!r.ok) return res.status(500).json({ ok: false, error: "Server error" });
     if (!r.rows[0]) return res.status(404).json({ ok: false, error: "Not found" });
 
+    if (!recordAllowedByScope(r.rows[0], allowedHotelIds, allowedHotelNamesLower)) {
+      return res.status(403).json({ ok: false, error: "Access denied" });
+    }
+
     const row = r.rows[0];
     row.hotel_name = row.hotel_name && String(row.hotel_name).trim() ? String(row.hotel_name).trim() : "";
     return res.json({ ok: true, data: row });
@@ -205,10 +318,29 @@ router.get("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/:id/document", requireAuth, async (req, res) => {
+router.get("/:id/document", protect, async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
+
+    const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
+    if (allowedHotelIds !== null && allowedHotelIds.length === 0) {
+      return res.status(404).json({ ok: false, error: "No document" });
+    }
+
+    const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
+
+    if (allowedHotelIds !== null) {
+      const chk = await safeQuery(
+        "SELECT property_id, hotel_name FROM public.certificates WHERE id::text = $1 AND is_active = true LIMIT 1",
+        [String(id)]
+      );
+      const row = chk.rows?.[0];
+      if (!row) return res.status(404).json({ ok: false, error: "No document" });
+      if (!recordAllowedByScope(row, allowedHotelIds, allowedHotelNamesLower)) {
+        return res.status(403).json({ ok: false, error: "Access denied" });
+      }
+    }
 
     const r = await safeQuery(
       "SELECT document_name, document_mime, document_data FROM public.certificates WHERE id::text = $1 AND is_active = true LIMIT 1",
@@ -233,7 +365,7 @@ router.get("/:id/document", requireAuth, async (req, res) => {
 });
 
 /* create */
-router.post("/", requireAuth, upload.single("document"), async (req, res) => {
+router.post("/", protect, upload.single("document"), async (req, res) => {
   try {
     const {
       certificate_type,
@@ -254,6 +386,12 @@ router.post("/", requireAuth, upload.single("document"), async (req, res) => {
 
     if (!certificate_type || !issue_date || !expiry_date)
       return res.status(400).json({ ok: false, error: "Missing required fields" });
+
+    const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
+    const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
+    if (allowedHotelIds !== null && allowedHotelIds.length === 0) {
+      return res.status(403).json({ ok: false, error: "Access denied" });
+    }
 
     // Determine hotel_name to store:
     // Priority: explicit hotel_name field > in_hotel_id (if numeric try to lookup hotels.name) > in_property_id (try lookup) > null
@@ -296,6 +434,13 @@ router.post("/", requireAuth, upload.single("document"), async (req, res) => {
       }
     }
 
+    if (allowedHotelIds !== null) {
+      const hn = hotelNameToStore != null ? String(hotelNameToStore).trim().toLowerCase() : "";
+      if (hn && Array.isArray(allowedHotelNamesLower) && !allowedHotelNamesLower.includes(hn)) {
+        return res.status(403).json({ ok: false, error: "Cannot create certificate for a property outside your access" });
+      }
+    }
+
     const insertSql = `INSERT INTO public.certificates (certificate_type, property_id, hotel_name, issue_date, expiry_date, issued_by, file_path, document_name, document_mime, document_data, notes, created_by, is_active)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`;
     // property_id we keep as null unless user provided an actual property id that resolves to a properties.id
@@ -305,6 +450,10 @@ router.post("/", requireAuth, upload.single("document"), async (req, res) => {
       const tryId = Number(String(in_property_id).trim());
       const rp = await safeQuery("SELECT id FROM properties WHERE id = $1 LIMIT 1", [tryId]);
       if (rp.ok && rp.rowCount > 0) resolvedPropertyId = rp.rows[0].id;
+    }
+
+    if (allowedHotelIds !== null && resolvedPropertyId != null && !allowedHotelIds.includes(Number(resolvedPropertyId))) {
+      return res.status(403).json({ ok: false, error: "Cannot create certificate for a property outside your access" });
     }
 
     const params = [
@@ -359,10 +508,28 @@ router.post("/", requireAuth, upload.single("document"), async (req, res) => {
 });
 
 /* update */
-router.put("/:id", requireAuth, upload.single("document"), async (req, res) => {
+router.put("/:id", protect, upload.single("document"), async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
+
+    const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
+    const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
+    if (allowedHotelIds !== null && allowedHotelIds.length === 0) {
+      return res.status(403).json({ ok: false, error: "Access denied" });
+    }
+
+    if (allowedHotelIds !== null) {
+      const chk = await safeQuery(
+        "SELECT property_id, hotel_name FROM public.certificates WHERE id::text = $1 AND is_active = true LIMIT 1",
+        [String(id)]
+      );
+      const row = chk.rows?.[0];
+      if (!row) return res.status(404).json({ ok: false, error: "Not found" });
+      if (!recordAllowedByScope(row, allowedHotelIds, allowedHotelNamesLower)) {
+        return res.status(403).json({ ok: false, error: "Access denied" });
+      }
+    }
 
     const {
       certificate_type,
@@ -419,12 +586,23 @@ router.put("/:id", requireAuth, upload.single("document"), async (req, res) => {
       }
     }
 
+    if (allowedHotelIds !== null) {
+      const hn = hotelNameToStore != null ? String(hotelNameToStore).trim().toLowerCase() : "";
+      if (hn && Array.isArray(allowedHotelNamesLower) && !allowedHotelNamesLower.includes(hn)) {
+        return res.status(403).json({ ok: false, error: "Cannot move certificate to a property outside your access" });
+      }
+    }
+
     // Resolve property_id only if numeric and exists (backwards-compatible)
     let resolvedPropertyId = null;
     if (in_property_id !== undefined && in_property_id !== null && /^\d+$/.test(String(in_property_id).trim())) {
       const tryId = Number(String(in_property_id).trim());
       const rp = await safeQuery("SELECT id FROM properties WHERE id = $1 LIMIT 1", [tryId]);
       if (rp.ok && rp.rowCount > 0) resolvedPropertyId = rp.rows[0].id;
+    }
+
+    if (allowedHotelIds !== null && resolvedPropertyId != null && !allowedHotelIds.includes(Number(resolvedPropertyId))) {
+      return res.status(403).json({ ok: false, error: "Cannot move certificate to a property outside your access" });
     }
 
     const sql = `UPDATE public.certificates SET certificate_type = $1, property_id = $2, hotel_name = $3, issue_date = $4, expiry_date = $5, issued_by = $6, file_path = $7, document_name = COALESCE($8, document_name), document_mime = COALESCE($9, document_mime), document_data = COALESCE($10, document_data), notes = $11, is_active = $12, updated_at = now() WHERE id::text = $13 RETURNING id`;
@@ -481,12 +659,30 @@ router.put("/:id", requireAuth, upload.single("document"), async (req, res) => {
 });
 
 /* soft delete */
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", protect, async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
 
-    const r = await safeQuery("UPDATE public.certificates SET is_active=false, updated_at=now() WHERE id::text = $1 RETURNING *", [String(id)]);
+    const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
+    const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
+    if (allowedHotelIds !== null) {
+      if (allowedHotelIds.length === 0) return res.status(404).json({ ok: false, error: "Not found" });
+      const chk = await safeQuery(
+        "SELECT property_id, hotel_name FROM public.certificates WHERE id::text = $1 AND is_active = true LIMIT 1",
+        [String(id)]
+      );
+      const row = chk.rows?.[0];
+      if (!row) return res.status(404).json({ ok: false, error: "Not found" });
+      if (!recordAllowedByScope(row, allowedHotelIds, allowedHotelNamesLower)) {
+        return res.status(403).json({ ok: false, error: "Access denied" });
+      }
+    }
+
+    const r = await safeQuery(
+      "UPDATE public.certificates SET is_active=false, updated_at=now() WHERE id::text = $1 RETURNING *",
+      [String(id)]
+    );
     if (!r.ok) return res.status(500).json({ ok: false, error: "Server error" });
     if (!r.rows[0]) return res.status(404).json({ ok: false, error: "Not found" });
     return res.json({ ok: true, data: r.rows[0] });

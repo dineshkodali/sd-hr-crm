@@ -1124,7 +1124,7 @@ export default function MultiAgency({ user }) {
                       <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>
                     )}
                     {visibleColumns.date && (
-                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DATE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">DATE</th>
                     )}
                     {/* Custom column headers - Matched UI to standard columns */}
                     {customColumns.map(col => visibleColumns[col] && (
@@ -1212,14 +1212,14 @@ export default function MultiAgency({ user }) {
                           </td>
                         )}
                         {visibleColumns.date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(rec.scheduled_date)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium">{formatDate(rec.scheduled_date)}</span>
                           </td>
                         )}
                         {/* Custom column cells - Matched UI */}
                         {customColumns.map(col => visibleColumns[col] && (
                           <td key={col} className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{rec[col] || '-'}</span>
+                            <span className="text-gray-900 font-medium">{rec[col] || '-'}</span>
                           </td>
                         ))}
                         {visibleColumns.actions && (

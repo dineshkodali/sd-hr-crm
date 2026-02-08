@@ -157,6 +157,31 @@ const VCSOrganisations = () => {
   const [properties, setProperties] = useState([]);
   const [staffMembers, setStaffMembers] = useState([]);
 
+  const propertyNameById = useMemo(() => {
+    const m = new Map();
+    (properties || []).forEach((p) => {
+      const id = p?.id ?? p?.hotel_id ?? null;
+      const name = p?.name ?? p?.property_name ?? p?.hotel_name ?? null;
+      if (id !== null && id !== undefined && name) {
+        m.set(String(id), String(name));
+      }
+    });
+    return m;
+  }, [properties]);
+
+  const resolvePropertyName = (org) => {
+    const direct = String(org?.property_name || org?.hotel_name || '').trim();
+    if (direct) return direct;
+
+    const pid = org?.property_id ?? org?.hotel_id ?? null;
+    if (pid !== null && pid !== undefined) {
+      const fromMap = propertyNameById.get(String(pid));
+      if (fromMap) return fromMap;
+    }
+
+    return 'Unknown Property';
+  };
+
   /* Dialog State */
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
@@ -603,6 +628,7 @@ const VCSOrganisations = () => {
 
   // Normalize organisation for export
   const normalizeOrganisationExportRow = (organisation) => {
+    const resolvedProperty = resolvePropertyName(organisation);
     const base = {
       reference: organisation.reference || 'N/A',
       name: organisation.name || 'N/A',
@@ -610,7 +636,7 @@ const VCSOrganisations = () => {
       priority: organisation.priority || 'N/A',
       status: organisation.status || 'N/A',
       date: organisation.created_at ? new Date(organisation.created_at).toLocaleDateString() : 'N/A',
-      property: organisation.property_name || organisation.hotel_name || 'N/A'
+      property: resolvedProperty === 'Unknown Property' ? 'N/A' : resolvedProperty
     };
 
     for (const col of customColumns || []) {
@@ -1193,7 +1219,7 @@ const VCSOrganisations = () => {
                                 onClick={hasUpdate ? () => handleEditClick(organisation) : undefined}
                               >
                                 <Building2 className="w-4 h-4 text-gray-400" />
-                                <span>{organisation.property_name || 'Unknown Property'}</span>
+                                <span>{resolvePropertyName(organisation)}</span>
                               </div>
                               <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">
                                 {organisation.description || "No description"}
@@ -1232,14 +1258,14 @@ const VCSOrganisations = () => {
                           </td>
                         )}
                         {visibleColumns.date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(organisation.scheduled_date)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium text-sm">{formatDate(organisation.scheduled_date)}</span>
                           </td>
                         )}
                         {/* Custom columns - Standardized UI to Gray */}
                         {customColumns.map(col => visibleColumns[col] && (
                           <td key={col} className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{organisation[col] || '-'}</span>
+                            <span className="text-gray-900 font-medium text-sm">{organisation[col] || '-'}</span>
                           </td>
                         ))}
                         {visibleColumns.actions && (
@@ -1738,7 +1764,15 @@ const VCSOrganisations = () => {
               <div className="p-6">
                 <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
                   <DetailField label="TITLE" value={viewingOrganisation.name} />
-                  <DetailField label="PROPERTY" value={viewingOrganisation.property_name || `Property #${viewingOrganisation.property_id}`} />
+                  <DetailField
+                    label="PROPERTY"
+                    value={(() => {
+                      const resolved = resolvePropertyName(viewingOrganisation);
+                      if (resolved !== 'Unknown Property') return resolved;
+                      const pid = viewingOrganisation?.property_id ?? viewingOrganisation?.hotel_id;
+                      return pid ? `Property #${pid}` : resolved;
+                    })()}
+                  />
 
                   <DetailField label="CATEGORY" value={viewingOrganisation.category} />
                   <DetailField label="PRIORITY" value={viewingOrganisation.priority} />

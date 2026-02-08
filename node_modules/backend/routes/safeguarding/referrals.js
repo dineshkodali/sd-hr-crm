@@ -2,7 +2,6 @@ import express from 'express';
 import pool from '../../config/db.js';
 import { protect } from '../../middleware/auth.js';
 import { applyCrudLogging } from "../../middleware/activityMiddleware.js"; // Enhanced logging
-import { buildRoleWhere } from '../../middleware/roleFilter.js';
 
 const router = express.Router();
 
@@ -19,20 +18,49 @@ function genRef() {
 // --- GET: List all referrals (with pagination) ---
 router.get('/', protect, async (req, res) => {
     try {
+        const currentUser = req.user;
+        let restrictedHotelIds = null;
+
+        // Role-Based Restriction
+        if (currentUser.role === "manager") {
+            const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+            const managedIds = managedRes.rows.map(r => r.id);
+
+            let branchIds = [];
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                branchIds = branchRes.rows.map(r => r.id);
+            }
+            restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+        } else if (currentUser.role === "staff") {
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                restrictedHotelIds = branchRes.rows.map(r => r.id);
+            } else {
+                restrictedHotelIds = [];
+            }
+        }
+
         const limit = parseInt(req.query.limit) || 50;
         const offset = parseInt(req.query.offset) || 0;
 
-        const { clause, params } = buildRoleWhere(req, 1, { assignedColumn: 'assigned_to' });
-        let text = 'SELECT * FROM public.safeguarding_referrals';
-        const values = [];
-        if (clause) {
-            text += ' WHERE ' + clause;
-            values.push(...params);
-        }
-        values.push(limit, offset);
-        text += ` ORDER BY created_at DESC LIMIT $${values.length - 1} OFFSET $${values.length}`;
+        let where = [];
+        let values = [];
+        let idx = 1;
 
-        const result = await pool.query(text, values);
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) {
+                return res.json([]);
+            }
+            where.push(`property_id = ANY($${idx++})`);
+            values.push(restrictedHotelIds);
+        }
+
+        const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+        const query = `SELECT * FROM public.safeguarding_referrals ${whereClause} ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
+        values.push(limit, offset);
+
+        const result = await pool.query(query, values);
 
         res.json(Array.isArray(result.rows) ? result.rows : []);
     } catch (err) {

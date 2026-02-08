@@ -1259,13 +1259,13 @@ export default function AIRETasks({ user }) {
                           </td>
                         )}
                         {visibleColumns.date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(task.date)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium text-sm">{formatDate(task.date)}</span>
                           </td>
                         )}
                         {customColumns.filter(col => visibleColumns[col]).map(col => (
                           <td key={col} className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{task[col] || ''}</span>
+                            <span className="text-gray-900 font-medium text-sm">{task[col] || ''}</span>
                           </td>
                         ))}
                         {visibleColumns.actions && (
@@ -1501,6 +1501,7 @@ export default function AIRETasks({ user }) {
           error={modalError}
           submitting={modalSubmitting}
           customColumns={customColumns}
+          customColumnMetadata={customColumnMetadata}
           currentUser={currentUser}
           onClose={() => { setShowModal(false); setModalError(null); setEditingTask(null); setIsViewing(false); }}
           onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
@@ -1530,7 +1531,7 @@ export default function AIRETasks({ user }) {
 }
 
 // Modal Component
-function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, onSubmit, customColumns = [], currentUser }) {
+function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, onSubmit, customColumns = [], customColumnMetadata = {}, currentUser }) {
   const [form, setForm] = useState({
     title: '',
     description: '',

@@ -1,6 +1,7 @@
 // C:\PostgreAuth\Backend\routes\moveouts.js
 import express from "express";
 import pool from "../config/db.js";
+import { protect } from "../middleware/auth.js";
 
 import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 const router = express.Router();
@@ -53,9 +54,56 @@ router.post("/", async (req, res) => {
 });
 
 // List move-outs
-router.get("/", async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
-    const q = await pool.query("SELECT * FROM maintenance.move_outs ORDER BY created_at DESC LIMIT 500");
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+
+    // Role-Based Restriction
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        restrictedHotelIds = branchRes.rows.map(r => r.id);
+      } else {
+        restrictedHotelIds = [];
+      }
+    }
+
+    let query = `
+      SELECT mo.* 
+      FROM maintenance.move_outs mo
+      LEFT JOIN service_users su ON mo.service_user_id = su.id
+    `;
+    let whereClauses = [];
+    let params = [];
+    let paramIdx = 1;
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.json({ success: true, rows: [] });
+      }
+      whereClauses.push(`su.property_id = ANY($${paramIdx++})`);
+      params.push(restrictedHotelIds);
+    }
+
+    if (whereClauses.length > 0) {
+      query += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+
+    query += ` ORDER BY mo.created_at DESC LIMIT 500`;
+
+    const q = await pool.query(query, params);
+
     res.json({ success: true, rows: q.rows });
   } catch (err) {
     console.error("[move-outs] list error", err && err.stack ? err.stack : err);

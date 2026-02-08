@@ -15,14 +15,51 @@ function genRef() {
     return `RAST-${year}-${random}`;
 }
 
+async function getAllowedPropertyIds(user) {
+    if (!user) return [];
+    if (user.role === 'admin') return null;
+
+    let query = '';
+    let params = [];
+
+    if (user.role === 'manager') {
+        query = 'SELECT id FROM public.hotels WHERE manager_id = $1';
+        params = [user.id];
+        if (user.branch) {
+            query += ' OR branch = $2';
+            params.push(user.branch);
+        }
+    } else if (user.role === 'staff') {
+        if (!user.branch) return [];
+        query = 'SELECT id FROM public.hotels WHERE branch = $1';
+        params = [user.branch];
+    } else {
+        return [];
+    }
+
+    const result = await pool.query(query, params);
+    return result.rows.map(r => r.id);
+}
+
 // --- GET: List all risk assessments (with pagination) ---
 router.get('/', protect, async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 50;
         const offset = parseInt(req.query.offset) || 0;
 
-        const query = 'SELECT * FROM public.risk_assessments ORDER BY created_at DESC LIMIT $1 OFFSET $2';
-        const result = await pool.query(query, [limit, offset]);
+        const allowedIds = await getAllowedPropertyIds(req.user);
+        if (allowedIds !== null && allowedIds.length === 0) return res.json([]);
+
+        const values = [];
+        let text = 'SELECT * FROM public.risk_assessments';
+        if (allowedIds !== null) {
+            text += ' WHERE property_id = ANY($1::int[])';
+            values.push(allowedIds);
+        }
+        values.push(limit, offset);
+        text += ` ORDER BY created_at DESC LIMIT $${values.length - 1} OFFSET $${values.length}`;
+
+        const result = await pool.query(text, values);
 
         res.json(Array.isArray(result.rows) ? result.rows : []);
     } catch (err) {
@@ -42,7 +79,13 @@ router.get('/:id', protect, async (req, res) => {
             return res.status(404).json({ message: 'Risk assessment not found' });
         }
 
-        res.json(result.rows[0]);
+        const allowedIds = await getAllowedPropertyIds(req.user);
+        const record = result.rows[0];
+        if (allowedIds !== null && !allowedIds.includes(record.property_id)) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
+        res.json(record);
     } catch (err) {
         console.error('GET /risk-assessments/:id error:', err);
         res.status(500).json({ message: 'Failed to fetch risk assessment' });
@@ -53,6 +96,14 @@ router.get('/:id', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
     try {
         const reference = genRef();
+
+        const allowedIds = await getAllowedPropertyIds(req.user);
+        const propertyId = req.body.property_id != null ? parseInt(req.body.property_id, 10) : null;
+        if (allowedIds !== null) {
+            if (!propertyId || !allowedIds.includes(propertyId)) {
+                return res.status(403).json({ message: 'Cannot create risk assessment for a property outside your access' });
+            }
+        }
 
         // Get all columns from the table
         const columnsResult = await pool.query(
@@ -129,6 +180,23 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
 
+        const allowedIds = await getAllowedPropertyIds(req.user);
+        if (allowedIds !== null) {
+            const checkRes = await pool.query('SELECT property_id FROM public.risk_assessments WHERE id=$1', [id]);
+            if (checkRes.rows.length === 0) return res.status(404).json({ message: 'Risk assessment not found' });
+            const existingPropertyId = checkRes.rows[0].property_id;
+            if (!allowedIds.includes(existingPropertyId)) {
+                return res.status(403).json({ message: 'Access denied' });
+            }
+
+            if (req.body.property_id !== undefined && req.body.property_id !== null) {
+                const nextPropertyId = parseInt(req.body.property_id, 10);
+                if (!allowedIds.includes(nextPropertyId)) {
+                    return res.status(403).json({ message: 'Cannot move risk assessment to a property outside your access' });
+                }
+            }
+        }
+
         // Get all columns from the table
         const columnsResult = await pool.query(
             `SELECT column_name FROM information_schema.columns 
@@ -191,6 +259,16 @@ router.patch('/:id', protect, async (req, res) => {
 router.delete('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
+
+        const allowedIds = await getAllowedPropertyIds(req.user);
+        if (allowedIds !== null) {
+            const checkRes = await pool.query('SELECT property_id FROM public.risk_assessments WHERE id=$1', [id]);
+            if (checkRes.rows.length === 0) return res.status(404).json({ message: 'Risk assessment not found' });
+            if (!allowedIds.includes(checkRes.rows[0].property_id)) {
+                return res.status(403).json({ message: 'Access denied' });
+            }
+        }
+
         const query = 'DELETE FROM public.risk_assessments WHERE id = $1 RETURNING id';
         const result = await pool.query(query, [id]);
 

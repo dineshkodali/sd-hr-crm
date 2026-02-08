@@ -27,17 +27,59 @@ function toText(v) {
    ----------------------- */
 // Public listing: allow unauthenticated reads so UI can display scheduled meals
 // (POST/PATCH/DELETE remain protected)
-router.get("/", async (req, res) => {
+// Helper to get restricted hotel IDs
+const getRestrictedHotelIds = async (user) => {
+  if (user.role === "manager") {
+    const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [user.id]);
+    const managedIds = managedRes.rows.map(r => r.id);
+    let branchIds = [];
+    if (user.branch) {
+      const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [user.branch]);
+      branchIds = branchRes.rows.map(r => r.id);
+    }
+    return [...new Set([...managedIds, ...branchIds])];
+  } else if (user.role === "staff") {
+    if (user.branch) {
+      const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [user.branch]);
+      return branchRes.rows.map(r => r.id);
+    } else {
+      return [];
+    }
+  }
+  return null; // Admin or others
+};
+
+/* -----------------------
+   GET /api/meals
+   Optional query: service_user_id, property_id, status, date (YYYY-MM-DD)
+   ----------------------- */
+router.get("/", protect, async (req, res) => {
   try {
     const { service_user_id, property_id, status, date } = req.query || {};
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+
     const params = [];
     const where = [];
+
+    // Apply restriction
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.json([]);
+      }
+      params.push(restrictedHotelIds);
+      where.push(`property_id = ANY($${params.length})`);
+    }
 
     if (service_user_id !== undefined) {
       params.push(service_user_id);
       where.push(`service_user_id = $${params.length}`);
     }
     if (property_id !== undefined) {
+      // If user is restricted, ensure the requested property_id is allowed
+      if (restrictedHotelIds !== null && !restrictedHotelIds.includes(Number(property_id))) {
+        // User requested a property they don't have access to
+        return res.json([]);
+      }
       params.push(property_id);
       where.push(`property_id = $${params.length}`);
     }
@@ -67,18 +109,32 @@ router.get("/", async (req, res) => {
    GET /api/meals/scheduled
    Returns meals filtered by scheduled_date (query param `date`) and optional other filters.
   ----------------------- */
-// Public scheduled view
-router.get("/scheduled", async (req, res) => {
+router.get("/scheduled", protect, async (req, res) => {
   try {
     const { service_user_id, property_id, status, date } = req.query || {};
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+
     const params = [];
     const where = [];
+
+    // Apply restriction
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.json([]);
+      }
+      params.push(restrictedHotelIds);
+      where.push(`property_id = ANY($${params.length})`);
+    }
 
     if (service_user_id !== undefined) {
       params.push(service_user_id);
       where.push(`service_user_id = $${params.length}`);
     }
     if (property_id !== undefined) {
+      // If user is restricted, ensure the requested property_id is allowed
+      if (restrictedHotelIds !== null && !restrictedHotelIds.includes(Number(property_id))) {
+        return res.json([]);
+      }
       params.push(property_id);
       where.push(`property_id = $${params.length}`);
     }

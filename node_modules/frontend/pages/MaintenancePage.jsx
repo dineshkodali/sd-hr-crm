@@ -1466,10 +1466,10 @@ export default function MaintenancePage({ user }) {
                       <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>
                     )}
                     {visibleColumns.start_date && (
-                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">START DATE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">START DATE</th>
                     )}
                     {visibleColumns.due_date && (
-                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DUE DATE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">DUE DATE</th>
                     )}
                     {/* Custom Columns (Inserted Before Actions) */}
                     {customColumns.filter(col => visibleColumns[col]).map(col => (
@@ -1558,19 +1558,19 @@ export default function MaintenancePage({ user }) {
                           </td>
                         )}
                         {visibleColumns.start_date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(row.start)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium text-sm">{formatDate(row.start)}</span>
                           </td>
                         )}
                         {visibleColumns.due_date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(row.dueDate)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium text-sm">{formatDate(row.dueDate)}</span>
                           </td>
                         )}
                         {/* Custom Column Cells (Inserted Before Actions) */}
                         {customColumns.filter(col => visibleColumns[col]).map(col => (
                           <td key={col} className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{row[col] || '-'}</span>
+                            <span className="text-gray-900 font-medium text-sm">{row[col] || '-'}</span>
                           </td>
                         ))}
                         {visibleColumns.actions && (

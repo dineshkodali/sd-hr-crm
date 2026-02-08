@@ -1274,7 +1274,7 @@ export default function EmergencyProtocols() {
                                 onClick={hasUpdate ? () => openEdit(row) : undefined}
                               >
                                 <Home className="w-4 h-4 text-gray-400" />
-                                <span>{row.property_name || 'Unknown Property'}</span>
+                                <span>{hotels.find(h => h.id == row.raw?.property_id)?.name || row.raw?.property_name || 'Unknown Property'}</span>
                               </div>
                               <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">
                                 {row.title}
@@ -1313,14 +1313,14 @@ export default function EmergencyProtocols() {
                           </td>
                         )}
                         {visibleColumns.date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(row.date)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium">{formatDate(row.date)}</span>
                           </td>
                         )}
                         {/* Custom columns in table rows - POSITIONED BEFORE ACTIONS with STANDARD UI */}
                         {customColumns.filter(col => visibleColumns[col]).map(col => (
                           <td key={col} className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{row.raw?.[col] ?? '-'}</span>
+                            <span className="text-gray-900 font-medium">{row.raw?.[col] ?? '-'}</span>
                           </td>
                         ))}
                         {visibleColumns.actions && (
@@ -1572,7 +1572,7 @@ export default function EmergencyProtocols() {
               <div className="grid grid-cols-2 gap-y-6 gap-x-8">
                 <div>
                   <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">PROPERTY</div>
-                  <div className="font-semibold text-gray-700 text-sm">{viewing.raw?.property_name || '-'}</div>
+                  <div className="font-semibold text-gray-700 text-sm">{hotels.find(h => h.id == viewing.raw?.property_id)?.name || viewing.raw?.property_name || '-'}</div>
                 </div>
                 <div>
                   <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">CATEGORY</div>
@@ -1651,64 +1651,7 @@ export default function EmergencyProtocols() {
                   <input required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
                 </div>
 
-                {/* Render custom columns in form - Standardized UI */}
-                {customColumns.map(col => {
-                  const meta = customColumnMetadata[col] || {};
-                  const inputType = meta.input_type || 'text';
-                  const options = Array.isArray(meta.input_options) ? meta.input_options : [];
 
-                  return (
-                    <div key={col} className="col-span-1 md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        {col.replace(/_/g, ' ').toUpperCase()}
-                      </label>
-                      {inputType === 'checkbox' ? (
-                        <div className="flex items-center h-10">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                            checked={!!form[col]}
-                            onChange={(e) => setForm({ ...form, [col]: e.target.checked })}
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Yes</span>
-                        </div>
-                      ) : inputType === 'dropdown' || inputType === 'select' ? (
-                        <select
-                          value={form[col] || ''}
-                          onChange={(e) => setForm({ ...form, [col]: e.target.value })}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
-                        >
-                          <option value="">Select...</option>
-                          {options.map((opt, idx) => (
-                            <option key={idx} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      ) : inputType === 'textarea' ? (
-                        <textarea
-                          rows={3}
-                          value={form[col] || ''}
-                          onChange={(e) => setForm({ ...form, [col]: e.target.value })}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                        />
-                      ) : inputType === 'date' ? (
-                        <input
-                          type="date"
-                          value={form[col] ? formatDateISO(form[col]) : ''}
-                          onChange={(e) => setForm({ ...form, [col]: e.target.value })}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                        />
-                      ) : (
-                        <input
-                          type={inputType}
-                          value={form[col] || ''}
-                          onChange={(e) => setForm({ ...form, [col]: e.target.value })}
-                          placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
 
                 <div className="col-span-1">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Property</label>
@@ -1819,6 +1762,65 @@ export default function EmergencyProtocols() {
                   <label className="block text-xs font-medium text-gray-600 mb-1">Scheduled Date</label>
                   <input type="date" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200" value={formatDateISO(form.scheduled_date)} onChange={e => setForm({ ...form, scheduled_date: e.target.value })} />
                 </div>
+
+                {/* Render custom columns in form - Standardized UI */}
+                {customColumns.map(col => {
+                  const meta = customColumnMetadata[col] || {};
+                  const inputType = meta.input_type || 'text';
+                  const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                  return (
+                    <div key={col} className="col-span-1 md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        {col.replace(/_/g, ' ').toUpperCase()}
+                      </label>
+                      {inputType === 'checkbox' ? (
+                        <div className="flex items-center h-10">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                            checked={!!form[col]}
+                            onChange={(e) => setForm({ ...form, [col]: e.target.checked })}
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Yes</span>
+                        </div>
+                      ) : inputType === 'dropdown' || inputType === 'select' ? (
+                        <select
+                          value={form[col] || ''}
+                          onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                        >
+                          <option value="">Select...</option>
+                          {options.map((opt, idx) => (
+                            <option key={idx} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : inputType === 'textarea' ? (
+                        <textarea
+                          rows={3}
+                          value={form[col] || ''}
+                          onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                        />
+                      ) : inputType === 'date' ? (
+                        <input
+                          type="date"
+                          value={form[col] ? formatDateISO(form[col]) : ''}
+                          onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                        />
+                      ) : (
+                        <input
+                          type={inputType}
+                          value={form[col] || ''}
+                          onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                          placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Footer Buttons */}

@@ -16,11 +16,49 @@ function genRef() {
 // GET all vulnerable users records
 router.get('/', protect, async (req, res) => {
     try {
+        const currentUser = req.user;
+        let restrictedHotelIds = null;
+
+        // Role-Based Restriction
+        if (currentUser.role === "manager") {
+            const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+            const managedIds = managedRes.rows.map(r => r.id);
+
+            let branchIds = [];
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                branchIds = branchRes.rows.map(r => r.id);
+            }
+            restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+        } else if (currentUser.role === "staff") {
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                restrictedHotelIds = branchRes.rows.map(r => r.id);
+            } else {
+                restrictedHotelIds = [];
+            }
+        }
+
         const limit = parseInt(req.query.limit) || 500;
-        const result = await pool.query(
-            'SELECT * FROM public.vulnerable_users ORDER BY created_at DESC LIMIT $1',
-            [limit]
-        );
+        const offset = parseInt(req.query.offset) || 0;
+
+        let where = [];
+        let values = [];
+        let idx = 1;
+
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) {
+                return res.json([]);
+            }
+            where.push(`property_id = ANY($${idx++})`);
+            values.push(restrictedHotelIds);
+        }
+
+        const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+        const query = `SELECT * FROM public.vulnerable_users ${whereClause} ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
+        values.push(limit, offset);
+
+        const result = await pool.query(query, values);
         res.json(result.rows);
     } catch (err) {
         console.error('GET /vulnerable-users error:', err);
@@ -51,11 +89,18 @@ router.post('/', protect, async (req, res) => {
     try {
         const reference = genRef();
 
-        // Get all columns from the table
+        // Get all columns and their data types
         const columnsResult = await pool.query(
-            `SELECT column_name FROM information_schema.columns 
+            `SELECT column_name, data_type, udt_name 
+       FROM information_schema.columns 
        WHERE table_schema = 'public' AND table_name = 'vulnerable_users'`
         );
+
+        // Map column details for type checking
+        const colTypes = {};
+        columnsResult.rows.forEach(r => {
+            colTypes[r.column_name] = r.data_type;
+        });
 
         const allColumns = columnsResult.rows.map(r => r.column_name);
 
@@ -71,17 +116,30 @@ router.post('/', protect, async (req, res) => {
 
         // Build column list and values for standard fields
         const columns = ['reference', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'assigned_to', 'reported_by', 'scheduled_date', 'status', 'created_at', 'updated_at'];
+
+        // Helper to sanitize value based on type
+        const sanitize = (col, val) => {
+            if (val === '') {
+                const type = colTypes[col];
+                // Integer, Numeric, Date types should be null if empty string
+                if (['integer', 'smallint', 'bigint', 'numeric', 'real', 'double precision', 'date', 'timestamp without time zone'].includes(type)) {
+                    return null;
+                }
+            }
+            return val;
+        };
+
         const values = [
             reference,
             req.body.title,
             req.body.description,
-            req.body.property_id || null,
+            sanitize('property_id', req.body.property_id),
             req.body.property_name || '',
             req.body.category,
             req.body.priority || 'Medium',
             req.body.assigned_to || '',
             req.body.reported_by || '',
-            req.body.scheduled_date || null,
+            sanitize('scheduled_date', req.body.scheduled_date),
             req.body.status || 'New',
             'NOW()',
             'NOW()'
@@ -92,8 +150,9 @@ router.post('/', protect, async (req, res) => {
             if (req.body[col] !== undefined) {
                 // Insert custom column before created_at, updated_at
                 columns.splice(columns.length - 2, 0, col);
-                // Insert custom value before NOW(), NOW()
-                values.splice(values.length - 2, 0, req.body[col]);
+                // Insert custom value before NOW(), NOW(), converting empty to null if needed
+                const val = sanitize(col, req.body[col]);
+                values.splice(values.length - 2, 0, val);
             }
         });
 
@@ -124,11 +183,18 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Get all columns from the table
+        // Get all columns and their data types
         const columnsResult = await pool.query(
-            `SELECT column_name FROM information_schema.columns 
+            `SELECT column_name, data_type 
+       FROM information_schema.columns 
        WHERE table_schema = 'public' AND table_name = 'vulnerable_users'`
         );
+
+        // Map column details for type checking
+        const colTypes = {};
+        columnsResult.rows.forEach(r => {
+            colTypes[r.column_name] = r.data_type;
+        });
 
         const allColumns = columnsResult.rows.map(r => r.column_name);
 
@@ -148,11 +214,27 @@ router.patch('/:id', protect, async (req, res) => {
         // Standard fields whitelist
         const standardFields = ['title', 'description', 'property_id', 'property_name', 'category', 'priority', 'assigned_to', 'reported_by', 'scheduled_date', 'status'];
 
+        // Helper to sanitize value based on type
+        const sanitize = (col, val) => {
+            if (val === '') {
+                const type = colTypes[col];
+                // Integer, Numeric, Date types should be null if empty string
+                if (['integer', 'smallint', 'bigint', 'numeric', 'real', 'double precision', 'date', 'timestamp without time zone'].includes(type)) {
+                    return null;
+                }
+            }
+            return val;
+        };
+
         // Process Standard Fields
         standardFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 setClauses.push(`${field}=$${paramIndex}`);
-                values.push(req.body[field]);
+
+                let val = req.body[field];
+                val = sanitize(field, val);
+
+                values.push(val);
                 paramIndex++;
             }
         });
@@ -161,7 +243,11 @@ router.patch('/:id', protect, async (req, res) => {
         customColumns.forEach(col => {
             if (!standardFields.includes(col) && req.body[col] !== undefined) {
                 setClauses.push(`${col}=$${paramIndex}`);
-                values.push(req.body[col]);
+
+                let val = req.body[col];
+                val = sanitize(col, val);
+
+                values.push(val);
                 paramIndex++;
             }
         });

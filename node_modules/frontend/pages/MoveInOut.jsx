@@ -142,21 +142,27 @@ export default function MoveInOutPage({ user }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Compute active residents: moved in but not moved out
-  const activeResidentsCount = useMemo(() => {
+  // Compute active residents (Move-In Records)
+  const activeMoveIns = useMemo(() => {
     const movedOutIds = new Set(
-      moveOuts.map((o) =>
+      (moveOuts || []).map((o) =>
         String(o.service_user_id || o.serviceUserId).toLowerCase()
       )
     );
-    const activeCount = recent.filter(
-      (r) =>
-        !movedOutIds.has(
-          String(r.service_user_id || r.serviceUserId).toLowerCase()
-        )
-    ).length;
-    return activeCount;
-  }, [recent, moveOuts]);
+    return (recent || []).filter((r) => {
+      const suId = String(r.service_user_id || r.serviceUserId).toLowerCase();
+      const isActive = !movedOutIds.has(suId);
+      if (!isActive) return false;
+
+      // Filter by property if selected
+      if (filterProperty && String(r.property_id || r.propertyId) !== String(filterProperty)) {
+        return false;
+      }
+      return true;
+    });
+  }, [recent, moveOuts, filterProperty]);
+
+  const activeResidentsCount = activeMoveIns.length;
 
   // Keep a small derived counts object in state so the top stat boxes
   // update immediately whenever source arrays change.
@@ -1030,6 +1036,104 @@ export default function MoveInOutPage({ user }) {
                 </div>
               </div>
             </div>
+
+            {/* ACTIVE RESIDENTS LIST */}
+            {activeTab === "active" && (
+              <>
+                {activeMoveIns && activeMoveIns.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {activeMoveIns.map((r) => {
+                      const name = r.service_user_name || r.serviceUserName || r.serviceUser || "Unknown User";
+                      const dateStr = r.move_in_date || r.moveInDate || r.created_at;
+                      const formatted = dateStr
+                        ? new Date(dateStr).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                        : "";
+
+                      return (
+                        <div
+                          key={r.id || Math.random()}
+                          className="group bg-emerald-50/50 border border-emerald-100 rounded-xl p-5 flex items-center justify-between hover:shadow-md hover:border-emerald-200 transition-all duration-200"
+                        >
+                          <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 rounded-full bg-emerald-100 border-2 border-white shadow-sm flex items-center justify-center text-emerald-600 font-bold text-lg">
+                              {name.charAt(0)}
+                            </div>
+                            <div>
+                              <div className="text-slate-800 font-bold text-base">
+                                {name}
+                              </div>
+                              <div className="text-sm text-slate-500 flex items-center gap-2 mt-0.5">
+                                <span className="font-medium text-emerald-700">
+                                  {r.property_name || "No Property"}
+                                </span>
+                                <span className="w-1 h-1 rounded-full bg-emerald-300"></span>
+                                <span>Since {formatted}</span>
+                                {r.room_name && (
+                                  <>
+                                    <span className="w-1 h-1 rounded-full bg-emerald-300"></span>
+                                    <span>Room {r.room_name}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-6">
+                            <div className="hidden sm:flex flex-col items-end">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
+                                Active Resident
+                              </span>
+                            </div>
+                            <div className="h-8 w-px bg-emerald-200/50"></div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setDetailRecord(r);
+                                  setShowDetailModal(true);
+                                }}
+                                className="group relative p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                                title="View details"
+                              >
+                                <Eye size={18} />
+                              </button>
+                              {canUpdatePage && (
+                                <button
+                                  onClick={() => {
+                                    setEditing(r);
+                                    setShowModal(true);
+                                  }}
+                                  className="group relative p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition-all duration-200 hover:shadow-sm"
+                                  title="Edit Record"
+                                >
+                                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                    <div className="bg-white p-4 rounded-full mb-4 shadow-sm">
+                      <Home className="text-slate-400" size={32} />
+                    </div>
+                    <div className="text-slate-600 font-semibold text-lg">
+                      No active residents found
+                    </div>
+                    <div className="text-slate-400 text-sm mt-1">
+                      Start by moving in a service user.
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* MOVE INS LIST */}
             {activeTab === "ins" && (

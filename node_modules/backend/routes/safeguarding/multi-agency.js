@@ -17,8 +17,49 @@ function genRef() {
 // GET all
 router.get('/', protect, async (req, res) => {
     try {
+        const currentUser = req.user;
+        let restrictedHotelIds = null;
+
+        // Role-Based Restriction
+        if (currentUser.role === "manager") {
+            const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+            const managedIds = managedRes.rows.map(r => r.id);
+
+            let branchIds = [];
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                branchIds = branchRes.rows.map(r => r.id);
+            }
+            restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+        } else if (currentUser.role === "staff") {
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                restrictedHotelIds = branchRes.rows.map(r => r.id);
+            } else {
+                restrictedHotelIds = [];
+            }
+        }
+
         const limit = parseInt(req.query.limit) || 500;
-        const result = await pool.query('SELECT * FROM public.multi_agency ORDER BY created_at DESC LIMIT $1', [limit]);
+        const offset = parseInt(req.query.offset) || 0;
+
+        let where = [];
+        let values = [];
+        let idx = 1;
+
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) {
+                return res.json([]);
+            }
+            where.push(`property_id = ANY($${idx++})`);
+            values.push(restrictedHotelIds);
+        }
+
+        const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+        const query = `SELECT * FROM public.multi_agency ${whereClause} ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
+        values.push(limit, offset);
+
+        const result = await pool.query(query, values);
         res.json(result.rows);
     } catch (err) {
         console.error('GET /multi-agency error:', err);

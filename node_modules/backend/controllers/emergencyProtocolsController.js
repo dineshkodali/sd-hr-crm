@@ -36,6 +36,69 @@ const parseId = (val) => {
   return id;
 };
 
+async function getAllowedHotels(clientOrPool, user) {
+  if (!user) return { ids: [], namesLower: [] };
+  if (user.role === "admin") return { ids: null, namesLower: null };
+
+  const q = (sql, params) => (clientOrPool?.query ? clientOrPool.query(sql, params) : pool.query(sql, params));
+
+  let query = "";
+  let params = [];
+
+  if (user.role === "manager") {
+    query = "SELECT id, name FROM public.hotels WHERE manager_id = $1";
+    params = [user.id];
+    if (user.branch) {
+      query += " OR branch = $2";
+      params.push(user.branch);
+    }
+  } else if (user.role === "staff") {
+    if (!user.branch) return { ids: [], namesLower: [] };
+    query = "SELECT id, name FROM public.hotels WHERE branch = $1";
+    params = [user.branch];
+  } else {
+    return { ids: [], namesLower: [] };
+  }
+
+  const res = await q(query, params);
+  const rows = Array.isArray(res.rows) ? res.rows : [];
+  return {
+    ids: rows.map((r) => r.id).filter((v) => v !== null && v !== undefined),
+    namesLower: rows
+      .map((r) => String(r.name || "").trim().toLowerCase())
+      .filter(Boolean),
+  };
+}
+
+function getRecordNameLower(row) {
+  if (!row) return null;
+  const s = row.property_name ?? null;
+  if (!s) return null;
+  const v = String(s).trim().toLowerCase();
+  return v ? v : null;
+}
+
+async function assertEmergencyAccess(client, user, taskId) {
+  const allowed = await getAllowedHotels(client, user);
+  if (allowed.ids === null) return { allowed: true, allowedHotels: allowed };
+  if (allowed.ids.length === 0 && allowed.namesLower.length === 0) return { allowed: false, allowedHotels: allowed };
+
+  const { rows } = await client.query(
+    "SELECT property_id, property_name FROM emergency_protocols WHERE id = $1 LIMIT 1",
+    [taskId]
+  );
+  if (!rows.length) return { allowed: false, allowedHotels: allowed, notFound: true };
+
+  const row = rows[0];
+  const recNameLower = getRecordNameLower(row);
+  const ok =
+    (row.property_id != null && allowed.ids.includes(row.property_id)) ||
+    (recNameLower && allowed.namesLower.includes(recNameLower));
+
+  if (!ok) return { allowed: false, allowedHotels: allowed };
+  return { allowed: true, allowedHotels: allowed };
+}
+
 /**
  * Generate reference number: EMP-YYYY-{random8chars}
  */
@@ -57,6 +120,18 @@ function generateReference() {
 export async function createTask(req, res) {
   const client = await pool.connect();
   try {
+    const allowed = await getAllowedHotels(client, req.user);
+    const propertyId = toIntOrNull(req.body.property_id);
+    const propertyNameLower = String(req.body.property_name || "").trim().toLowerCase();
+    if (allowed.ids !== null) {
+      const ok =
+        (propertyId !== null && allowed.ids.includes(propertyId)) ||
+        (propertyNameLower && allowed.namesLower.includes(propertyNameLower));
+      if (!ok) {
+        return res.status(403).json({ success: false, error: "Cannot create task for a property outside your access" });
+      }
+    }
+
     // Get all columns from the table
     const columnsResult = await client.query(
       `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'emergency_protocols'`
@@ -133,6 +208,11 @@ export async function listTasks(req, res) {
 
   const client = await pool.connect();
   try {
+    const allowed = await getAllowedHotels(client, req.user);
+    if (allowed.ids !== null && allowed.ids.length === 0 && allowed.namesLower.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
     const whereParts = [];
     const values = [];
     let idx = 1;
@@ -152,6 +232,12 @@ export async function listTasks(req, res) {
     if (property_id) {
       whereParts.push(`property_id = $${idx++}`);
       values.push(toIntOrNull(property_id));
+    }
+
+    if (allowed.ids !== null) {
+      whereParts.push(`(property_id = ANY($${idx++}::int[]) OR LOWER(property_name) = ANY($${idx++}::text[]))`);
+      values.push(allowed.ids);
+      values.push(allowed.namesLower);
     }
 
     if (search) {
@@ -194,6 +280,12 @@ export async function getTaskById(req, res) {
   const id = parseId(req.params.id);
   const client = await pool.connect();
   try {
+    const access = await assertEmergencyAccess(client, req.user, id);
+    if (!access.allowed) {
+      if (access.notFound) return res.status(404).json({ success: false, error: "Task not found" });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
     // Dynamically select all columns
     const columnsResult = await client.query(
       `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'emergency_protocols'`
@@ -225,6 +317,24 @@ export async function updateTask(req, res) {
   const id = parseId(req.params.id);
   const client = await pool.connect();
   try {
+    const access = await assertEmergencyAccess(client, req.user, id);
+    if (!access.allowed) {
+      if (access.notFound) return res.status(404).json({ success: false, error: "Task not found or already deleted" });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
+    const allowed = access.allowedHotels;
+    const nextPropertyId = req.body.property_id != null ? toIntOrNull(req.body.property_id) : null;
+    const nextPropertyNameLower = String(req.body.property_name || "").trim().toLowerCase();
+    if (allowed.ids !== null && (nextPropertyId !== null || nextPropertyNameLower)) {
+      const ok =
+        (nextPropertyId !== null && allowed.ids.includes(nextPropertyId)) ||
+        (nextPropertyNameLower && allowed.namesLower.includes(nextPropertyNameLower));
+      if (!ok) {
+        return res.status(403).json({ success: false, error: "Cannot move task to a property outside your access" });
+      }
+    }
+
     // Get all columns from the table
     const columnsResult = await client.query(
       `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'emergency_protocols'`
@@ -270,6 +380,12 @@ export async function deleteTask(req, res) {
 
   const client = await pool.connect();
   try {
+    const access = await assertEmergencyAccess(client, req.user, id);
+    if (!access.allowed) {
+      if (access.notFound) return res.status(404).json({ success: false, error: "Task not found or already deleted" });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
     const q = `
       UPDATE emergency_protocols
       SET deleted = true, deleted_at = $1, updated_at = $1

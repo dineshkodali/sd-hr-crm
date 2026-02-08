@@ -11,17 +11,57 @@ function genRef() {
   return `HSEA-${year}-${random}`;
 }
 
+async function getAllowedPropertyIds(user) {
+  if (!user) return [];
+  if (user.role === 'admin') return null;
+
+  let query = '';
+  let params = [];
+
+  if (user.role === 'manager') {
+    query = 'SELECT id FROM public.hotels WHERE manager_id = $1';
+    params = [user.id];
+    if (user.branch) {
+      query += ' OR branch = $2';
+      params.push(user.branch);
+    }
+  } else if (user.role === 'staff') {
+    if (!user.branch) return [];
+    query = 'SELECT id FROM public.hotels WHERE branch = $1';
+    params = [user.branch];
+  } else {
+    return [];
+  }
+
+  const result = await pool.query(query, params);
+  return result.rows.map(r => r.id);
+}
+
 // GET list
 router.get('/audits', protect, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 500;
+    const allowedIds = await getAllowedPropertyIds(req.user);
     const { clause, params } = buildRoleWhere(req, 1);
     let text = 'SELECT * FROM public.hse_audits';
     const values = [];
+
+    const where = [];
+    if (allowedIds !== null) {
+      if (allowedIds.length === 0) return res.json([]);
+      where.push(`property_id = ANY($${values.length + 1}::int[])`);
+      values.push(allowedIds);
+    }
+
     if (clause) {
-      text += ' WHERE ' + clause;
+      where.push(`(${clause})`);
       values.push(...params);
     }
+
+    if (where.length) {
+      text += ' WHERE ' + where.join(' AND ');
+    }
+
     values.push(limit);
     text += ` ORDER BY created_at DESC LIMIT $${values.length}`;
 
@@ -39,7 +79,14 @@ router.get('/audits/:id', protect, async (req, res) => {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM public.hse_audits WHERE id=$1', [id]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Not found' });
-    res.json(result.rows[0]);
+
+    const allowedIds = await getAllowedPropertyIds(req.user);
+    const record = result.rows[0];
+    if (allowedIds !== null && !allowedIds.includes(record.property_id)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json(record);
   } catch (err) {
     console.error('GET /audits/:id error', err);
     res.status(500).json({ message: err.message });
@@ -50,6 +97,14 @@ router.get('/audits/:id', protect, async (req, res) => {
 router.post('/audits', protect, async (req, res) => {
   try {
     const reference = genRef();
+
+    const allowedIds = await getAllowedPropertyIds(req.user);
+    const propertyId = req.body.property_id != null ? parseInt(req.body.property_id, 10) : null;
+    if (allowedIds !== null) {
+      if (!propertyId || !allowedIds.includes(propertyId)) {
+        return res.status(403).json({ message: 'Cannot create audit for a property outside your access' });
+      }
+    }
 
     // Get all columns from the table to check for custom fields
     const columnsResult = await pool.query(
@@ -130,6 +185,23 @@ router.patch('/audits/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
 
+    const allowedIds = await getAllowedPropertyIds(req.user);
+    if (allowedIds !== null) {
+      const checkRes = await pool.query('SELECT property_id FROM public.hse_audits WHERE id=$1', [id]);
+      if (checkRes.rows.length === 0) return res.status(404).json({ message: 'Not found' });
+      const existingPropertyId = checkRes.rows[0].property_id;
+      if (!allowedIds.includes(existingPropertyId)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      if (req.body.property_id !== undefined && req.body.property_id !== null) {
+        const nextPropertyId = parseInt(req.body.property_id, 10);
+        if (!allowedIds.includes(nextPropertyId)) {
+          return res.status(403).json({ message: 'Cannot move audit to a property outside your access' });
+        }
+      }
+    }
+
     // Get all columns from the table
     const columnsResult = await pool.query(
       `SELECT column_name FROM information_schema.columns 
@@ -192,6 +264,16 @@ router.patch('/audits/:id', protect, async (req, res) => {
 router.delete('/audits/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const allowedIds = await getAllowedPropertyIds(req.user);
+    if (allowedIds !== null) {
+      const checkRes = await pool.query('SELECT property_id FROM public.hse_audits WHERE id=$1', [id]);
+      if (checkRes.rows.length === 0) return res.status(404).json({ message: 'Not found' });
+      if (!allowedIds.includes(checkRes.rows[0].property_id)) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
     const result = await pool.query('DELETE FROM public.hse_audits WHERE id=$1 RETURNING *', [id]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Not found' });
     res.json({ message: 'Deleted', record: result.rows[0] });

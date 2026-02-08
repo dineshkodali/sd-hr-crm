@@ -1,50 +1,54 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/pages/pre.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SD Commercial</title>
-    <!-- Poppins Font -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <!-- Polyfill crypto.randomUUID as early as possible so vendor modules can't fail during import -->
-    <script>
-      (function() {
-        try {
-          var globalCrypto = (typeof window !== 'undefined' && (window.crypto || window.msCrypto)) || (typeof crypto !== 'undefined' && crypto) || null;
-          if (!globalCrypto) return;
-          if (typeof globalCrypto.randomUUID === 'function') return;
-          var getRandomValues = (globalCrypto.getRandomValues && typeof globalCrypto.getRandomValues === 'function')
-            ? function(arr) { return globalCrypto.getRandomValues(arr); }
-            : null;
-          if (getRandomValues) {
-            globalCrypto.randomUUID = function() {
-              var bytes = new Uint8Array(16);
-              getRandomValues(bytes);
-              bytes[6] = (bytes[6] & 0x0f) | 0x40;
-              bytes[8] = (bytes[8] & 0x3f) | 0x80;
-              var hex = Array.prototype.map.call(bytes, function(b) { return ('0' + b.toString(16)).slice(-2); }).join('');
-              return hex.substring(0,8) + '-' + hex.substring(8,12) + '-' + hex.substring(12,16) + '-' + hex.substring(16,20) + '-' + hex.substring(20,32);
-            };
-          } else {
-            globalCrypto.randomUUID = function() {
-              return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0;
-                var v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-              });
-            };
-          }
-        } catch (e) {
-          // best-effort
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/pages/pre.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SD Commercial</title>
+  <!-- Poppins Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div id="root"></div>
+  <!-- Polyfill crypto.randomUUID as early as possible so vendor modules can't fail during import -->
+  <script>
+    (function () {
+      try {
+        var globalCrypto = (typeof window !== 'undefined' && (window.crypto || window.msCrypto)) || (typeof crypto !== 'undefined' && crypto) || null;
+        if (!globalCrypto) return;
+        if (typeof globalCrypto.randomUUID === 'function') return;
+        var getRandomValues = (globalCrypto.getRandomValues && typeof globalCrypto.getRandomValues === 'function')
+          ? function (arr) { return globalCrypto.getRandomValues(arr); }
+          : null;
+        if (getRandomValues) {
+          globalCrypto.randomUUID = function () {
+            var bytes = new Uint8Array(16);
+            getRandomValues(bytes);
+            bytes[6] = (bytes[6] & 0x0f) | 0x40;
+            bytes[8] = (bytes[8] & 0x3f) | 0x80;
+            var hex = Array.prototype.map.call(bytes, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+            return hex.substring(0, 8) + '-' + hex.substring(8, 12) + '-' + hex.substring(12, 16) + '-' + hex.substring(16, 20) + '-' + hex.substring(20, 32);
+          };
+        } else {
+          globalCrypto.randomUUID = function () {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+              var r = Math.random() * 16 | 0;
+              var v = c === 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
+            });
+          };
         }
-      })();
-    </script>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+      } catch (e) {
+        // best-effort
+      }
+    })();
+  </script>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

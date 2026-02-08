@@ -941,13 +941,13 @@ export default function Litigation({ user }) {
                     {visibleColumns.status && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">STATUS</th>}
                     {visibleColumns.assigned && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>}
                     {visibleColumns.date && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DATE</th>}
-                    {visibleColumns.actions && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ACTIONS</th>}
                     {/* Custom Columns */}
                     {customColumns.filter(col => visibleColumns[col]).map(col => (
                       <th key={col} className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         {col.replace(/_/g, ' ')}
                       </th>
                     ))}
+                    {visibleColumns.actions && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ACTIONS</th>}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
@@ -1025,10 +1025,16 @@ export default function Litigation({ user }) {
                           </td>
                         )}
                         {visibleColumns.date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(task.scheduled_date || task.date)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium text-sm">{formatDate(task.scheduled_date || task.date)}</span>
                           </td>
                         )}
+                        {/* Custom Column Cells */}
+                        {customColumns.filter(col => visibleColumns[col]).map(col => (
+                          <td key={col} className="py-4 px-4">
+                            <span className="text-gray-900 font-medium text-sm">{task[col] || '-'}</span>
+                          </td>
+                        ))}
                         {visibleColumns.actions && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
@@ -1060,12 +1066,6 @@ export default function Litigation({ user }) {
                             </div>
                           </td>
                         )}
-                        {/* Custom Column Cells */}
-                        {customColumns.filter(col => visibleColumns[col]).map(col => (
-                          <td key={col} className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{task[col] || '-'}</span>
-                          </td>
-                        ))}
                       </tr>
                     );
                   }) : (
@@ -1269,6 +1269,7 @@ export default function Litigation({ user }) {
           refreshTasks={refreshTasks}
           initialData={selectedTask} mode={modalMode}
           customColumns={customColumns}
+          customColumnMetadata={customColumnMetadata}
         />
       )}
 
@@ -1292,7 +1293,7 @@ export default function Litigation({ user }) {
 }
 
 
-function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, submitting, setSubmitting, error, setError, refreshTasks = () => { }, initialData = null, mode = 'create', customColumns = [], currentUser }) {
+function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, submitting, setSubmitting, error, setError, refreshTasks = () => { }, initialData = null, mode = 'create', customColumns = [], customColumnMetadata = {}, currentUser }) {
   const isView = mode === 'view';
   const isEdit = mode === 'edit';
   const [form, setForm] = useState({ title: '', description: '', property: '', propertyName: '', category: '', priority: 'medium', reportedBy: currentUser?.name || '', assignedTo: '', assignedToId: '', serviceUserId: '', scheduledDate: '', status: 'Pending' });

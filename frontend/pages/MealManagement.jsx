@@ -1073,8 +1073,8 @@ export default function MealManagement({ user }) {
             <button
               onClick={() => setActiveTab("all")}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "all"
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               All Meals
@@ -1082,8 +1082,8 @@ export default function MealManagement({ user }) {
             <button
               onClick={() => setActiveTab("breakfast")}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "breakfast"
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Breakfast
@@ -1091,8 +1091,8 @@ export default function MealManagement({ user }) {
             <button
               onClick={() => setActiveTab("lunch")}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "lunch"
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Lunch
@@ -1100,8 +1100,8 @@ export default function MealManagement({ user }) {
             <button
               onClick={() => setActiveTab("dinner")}
               className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "dinner"
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-teal-500 text-teal-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
               Dinner

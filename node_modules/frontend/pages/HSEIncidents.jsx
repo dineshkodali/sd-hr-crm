@@ -1134,7 +1134,7 @@ export default function HSEIncidents({ user }) {
                       <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>
                     )}
                     {visibleColumns.date && (
-                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DATE</th>
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">DATE</th>
                     )}
                     {visibleColumns.actions && (
                       <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ACTIONS</th>
@@ -1222,8 +1222,8 @@ export default function HSEIncidents({ user }) {
                           </td>
                         )}
                         {visibleColumns.date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(r.incident_date)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium text-sm">{formatDate(r.incident_date)}</span>
                           </td>
                         )}
                         {visibleColumns.actions && (
@@ -1260,7 +1260,7 @@ export default function HSEIncidents({ user }) {
                         {/* Custom Column Cells */}
                         {customColumns.filter(col => visibleColumns[col]).map(col => (
                           <td key={col} className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{r[col] || '-'}</span>
+                            <span className="text-gray-900 font-medium text-sm">{r[col] || '-'}</span>
                           </td>
                         ))}
                       </tr>

@@ -239,14 +239,38 @@ function quoteIdent(name) {
 
 /* -------------------- ROOT ROUTE -------------------- */
 
+// Role-based helper function (you can keep this inline or move to a helper if you prefer, but inline is fine for this tool)
+const getRestrictedHotelIds = async (user) => {
+  if (user.role === "manager") {
+    const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [user.id]);
+    const managedIds = managedRes.rows.map(r => r.id);
+    let branchIds = [];
+    if (user.branch) {
+      const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [user.branch]);
+      branchIds = branchRes.rows.map(r => r.id);
+    }
+    return [...new Set([...managedIds, ...branchIds])];
+  } else if (user.role === "staff") {
+    if (user.branch) {
+      const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [user.branch]);
+      return branchRes.rows.map(r => r.id);
+    } else {
+      return [];
+    }
+  }
+  return null; // Admin or others
+};
+
 /**
  * GET /api/su
  * Get service users with optional filtering by hotel_id, hotelId, or hotel
  */
-router.get("/", async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
     if (!pool || typeof pool.query !== "function")
       return res.status(500).json({ error: "DB not initialized" });
+
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
 
     // Support filtering by hotel_id via query parameters
     const { hotel_id, hotelId, hotel } = req.query;
@@ -259,7 +283,11 @@ router.get("/", async (req, res) => {
     const joins = [];
     let selectHotelName = "NULL AS hotel_name";
     let selectRoomNumber = "NULL AS room_number";
-    let whereClause = "";
+
+    // Prepare WHERE clause components
+    let whereParts = [];
+    let queryParams = [];
+    let paramIdx = 1;
 
     // Detect which column to use for hotel filtering
     let hotelFilterCol = null;
@@ -276,8 +304,24 @@ router.get("/", async (req, res) => {
       }
     }
 
+    // 1. User specified filter
     if (filterHotelId && hotelFilterCol) {
-      whereClause = `WHERE ${suAlias}.${quoteIdent(hotelFilterCol)} = $1`;
+      whereParts.push(`${suAlias}.${quoteIdent(hotelFilterCol)} = $${paramIdx++}`);
+      queryParams.push(filterHotelId);
+    }
+
+    // 2. Role restriction
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.json([]);
+      }
+      if (hotelFilterCol) {
+        whereParts.push(`${suAlias}.${quoteIdent(hotelFilterCol)} = ANY($${paramIdx++})`);
+        queryParams.push(restrictedHotelIds);
+      } else {
+        console.warn("User has restricted access but no hotel column found on service_users table to filter by.");
+        return res.json([]);
+      }
     }
 
     // Join hotel table if possible
@@ -348,6 +392,8 @@ router.get("/", async (req, res) => {
       }
     }
 
+    const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')}` : "";
+
     const q = `
       SELECT ${suAlias}.*,
              ${selectHotelName},
@@ -358,8 +404,7 @@ router.get("/", async (req, res) => {
       ORDER BY ${suAlias}.id DESC
     `;
 
-    const params = filterHotelId && hotelFilterCol ? [filterHotelId] : [];
-    const { rows } = await pool.query(q, params);
+    const { rows } = await pool.query(q, queryParams);
 
     // Normalize data for consistent frontend consumption
     const normalizedRows = rows.map((row) => {
@@ -478,6 +523,8 @@ router.get("/users", protect, async (req, res) => {
     if (!pool || typeof pool.query !== "function")
       return res.status(500).json({ error: "DB not initialized" });
 
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+
     // Support filtering by hotel_id via query parameters
     const { hotel_id, hotelId, hotel } = req.query;
     const filterHotelId = hotel_id || hotelId || hotel;
@@ -489,7 +536,46 @@ router.get("/users", protect, async (req, res) => {
     const joins = [];
     let selectHotelName = "NULL AS hotel_name";
     let selectRoomNumber = "NULL AS room_number";
-    let whereClause = "";
+
+    // Prepare WHERE clause components
+    let whereParts = [];
+    let queryParams = [];
+    let paramIdx = 1;
+
+    // Detect which column to use for hotel filtering
+    let hotelFilterCol = null;
+    if (names.hotelFk && isValidIdentifier(names.hotelFk)) {
+      hotelFilterCol = names.hotelFk;
+    } else {
+      const hotelCols = ["hotel_id", "property_id", "accommodation_id", "hotelid", "propertyid"];
+      for (const col of hotelCols) {
+        const exists = await columnExists(su, col);
+        if (exists) {
+          hotelFilterCol = col;
+          break;
+        }
+      }
+    }
+
+    // 1. User specified filter
+    if (filterHotelId && hotelFilterCol) {
+      whereParts.push(`${suAlias}.${quoteIdent(hotelFilterCol)} = $${paramIdx++}`);
+      queryParams.push(filterHotelId);
+    }
+
+    // 2. Role restriction
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.json([]);
+      }
+      if (hotelFilterCol) {
+        whereParts.push(`${suAlias}.${quoteIdent(hotelFilterCol)} = ANY($${paramIdx++})`);
+        queryParams.push(restrictedHotelIds);
+      } else {
+        console.warn("User has restricted access but no hotel column found on service_users table to filter by.");
+        return res.json([]);
+      }
+    }
 
     // Join hotel table if possible
     if (names.hotelTable && names.hotelFk && isValidIdentifier(names.hotelFk)) {
@@ -499,9 +585,6 @@ router.get("/users", protect, async (req, res) => {
         )} = h.id`
       );
       selectHotelName = `h.name AS hotel_name`;
-      if (filterHotelId) {
-        whereClause = `WHERE ${suAlias}.${quoteIdent(names.hotelFk)} = $1`;
-      }
     } else if (names.hotelTable) {
       const fallbackCol = await columnExists(su, "hotel_id");
       if (fallbackCol) {
@@ -511,21 +594,6 @@ router.get("/users", protect, async (req, res) => {
           )} = h.id`
         );
         selectHotelName = `h.name AS hotel_name`;
-        if (filterHotelId) {
-          whereClause = `WHERE ${suAlias}.${quoteIdent(fallbackCol)} = $1`;
-        }
-      }
-    }
-
-    // If no joins but table has hotel_id/property_id column, filter by it
-    if (!whereClause && filterHotelId) {
-      const hotelCols = ["hotel_id", "property_id", "accommodation_id", "hotelid", "propertyid"];
-      for (const col of hotelCols) {
-        const exists = await columnExists(su, col);
-        if (exists) {
-          whereClause = `WHERE ${suAlias}.${quoteIdent(col)} = $1`;
-          break;
-        }
       }
     }
 
@@ -577,6 +645,8 @@ router.get("/users", protect, async (req, res) => {
       }
     }
 
+    const whereClause = whereParts.length > 0 ? `WHERE ${whereParts.join(' AND ')}` : "";
+
     const q = `
       SELECT ${suAlias}.*,
              ${selectHotelName},
@@ -587,8 +657,7 @@ router.get("/users", protect, async (req, res) => {
       ORDER BY ${suAlias}.id DESC
     `;
 
-    const params = filterHotelId ? [filterHotelId] : [];
-    const { rows } = await pool.query(q, params);
+    const { rows } = await pool.query(q, queryParams);
 
     // Normalize data for consistent frontend consumption
     const normalizedRows = rows.map((row) => {
@@ -817,12 +886,12 @@ router.post("/users", protect, async (req, res) => {
     // Normalize date to YYYY-MM-DD or null
     const normalizeDate = (value) => {
       if (!value) return null;
-      
+
       // If it's already in YYYY-MM-DD format, return as-is
       if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
         return value;
       }
-      
+
       const d = new Date(value);
       if (isNaN(d.getTime())) return null;
       return d.toISOString().slice(0, 10);
@@ -1171,13 +1240,13 @@ router.put("/users/:id", protect, async (req, res) => {
       `SELECT * FROM service_users WHERE id = $1`,
       [id]
     );
-    
+
     if (!beforeRows.length) {
       return res.status(404).json({ error: "Service user not found" });
     }
-    
+
     const beforeData = beforeRows[0];
-    
+
     const updateQ = `
       UPDATE service_users
       SET ${sets.join(", ")}

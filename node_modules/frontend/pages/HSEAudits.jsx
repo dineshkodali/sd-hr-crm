@@ -1220,14 +1220,14 @@ export default function HSEAudits({ user }) {
                           </td>
                         )}
                         {visibleColumns.date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(r.scheduled_date)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium text-sm">{formatDate(r.scheduled_date)}</span>
                           </td>
                         )}
                         {/* Custom columns */}
                         {customColumns.filter(col => visibleColumns[col]).map(col => (
                           <td key={col} className="py-4 px-4">
-                            <span className="text-gray-700 text-sm">{r[col] || '-'}</span>
+                            <span className="text-gray-900 font-medium text-sm">{r[col] || '-'}</span>
                           </td>
                         ))}
                         {visibleColumns.actions && (
@@ -1683,14 +1683,14 @@ export default function HSEAudits({ user }) {
 
                       return (
                         <div key={col} className="col-span-1">
-                          <label className="block text-xs font-medium text-purple-600 mb-1">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
                             {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </label>
                           {inputType === 'checkbox' ? (
                             <div className="flex items-center h-10">
                               <input
                                 type="checkbox"
-                                className="h-4 w-4 text-purple-600 border-purple-300 rounded focus:ring-purple-500"
+                                className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                                 checked={!!formData[col]}
                                 onChange={(e) => setFormData({ ...formData, [col]: e.target.checked })}
                               />
@@ -1700,7 +1700,7 @@ export default function HSEAudits({ user }) {
                             <select
                               value={formData[col] || ''}
                               onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
-                              className="w-full border border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                             >
                               <option value="">Select...</option>
                               {options.map((opt, idx) => (
@@ -1712,14 +1712,14 @@ export default function HSEAudits({ user }) {
                               rows={3}
                               value={formData[col] || ''}
                               onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
-                              className="w-full border border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                             />
                           ) : inputType === 'date' ? (
                             <input
                               type="date"
                               value={formData[col] ? formatDateISO(formData[col]) : ''}
                               onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
-                              className="w-full border border-purple-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                             />
                           ) : (
                             <input
@@ -1727,7 +1727,7 @@ export default function HSEAudits({ user }) {
                               value={formData[col] || ''}
                               onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
                               placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                              className="w-full border border-purple-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
                             />
                           )}
                         </div>

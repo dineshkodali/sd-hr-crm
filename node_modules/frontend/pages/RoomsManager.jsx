@@ -10,6 +10,7 @@ export default function RoomsManager({ user }) {
   const { hotelId } = useParams();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
+  const [residents, setResidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ room_number: "", type: "", floor: "" });
   const [editing, setEditing] = useState(null);
@@ -89,13 +90,34 @@ export default function RoomsManager({ user }) {
     }
   };
 
+  const fetchResidents = async () => {
+    try {
+      const res = await axios.get(`/api/su?hotel_id=${hotelId}`);
+      const allUsers = res.data && Array.isArray(res.data) ? res.data : [];
+      // Filter for active residents only
+      const active = allUsers.filter(u => String(u.status || '').toLowerCase() === 'active');
+      setResidents(active);
+    } catch (err) {
+      console.error("Failed to load residents:", err);
+      setResidents([]);
+    }
+  };
+
   const fetch = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`/api/hotels/${hotelId}/rooms`);
-      setRooms(res.data && res.data.rooms ? res.data.rooms : (Array.isArray(res.data) ? res.data : []));
+      const [roomsRes, residentsRes] = await Promise.all([
+        axios.get(`/api/hotels/${hotelId}/rooms`),
+        axios.get(`/api/su?hotel_id=${hotelId}`)
+      ]);
+
+      setRooms(roomsRes.data && roomsRes.data.rooms ? roomsRes.data.rooms : (Array.isArray(roomsRes.data) ? roomsRes.data : []));
+
+      const allUsers = residentsRes.data && Array.isArray(residentsRes.data) ? residentsRes.data : [];
+      const active = allUsers.filter(u => String(u.status || '').toLowerCase() === 'active');
+      setResidents(active);
     } catch (err) {
-      console.error("Failed to load rooms:", err);
+      console.error("Failed to load data:", err);
       setRooms([]);
     } finally {
       setLoading(false);
@@ -787,6 +809,29 @@ export default function RoomsManager({ user }) {
                         `}>
                             {r.status || 'Available'}
                           </span>
+                        </div>
+
+                        {/* Active Residents Display */}
+                        <div className="pt-3 border-t border-dashed border-slate-200 mt-3">
+                          <div className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">
+                            Active Occupants
+                          </div>
+                          {residents.filter(u => String(u.room_id) === String(r.id)).length > 0 ? (
+                            <div className="space-y-1">
+                              {residents.filter(u => String(u.room_id) === String(r.id)).map(u => (
+                                <div key={u.id} className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 px-2 py-1.5 rounded-md border border-slate-100">
+                                  <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold">
+                                    {(u.first_name || u.name || '?').charAt(0)}
+                                  </div>
+                                  <span className="font-medium truncate">{u.first_name} {u.last_name || ''}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-slate-400 italic pl-1">
+                              No active residents
+                            </div>
+                          )}
                         </div>
                       </div>
 

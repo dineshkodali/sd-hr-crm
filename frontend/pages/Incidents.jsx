@@ -1450,19 +1450,19 @@ export default function Incidents({ user }) {
                         {/* Removed duplicate manual checkbox block */}
                         {ALL_COLUMNS.map(col => (
                           visibleColumns[col] && (
-                            <td key={col} className="py-4 px-4">
+                            <td key={col} className={`py-4 px-4 ${col === 'date' || col === 'reference' ? 'whitespace-nowrap' : ''}`}>
                               {(() => {
                                 if (col === 'checkbox') return <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />;
                                 if (col === 'type') return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">{row.title || "Incident"}</span>;
                                 if (col === 'reference') return <span className="text-slate-900 font-semibold text-sm whitespace-nowrap">{row.ref}</span>;
-                                if (col === 'description') return <div><div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`} onClick={hasUpdate ? () => handleEdit(row) : undefined}><Home className="w-4 h-4 text-gray-400" /><span>{row.propertyName || "Unknown Property"}</span></div><div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">{row.desc || "No description recorded."}</div></div>;
+                                if (col === 'description') return <div><div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer hover:text-teal-600' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`} onClick={hasUpdate ? () => handleEdit(row) : undefined}><Home className="w-4 h-4 text-gray-400" /><span>{hotels.find(h => h.id == row.propertyId)?.name || row.propertyName || "Unknown Property"}</span></div><div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">{row.desc || "No description recorded."}</div></div>;
                                 if (col === 'priority') { const priorityStyle = getPriorityColor(row.priority || "Medium"); return <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span><span className={`text-sm font-semibold ${priorityStyle.text}`}>{row.priority || "Medium"}</span></div>; }
                                 if (col === 'status') { const statusStyle = getStatusColor(row.status || "pending"); return <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span><span className={`text-sm font-semibold ${statusStyle.text}`}>{row.status || "Pending"}</span></div>; }
                                 if (col === 'assigned') return !row.assigned || row.assigned === 'Unassigned' ? <span className="text-gray-400 text-sm">Unassigned</span> : <div className="flex items-center gap-2"><div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned)} flex items-center justify-center text-xs font-semibold shadow-sm`}>{getInitials(row.assigned)}</div><span className="text-gray-900 text-sm font-medium">{row.assigned}</span></div>;
-                                if (col === 'date') return <span className="text-gray-600 text-sm">{formatDate(row.date)}</span>;
+                                if (col === 'date') return <span className="text-gray-900 font-medium text-sm">{formatDate(row.date)}</span>;
                                 if (col === 'actions') return <div className="flex items-center gap-2"><button onClick={() => handleView(row)} className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all" title="View"><Eye className="w-4 h-4" /></button>{hasUpdate && (<button onClick={() => handleEdit(row)} className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit"><Edit className="w-4 h-4" /></button>)}{hasDelete && (<button onClick={() => handleDelete(row)} className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>)}</div>;
                                 // Render custom columns
-                                if (customColumns.includes(col)) return <span className="text-gray-700 text-sm">{row.raw?.[col] ?? ''}</span>;
+                                if (customColumns.includes(col)) return <span className="text-gray-900 font-medium text-sm">{row.raw?.[col] ?? ''}</span>;
                                 return null;
                               })()}
                             </td>
@@ -1575,7 +1575,7 @@ export default function Incidents({ user }) {
                                   <div className="flex items-center gap-1.5 text-gray-600 text-xs mb-2">
                                     <Home className="w-3 h-3" />
                                     <span className="truncate">
-                                      {row.propertyName || "Unknown Property"}
+                                      {hotels.find(h => h.id == row.propertyId)?.name || row.propertyName || "Unknown Property"}
                                     </span>
                                   </div>
 
@@ -1746,67 +1746,7 @@ export default function Incidents({ user }) {
                       </div>
                     )}
                   </div>
-                  {/* Render dynamic custom columns as input fields */}
-                  {customColumns && customColumns.length > 0 && customColumns.map(col => {
-                    const meta = customColumnMetadata[col] || {};
-                    const inputType = meta.input_type || 'text';
-                    const options = Array.isArray(meta.input_options) ? meta.input_options : [];
 
-                    return (
-                      <div className="col-span-1" key={col}>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </label>
-                        {inputType === 'checkbox' ? (
-                          <div className="flex items-center h-10">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                              checked={!!formData[col]}
-                              onChange={(e) => setFormData(p => ({ ...p, [col]: e.target.checked }))}
-                            />
-                            <span className="ml-2 text-sm text-gray-700">Yes</span>
-                          </div>
-                        ) : inputType === 'dropdown' || inputType === 'select' ? (
-                          <select
-                            name={col}
-                            value={formData[col] || ''}
-                            onChange={handleInputChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
-                          >
-                            <option value="">Select...</option>
-                            {options.map((opt, idx) => (
-                              <option key={idx} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        ) : inputType === 'textarea' ? (
-                          <textarea
-                            name={col}
-                            rows={3}
-                            value={formData[col] || ''}
-                            onChange={handleInputChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                          />
-                        ) : inputType === 'date' ? (
-                          <input
-                            type="date"
-                            name={col}
-                            value={formData[col] ? formatDateISO(formData[col]) : ''}
-                            onChange={handleInputChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                          />
-                        ) : (
-                          <input
-                            name={col}
-                            type={inputType}
-                            value={formData[col] || ''}
-                            onChange={handleInputChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
                   <div className="col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Severity <span className="text-red-500">*</span></label>
                     <select
@@ -1925,6 +1865,61 @@ export default function Incidents({ user }) {
                       <option value="Resolved">Resolved</option>
                     </select>
                   </div>
+
+                  {/* Custom Fields - Moved to bottom */}
+                  {customColumns.map((col) => {
+                    const meta = customColumnMetadata[col] || {};
+                    const inputType = meta.input_type || 'text';
+                    const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                    return (
+                      <div key={col} className="col-span-1 md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          {col.replace(/_/g, ' ').toUpperCase()}
+                        </label>
+                        {inputType === 'checkbox' ? (
+                          <div className="flex items-center h-10">
+                            <input
+                              type="checkbox"
+                              name={col}
+                              checked={!!formData[col]}
+                              onChange={(e) => setFormData({ ...formData, [col]: e.target.checked })}
+                              className="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Yes</span>
+                          </div>
+                        ) : inputType === 'dropdown' || inputType === 'select' ? (
+                          <select
+                            name={col}
+                            value={formData[col] || ''}
+                            onChange={handleInputChange}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                          >
+                            <option value="">Select...</option>
+                            {options.map((opt, idx) => (
+                              <option key={idx} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : inputType === 'textarea' ? (
+                          <textarea
+                            name={col}
+                            rows={3}
+                            value={formData[col] || ''}
+                            onChange={handleInputChange}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 resize-y"
+                          />
+                        ) : (
+                          <input
+                            name={col}
+                            type={inputType}
+                            value={formData[col] || ''}
+                            onChange={handleInputChange}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1980,7 +1975,7 @@ export default function Incidents({ user }) {
               </div>
 
               <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-                <DetailField label="PROPERTY" value={viewingIncident.propertyName} />
+                <DetailField label="PROPERTY" value={hotels.find(h => h.id == viewingIncident.propertyId)?.name || viewingIncident.propertyName || viewingIncident.property || "Unknown Property"} />
                 <DetailField label="TYPE" value={viewingIncident.title} />
 
                 <DetailField label="PRIORITY" value={viewingIncident.priority} />

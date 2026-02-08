@@ -29,6 +29,7 @@ import Reports from "./Reports";
 const ALL_MODULES = [
   { key: "dashboard", label: "Dashboard", category: "Core" },
   { key: "su_data", label: "SU Data", category: "Core" },
+  { key: "meals", label: "Meals", category: "Core" },
   { key: "properties", label: "Properties", category: "Core" },
   { key: "employees", label: "Employees", category: "Core" },
   { key: "inspections", label: "Inspections", category: "Operations" },

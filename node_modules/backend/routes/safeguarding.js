@@ -19,20 +19,49 @@ function genRef() {
 // --- GET: List all referrals (with pagination) ---
 router.get('/referrals', protect, async (req, res) => {
   try {
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+
+    // Role-Based Restriction
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        restrictedHotelIds = branchRes.rows.map(r => r.id);
+      } else {
+        restrictedHotelIds = [];
+      }
+    }
+
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
 
-    const { clause, params } = buildRoleWhere(req, 1, { assignedColumn: 'assigned_to' });
-    let text = 'SELECT * FROM public.safeguarding_referrals';
-    const values = [];
-    if (clause) {
-      text += ' WHERE ' + clause;
-      values.push(...params);
-    }
-    values.push(limit, offset);
-    text += ` ORDER BY created_at DESC LIMIT $${values.length - 1} OFFSET $${values.length}`;
+    let where = [];
+    let values = [];
+    let idx = 1;
 
-    const result = await pool.query(text, values);
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.json([]);
+      }
+      where.push(`property_id = ANY($${idx++})`);
+      values.push(restrictedHotelIds);
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const query = `SELECT * FROM public.safeguarding_referrals ${whereClause} ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
+    values.push(limit, offset);
+
+    const result = await pool.query(query, values);
 
     res.json(Array.isArray(result.rows) ? result.rows : []);
   } catch (err) {
@@ -63,28 +92,28 @@ router.get('/referrals/:id', protect, async (req, res) => {
 router.post('/referrals', protect, async (req, res) => {
   try {
     const reference = genRef();
-    
+
     // Get all columns from the table
     const columnsResult = await pool.query(
       `SELECT column_name FROM information_schema.columns 
        WHERE table_schema = 'public' AND table_name = 'safeguarding_referrals'`
     );
-    
+
     const allColumns = columnsResult.rows.map(r => r.column_name);
-    
+
     // Standard columns
     const standardColumns = [
       'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
       'title', 'description', 'property_id', 'property_name', 'category',
       'priority', 'assigned_to', 'reported_by', 'scheduled_date', 'status'
     ];
-    
+
     // Find custom columns
     const customColumns = allColumns.filter(col => !standardColumns.includes(col));
-    
+
     // Build column list and values
     const columns = ['reference', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'assigned_to', 'reported_by', 'scheduled_date', 'status', 'created_at', 'updated_at'];
-    
+
     const values = [
       reference,
       req.body.title,
@@ -100,7 +129,7 @@ router.post('/referrals', protect, async (req, res) => {
       'NOW()', // Timestamp placeholder string
       'NOW()'  // Timestamp placeholder string
     ];
-    
+
     // Insert custom columns before timestamps
     customColumns.forEach(col => {
       if (req.body[col] !== undefined) {
@@ -110,7 +139,7 @@ router.post('/referrals', protect, async (req, res) => {
         values.splice(values.length - 2, 0, req.body[col]);
       }
     });
-    
+
     // Determine where timestamps start (last 2 items)
     const timestampStartIndex = values.length - 2;
 
@@ -119,10 +148,10 @@ router.post('/referrals', protect, async (req, res) => {
       if (i >= timestampStartIndex) return val; // Returns 'NOW()'
       return `$${i + 1}`; // Returns $1, $2 etc.
     });
-    
+
     // The actual params passed to pool.query must NOT contain 'NOW()'
     const paramValues = values.slice(0, timestampStartIndex);
-    
+
     const query = `INSERT INTO public.safeguarding_referrals (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
 
     const result = await pool.query(query, paramValues);
@@ -137,24 +166,24 @@ router.post('/referrals', protect, async (req, res) => {
 router.patch('/referrals/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get all columns from the table
     const columnsResult = await pool.query(
       `SELECT column_name FROM information_schema.columns 
        WHERE table_schema = 'public' AND table_name = 'safeguarding_referrals'`
     );
-    
+
     const allColumns = columnsResult.rows.map(r => r.column_name);
     const standardColumns = ['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by'];
     const updatableColumns = allColumns.filter(col => !standardColumns.includes(col));
-    
+
     // Build SET clause dynamically
     const setClauses = [];
     const values = [];
     let paramIndex = 1;
-    
+
     const standardFields = ['title', 'description', 'property_id', 'property_name', 'category', 'priority', 'assigned_to', 'reported_by', 'scheduled_date', 'status'];
-    
+
     // Standard fields
     standardFields.forEach(field => {
       if (req.body[field] !== undefined) {
@@ -163,7 +192,7 @@ router.patch('/referrals/:id', protect, async (req, res) => {
         paramIndex++;
       }
     });
-    
+
     // Custom columns
     updatableColumns.forEach(col => {
       if (!standardFields.includes(col) && req.body[col] !== undefined) {
@@ -172,12 +201,12 @@ router.patch('/referrals/:id', protect, async (req, res) => {
         paramIndex++;
       }
     });
-    
+
     setClauses.push('updated_at=NOW()');
     values.push(id);
-    
+
     const query = `UPDATE public.safeguarding_referrals SET ${setClauses.join(', ')} WHERE id=$${paramIndex} RETURNING *`;
-    
+
     const result = await pool.query(query, values);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Referral not found' });
     res.json(result.rows[0]);

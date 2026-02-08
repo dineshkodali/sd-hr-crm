@@ -1219,14 +1219,14 @@ export default function HSETraining({ user }) {
                           </td>
                         )}
                         {visibleColumns.date && (
-                          <td className="py-4 px-4">
-                            <span className="text-gray-600 text-sm">{formatDate(r.scheduled_date)}</span>
+                          <td className="py-4 px-4 whitespace-nowrap">
+                            <span className="text-gray-900 font-medium text-sm">{formatDate(r.scheduled_date)}</span>
                           </td>
                         )}
                         {/* Custom columns */}
                         {customColumns.filter(col => visibleColumns[col]).map(col => (
                           <td key={col} className="py-4 px-4">
-                            <span className="text-gray-700 font-medium text-sm">
+                            <span className="text-gray-900 font-medium text-sm">
                               {r[col] || '-'}
                             </span>
                           </td>

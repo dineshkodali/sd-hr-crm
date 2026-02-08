@@ -1,6 +1,7 @@
 // C:\PostgreAuth\Backend\routes\moveins.js
 import express from "express";
 import pool from "../config/db.js";
+import { protect } from "../middleware/auth.js";
 
 import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 const router = express.Router();
@@ -146,9 +147,43 @@ router.post("/", async (req, res) => {
 });
 
 // List move-ins (simple)
-router.get("/", async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
-    const q = await pool.query("SELECT * FROM maintenance.move_ins ORDER BY created_at DESC LIMIT 500");
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+
+    // Role-Based Restriction
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        restrictedHotelIds = branchRes.rows.map(r => r.id);
+      } else {
+        restrictedHotelIds = [];
+      }
+    }
+
+    let whereClause = "";
+    let params = [];
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.json({ success: true, rows: [] });
+      }
+      whereClause = "WHERE property_id = ANY($1)";
+      params.push(restrictedHotelIds);
+    }
+
+    const q = await pool.query(`SELECT * FROM maintenance.move_ins ${whereClause} ORDER BY created_at DESC LIMIT 500`, params);
     res.json({ success: true, rows: q.rows });
   } catch (err) {
     console.error("[move-ins] list error", err && err.stack ? err.stack : err);

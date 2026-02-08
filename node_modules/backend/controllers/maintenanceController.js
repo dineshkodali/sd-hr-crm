@@ -18,6 +18,85 @@ const parseId = (val) => {
   return id;
 };
 
+async function getAllowedHotelIds(clientOrPool, user) {
+  if (!user) return [];
+  if (user.role === "admin") return null;
+
+  const q = (sql, params) => (clientOrPool?.query ? clientOrPool.query(sql, params) : pool.query(sql, params));
+
+  let query = "";
+  let params = [];
+
+  if (user.role === "manager") {
+    query = "SELECT id FROM public.hotels WHERE manager_id = $1";
+    params = [user.id];
+    if (user.branch) {
+      query += " OR branch = $2";
+      params.push(user.branch);
+    }
+  } else if (user.role === "staff") {
+    if (!user.branch) return [];
+    query = "SELECT id FROM public.hotels WHERE branch = $1";
+    params = [user.branch];
+  } else {
+    return [];
+  }
+
+  const res = await q(query, params);
+  return (res.rows || []).map((r) => r.id);
+}
+
+async function getAllowedHotelNamesLower(clientOrPool, allowedIds) {
+  if (allowedIds === null) return null;
+  if (!Array.isArray(allowedIds) || allowedIds.length === 0) return [];
+  const q = (sql, params) => (clientOrPool?.query ? clientOrPool.query(sql, params) : pool.query(sql, params));
+  const res = await q("SELECT name FROM public.hotels WHERE id = ANY($1::int[])", [allowedIds]);
+  return (res.rows || []).map((r) => String(r.name || "").trim().toLowerCase()).filter(Boolean);
+}
+
+function getTaskHotelId(taskRow) {
+  if (!taskRow) return null;
+  const candid = taskRow.hotel_id ?? taskRow.property_id ?? null;
+  if (candid === null || candid === undefined) return null;
+  const n = Number(candid);
+  return Number.isFinite(n) && Number.isInteger(n) ? n : null;
+}
+
+function getTaskSiteLower(taskRow) {
+  if (!taskRow) return null;
+  const s = taskRow.site ?? taskRow.hotel_name ?? null;
+  if (!s) return null;
+  const v = String(s).trim().toLowerCase();
+  return v ? v : null;
+}
+
+async function assertTaskAccess(client, user, taskId) {
+  const allowedIds = await getAllowedHotelIds(client, user);
+  if (allowedIds === null) return { allowed: true, allowedIds: null };
+  if (allowedIds.length === 0) return { allowed: false, allowedIds };
+
+  const { rows } = await client.query(
+    "SELECT hotel_id, property_id, site, hotel_name FROM maintenance_tasks WHERE id = $1 LIMIT 1",
+    [taskId]
+  );
+  if (!rows.length) return { allowed: false, allowedIds, notFound: true };
+
+  const taskHotelId = getTaskHotelId(rows[0]);
+
+  if (taskHotelId !== null) {
+    if (!allowedIds.includes(taskHotelId)) return { allowed: false, allowedIds };
+    return { allowed: true, allowedIds };
+  }
+
+  const allowedNamesLower = await getAllowedHotelNamesLower(client, allowedIds);
+  if (!allowedNamesLower.length) return { allowed: false, allowedIds };
+  const taskSiteLower = getTaskSiteLower(rows[0]);
+  if (!taskSiteLower) return { allowed: false, allowedIds };
+  if (!allowedNamesLower.includes(taskSiteLower)) return { allowed: false, allowedIds };
+
+  return { allowed: true, allowedIds };
+}
+
 /**
  * createTask
  * POST /api/maintenance
@@ -55,6 +134,19 @@ export async function createTask(req, res) {
 
   const client = await pool.connect();
   try {
+    const allowedIds = await getAllowedHotelIds(client, req.user);
+    if (allowedIds !== null) {
+      if (allowedIds.length === 0) {
+        return res.status(403).json({ success: false, error: "Access denied" });
+      }
+      if (resolvedHotelId === null || !allowedIds.includes(resolvedHotelId)) {
+        return res.status(403).json({
+          success: false,
+          error: "Cannot create task for a property outside your access",
+        });
+      }
+    }
+
     const now = new Date();
 
     // Get existing columns in maintenance_tasks table
@@ -172,20 +264,25 @@ export async function listTasks(req, res) {
 
   const client = await pool.connect();
   try {
+    const allowedIds = await getAllowedHotelIds(client, req.user);
+    if (allowedIds !== null && allowedIds.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const allowedNamesLower = await getAllowedHotelNamesLower(client, allowedIds);
+
     let hotelIdCol = null;
-    if (hotelParam) {
-      try {
-        const { rows: colRows } = await client.query(`
+    try {
+      const { rows: colRows } = await client.query(`
           SELECT column_name
           FROM information_schema.columns
           WHERE table_name = 'maintenance_tasks' AND table_schema = 'public'
         `);
-        const cols = colRows.map((r) => r.column_name);
-        if (cols.includes('hotel_id')) hotelIdCol = 'hotel_id';
-        else if (cols.includes('property_id')) hotelIdCol = 'property_id';
-      } catch {
-        hotelIdCol = null;
-      }
+      const cols = colRows.map((r) => r.column_name);
+      if (cols.includes('hotel_id')) hotelIdCol = 'hotel_id';
+      else if (cols.includes('property_id')) hotelIdCol = 'property_id';
+    } catch {
+      hotelIdCol = null;
     }
 
     const whereParts = [];
@@ -203,6 +300,19 @@ export async function listTasks(req, res) {
       whereParts.push(`(title ILIKE $${idx} OR description ILIKE $${idx})`);
       values.push(`%${search}%`);
       idx++;
+    }
+
+    if (allowedIds !== null) {
+      if (hotelIdCol) {
+        whereParts.push(`${hotelIdCol} = ANY($${idx++}::int[])`);
+        values.push(allowedIds);
+      } else {
+        if (!allowedNamesLower.length) {
+          return res.json({ success: true, data: [] });
+        }
+        whereParts.push(`LOWER(site) = ANY($${idx++}::text[])`);
+        values.push(allowedNamesLower);
+      }
     }
 
     if (hotelParam && hotelIdCol) {
@@ -247,6 +357,12 @@ export async function getTaskById(req, res) {
   const id = parseId(req.params.id);
   const client = await pool.connect();
   try {
+    const access = await assertTaskAccess(client, req.user, id);
+    if (!access.allowed) {
+      if (access.notFound) return res.status(404).json({ success: false, error: "Task not found" });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
     const q = `
       SELECT *
       FROM maintenance_tasks
@@ -308,6 +424,17 @@ export async function updateTask(req, res) {
 
   const client = await pool.connect();
   try {
+    const access = await assertTaskAccess(client, req.user, id);
+    if (!access.allowed) {
+      if (access.notFound) return res.status(404).json({ success: false, error: "Task not found or already deleted" });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
+    const allowedIds = access.allowedIds;
+    if (allowedIds !== null && resolvedHotelId !== null && !allowedIds.includes(resolvedHotelId)) {
+      return res.status(403).json({ success: false, error: "Cannot move task to a property outside your access" });
+    }
+
     // Get existing columns
     let existingCols = [];
     try {
@@ -487,6 +614,12 @@ export async function changeTaskStatus(req, res) {
 
   const client = await pool.connect();
   try {
+    const access = await assertTaskAccess(client, req.user, id);
+    if (!access.allowed) {
+      if (access.notFound) return res.status(404).json({ success: false, error: "Task not found" });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
     await client.query("BEGIN");
 
     const curQ = `SELECT status FROM maintenance_tasks WHERE id = $1 FOR UPDATE;`;
@@ -540,6 +673,12 @@ export async function deleteTask(req, res) {
 
   const client = await pool.connect();
   try {
+    const access = await assertTaskAccess(client, req.user, id);
+    if (!access.allowed) {
+      if (access.notFound) return res.status(404).json({ success: false, error: "Task not found or already deleted" });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
     const q = `
       UPDATE maintenance_tasks
       SET deleted = true, deleted_at = $1, updated_at = $1
@@ -579,6 +718,12 @@ export async function addComment(req, res) {
 
   const client = await pool.connect();
   try {
+    const access = await assertTaskAccess(client, req.user, id);
+    if (!access.allowed) {
+      if (access.notFound) return res.status(404).json({ success: false, error: "Task not found" });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
     const tRes = await client.query("SELECT id FROM maintenance_tasks WHERE id = $1 AND deleted = false", [id]);
     if (!tRes.rows.length) return res.status(404).json({ success: false, error: "Task not found" });
 
@@ -605,6 +750,12 @@ export async function getComments(req, res) {
   const id = parseId(req.params.id);
   const client = await pool.connect();
   try {
+    const access = await assertTaskAccess(client, req.user, id);
+    if (!access.allowed) {
+      if (access.notFound) return res.status(404).json({ success: false, error: "Task not found" });
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
     const tRes = await client.query("SELECT id FROM maintenance_tasks WHERE id = $1 LIMIT 1", [id]);
     if (!tRes.rows.length) return res.status(404).json({ success: false, error: "Task not found" });
 
