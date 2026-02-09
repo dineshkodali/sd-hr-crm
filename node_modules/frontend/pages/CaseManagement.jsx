@@ -1491,54 +1491,139 @@ const CaseManagement = () => {
 
         {/* --- VIEW DETAILS MODAL --- */}
         {showView && viewing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl relative">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in duration-200">
 
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900">Case Details</h3>
-                <button
-                  onClick={() => setShowView(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Case Details</h2>
+                  <p className="text-xs text-gray-500 mt-1">View case information</p>
+                </div>
+                <button onClick={() => setShowView(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* View Mode Content */}
-              <div className="p-6">
-                <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
-                  <DetailField label="CASE TITLE" value={viewing.title} />
-                  <DetailField label="PROPERTY" value={getPropertyName(viewing.property)} />
-                  <DetailField label="REFERENCE" value={viewing.reference} />
-                  <DetailField label="CATEGORY" value={viewing.type} />
-                  <DetailField label="SCHEDULED DATE" value={formatDate(viewing.scheduled_date)} />
-                  <DetailField label="PRIORITY" value={viewing.priority} />
-                  <DetailField label="STATUS" value={viewing.status} />
-                  <DetailField label="ASSIGNED TO" value={viewing.assigned_to} />
-                  <DetailField label="REPORTED BY" value={viewing.reported_by} />
-                  {/* Custom columns */}
-                  {customColumns && customColumns.map(col => (
-                    <DetailField key={col} label={col} value={viewing[col]} />
-                  ))}
-                </div>
+              <>
+                <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Case Title</label>
+                      <p className="text-gray-900 font-medium">{viewing.title || 'N/A'}</p>
+                    </div>
 
-                <div className="mb-4">
-                  <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">DESCRIPTION</div>
-                  <div className="bg-slate-50 p-4 rounded-md text-sm text-slate-600 border border-slate-100 min-h-[80px]">
-                    {viewing.description || "No description provided."}
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        {viewing.status || 'N/A'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reference</label>
+                      <p className="text-gray-900">{viewing.reference || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Category</label>
+                      <p className="text-gray-900">{viewing.type || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
+                      <p className="text-gray-900">{getPropertyName(viewing.property) || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Scheduled Date</label>
+                      <p className="text-gray-900">{formatDate(viewing.scheduled_date) || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Priority</label>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        {viewing.priority || 'N/A'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Assigned To</label>
+                      <p className="text-gray-900">{viewing.assigned_to || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reported By</label>
+                      <p className="text-gray-900">{viewing.reported_by || 'N/A'}</p>
+                    </div>
+
+                    {(customColumns || []).map((col) => {
+                      const meta = customColumnMetadata?.[col] || {};
+                      const label = String(meta.label || col)
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, (m) => m.toUpperCase());
+                      const rawVal = viewing?.[col];
+                      const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
+                      const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
+                      const isDateType = inputType === 'date';
+
+                      let valueText = rawVal;
+                      if (valueText === null || valueText === undefined || valueText === '') valueText = 'N/A';
+
+                      if (isDateType && rawVal) {
+                        const d = new Date(rawVal);
+                        if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
+                      }
+
+                      if (isBoolType) {
+                        const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
+                        return (
+                          <div key={col}>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              {boolVal ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={col}>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                          <p className="text-gray-900 font-medium">{String(valueText)}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
+                    <p className="text-gray-700">{viewing.description || 'No description provided.'}</p>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-gray-100">
+                <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
                   <button
+                    type="button"
                     onClick={() => setShowView(false)}
-                    className="px-5 py-2 border border-slate-200 text-slate-700 font-medium rounded hover:bg-slate-50 transition-colors"
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Close
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowView(false);
+                      handleEdit(viewing);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium shadow-sm transition-colors flex items-center gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit
+                  </button>
                 </div>
-              </div>
+              </>
             </div>
           </div>
         )}

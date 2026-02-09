@@ -2100,10 +2100,13 @@ export default function MaintenancePage({ user }) {
 
       {/* View Details Modal */}
       {showView && viewingTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg relative">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900">Work Order Details</h3>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Work Order Details</h2>
+                <p className="text-xs text-gray-500 mt-1">View work order information</p>
+              </div>
               <button
                 onClick={() => { setShowView(false); setViewingTask(null); }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -2111,48 +2114,137 @@ export default function MaintenancePage({ user }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">REFERENCE & TITLE</div>
-                <div className="text-gray-500 font-mono text-sm mb-1">MNT-2025-{viewingTask.ref || (viewingTask.id ? Number(viewingTask.id).toString(36).padStart(8, '0').slice(-8) : '')}</div>
-                <div className="text-xl font-bold text-gray-800">{viewingTask.title}</div>
-              </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">DESCRIPTION</div>
-                <p className="text-gray-600 text-sm leading-relaxed">{viewingTask.description || "No description provided."}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-                <DetailField label="PROPERTY" value={viewingTask.hotel || viewingTask.hotelName} icon={Building} />
-                <DetailField label="ROOM" value={viewingTask.room} />
-
-                <DetailField label="CATEGORY" value={viewingTask.category} icon={Tag} />
-                <DetailField label="PRIORITY" value={viewingTask.priority} />
-
-                <DetailField label="STATUS" value={viewingTask.status} />
-                <DetailField label="RAISED BY" value={viewingTask.raisedBy} icon={User} />
-
-                <DetailField label="START DATE" value={formatDate(viewingTask.start)} icon={Calendar} />
-                <DetailField label="DUE DATE" value={formatDate(viewingTask.dueDate)} icon={Calendar} />
-
-                <DetailField label="ACTION REQUIRED" value={viewingTask.action} />
-                <DetailField label="CLOSED DATE" value={formatDate(viewingTask.closed)} />
-                <div className="grid md:grid-cols-2 gap-4 border-t border-gray-100 pt-4">
-                  {customColumns.map(col => (
-                    <DetailField key={col} label={col.replace(/_/g, ' ')} value={viewingTask[col]} />
-                  ))}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reference</label>
+                  <p className="text-gray-900 font-medium">MNT-2025-{viewingTask.ref || (viewingTask.id ? Number(viewingTask.id).toString(36).padStart(8, '0').slice(-8) : '')}</p>
                 </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {viewingTask.status || 'N/A'}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Title</label>
+                  <p className="text-gray-900 font-medium">{viewingTask.title || 'N/A'}</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
+                  <p className="text-gray-900">{viewingTask.hotel || viewingTask.hotelName || 'N/A'}</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Room</label>
+                  <p className="text-gray-900">{viewingTask.room || 'N/A'}</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Category</label>
+                  <p className="text-gray-900">{viewingTask.category || 'N/A'}</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Priority</label>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {viewingTask.priority || 'N/A'}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Raised By</label>
+                  <p className="text-gray-900">{viewingTask.raisedBy || 'N/A'}</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Start Date</label>
+                  <p className="text-gray-900">{formatDate(viewingTask.start) || 'N/A'}</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Due Date</label>
+                  <p className="text-gray-900">{formatDate(viewingTask.dueDate) || 'N/A'}</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Closed Date</label>
+                  <p className="text-gray-900">{formatDate(viewingTask.closed) || 'N/A'}</p>
+                </div>
+
+                {(customColumns || []).map((col) => {
+                  const meta = customColumnMetadata?.[col] || {};
+                  const label = String(meta.label || col)
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, (m) => m.toUpperCase());
+                  const rawVal = viewingTask?.raw?.[col] ?? viewingTask?.[col];
+                  const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
+                  const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
+                  const isDateType = inputType === 'date';
+
+                  let valueText = rawVal;
+                  if (valueText === null || valueText === undefined || valueText === '') valueText = 'N/A';
+
+                  if (isDateType && rawVal) {
+                    const d = new Date(rawVal);
+                    if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
+                  }
+
+                  if (isBoolType) {
+                    const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
+                    return (
+                      <div key={col}>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          {boolVal ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={col}>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                      <p className="text-gray-900 font-medium">{String(valueText)}</p>
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => { setShowView(false); setViewingTask(null); }}
-                  className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
-                >
-                  Close
-                </button>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Action Required</label>
+                <p className="text-gray-700">{viewingTask.action || 'N/A'}</p>
               </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
+                <p className="text-gray-700">{viewingTask.description || 'No description provided.'}</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
+              <button
+                onClick={() => { setShowView(false); setViewingTask(null); }}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  const task = viewingTask;
+                  setShowView(false);
+                  setViewingTask(null);
+                  openEdit(task);
+                }}
+                className="px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium shadow-sm transition-colors flex items-center gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </button>
             </div>
           </div>
         </div>

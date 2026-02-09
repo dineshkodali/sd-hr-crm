@@ -1549,70 +1549,132 @@ export default function EmergencyProtocols() {
 
       {/* --- VIEW MODAL --- */}
       {showView && viewing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg relative">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900">Task Details</h3>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Task Details</h2>
+                <p className="text-xs text-gray-500 mt-1">View protocol information</p>
+              </div>
               <button onClick={() => { setViewing(null); setShowView(false); }} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 space-y-6">
-              <div>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">REFERENCE & TITLE</div>
-                <div className="text-gray-500 font-mono text-sm mb-1">{viewing.reference}</div>
-                <div className="text-xl font-bold text-gray-800">{viewing.title}</div>
+
+            <>
+              <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reference</label>
+                    <p className="text-gray-900 font-medium">{viewing.reference || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {viewing.status || 'N/A'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Title</label>
+                    <p className="text-gray-900 font-medium">{viewing.title || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Category</label>
+                    <p className="text-gray-900">{viewing.raw?.category || viewing.type || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
+                    <p className="text-gray-900">{hotels.find(h => h.id == viewing.raw?.property_id)?.name || viewing.raw?.property_name || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Due Date</label>
+                    <p className="text-gray-900">{formatDate(viewing.date) || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Priority</label>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {viewing.priority || 'N/A'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Assigned To</label>
+                    <p className="text-gray-900">{viewing.assignedTo || 'N/A'}</p>
+                  </div>
+
+                  {(customColumns || []).map((col) => {
+                    const meta = customColumnMetadata?.[col] || {};
+                    const label = String(meta.label || col)
+                      .replace(/_/g, ' ')
+                      .replace(/\b\w/g, (m) => m.toUpperCase());
+                    const rawVal = viewing?.raw?.[col];
+                    const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
+                    const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
+                    const isDateType = inputType === 'date';
+
+                    let valueText = rawVal;
+                    if (valueText === null || valueText === undefined || valueText === '') valueText = 'N/A';
+
+                    if (isDateType && rawVal) {
+                      const d = new Date(rawVal);
+                      if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
+                    }
+
+                    if (isBoolType) {
+                      const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
+                      return (
+                        <div key={col}>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            {boolVal ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={col}>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                        <p className="text-gray-900 font-medium">{String(valueText)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
+                  <p className="text-gray-700">{viewing.description || 'No description provided.'}</p>
+                </div>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">DESCRIPTION</div>
-                <p className="text-gray-600 text-sm leading-relaxed">{viewing.description}</p>
+              <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => { setViewing(null); setShowView(false); }}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewing(null);
+                    setShowView(false);
+                    openEdit(viewing);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium shadow-sm transition-colors flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit
+                </button>
               </div>
-
-              <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-                <div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">PROPERTY</div>
-                  <div className="font-semibold text-gray-700 text-sm">{hotels.find(h => h.id == viewing.raw?.property_id)?.name || viewing.raw?.property_name || '-'}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">CATEGORY</div>
-                  <div className="font-semibold text-gray-700 text-sm">{viewing.raw?.category || viewing.type}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">PRIORITY</div>
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${getPriorityColor(viewing.priority).dot}`}></span>
-                    <span className="font-semibold text-gray-700 text-sm">{viewing.priority}</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">STATUS</div>
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${getStatusColor(viewing.status).dot}`}></span>
-                    <span className="font-semibold text-gray-700 text-sm">{viewing.status}</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">ASSIGNED TO</div>
-                  <div className="font-semibold text-gray-700 text-sm">{viewing.assignedTo}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">DUE DATE</div>
-                  <div className="font-semibold text-gray-700 text-sm">{formatDate(viewing.date)}</div>
-                </div>
-                {/* Custom fields in View Modal - Integrated with standard layout */}
-                {customColumns.map(col => (
-                  <div key={col}>
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{col}</div>
-                    <div className="font-semibold text-gray-700 text-sm">{viewing.raw?.[col] ?? '-'}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-gray-200">
-                <button onClick={() => { setViewing(null); setShowView(false); }} className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm">Close</button>
-              </div>
-            </div>
+            </>
           </div>
         </div>
       )}

@@ -1455,74 +1455,136 @@ export default function HSEAudits({ user }) {
 
       {/* ----------------- MODAL SECTION ----------------- */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl h-[70vh] flex flex-col relative">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in duration-200">
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <h3 className="text-lg font-bold text-gray-900">
-                  {mode === 'create' ? "New HSE Audit" : mode === 'edit' ? "Edit Audit" : "View Audit"}
-                </h3>
-                {mode === 'view' && (
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${(formData.status || '').toLowerCase() === 'open' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                    (formData.status || '').toLowerCase() === 'overdue' ? 'bg-red-50 text-red-600 border-red-100' :
-                      'bg-green-50 text-green-600 border-green-100'
-                    }`}>
-                    {formData.status}
-                  </span>
-                )}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {mode === 'create' ? "New HSE Audit" : mode === 'edit' ? "Edit Audit" : "Audit Details"}
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  {mode === 'view' ? 'View audit information' : 'Enter audit details'}
+                </p>
               </div>
-              <button
-                onClick={closeModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* View Mode Content */}
             {mode === 'view' ? (
-              <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
-                  <DetailField label="TITLE" value={formData.title} />
-                  <DetailField label="PROPERTY" value={formData.property_name} />
-
-                  <DetailField label="CATEGORY" value={formData.category} />
-                  <DetailField label="PRIORITY" value={formData.priority} />
-
-                  <DetailField label="REPORTED BY" value={formData.reported_by} />
-                  <DetailField label="ASSIGNED TO" value={formData.assigned_to} />
-
-                  <DetailField label="SCHEDULED DATE" value={formatDate(formData.scheduled_date)} />
-                  <DetailField label="STATUS" value={formData.status} />
-
-                  {/* Custom columns in view mode */}
-                  {customColumns.map(col => (
-                    <DetailField
-                      key={col}
-                      label={col.replace(/_/g, ' ').toUpperCase()}
-                      value={formData[col]}
-                    />
-                  ))}
-                </div>
-
-                <div className="mb-4">
-                  <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">DESCRIPTION</div>
-                  <div className="bg-slate-50 p-4 rounded-md text-sm text-slate-600 border border-slate-100 min-h-[80px]">
-                    {formData.description || "No description provided."}
+              <>
+              <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Title</label>
+                    <p className="text-gray-900 font-medium">{formData.title || 'N/A'}</p>
                   </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {formData.status || 'N/A'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
+                    <p className="text-gray-900">{formData.property_name || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Category</label>
+                    <p className="text-gray-900">{formData.category || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Priority</label>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {formData.priority || 'N/A'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Scheduled Date</label>
+                    <p className="text-gray-900">{formatDate(formData.scheduled_date) || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reported By</label>
+                    <p className="text-gray-900">{formData.reported_by || 'N/A'}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Assigned To</label>
+                    <p className="text-gray-900">{formData.assigned_to || 'N/A'}</p>
+                  </div>
+
+                  {(customColumns || []).map((col) => {
+                    const meta = customColumnMetadata?.[col] || {};
+                    const label = String(meta.label || col)
+                      .replace(/_/g, ' ')
+                      .replace(/\b\w/g, (m) => m.toUpperCase());
+                    const rawVal = formData?.[col];
+                    const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
+                    const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
+                    const isDateType = inputType === 'date';
+
+                    let valueText = rawVal;
+                    if (valueText === null || valueText === undefined || valueText === '') valueText = 'N/A';
+
+                    if (isDateType && rawVal) {
+                      const d = new Date(rawVal);
+                      if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
+                    }
+
+                    if (isBoolType) {
+                      const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
+                      return (
+                        <div key={col}>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            {boolVal ? 'Yes' : 'No'}
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={col}>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                        <p className="text-gray-900 font-medium">{String(valueText)}</p>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-gray-100">
-                  <button
-                    onClick={closeModal}
-                    className="px-5 py-2 border border-slate-200 text-slate-700 font-medium rounded hover:bg-slate-50 transition-colors"
-                  >
-                    Close
-                  </button>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
+                  <p className="text-gray-700">{formData.description || 'No description provided.'}</p>
                 </div>
               </div>
+
+              <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('edit')}
+                  className="px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium shadow-sm transition-colors flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit
+                </button>
+              </div>
+              </>
             ) : (
               /* Edit/Create Form Content */
               <form onSubmit={submit} className="flex flex-col flex-1 min-h-0">

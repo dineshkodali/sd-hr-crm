@@ -490,6 +490,14 @@ export default function App() {
                 </GeneralLayoutWrapper>
               } />
 
+              <Route path="/bookings" element={
+                <GeneralLayoutWrapper>
+                  <PermissionRoute user={user} module="properties">
+                    <BookingsSafe user={user} />
+                  </PermissionRoute>
+                </GeneralLayoutWrapper>
+              } />
+
               {/* --- ADDED: Public/General compliance route (protected) --- */}
               <Route path="/compliance" element={
                 <GeneralLayoutWrapper>

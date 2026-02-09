@@ -152,7 +152,7 @@ function formatDate(isoString) {
 /* Helper for View Details */
 const DetailField = ({ label, value }) => (
   <div>
-    <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">{label}</div>
+    <div className="text-xs uppercase text-slate-400 font-bold tracking-wider mb-1">{label}</div>
     <div className="text-slate-800 font-medium text-sm">{value || '-'}</div>
   </div>
 );
@@ -2261,11 +2261,15 @@ export default function Inspections({ user }) {
       )}
 
       {/* View Details Modal */}
+      {/* View Details Modal */}
       {showViewModal && viewingInspection && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative my-4">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-gradient-to-r from-teal-50 to-white">
-              <h3 className="text-xl font-bold text-gray-900">Inspection Details</h3>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Inspection Details</h2>
+                <p className="text-xs text-gray-500 mt-1">View inspection information</p>
+              </div>
               <button
                 onClick={() => setShowViewModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -2273,40 +2277,82 @@ export default function Inspections({ user }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">REFERENCE & TITLE</div>
-                <div className="text-gray-500 font-mono text-sm mb-1">{viewingInspection.reference || `INS-${viewingInspection.id}`}</div>
-                <div className="text-xl font-bold text-gray-800">{viewingInspection.inspectionType || viewingInspection.inspection_type}</div>
+
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DetailField label="Inspection Type" value={viewingInspection.inspectionType || viewingInspection.inspection_type} />
+                <DetailField label="Property" value={viewingInspection.propertyName || viewingInspection.property_name} />
+                <DetailField label="Inspector" value={viewingInspection.inspectorName || viewingInspection.inspector_name} />
+                <DetailField label="Date" value={formatDate(viewingInspection.inspectionDate || viewingInspection.inspection_date)} />
+                <DetailField label="Service User" value={viewingInspection.serviceUserName || viewingInspection.serviceUser || viewingInspection.service_user_name || viewingInspection.service_user} />
+
+                <DetailField label="Issues Found" value={viewingInspection.issuesFound || viewingInspection.issues_found || '0'} />
+
+                <div>
+                  <div className="text-xs uppercase text-slate-400 font-bold tracking-wider mb-1">Action Required</div>
+                  <div className="text-slate-800 font-medium text-sm">
+                    {(viewingInspection.actionRequired || viewingInspection.action_required) ? 'Yes' : 'No'}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs uppercase text-slate-400 font-bold tracking-wider mb-1">Status</div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(viewingInspection.status).dot.replace('bg-', 'border-').replace('text-', 'text-')} bg-white ${getStatusColor(viewingInspection.status).text}`}>
+                    {viewingInspection.status}
+                  </span>
+                </div>
+
+                <div>
+                  <div className="text-xs uppercase text-slate-400 font-bold tracking-wider mb-1">Priority</div>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getPriorityColor(viewingInspection.priority).dot.replace('bg-', 'border-').replace('text-', 'text-')} bg-white ${getPriorityColor(viewingInspection.priority).text}`}>
+                    {viewingInspection.priority || 'Medium'}
+                  </span>
+                </div>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">FINDINGS</div>
-                <p className="text-gray-600 text-sm leading-relaxed">{viewingInspection.findings || "No findings recorded."}</p>
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs uppercase text-slate-400 font-bold tracking-wider mb-1">Findings</div>
+                  <div className="text-slate-700 text-sm bg-gray-50 p-3 rounded-lg border border-gray-100 min-h-[60px]">
+                    {viewingInspection.findings || '-'}
+                  </div>
+                </div>
+
+                {customColumns.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                    {customColumns.map(col => (
+                      <DetailField
+                        key={col}
+                        label={col.replace(/_/g, ' ')}
+                        value={viewingInspection[col] !== undefined && viewingInspection[col] !== null && viewingInspection[col] !== ''
+                          ? String(viewingInspection[col])
+                          : '-'}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-                <DetailField label="PROPERTY" value={viewingInspection.propertyName || viewingInspection.property_name} />
-                <DetailField label="INSPECTOR" value={viewingInspection.inspectorName || viewingInspection.inspector_name} />
-
-                <DetailField label="PRIORITY" value={viewingInspection.priority} />
-                <DetailField label="STATUS" value={viewingInspection.status} />
-
-                <DetailField label="ISSUES FOUND" value={viewingInspection.issuesFound ?? viewingInspection.issues_found} />
-                <DetailField label="ACTION REQUIRED" value={viewingInspection.actionRequired || viewingInspection.action_required ? "Yes" : "No"} />
-
-                <DetailField label="INSPECTION DATE" value={formatDate(viewingInspection.inspectionDate || viewingInspection.inspection_date)} />
-                <DetailField label="SERVICE USER" value={viewingInspection.serviceUserName || viewingInspection.service_user || '-'} />
-              </div>
-
-              <div className="flex justify-end pt-4 border-t border-gray-200">
+            <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowViewModal(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+              {hasUpdate && (
                 <button
-                  onClick={() => setShowViewModal(false)}
-                  className="px-4 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
+                  onClick={() => {
+                    setShowViewModal(false);
+                    handleEdit(viewingInspection.id);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium shadow-sm transition-colors flex items-center gap-2"
                 >
-                  Close
+                  <Edit className="w-4 h-4" />
+                  Edit
                 </button>
-              </div>
+              )}
             </div>
           </div>
         </div>

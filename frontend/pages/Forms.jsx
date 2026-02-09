@@ -26,6 +26,9 @@ export default function Forms({ user }) {
   const [columnsLoading, setColumnsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddColumn, setShowAddColumn] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteColumnName, setDeleteColumnName] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Status state for notifications
   const [status, setStatus] = useState(null);
@@ -159,16 +162,27 @@ export default function Forms({ user }) {
     }
   };
 
-  const handleDeleteColumn = async (columnName) => {
-    if (!window.confirm(`Are you sure you want to delete column "${columnName}"? This action cannot be undone.`)) return;
+  const handleDeleteColumn = (columnName) => {
+    setDeleteColumnName(columnName);
+    setShowDeleteModal(true);
+  };
 
+  const confirmDeleteColumn = async () => {
+    if (!selectedTable || !deleteColumnName) return;
     try {
-      await axios.delete(`/api/forms-builder/tables/${selectedTable}/columns/${columnName}`, { withCredentials: true });
+      setDeleting(true);
+      await axios.delete(`/api/forms-builder/tables/${selectedTable}/columns/${deleteColumnName}`, { withCredentials: true });
       showStatus('success', 'Column deleted successfully');
+      setShowDeleteModal(false);
+      setDeleteColumnName(null);
       fetchColumns(selectedTable);
     } catch (err) {
       console.error("Error deleting column:", err);
       showStatus('error', err.response?.data?.error || 'Failed to delete column');
+      setShowDeleteModal(false);
+      setDeleteColumnName(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -704,6 +718,62 @@ export default function Forms({ user }) {
                   className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-500/30 transition-all active:scale-95"
                 >
                   Update Column
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {showDeleteModal && createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">Delete Record</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (deleting) return;
+                    setShowDeleteModal(false);
+                    setDeleteColumnName(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="bg-rose-50 p-3 rounded-full flex-shrink-0">
+                    <AlertCircle className="w-12 h-12 text-rose-500" />
+                  </div>
+                  <div className="flex-1 pt-1">
+                    <p className="text-gray-700 text-base leading-relaxed">Delete this record?</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 p-5 bg-gray-50 border-t border-gray-100">
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => {
+                    if (deleting) return;
+                    setShowDeleteModal(false);
+                    setDeleteColumnName(null);
+                  }}
+                  className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={confirmDeleteColumn}
+                  className="px-5 py-2.5 rounded-lg font-medium shadow-sm transition-all duration-200 hover:shadow bg-rose-500 hover:bg-rose-600 text-white disabled:opacity-60"
+                >
+                  {deleting ? 'Deleting...' : 'Confirm'}
                 </button>
               </div>
             </div>

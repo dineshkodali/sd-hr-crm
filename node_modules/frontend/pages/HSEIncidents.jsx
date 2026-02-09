@@ -1136,15 +1136,15 @@ export default function HSEIncidents({ user }) {
                     {visibleColumns.date && (
                       <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">DATE</th>
                     )}
-                    {visibleColumns.actions && (
-                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ACTIONS</th>
-                    )}
                     {/* Custom Columns */}
                     {customColumns.filter(col => visibleColumns[col]).map(col => (
                       <th key={col} className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         {col.replace(/_/g, ' ')}
                       </th>
                     ))}
+                    {visibleColumns.actions && (
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ACTIONS</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
@@ -1226,6 +1226,12 @@ export default function HSEIncidents({ user }) {
                             <span className="text-gray-900 font-medium text-sm">{formatDate(r.incident_date)}</span>
                           </td>
                         )}
+                        {/* Custom Column Cells */}
+                        {customColumns.filter(col => visibleColumns[col]).map(col => (
+                          <td key={col} className="py-4 px-4">
+                            <span className="text-gray-900 font-medium text-sm">{r[col] || '-'}</span>
+                          </td>
+                        ))}
                         {visibleColumns.actions && (
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
@@ -1257,12 +1263,6 @@ export default function HSEIncidents({ user }) {
                             </div>
                           </td>
                         )}
-                        {/* Custom Column Cells */}
-                        {customColumns.filter(col => visibleColumns[col]).map(col => (
-                          <td key={col} className="py-4 px-4">
-                            <span className="text-gray-900 font-medium text-sm">{r[col] || '-'}</span>
-                          </td>
-                        ))}
                       </tr>
                     );
                   }) : (
@@ -1457,70 +1457,136 @@ export default function HSEIncidents({ user }) {
 
       {/* ----------------- MODAL SECTION ----------------- */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl h-[70vh] flex flex-col relative my-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in duration-200">
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <h3 className="text-lg font-bold text-gray-900">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
                   {mode === 'create' ? "Report New Incident" : mode === 'edit' ? "Edit Incident" : "Incident Details"}
-                </h3>
-                {mode === 'view' && (
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${(formData.status || '').toLowerCase() === 'open' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                    (formData.status || '').toLowerCase() === 'investigating' ? 'bg-purple-50 text-purple-600 border-purple-100' :
-                      'bg-green-50 text-green-600 border-green-100'
-                    }`}>
-                    {formData.status}
-                  </span>
-                )}
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  {mode === 'view' ? 'View incident information' : 'Enter incident details'}
+                </p>
               </div>
-              <button
-                onClick={closeModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* View Mode Content */}
             {mode === 'view' ? (
-              <div className="p-6">
-                <div className="grid grid-cols-2 gap-y-6 gap-x-8 mb-6">
-                  <DetailField label="INCIDENT TYPE" value={formData.incident_type} />
-                  <DetailField label="PROPERTY" value={formData.property_name} />
+              <>
+                <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Incident Type</label>
+                      <p className="text-gray-900 font-medium">{formData.incident_type || 'N/A'}</p>
+                    </div>
 
-                  <DetailField label="SEVERITY" value={formData.severity} />
-                  <DetailField label="STATUS" value={formData.status} />
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        {formData.status || 'N/A'}
+                      </span>
+                    </div>
 
-                  <DetailField label="INCIDENT DATE" value={formatDate(formData.incident_date)} />
-                  <DetailField label="REPORTED BY" value={formData.reported_by} />
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
+                      <p className="text-gray-900">{formData.property_name || 'N/A'}</p>
+                    </div>
 
-                  <DetailField label="AFFECTED PERSON" value={formData.affected_person} />
-                  <DetailField label="INVESTIGATOR" value={formData.assigned_investigator} />
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Severity</label>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        {formData.severity || 'N/A'}
+                      </span>
+                    </div>
 
-                  {/* Custom Columns Display */}
-                  {customColumns.map(col => (
-                    <DetailField key={col} label={col.replace(/_/g, ' ')} value={formData[col]} />
-                  ))}
-                </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Incident Date</label>
+                      <p className="text-gray-900">{formatDate(formData.incident_date) || 'N/A'}</p>
+                    </div>
 
-                <div className="mb-4">
-                  <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2">INCIDENT DETAILS</div>
-                  <div className="bg-slate-50 p-4 rounded-md text-sm text-slate-600 border border-slate-100 min-h-[80px]">
-                    {formData.details || "No details provided."}
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reported By</label>
+                      <p className="text-gray-900">{formData.reported_by || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Affected Person</label>
+                      <p className="text-gray-900">{formData.affected_person || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Investigator</label>
+                      <p className="text-gray-900">{formData.assigned_investigator || 'N/A'}</p>
+                    </div>
+
+                    {(customColumns || []).map((col) => {
+                      const meta = customColumnMetadata?.[col] || {};
+                      const label = String(meta.label || col)
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, (m) => m.toUpperCase());
+                      const rawVal = formData?.[col];
+                      const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
+                      const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
+                      const isDateType = inputType === 'date';
+
+                      let valueText = rawVal;
+                      if (valueText === null || valueText === undefined || valueText === '') valueText = 'N/A';
+
+                      if (isDateType && rawVal) {
+                        const d = new Date(rawVal);
+                        if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
+                      }
+
+                      if (isBoolType) {
+                        const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
+                        return (
+                          <div key={col}>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              {boolVal ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div key={col}>
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                          <p className="text-gray-900 font-medium">{String(valueText)}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Incident Details</label>
+                    <p className="text-gray-700">{formData.details || 'No details provided.'}</p>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4 border-t border-gray-100">
+                <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
                   <button
+                    type="button"
                     onClick={closeModal}
-                    className="px-5 py-2 border border-slate-200 text-slate-700 font-medium rounded hover:bg-slate-50 transition-colors"
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Close
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('edit')}
+                    className="px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium shadow-sm transition-colors flex items-center gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit
+                  </button>
                 </div>
-              </div>
+              </>
             ) : (
               /* Create/Edit Form Content */
               <form onSubmit={submit} className="flex flex-col flex-1 min-h-0">

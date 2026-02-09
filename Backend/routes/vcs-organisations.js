@@ -176,8 +176,10 @@ router.post('/', protect, async (req, res) => {
     ];
     // Find custom columns
     const customColumns = allColumns.filter(col => !standardColumns.includes(col));
-    // Build column list and values for standard fields
-    const columns = ['reference', 'name', 'description', 'category', 'priority', 'property_id', 'property_name', 'status', 'reported_by', 'reported_date', 'assigned_to', 'scheduled_date', 'notes', 'created_at', 'updated_at'];
+    // Build column list and parameter values for standard fields
+    // IMPORTANT: do NOT push NOW() into the values array because custom columns may be
+    // appended later (which would shift placeholder positions and break the query).
+    const columns = ['reference', 'name', 'description', 'category', 'priority', 'property_id', 'property_name', 'status', 'reported_by', 'reported_date', 'assigned_to', 'scheduled_date', 'notes'];
     const values = [
       reference,
       req.body.name,
@@ -191,9 +193,7 @@ router.post('/', protect, async (req, res) => {
       req.body.reported_date && req.body.reported_date.trim() ? req.body.reported_date : null,
       req.body.assigned_to || '',
       req.body.scheduled_date && req.body.scheduled_date.trim() ? req.body.scheduled_date : null,
-      req.body.notes || '',
-      'NOW()',
-      'NOW()'
+      req.body.notes || ''
     ];
     // Add custom columns if they exist in the request and sanitize input
     customColumns.forEach(col => {
@@ -205,13 +205,10 @@ router.post('/', protect, async (req, res) => {
         values.push(value);
       }
     });
-    // Build parameterized query
-    const placeholders = values.map((_, i) => {
-      if (i === values.length - 2 || i === values.length - 1) return values[i]; // NOW() functions
-      return `$${i + 1}`;
-    });
-    const query = `INSERT INTO vcs_organisations (${columns.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
-    const paramValues = values.filter((v, i) => i < values.length - 2 || typeof v !== 'string' || !v.includes('NOW'));
+    // Build parameterized query (append timestamps as NOW() literals)
+    const placeholders = values.map((_, i) => `$${i + 1}`);
+    const query = `INSERT INTO vcs_organisations (${columns.join(', ')}, created_at, updated_at) VALUES (${placeholders.join(', ')}, NOW(), NOW()) RETURNING *`;
+    const paramValues = values;
     console.log('POST /api/vcs-organisations body:', req.body);
     console.log('POST /api/vcs-organisations query:', query);
     console.log('POST /api/vcs-organisations params:', paramValues);

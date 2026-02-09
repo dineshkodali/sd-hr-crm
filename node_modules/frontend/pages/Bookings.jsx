@@ -1297,8 +1297,8 @@ export default function Bookings({ user }) {
       {/* View Modal */}
       {showViewModal && selectedBooking && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-100 animate-in fade-in zoom-in duration-200">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Booking Details</h2>
                 <p className="text-xs text-gray-500 mt-1">View booking information</p>
@@ -1311,7 +1311,7 @@ export default function Bookings({ user }) {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Full Name</label>

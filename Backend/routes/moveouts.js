@@ -82,7 +82,7 @@ router.get("/", protect, async (req, res) => {
     let query = `
       SELECT mo.* 
       FROM maintenance.move_outs mo
-      LEFT JOIN service_users su ON mo.service_user_id = su.id
+      LEFT JOIN service_users su ON mo.service_user_id::text = su.id::text
     `;
     let whereClauses = [];
     let params = [];
@@ -92,8 +92,8 @@ router.get("/", protect, async (req, res) => {
       if (restrictedHotelIds.length === 0) {
         return res.json({ success: true, rows: [] });
       }
-      whereClauses.push(`su.property_id = ANY($${paramIdx++})`);
-      params.push(restrictedHotelIds);
+      whereClauses.push(`su.property_id::text = ANY($${paramIdx++}::text[])`);
+      params.push(restrictedHotelIds.map(String));
     }
 
     if (whereClauses.length > 0) {

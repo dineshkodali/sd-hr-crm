@@ -947,6 +947,11 @@ router.post("/users", protect, async (req, res) => {
       );
     }
 
+    // Room id column
+    if (suCols.includes("room_id")) {
+      pushIfExists("room_id", body.room_id || body.roomId || null);
+    }
+
     // Room number column
     const roomCol = suCols.includes("room_number")
       ? "room_number"

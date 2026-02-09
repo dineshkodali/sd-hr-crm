@@ -49,7 +49,7 @@ export default function MoveInOutPage({ user }) {
   const [detailRecord, setDetailRecord] = useState(null);
 
   useEffect(() => {
-    const shouldHide = Boolean(showModal || showOutModal);
+    const shouldHide = Boolean(showModal || showOutModal || showDetailModal);
     try {
       document.body.classList.toggle("form-modal-open", shouldHide);
     } catch { }
@@ -58,7 +58,7 @@ export default function MoveInOutPage({ user }) {
         document.body.classList.remove("form-modal-open");
       } catch { }
     };
-  }, [showModal, showOutModal]);
+  }, [showModal, showOutModal, showDetailModal]);
 
   const [hotels, setHotels] = useState([]);
   const [serviceUsers, setServiceUsers] = useState([]);
@@ -162,6 +162,101 @@ export default function MoveInOutPage({ user }) {
     });
   }, [recent, moveOuts, filterProperty]);
 
+  const moveInStatus = useCallback((r) => {
+    const suId = String(r?.service_user_id || r?.serviceUserId).toLowerCase();
+    const movedOut = (moveOuts || []).some(
+      (m) => String(m?.service_user_id || m?.serviceUserId).toLowerCase() === suId
+    );
+    return movedOut ? 'inactive' : 'active';
+  }, [moveOuts]);
+
+  const resolveServiceUserName = useCallback((record) => {
+    const r = record || {};
+    const explicitName = r.service_user_name || r.serviceUserName || r.serviceUser;
+    if (explicitName && String(explicitName).trim() && !/^\d+$/.test(String(explicitName).trim())) {
+      return String(explicitName).trim();
+    }
+
+    const suId = r.service_user_id || r.serviceUserId || r.service_user || r.serviceUser;
+    if (!suId) return "Unknown User";
+
+    const match = (serviceUsers || []).find((s) => String(s.id) === String(suId));
+    if (match?.name) return String(match.name);
+
+    return "Unknown User";
+  }, [serviceUsers]);
+
+  const sortRecords = useCallback((items, getDate, getName, getProperty) => {
+    const arr = Array.isArray(items) ? [...items] : [];
+    if (!sortBy) return arr;
+
+    if (sortBy === 'date') {
+      return arr.sort((a, b) => {
+        const da = getDate(a);
+        const db = getDate(b);
+        const ta = da ? new Date(da).getTime() : 0;
+        const tb = db ? new Date(db).getTime() : 0;
+        return tb - ta;
+      });
+    }
+
+    if (sortBy === 'name') {
+      return arr.sort((a, b) => String(getName(a) || '').localeCompare(String(getName(b) || ''), undefined, { sensitivity: 'base' }));
+    }
+
+    if (sortBy === 'property') {
+      return arr.sort((a, b) => String(getProperty(a) || '').localeCompare(String(getProperty(b) || ''), undefined, { sensitivity: 'base' }));
+    }
+
+    return arr;
+  }, [sortBy]);
+
+  const moveInsForDisplay = useMemo(() => {
+    const base = Array.isArray(recent) ? recent : [];
+    const propertyFiltered = filterProperty
+      ? base.filter((r) => String(r.property_id || r.propertyId) === String(filterProperty))
+      : base;
+
+    const statusFiltered = filterStatus && filterStatus !== 'All Status'
+      ? propertyFiltered.filter((r) => moveInStatus(r) === String(filterStatus).toLowerCase())
+      : propertyFiltered;
+
+    return sortRecords(
+      statusFiltered,
+      (r) => r?.move_in_date || r?.moveInDate || r?.created_at,
+      (r) => resolveServiceUserName(r),
+      (r) => r?.property_name || r?.propertyName || ''
+    );
+  }, [recent, filterProperty, filterStatus, moveInStatus, resolveServiceUserName, sortRecords]);
+
+  const activeMoveInsForDisplay = useMemo(() => {
+    const base = Array.isArray(activeMoveIns) ? activeMoveIns : [];
+    const statusFiltered = filterStatus && filterStatus !== 'All Status'
+      ? base.filter((r) => moveInStatus(r) === String(filterStatus).toLowerCase())
+      : base;
+
+    return sortRecords(
+      statusFiltered,
+      (r) => r?.move_in_date || r?.moveInDate || r?.created_at,
+      (r) => resolveServiceUserName(r),
+      (r) => r?.property_name || r?.propertyName || ''
+    );
+  }, [activeMoveIns, filterStatus, moveInStatus, resolveServiceUserName, sortRecords]);
+
+  const moveOutsForDisplay = useMemo(() => {
+    const base = Array.isArray(moveOuts) ? moveOuts : [];
+    const statusFiltered = filterStatus && filterStatus !== 'All Status'
+      ? base.filter(() => String(filterStatus).toLowerCase() === 'inactive')
+      : base;
+
+    return sortRecords(
+      statusFiltered,
+      (r) => r?.move_out_date || r?.created_at,
+      (r) => r?.service_user_name || '',
+      (r) => r?.property_name || r?.propertyName || ''
+    );
+  }, [moveOuts, filterStatus, sortRecords]);
+
   const activeResidentsCount = activeMoveIns.length;
 
   // Keep a small derived counts object in state so the top stat boxes
@@ -189,7 +284,7 @@ export default function MoveInOutPage({ user }) {
             service_user_name:
               r.service_user_name ??
               r.serviceUserName ??
-              (r.service_user_id || r.serviceUserId),
+              '',
             property_id: r.property_id ?? r.propertyId,
             property_name: r.property_name ?? r.propertyName ?? null,
             room_id: r.room_id ?? r.roomId,
@@ -226,15 +321,18 @@ export default function MoveInOutPage({ user }) {
       const normalized = Array.isArray(list)
         ? list.map((r) => ({
           id: r.id,
-          service_user_id: r.service_user_id,
-          service_user_name: r.service_user_name,
-          move_out_date: r.move_out_date,
+          service_user_id:
+            r.service_user_id ?? r.serviceUserId ?? r.service_user ?? r.serviceUser,
+          service_user_name:
+            r.service_user_name ?? r.serviceUserName ?? r.serviceUser ?? null,
+          move_out_date:
+            r.move_out_date ?? r.moveOutDate ?? r.created_at ?? null,
           checklist: r.checklist || {},
           notes: r.notes || null,
           created_at: r.created_at || null,
         }))
         : [];
-      setMoveOuts(normalized);
+      setMoveOuts(normalized.filter((m) => m?.service_user_id));
     } catch (err) {
       console.warn("fetchMoveOuts failed", err?.message || err);
     }
@@ -378,7 +476,10 @@ export default function MoveInOutPage({ user }) {
         Array.isArray(sus)
           ? sus.map((s) => ({
             id: s.id,
-            name: s.first_name ?? s.name ?? `${s.id}`,
+            name:
+              [s.first_name, s.last_name].filter(Boolean).join(" ") ||
+              s.name ||
+              `${s.id}`,
             propertyId:
               s.hotel_id ??
               s.property_id ??
@@ -612,11 +713,20 @@ export default function MoveInOutPage({ user }) {
   const activeResidents = useMemo(() => {
     if (!Array.isArray(recent)) return [];
     const movedOutIds = new Set(
-      (moveOuts || []).map((o) => String(o.service_user_id || o.serviceUserId))
+      (moveOuts || []).map((o) =>
+        String(o.service_user_id || o.serviceUserId)
+          .trim()
+          .toLowerCase()
+      )
     );
     return recent
       .filter(
-        (r) => !movedOutIds.has(String(r.service_user_id || r.serviceUserId))
+        (r) =>
+          !movedOutIds.has(
+            String(r.service_user_id || r.serviceUserId)
+              .trim()
+              .toLowerCase()
+          )
       )
       .map((r) => ({
         id:
@@ -1040,10 +1150,10 @@ export default function MoveInOutPage({ user }) {
             {/* ACTIVE RESIDENTS LIST */}
             {activeTab === "active" && (
               <>
-                {activeMoveIns && activeMoveIns.length > 0 ? (
+                {activeMoveInsForDisplay && activeMoveInsForDisplay.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
-                    {activeMoveIns.map((r) => {
-                      const name = r.service_user_name || r.serviceUserName || r.serviceUser || "Unknown User";
+                    {activeMoveInsForDisplay.map((r) => {
+                      const name = resolveServiceUserName(r);
                       const dateStr = r.move_in_date || r.moveInDate || r.created_at;
                       const formatted = dateStr
                         ? new Date(dateStr).toLocaleDateString("en-US", {
@@ -1138,14 +1248,10 @@ export default function MoveInOutPage({ user }) {
             {/* MOVE INS LIST */}
             {activeTab === "ins" && (
               <>
-                {recent && recent.length > 0 ? (
+                {moveInsForDisplay && moveInsForDisplay.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
-                    {recent.map((r) => {
-                      const name =
-                        r.service_user_name ||
-                        r.serviceUserName ||
-                        r.serviceUser ||
-                        "Unknown User";
+                    {moveInsForDisplay.map((r) => {
+                      const name = resolveServiceUserName(r);
                       const dateStr =
                         r.move_in_date || r.moveInDate || r.created_at;
                       const formatted = dateStr
@@ -1263,9 +1369,9 @@ export default function MoveInOutPage({ user }) {
             {/* MOVE OUTS LIST */}
             {activeTab === "outs" && (
               <>
-                {moveOuts && moveOuts.length > 0 ? (
+                {moveOutsForDisplay && moveOutsForDisplay.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
-                    {moveOuts.map((r) => {
+                    {moveOutsForDisplay.map((r) => {
                       const name = r.service_user_name || "Unknown User";
                       const dateStr = r.move_out_date || r.created_at;
                       const formatted = dateStr
@@ -1397,6 +1503,7 @@ export default function MoveInOutPage({ user }) {
       {showOutModal && (
         <MoveOutModal
           activeResidents={activeResidents}
+          moveOuts={moveOuts}
           onClose={() => {
             setShowOutModal(false);
             setEditing(null);
@@ -1493,10 +1600,9 @@ export default function MoveInOutPage({ user }) {
 function DetailModal({ record = null, onClose = () => { }, moveOuts = [] }) {
   const r = record || {};
   const movedOut = moveOuts.find(
-    (m) =>
-      String(m.service_user_id || m.serviceUserId) ===
-      String(r.service_user_id || r.serviceUserId || r.serviceUser)
+    (m) => String(m.service_user_id) === String(r.service_user_id || r.serviceUserId)
   );
+
   const fmt = (d) =>
     d
       ? new Date(d).toLocaleDateString("en-GB", {
@@ -1509,14 +1615,14 @@ function DetailModal({ record = null, onClose = () => { }, moveOuts = [] }) {
   const get = (key) => r[key] || r[key.replace(/_/g, "")] || "Not specified";
 
   return (
-    <div className="fixed inset-0 z-60 flex items-start justify-center bg-slate-900/60 p-4 overflow-y-auto mt-10">
-      <div className="bg-transparent w-full max-w-5xl mt-10">
+    <div className="fixed inset-0 z-60 flex items-start justify-center bg-slate-900/60 backdrop-blur-md p-4 pt-10 overflow-y-auto">
+      <div className="bg-transparent w-full max-w-5xl">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div className="flex items-start justify-between p-6 border-b border-slate-100 bg-slate-50/30">
             <div>
-              <h3 className="text-2xl font-bold text-slate-800">
-                Resident Details
-              </h3>
+              <h2 className="text-xl font-semibold text-slate-900">
+                Move-In/Out Details
+              </h2>
               <p className="text-sm text-slate-500 mt-1">
                 Detailed move-in & move-out information
               </p>
@@ -1760,6 +1866,52 @@ function MoveInModal({
     signature: "",
   });
 
+  const activeMoveInByServiceUserId = useMemo(() => {
+    const movedOutIds = new Set(
+      (Array.isArray(moveOuts) ? moveOuts : [])
+        .map((o) => o?.service_user_id ?? o?.serviceUserId)
+        .filter(Boolean)
+        .map((id) => String(id).toLowerCase())
+    );
+
+    const map = new Map();
+    (Array.isArray(recent) ? recent : []).forEach((r) => {
+      const suId = r?.service_user_id ?? r?.serviceUserId;
+      if (!suId) return;
+      const key = String(suId).toLowerCase();
+      if (movedOutIds.has(key)) return;
+      if (!map.has(key)) map.set(key, r);
+    });
+    return map;
+  }, [recent, moveOuts]);
+
+  const eligibleResidents = useMemo(() => {
+    const movedInIds = new Set(
+      (Array.isArray(recent) ? recent : [])
+        .map((r) => r?.service_user_id ?? r?.serviceUserId)
+        .filter(Boolean)
+        .map((id) => String(id))
+    );
+
+    const movedOutIds = new Set(
+      (Array.isArray(moveOuts) ? moveOuts : [])
+        .map((r) => r?.service_user_id ?? r?.serviceUserId)
+        .filter(Boolean)
+        .map((id) => String(id))
+    );
+
+    const list = Array.isArray(serviceUsers) ? serviceUsers : [];
+    return list
+      .filter((su) => su?.id)
+      .filter((su) => {
+        const id = String(su.id);
+        const isEligibleNew = !movedInIds.has(id) && !movedOutIds.has(id);
+        const isActive = activeMoveInByServiceUserId.has(id.toLowerCase());
+        return isEligibleNew || isActive;
+      })
+      .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || ''), undefined, { sensitivity: 'base' }));
+  }, [serviceUsers, recent, moveOuts, activeMoveInByServiceUserId]);
+
   useEffect(() => {
     if (!initialRecord) return;
     setForm((f) => ({
@@ -1945,8 +2097,42 @@ function MoveInModal({
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!form.serviceUserId) {
+      onError("Please select a resident.");
+      return;
+    }
     const payload = { ...form };
-    if (initialRecord && initialRecord.id) payload.id = initialRecord.id;
+
+    const isEditing = Boolean(initialRecord && initialRecord.id);
+    if (isEditing) {
+      payload.id = initialRecord.id;
+    } else {
+      const active = activeMoveInByServiceUserId.get(
+        String(payload.serviceUserId).trim().toLowerCase()
+      );
+      if (active?.id) {
+        const fromPropId = String(active.property_id || active.propertyId || "")
+          .trim()
+          .toLowerCase();
+        const toPropId = String(payload.propertyId || "").trim().toLowerCase();
+
+        if (fromPropId && toPropId && fromPropId === toPropId) {
+          onError("This resident is already moved in.");
+          return;
+        }
+
+        payload.id = active.id;
+
+        const fromPropertyName = active.property_name || active.propertyName || "";
+        const toPropertyName =
+          hotels.find((h) => String(h.id) === String(payload.propertyId))?.name || "";
+
+        if (fromPropId && toPropId && fromPropId !== toPropId) {
+          const transferNote = `Moved from ${fromPropertyName || "previous property"} to ${toPropertyName || "new property"} on ${payload.moveInDate}.`;
+          payload.notes = payload.notes ? `${transferNote}\n${payload.notes}` : transferNote;
+        }
+      }
+    }
     try {
       const suObj = serviceUsers.find(
         (s) => String(s.id) === String(payload.serviceUserId)
@@ -2054,6 +2240,29 @@ function MoveInModal({
         <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
           <form id="moveInForm" onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Resident
+                </label>
+                <select
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 transition-all"
+                  value={form.serviceUserId}
+                  onChange={(e) => handleChange("serviceUserId", e.target.value)}
+                >
+                  <option value="">Select resident</option>
+                  {eligibleResidents.map((su) => (
+                    <option key={su.id} value={su.id}>
+                      {su.name}
+                    </option>
+                  ))}
+                </select>
+                {eligibleResidents.length === 0 && (
+                  <div className="text-xs text-slate-500 mt-1">
+                    No eligible residents available.
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Property
@@ -2208,6 +2417,7 @@ function MoveInModal({
 
 function MoveOutModal({
   activeResidents = [],
+  moveOuts = [],
   onClose = () => { },
   onSave = async () => { },
   onSuccess = () => { },
@@ -2250,6 +2460,20 @@ function MoveOutModal({
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!initialRecord) {
+      const movedOutIds = new Set(
+        (Array.isArray(moveOuts) ? moveOuts : []).map((o) =>
+          String(o?.service_user_id || o?.serviceUserId)
+            .trim()
+            .toLowerCase()
+        )
+      );
+      const key = String(form.serviceUserId).trim().toLowerCase();
+      if (key && movedOutIds.has(key)) {
+        onError("This resident is already moved out!");
+        return;
+      }
+    }
     try {
       const saved = await onSave(form);
       onSuccess(saved);
