@@ -235,7 +235,7 @@ router.get('/available-tables', authenticateToken, async (req, res) => {
       FROM information_schema.tables t
       WHERE table_schema IN ('public', 'maintenance')
         AND table_type = 'BASE TABLE'
-        AND table_name NOT IN ('forms', 'forms_master', 'form_migrations', 'users', 'sessions')
+        AND table_name NOT IN ('forms', 'forms_master', 'form_migrations', 'sessions')
       ORDER BY table_schema ASC, table_name ASC
     `);
     const tables = tablesResult.rows.map(row => ({

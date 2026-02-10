@@ -14,31 +14,35 @@ function genRef() {
     return `MA-${year}-${random}`;
 }
 
+async function getRestrictedHotelIds(currentUser) {
+    if (!currentUser) return null;
+    if (currentUser.role === "admin") return null;
+
+    if (currentUser.role === "manager") {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+
+        let branchIds = [];
+        if (currentUser.branch) {
+            const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+            branchIds = branchRes.rows.map(r => r.id);
+        }
+        return [...new Set([...managedIds, ...branchIds])];
+    }
+
+    if (currentUser.role === "staff") {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        return assignedHotelId ? [assignedHotelId] : [];
+    }
+
+    return [];
+}
+
 // GET all
 router.get('/', protect, async (req, res) => {
     try {
         const currentUser = req.user;
-        let restrictedHotelIds = null;
-
-        // Role-Based Restriction
-        if (currentUser.role === "manager") {
-            const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
-            const managedIds = managedRes.rows.map(r => r.id);
-
-            let branchIds = [];
-            if (currentUser.branch) {
-                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
-                branchIds = branchRes.rows.map(r => r.id);
-            }
-            restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
-        } else if (currentUser.role === "staff") {
-            if (currentUser.branch) {
-                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
-                restrictedHotelIds = branchRes.rows.map(r => r.id);
-            } else {
-                restrictedHotelIds = [];
-            }
-        }
+        const restrictedHotelIds = await getRestrictedHotelIds(currentUser);
 
         const limit = parseInt(req.query.limit) || 500;
         const offset = parseInt(req.query.offset) || 0;
@@ -73,6 +77,16 @@ router.get('/:id', protect, async (req, res) => {
         const { id } = req.params;
         const result = await pool.query('SELECT * FROM public.multi_agency WHERE id = $1', [id]);
         if (result.rows.length === 0) return res.status(404).json({ message: 'Record not found' });
+
+        const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) return res.status(404).json({ message: 'Record not found' });
+            const pid = result.rows[0]?.property_id ?? null;
+            if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
+                return res.status(404).json({ message: 'Record not found' });
+            }
+        }
+
         res.json(result.rows[0]);
     } catch (err) {
         console.error('GET /multi-agency/:id error', err);
@@ -84,6 +98,15 @@ router.get('/:id', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
     try {
         const reference = genRef();
+
+        const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) return res.status(403).json({ message: 'Forbidden' });
+            const requestedPid = req.body.property_id ?? null;
+            if (!requestedPid || !restrictedHotelIds.some((x) => String(x) === String(requestedPid))) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+        }
 
         // Get all columns from the table
         const columnsResult = await pool.query(
@@ -158,6 +181,20 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
 
+        const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) return res.status(404).json({ message: 'Record not found' });
+            const checkRes = await pool.query('SELECT property_id FROM public.multi_agency WHERE id=$1', [id]);
+            if (!checkRes.rows.length) return res.status(404).json({ message: 'Record not found' });
+            const existingPid = checkRes.rows[0]?.property_id;
+            if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+                return res.status(404).json({ message: 'Record not found' });
+            }
+            if (req.body?.property_id !== undefined && !restrictedHotelIds.some((x) => String(x) === String(req.body.property_id))) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+        }
+
         // Get all columns from the table
         const columnsResult = await pool.query(
             `SELECT column_name FROM information_schema.columns 
@@ -221,6 +258,17 @@ router.patch('/:id', protect, async (req, res) => {
 router.delete('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
+
+        const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) return res.status(404).json({ message: 'Record not found' });
+            const checkRes = await pool.query('SELECT property_id FROM public.multi_agency WHERE id=$1', [id]);
+            if (!checkRes.rows.length) return res.status(404).json({ message: 'Record not found' });
+            const existingPid = checkRes.rows[0]?.property_id;
+            if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+                return res.status(404).json({ message: 'Record not found' });
+            }
+        }
         const result = await pool.query('DELETE FROM public.multi_agency WHERE id=$1 RETURNING *', [id]);
         if (result.rows.length === 0) return res.status(404).json({ message: 'Record not found' });
         res.json({ message: 'Record deleted', record: result.rows[0] });

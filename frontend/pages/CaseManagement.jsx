@@ -195,6 +195,8 @@ const CaseManagement = () => {
     }
   })();
 
+  const currentUserHotelId = currentUser?.hotel_id || currentUser?.hotelId || currentUser?.hotel || null;
+
   // Get permissions
   const { canRead, canCreate, canUpdate, canDelete } = usePermissions(currentUser);
   const hasRead = canRead("case_management");
@@ -395,6 +397,13 @@ const CaseManagement = () => {
     fetchData();
     fetchProps();
   }, [api]);
+
+  useEffect(() => {
+    if (currentUser?.role === 'staff' && currentUserHotelId != null) {
+      setPropertyFilter(String(currentUserHotelId));
+      setFormData((p) => ({ ...p, property: String(currentUserHotelId) }));
+    }
+  }, [currentUser?.role, currentUserHotelId]);
 
   /* --- DYNAMIC STATS CALCULATION --- */
   const stats = useMemo(() => {
@@ -1114,6 +1123,7 @@ const CaseManagement = () => {
                   value={propertyFilter}
                   onChange={(e) => setPropertyFilter(e.target.value)}
                   className="bg-gray-100 border border-gray-200 rounded-md pl-9 pr-8 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+                  disabled={currentUser?.role === 'staff' && currentUserHotelId != null}
                 >
                   <option value="">All Properties</option>
                   {properties.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -1679,6 +1689,7 @@ const CaseManagement = () => {
                       className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
                       value={formData.property}
                       onChange={async (e) => {
+                        if (currentUser?.role === 'staff' && currentUserHotelId != null) return;
                         const propId = e.target.value;
                         setFormData({ ...formData, property: propId, assigned_to: '', reported_by: currentUser?.name || '' });
                         // Fetch staff members for the selected property
@@ -1695,6 +1706,7 @@ const CaseManagement = () => {
                           setStaffMembers([]);
                         }
                       }}
+                      disabled={currentUser?.role === 'staff' && currentUserHotelId != null}
                     >
                       <option value="">Select property</option>
                       {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}

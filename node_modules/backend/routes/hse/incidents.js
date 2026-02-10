@@ -26,9 +26,10 @@ async function getAllowedPropertyIds(user) {
             params.push(user.branch);
         }
     } else if (user.role === 'staff') {
-        if (!user.branch) return [];
-        query = 'SELECT id FROM public.hotels WHERE branch = $1';
-        params = [user.branch];
+        const assignedHotelId = user.hotel_id || user.hotelId || user.hotel || null;
+        if (!assignedHotelId) return [];
+        query = 'SELECT id FROM public.hotels WHERE id = $1';
+        params = [assignedHotelId];
     } else {
         return [];
     }
@@ -42,15 +43,16 @@ router.get('/', protect, async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 500;
         const allowedIds = await getAllowedPropertyIds(req.user);
+        const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
         const { clause, params } = buildRoleWhere(req, 1);
         let text = 'SELECT * FROM public.hse_incidents';
         const values = [];
 
         const where = [];
-        if (allowedIds !== null) {
-            if (allowedIds.length === 0) return res.json([]);
-            where.push(`property_id = ANY($${values.length + 1}::int[])`);
-            values.push(allowedIds);
+        if (allowedIdsText !== null) {
+            if (allowedIdsText.length === 0) return res.json([]);
+            where.push(`property_id::text = ANY($${values.length + 1}::text[])`);
+            values.push(allowedIdsText);
         }
 
         if (clause) {
@@ -81,8 +83,9 @@ router.get('/:id', protect, async (req, res) => {
         if (result.rows.length === 0) return res.status(404).json({ message: 'Not found' });
 
         const allowedIds = await getAllowedPropertyIds(req.user);
+        const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
         const record = result.rows[0];
-        if (allowedIds !== null && !allowedIds.includes(record.property_id)) {
+        if (allowedIdsText !== null && !allowedIdsText.includes(String(record.property_id))) {
             return res.status(403).json({ message: 'Access denied' });
         }
 
@@ -100,9 +103,16 @@ router.post('/', protect, async (req, res) => {
         const reference = genRef();
 
         const allowedIds = await getAllowedPropertyIds(req.user);
-        const propertyId = property_id != null ? parseInt(property_id, 10) : null;
-        if (allowedIds !== null) {
-            if (!propertyId || !allowedIds.includes(propertyId)) {
+        const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+        let resolvedPropertyId = property_id;
+        if (req.user?.role === 'staff') {
+            const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+            if (assignedHotelId) {
+                resolvedPropertyId = assignedHotelId;
+            }
+        }
+        if (allowedIdsText !== null) {
+            if (!resolvedPropertyId || !allowedIdsText.includes(String(resolvedPropertyId))) {
                 return res.status(403).json({ message: 'Cannot create incident for a property outside your access' });
             }
         }
@@ -123,7 +133,7 @@ router.post('/', protect, async (req, res) => {
 
         // Build dynamic INSERT
         const columnsToInsert = ['reference', 'incident_type', 'severity', 'property_id', 'property_name', 'affected_person', 'reported_by', 'details', 'assigned_investigator', 'status', 'incident_date', 'created_at', 'updated_at'];
-        const valuesToInsert = [reference, incident_type, severity, property_id, property_name, affected_person, reported_by, details, assigned_investigator, status || 'Open', incident_date || null, new Date(), new Date()];
+        const valuesToInsert = [reference, incident_type, severity, resolvedPropertyId, property_name, affected_person, reported_by, details, assigned_investigator, status || 'Open', incident_date || null, new Date(), new Date()];
         let idx = valuesToInsert.length + 1;
 
         // Handle custom columns
@@ -152,18 +162,26 @@ router.patch('/:id', protect, async (req, res) => {
         const { id } = req.params;
         const { incident_type, severity, property_id, property_name, affected_person, reported_by, details, assigned_investigator, status, incident_date } = req.body;
 
+        if (req.user?.role === 'staff') {
+            const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+            if (assignedHotelId) {
+                req.body.property_id = assignedHotelId;
+            }
+        }
+
         const allowedIds = await getAllowedPropertyIds(req.user);
-        if (allowedIds !== null) {
+        const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+        if (allowedIdsText !== null) {
             const checkRes = await pool.query('SELECT property_id FROM public.hse_incidents WHERE id=$1', [id]);
             if (checkRes.rows.length === 0) return res.status(404).json({ message: 'Not found' });
             const existingPropertyId = checkRes.rows[0].property_id;
-            if (!allowedIds.includes(existingPropertyId)) {
+            if (!allowedIdsText.includes(String(existingPropertyId))) {
                 return res.status(403).json({ message: 'Access denied' });
             }
 
             if (property_id !== undefined && property_id !== null) {
                 const nextPropertyId = parseInt(property_id, 10);
-                if (!allowedIds.includes(nextPropertyId)) {
+                if (!allowedIdsText.includes(String(nextPropertyId))) {
                     return res.status(403).json({ message: 'Cannot move incident to a property outside your access' });
                 }
             }
@@ -229,10 +247,11 @@ router.delete('/:id', protect, async (req, res) => {
         const { id } = req.params;
 
         const allowedIds = await getAllowedPropertyIds(req.user);
-        if (allowedIds !== null) {
+        const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+        if (allowedIdsText !== null) {
             const checkRes = await pool.query('SELECT property_id FROM public.hse_incidents WHERE id=$1', [id]);
             if (checkRes.rows.length === 0) return res.status(404).json({ message: 'Not found' });
-            if (!allowedIds.includes(checkRes.rows[0].property_id)) {
+            if (!allowedIdsText.includes(String(checkRes.rows[0].property_id))) {
                 return res.status(403).json({ message: 'Access denied' });
             }
         }

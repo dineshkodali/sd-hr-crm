@@ -469,7 +469,14 @@ export default function MoveInOutPage({ user }) {
       const hs =
         (hRes?.data?.hotels ?? hRes?.data?.data ?? hRes?.data ?? []) || [];
       setHotels(
-        Array.isArray(hs) ? hs.map((h) => ({ id: h.id, name: h.name })) : []
+        Array.isArray(hs)
+          ? hs.map((h) => ({
+            id: h.id,
+            name: h.name,
+            total_beds: h.total_beds ?? h.totalBeds ?? null,
+            occupied_beds: h.occupied_beds ?? h.occupiedBeds ?? null,
+          }))
+          : []
       );
       const sus = (suRes?.data?.data ?? suRes?.data ?? []) || [];
       setServiceUsers(
@@ -1952,6 +1959,21 @@ function MoveInModal({
 
   const [roomCapacity, setRoomCapacity] = useState(null);
 
+  const remainingBedsForProperty = useMemo(() => {
+    if (!form.propertyId) return 0;
+    const hotel = (Array.isArray(hotels) ? hotels : []).find(
+      (h) => String(h.id) === String(form.propertyId)
+    );
+    if (!hotel) return 0;
+
+    const total = Number(hotel.total_beds ?? hotel.totalBeds);
+    const occupied = Number(hotel.occupied_beds ?? hotel.occupiedBeds);
+    if (!Number.isFinite(total) || total <= 0) return 0;
+    const occ = Number.isFinite(occupied) ? occupied : 0;
+    const free = total - occ;
+    return free > 0 ? free : 0;
+  }, [form.propertyId, hotels]);
+
   useEffect(() => {
     let mounted = true;
     async function loadRoomCapacity() {
@@ -2035,18 +2057,19 @@ function MoveInModal({
   }, [form.roomId, recent, moveOuts, roomCapacity]);
 
   const bedspaceOptions = useMemo(() => {
-    if (!form.roomId) return [];
     if (availableBedspacesForRoom.length > 0) {
       return availableBedspacesForRoom.map((b) => ({ value: String(b.id), label: b.name }));
     }
-    if (availableSlotsCount > 0) {
-      return Array.from({ length: availableSlotsCount }, (_, i) => {
+
+    const n = form.roomId ? availableSlotsCount : remainingBedsForProperty;
+    if (n > 0) {
+      return Array.from({ length: n }, (_, i) => {
         const n = i + 1;
         return { value: String(n), label: `Bedspace ${n}` };
       });
     }
     return [];
-  }, [form.roomId, availableBedspacesForRoom, availableSlotsCount]);
+  }, [form.roomId, availableBedspacesForRoom, availableSlotsCount, remainingBedsForProperty]);
 
   useEffect(() => {
     if (form.propertyId) {
@@ -2311,9 +2334,15 @@ function MoveInModal({
                   className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 transition-all"
                   value={form.bedspaceId}
                   onChange={(e) => handleChange("bedspaceId", e.target.value)}
-                  disabled={!form.roomId || bedspaceOptions.length === 0}
+                  disabled={!form.propertyId || bedspaceOptions.length === 0}
                 >
-                  <option value="">Select bedspace</option>
+                  <option value="">
+                    {!form.propertyId
+                      ? "Select property first"
+                      : bedspaceOptions.length === 0
+                        ? "No bedspaces"
+                        : "Select bedspace"}
+                  </option>
                   {bedspaceOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}

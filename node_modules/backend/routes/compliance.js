@@ -72,9 +72,10 @@ async function getAllowedHotelIds(user) {
       params.push(user.branch);
     }
   } else if (user.role === "staff") {
-    if (!user.branch) return [];
-    query = "SELECT id FROM public.hotels WHERE branch = $1";
-    params = [user.branch];
+    const assignedHotelId = user.hotel_id || user.hotelId || user.hotel || null;
+    if (!assignedHotelId) return [];
+    query = "SELECT id FROM public.hotels WHERE id = $1";
+    params = [assignedHotelId];
   } else {
     return [];
   }

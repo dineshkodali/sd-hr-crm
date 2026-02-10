@@ -69,9 +69,10 @@ async function getAllowedHotels(user) {
       params.push(user.branch);
     }
   } else if (user.role === 'staff') {
-    if (!user.branch) return { ids: [], namesLower: [] };
-    query = 'SELECT id, name FROM public.hotels WHERE branch = $1';
-    params = [user.branch];
+    const assignedHotelId = user.hotel_id || user.hotelId || user.hotel || null;
+    if (!assignedHotelId) return { ids: [], namesLower: [] };
+    query = 'SELECT id, name FROM public.hotels WHERE id = $1';
+    params = [assignedHotelId];
   } else {
     return { ids: [], namesLower: [] };
   }
@@ -160,6 +161,13 @@ router.post('/', protect, async (req, res) => {
     await ensureCaseTable();
     const reference = makeCaseReference();
 
+    if (req.user?.role === 'staff') {
+      const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+      if (assignedHotelId) {
+        req.body.property_id = assignedHotelId;
+      }
+    }
+
     const allowed = await getAllowedHotels(req.user);
     const propertyId = req.body.property_id != null ? parseInt(req.body.property_id, 10) : null;
     const propertyNameLower = String(req.body.property_name || '').trim().toLowerCase();
@@ -237,6 +245,13 @@ router.post('/', protect, async (req, res) => {
 router.put('/:id', protect, async (req, res) => {
   try {
     await ensureCaseTable();
+
+    if (req.user?.role === 'staff') {
+      const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+      if (assignedHotelId) {
+        req.body.property_id = assignedHotelId;
+      }
+    }
 
     const allowed = await getAllowedHotels(req.user);
     if (allowed.ids !== null) {

@@ -81,10 +81,8 @@ router.get("/", protect, async (req, res) => {
         }
         restrictedIds = [...new Set([...managedIds, ...branchIds])];
       } else if (currentUser.role === 'staff') {
-        if (currentUser.branch) {
-          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
-          restrictedIds = branchRes.rows.map(r => r.id);
-        }
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
       }
 
       if (restrictedIds.length === 0) {
@@ -146,6 +144,32 @@ router.get("/:id", protect, async (req, res) => {
       [id]
     );
     if (!r.rows[0]) return res.status(404).json({ message: "AIRE task not found" });
+
+    const currentUser = req.user;
+    if (currentUser && currentUser.role !== 'admin') {
+      let restrictedIds = [];
+      if (currentUser.role === 'manager') {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+        let branchIds = [];
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          branchIds = branchRes.rows.map(r => r.id);
+        }
+        restrictedIds = [...new Set([...managedIds, ...branchIds])];
+      } else if (currentUser.role === 'staff') {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
+      }
+      if (restrictedIds.length === 0) {
+        return res.status(404).json({ message: "AIRE task not found" });
+      }
+      const pid = r.rows[0]?.property_id ?? null;
+      if (!pid || !restrictedIds.some((x) => String(x) === String(pid))) {
+        return res.status(404).json({ message: "AIRE task not found" });
+      }
+    }
+
     return res.json(r.rows[0]);
   } catch (err) {
     console.error(`GET /api/aire-tasks/${req.params.id} error:`, err && (err.stack || err));
@@ -193,6 +217,36 @@ router.post("/", protect, async (req, res) => {
 
     // Merge defaults with body data
     const data = { ...defaults, ...bodyData };
+
+    // Enforce property scope for non-admins, and pin staff to assigned hotel
+    const currentUser = req.user;
+    if (currentUser && currentUser.role !== 'admin') {
+      let restrictedIds = [];
+      if (currentUser.role === 'manager') {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+        let branchIds = [];
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          branchIds = branchRes.rows.map(r => r.id);
+        }
+        restrictedIds = [...new Set([...managedIds, ...branchIds])];
+      } else if (currentUser.role === 'staff') {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
+        if (assignedHotelId) {
+          data.property_id = assignedHotelId;
+        }
+      }
+
+      if (restrictedIds.length === 0) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const requestedPid = data.property_id ?? null;
+      if (!requestedPid || !restrictedIds.some((x) => String(x) === String(requestedPid))) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+    }
 
     // Protected columns to skip
     const protectedColumns = ['id', 'reference', 'created_at', 'updated_at'];
@@ -257,6 +311,41 @@ router.patch("/:id", protect, async (req, res) => {
 
     console.log('Existing columns in aire_tasks table:', Array.from(existingColumns));
 
+    // Enforce scope by existing record property
+    const existing = await pool.query(`SELECT property_id FROM public.aire_tasks WHERE id = $1 LIMIT 1`, [id]);
+    if (!existing.rows?.length) return res.status(404).json({ message: "AIRE task not found" });
+
+    const currentUser = req.user;
+    if (currentUser && currentUser.role !== 'admin') {
+      let restrictedIds = [];
+      if (currentUser.role === 'manager') {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+        let branchIds = [];
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          branchIds = branchRes.rows.map(r => r.id);
+        }
+        restrictedIds = [...new Set([...managedIds, ...branchIds])];
+      } else if (currentUser.role === 'staff') {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
+      }
+      if (restrictedIds.length === 0) return res.status(404).json({ message: "AIRE task not found" });
+      const existingPid = existing.rows[0]?.property_id;
+      if (!existingPid || !restrictedIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ message: "AIRE task not found" });
+      }
+
+      // Staff cannot change property_id
+      if (currentUser.role === 'staff') {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        if (assignedHotelId) {
+          req.body.property_id = assignedHotelId;
+        }
+      }
+    }
+
     const fields = [];
     const params = [];
     let idx = 1;
@@ -310,6 +399,32 @@ router.patch("/:id", protect, async (req, res) => {
 router.delete("/:id", protect, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const existing = await pool.query(`SELECT property_id FROM public.aire_tasks WHERE id = $1 LIMIT 1`, [id]);
+    if (!existing.rows?.length) return res.status(404).json({ message: "AIRE task not found" });
+
+    const currentUser = req.user;
+    if (currentUser && currentUser.role !== 'admin') {
+      let restrictedIds = [];
+      if (currentUser.role === 'manager') {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+        let branchIds = [];
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          branchIds = branchRes.rows.map(r => r.id);
+        }
+        restrictedIds = [...new Set([...managedIds, ...branchIds])];
+      } else if (currentUser.role === 'staff') {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
+      }
+      if (restrictedIds.length === 0) return res.status(404).json({ message: "AIRE task not found" });
+      const existingPid = existing.rows[0]?.property_id;
+      if (!existingPid || !restrictedIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ message: "AIRE task not found" });
+      }
+    }
     const r = await pool.query(`DELETE FROM public.aire_tasks WHERE id = $1`, [id]);
     if (r.rowCount === 0) return res.status(404).json({ message: "AIRE task not found" });
     return res.json({ message: "Deleted" });

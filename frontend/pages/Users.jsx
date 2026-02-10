@@ -37,6 +37,8 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
     role: 'staff',
     phone: '',
     branch: '',
+    hotel_id: '',
+    hotel_name: '',
     address: '',
     city: '',
     status: 'active'
@@ -50,6 +52,32 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
   const [branches, setBranches] = useState([]);
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   const [branchInputFocused, setBranchInputFocused] = useState(false);
+
+  const [hotels, setHotels] = useState([]);
+
+  // Dynamic Columns State
+  const [dynamicColumns, setDynamicColumns] = useState([]);
+
+  const fetchDynamicColumns = async () => {
+    try {
+      const res = await axios.get('/api/forms-builder/tables/users/columns', { withCredentials: true });
+      if (res.data?.columns) {
+        // Filter out standard fields that are already hardcoded in the form
+        const standardFields = [
+          'id', 'name', 'email', 'password', 'role', 'phone', 'branch', 'address', 'city', 'status',
+          'created_at', 'updated_at', 'last_login', 'hotel_id', 'is_active',
+          // Internal/System fields to hide:
+          'country', 'authenticator_secret', 'authenticator_enabled', 'backup_codes',
+          // User requested removal:
+          'gender', 'dob', 'nationality', 'religion', 'marital_status', 'state', 'resume_url', 'avatar'
+        ];
+        const customCols = res.data.columns.filter(col => !standardFields.includes(col.column_name));
+        setDynamicColumns(customCols);
+      }
+    } catch (err) {
+      console.error("Error fetching dynamic user columns:", err);
+    }
+  };
 
   const fetchBranches = async () => {
     try {
@@ -72,10 +100,26 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
     }
   };
 
+  const fetchHotels = async () => {
+    try {
+      const res = await axios.get('/api/hotels', {
+        params: { limit: 500 },
+        withCredentials: true,
+      });
+      const list = res?.data?.hotels ?? res?.data?.data ?? res?.data ?? [];
+      setHotels(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error('Failed to fetch hotels:', err);
+      setHotels([]);
+    }
+  };
+
   React.useEffect(() => {
     if (open) {
       document.body.classList.add("form-modal-open");
       fetchBranches();
+      fetchDynamicColumns();
+      fetchHotels();
     } else {
       document.body.classList.remove("form-modal-open");
     }
@@ -142,6 +186,8 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
         role: formData.role,
         phone: formData.phone?.trim() || null,
         branch: formData.branch?.trim() || null,
+        hotel_id: formData.hotel_id || null,
+        hotel_name: formData.hotel_name || null,
         address: formData.address?.trim() || null,
         city: formData.city?.trim() || null,
         status: formData.status || 'active'
@@ -162,6 +208,8 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
           role: 'staff',
           phone: '',
           branch: '',
+          hotel_id: '',
+          hotel_name: '',
           address: '',
           city: '',
           status: 'active'
@@ -343,6 +391,33 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
 
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Property
+                </label>
+                <select
+                  value={formData.hotel_id}
+                  onChange={(e) => {
+                    const nextId = e.target.value;
+                    const h = hotels.find((x) => String(x.id) === String(nextId));
+                    setFormData({
+                      ...formData,
+                      hotel_id: nextId,
+                      hotel_name: h?.name || '',
+                    });
+                  }}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
+                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                >
+                  <option value="">Select property</option>
+                  {hotels.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
                   Status <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -451,6 +526,69 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   />
                 </div>
               </div>
+
+              {/* Dynamic Fields Section */}
+              {dynamicColumns.length > 0 && (
+                <div className="md:col-span-2 pt-4 border-t border-gray-100">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3">Additional Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                    {dynamicColumns.map((col) => (
+                      <div key={col.column_name} className={['textarea', 'text', 'varchar'].includes(col.input_type || 'text') && (col.max_length > 100 || col.data_type === 'TEXT') ? "md:col-span-2" : ""}>
+                        <label className="block text-sm font-medium text-slate-600 mb-1">
+                          {col.column_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {!col.is_nullable && <span className="text-red-500">*</span>}
+                        </label>
+
+                        {col.input_type === 'dropdown' || col.input_type === 'select' ? (
+                          <select
+                            name={col.column_name}
+                            value={formData[col.column_name] || ''}
+                            onChange={handleChange}
+                            required={!col.is_nullable}
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                          >
+                            <option value="">Select {col.column_name.replace(/_/g, ' ')}</option>
+                            {Array.isArray(col.input_options) && col.input_options.map((opt, i) => (
+                              <option key={i} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : col.input_type === 'checkbox' || col.data_type === 'BOOLEAN' ? (
+                          <div className="flex items-center gap-2 mt-2">
+                            <input
+                              type="checkbox"
+                              name={col.column_name}
+                              checked={!!formData[col.column_name]}
+                              onChange={(e) => setFormData(prev => ({ ...prev, [col.column_name]: e.target.checked }))}
+                              className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                            />
+                            <span className="text-sm text-gray-700">Yes</span>
+                          </div>
+                        ) : col.input_type === 'textarea' || col.data_type === 'TEXT' ? (
+                          <textarea
+                            name={col.column_name}
+                            value={formData[col.column_name] || ''}
+                            onChange={handleChange}
+                            required={!col.is_nullable}
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all min-h-[80px]"
+                            placeholder={`Enter ${col.column_name.replace(/_/g, ' ')}`}
+                          />
+                        ) : (
+                          <input
+                            type={col.input_type === 'number' || col.data_type === 'INTEGER' ? 'number' :
+                              col.input_type === 'date' || col.data_type === 'DATE' ? 'date' : 'text'}
+                            name={col.column_name}
+                            value={formData[col.column_name] || ''}
+                            onChange={handleChange}
+                            required={!col.is_nullable}
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                            placeholder={`Enter ${col.column_name.replace(/_/g, ' ')}`}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -480,6 +618,8 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
 export default function Users() {
   const outlet = useOutletContext();
   const { user } = outlet || {};
+
+  const [hotels, setHotels] = useState([]);
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -571,6 +711,24 @@ export default function Users() {
 
   useEffect(() => {
     fetchUsers();
+  }, []);
+
+  const fetchHotels = async () => {
+    try {
+      const res = await axios.get('/api/hotels', {
+        params: { limit: 500 },
+        withCredentials: true,
+      });
+      const list = res?.data?.hotels ?? res?.data?.data ?? res?.data ?? [];
+      setHotels(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error('Failed to fetch hotels:', err);
+      setHotels([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchHotels();
   }, []);
 
   const handleDelete = async (id) => {
@@ -818,6 +976,8 @@ export default function Users() {
         phone: u.phone || u.mobile || u.contact || "",
         joining_date: getJoinDateRaw(u) ? new Date(getJoinDateRaw(u)).toISOString().substr(0, 10) : "",
         branch: u.branch || u.company || u.organisation || u.org || "",
+        hotel_id: u.hotel_id || u.hotelId || "",
+        hotel_name: u.hotel_name || u.hotelName || u.assigned_hotel || u.assignedHotel || "",
         role: u.role || u.user_role || "",
         status: getStatus(u),
         avatar: u.avatar || u.photo || u.image || null,
@@ -870,6 +1030,8 @@ export default function Users() {
       if (editUser.email !== undefined) form.append("email", editUser.email || "");
       if (editUser.password) form.append("password", editUser.password);
       if (editUser.branch !== undefined) form.append("branch", editUser.branch || "");
+      if (editUser.hotel_id !== undefined) form.append("hotel_id", editUser.hotel_id || "");
+      if (editUser.hotel_name !== undefined) form.append("hotel_name", editUser.hotel_name || "");
       if (editUser.role !== undefined) form.append("role", editUser.role || "");
       if (editUser.status !== undefined) form.append("status", editUser.status || "");
       if (editUser.phone !== undefined) form.append("phone", editUser.phone || "");

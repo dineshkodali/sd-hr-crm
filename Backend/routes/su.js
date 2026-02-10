@@ -251,12 +251,9 @@ const getRestrictedHotelIds = async (user) => {
     }
     return [...new Set([...managedIds, ...branchIds])];
   } else if (user.role === "staff") {
-    if (user.branch) {
-      const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [user.branch]);
-      return branchRes.rows.map(r => r.id);
-    } else {
-      return [];
-    }
+    const assignedHotelId = user.hotel_id || user.hotelId || user.hotel || null;
+    if (!assignedHotelId) return [];
+    return [assignedHotelId];
   }
   return null; // Admin or others
 };
@@ -450,6 +447,19 @@ router.get("/rooms/:hotelId", async (req, res) => {
     const { hotelId } = req.params;
     if (!hotelId) {
       return res.status(400).json({ error: "hotelId is required" });
+    }
+
+    // Enforce auth + role scoping
+    // This endpoint is used for dropdown selection and must not leak cross-hotel rooms to staff.
+    // (We keep the response shape unchanged.)
+    // Note: protect is intentionally not applied earlier in this file for this route, so enforce here.
+    // eslint-disable-next-line no-undef
+    await new Promise((resolve, reject) => protect(req, res, (err) => (err ? reject(err) : resolve())));
+
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+    if (restrictedHotelIds !== null) {
+      const ok = restrictedHotelIds.some((id) => String(id) === String(hotelId));
+      if (!ok) return res.status(403).json({ error: "Forbidden" });
     }
 
     if (!pool || typeof pool.query !== "function") {
@@ -810,16 +820,48 @@ router.get("/users/:id", protect, async (req, res) => {
       }
     }
 
+    // Detect which column to use for hotel restriction (same approach as list endpoint)
+    let hotelFilterCol = null;
+    if (names.hotelFk && isValidIdentifier(names.hotelFk)) {
+      hotelFilterCol = names.hotelFk;
+    } else {
+      const hotelCols = ["hotel_id", "property_id", "accommodation_id", "hotelid", "propertyid"];
+      for (const col of hotelCols) {
+        const exists = await columnExists(su, col);
+        if (exists) {
+          hotelFilterCol = col;
+          break;
+        }
+      }
+    }
+
+    const whereParts = [`${suAlias}.id = $1`];
+    const params = [id];
+    let paramIdx = 2;
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      if (hotelFilterCol) {
+        whereParts.push(`${suAlias}.${quoteIdent(hotelFilterCol)} = ANY($${paramIdx++})`);
+        params.push(restrictedHotelIds);
+      } else {
+        // If we cannot enforce restriction at DB level, do not leak.
+        return res.status(404).json({ error: "Not found" });
+      }
+    }
+
     const q = `
       SELECT ${suAlias}.*,
              ${selectHotelName},
              ${selectRoomNumber}
       FROM ${su} ${suAlias}
       ${joins.join("\n")}
-      WHERE ${suAlias}.id = $1
+      WHERE ${whereParts.join(" AND ")}
       LIMIT 1
     `;
-    const { rows } = await pool.query(q, [id]);
+    const { rows } = await pool.query(q, params);
     if (!rows.length) return res.status(404).json({ error: "Not found" });
 
     // Ensure all fields are properly formatted and present
@@ -883,6 +925,18 @@ router.post("/users", protect, async (req, res) => {
 
     const body = req.body;
 
+    // Staff can only create service users for their assigned hotel
+    if (req.user?.role === "staff") {
+      const assignedHotelId = req.user.hotel_id;
+      if (!assignedHotelId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const requestedHotelId = body.property_id || body.hotel_id || body.accommodation_id || null;
+      if (requestedHotelId && String(requestedHotelId) !== String(assignedHotelId)) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+    }
+
     // Normalize date to YYYY-MM-DD or null
     const normalizeDate = (value) => {
       if (!value) return null;
@@ -941,10 +995,15 @@ router.post("/users", protect, async (req, res) => {
     );
 
     if (propertyCol) {
+      // For staff, force property to their assigned hotel
+      if (req.user?.role === "staff" && req.user.hotel_id) {
+        pushIfExists(propertyCol, req.user.hotel_id);
+      } else {
       pushIfExists(
         propertyCol,
         body.property_id || body.hotel_id || body.accommodation_id || null
       );
+      }
     }
 
     // Room id column
@@ -1251,6 +1310,31 @@ router.put("/users/:id", protect, async (req, res) => {
     }
 
     const beforeData = beforeRows[0];
+
+    // Staff can only update service users in their assigned hotel, and cannot change property assignment
+    if (req.user?.role === "staff") {
+      const assignedHotelId = req.user.hotel_id;
+      if (!assignedHotelId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const propertyFkCandidates = ["property_id", "hotel_id", "accommodation_id", "propertyid", "hotelid"];
+      const existingPropertyCol = propertyFkCandidates.find((c) => suCols.includes(c));
+      if (existingPropertyCol) {
+        const existingHotelId = beforeData?.[existingPropertyCol];
+        if (existingHotelId && String(existingHotelId) !== String(assignedHotelId)) {
+          return res.status(403).json({ error: "Forbidden" });
+        }
+
+        const requestedHotelId = property_id || req.body?.hotel_id || req.body?.accommodation_id || null;
+        if (requestedHotelId && String(requestedHotelId) !== String(assignedHotelId)) {
+          return res.status(403).json({ error: "Forbidden" });
+        }
+
+        // Ensure property stays pinned for staff
+        pushSet(existingPropertyCol, assignedHotelId);
+      }
+    }
 
     const updateQ = `
       UPDATE service_users

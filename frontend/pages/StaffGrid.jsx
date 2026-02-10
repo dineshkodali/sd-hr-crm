@@ -368,6 +368,30 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   const [branchInputFocused, setBranchInputFocused] = useState(false);
 
+  // Dynamic Columns State
+  const [dynamicColumns, setDynamicColumns] = useState([]);
+
+  const fetchDynamicColumns = async () => {
+    try {
+      const res = await axios.get('/api/forms-builder/tables/users/columns', { withCredentials: true });
+      if (res.data?.columns) {
+        // Filter out standard fields that are already hardcoded in the form
+        const standardFields = [
+          'id', 'name', 'email', 'password', 'role', 'phone', 'branch', 'address', 'city', 'status',
+          'created_at', 'updated_at', 'last_login', 'hotel_id', 'is_active',
+          // Internal/System fields to hide:
+          'country', 'authenticator_secret', 'authenticator_enabled', 'backup_codes',
+          // User requested removal:
+          'gender', 'dob', 'nationality', 'religion', 'marital_status', 'state', 'resume_url', 'avatar'
+        ];
+        const customCols = res.data.columns.filter(col => !standardFields.includes(col.column_name));
+        setDynamicColumns(customCols);
+      }
+    } catch (err) {
+      console.error("Error fetching dynamic user columns:", err);
+    }
+  };
+
   // Fetch branches when modal opens
   const fetchBranches = async () => {
     try {
@@ -391,11 +415,12 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
     }
   };
 
-  // Fetch branches when modal opens
+  // Fetch branches and columns when modal opens
   React.useEffect(() => {
     if (open) {
       document.body.classList.add("form-modal-open");
       fetchBranches();
+      fetchDynamicColumns();
     } else {
       document.body.classList.remove("form-modal-open");
     }
@@ -801,6 +826,69 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   />
                 </div>
               </div>
+
+              {/* Dynamic Fields Section */}
+              {dynamicColumns.length > 0 && (
+                <div className="md:col-span-2 pt-4 border-t border-gray-100">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3">Additional Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                    {dynamicColumns.map((col) => (
+                      <div key={col.column_name} className={['textarea', 'text', 'varchar'].includes(col.input_type || 'text') && (col.max_length > 100 || col.data_type === 'TEXT') ? "md:col-span-2" : ""}>
+                        <label className="block text-sm font-medium text-slate-600 mb-1">
+                          {col.column_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          {!col.is_nullable && <span className="text-red-500">*</span>}
+                        </label>
+
+                        {col.input_type === 'dropdown' || col.input_type === 'select' ? (
+                          <select
+                            name={col.column_name}
+                            value={formData[col.column_name] || ''}
+                            onChange={handleChange}
+                            required={!col.is_nullable}
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                          >
+                            <option value="">Select {col.column_name.replace(/_/g, ' ')}</option>
+                            {Array.isArray(col.input_options) && col.input_options.map((opt, i) => (
+                              <option key={i} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : col.input_type === 'checkbox' || col.data_type === 'BOOLEAN' ? (
+                          <div className="flex items-center gap-2 mt-2">
+                            <input
+                              type="checkbox"
+                              name={col.column_name}
+                              checked={!!formData[col.column_name]}
+                              onChange={(e) => setFormData(prev => ({ ...prev, [col.column_name]: e.target.checked }))}
+                              className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                            />
+                            <span className="text-sm text-gray-700">Yes</span>
+                          </div>
+                        ) : col.input_type === 'textarea' || col.data_type === 'TEXT' ? (
+                          <textarea
+                            name={col.column_name}
+                            value={formData[col.column_name] || ''}
+                            onChange={handleChange}
+                            required={!col.is_nullable}
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all min-h-[80px]"
+                            placeholder={`Enter ${col.column_name.replace(/_/g, ' ')}`}
+                          />
+                        ) : (
+                          <input
+                            type={col.input_type === 'number' || col.data_type === 'INTEGER' ? 'number' :
+                              col.input_type === 'date' || col.data_type === 'DATE' ? 'date' : 'text'}
+                            name={col.column_name}
+                            value={formData[col.column_name] || ''}
+                            onChange={handleChange}
+                            required={!col.is_nullable}
+                            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
+                            placeholder={`Enter ${col.column_name.replace(/_/g, ' ')}`}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
           </div>

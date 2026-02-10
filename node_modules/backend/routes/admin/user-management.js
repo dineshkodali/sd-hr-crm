@@ -96,7 +96,20 @@ router.get('/users/:id', protect, checkPermission('manage_users'), async (req, r
 });
 
 // Create new user
-router.post('/users', protect, checkPermission('manage_users'), async (req, res) => {
+router.post('/users', protect, async (req, res, next) => {
+  // Admins can always create
+  if (req.user?.role === 'admin') return next();
+
+  // Managers can create staff only (even without manage_users permission)
+  if (req.user?.role === 'manager') {
+    const requestedRole = String(req.body?.role || '').toLowerCase();
+    if (requestedRole === 'staff') return next();
+    return res.status(403).json({ message: 'Forbidden — managers can only create staff users' });
+  }
+
+  // Everyone else must have manage_users permission
+  return checkPermission('manage_users')(req, res, next);
+}, async (req, res) => {
   try {
     const {
       name, email, password, role, phone, branch, status = 'active'
@@ -126,14 +139,57 @@ router.post('/users', protect, checkPermission('manage_users'), async (req, res)
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert user
-    const result = await pool.query(
-      `INSERT INTO users 
-        (name, email, password, role, phone, branch, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, name, email, role, status, phone, branch, created_at`,
-      [name, email, hashedPassword, role, phone, branch, status]
+    // Dynamic Insert Logic
+    const existingColsResult = await pool.query(
+      `SELECT column_name 
+       FROM information_schema.columns 
+       WHERE table_name = 'users' AND table_schema = 'public'`
     );
+    const validColumns = existingColsResult.rows.map(r => r.column_name);
+
+    // Explicitly allowed fields from body (including standard ones + any potential custom ones)
+    // We filter req.body against validLines to avoid SQL injection or errors
+    // We also overwrite standard fields to ensuring logic compliance
+    const insertData = {
+      ...req.body,
+      name,
+      email,
+      password: hashedPassword,
+      role,
+      phone,
+      branch,
+      status: status || 'active',
+      created_at: new Date() // optional, DB has default
+    };
+
+    // Remove system fields we don't want to be set manually
+    ['id', 'updated_at', 'last_login'].forEach(k => delete insertData[k]);
+
+    // Build lists
+    const cols = [];
+    const vals = [];
+    const placeholders = [];
+    let idx = 1;
+
+    Object.keys(insertData).forEach(key => {
+      if (validColumns.includes(key)) {
+        cols.push(`"${key}"`); // quote columns for safety
+        vals.push(insertData[key]);
+        placeholders.push(`$${idx++}`);
+      }
+    });
+
+    if (cols.length === 0) {
+      return res.status(400).json({ error: 'No valid data to insert' });
+    }
+
+    const query = `
+      INSERT INTO users (${cols.join(', ')})
+      VALUES (${placeholders.join(', ')})
+      RETURNING id, name, email, role, status, phone, branch, created_at
+    `;
+
+    const result = await pool.query(query, vals);
 
     res.status(201).json({
       message: 'User created successfully',

@@ -68,12 +68,8 @@ router.get('/', protect, async (req, res) => {
       }
       restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
     } else if (currentUser.role === "staff") {
-      if (currentUser.branch) {
-        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
-        restrictedHotelIds = branchRes.rows.map(r => r.id);
-      } else {
-        restrictedHotelIds = [];
-      }
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
     }
 
     const { limit = 200, offset = 0, property_id, propertyId } = req.query;
@@ -119,13 +115,38 @@ router.get('/', protect, async (req, res) => {
 });
 
 /* GET */
-router.get('/:id', async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
   try {
     const ready = await ensureIncidentsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
     const { id } = req.params;
     const { rows } = await pool.query('SELECT * FROM maintenance.incidents WHERE id = $1 LIMIT 1', [id]);
     if (!rows.length) return res.status(404).json({ success: false, message: 'Not found' });
+
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+    }
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, message: 'Not found' });
+      const pid = rows[0]?.property_id ?? null;
+      if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
+        return res.status(404).json({ success: false, message: 'Not found' });
+      }
+    }
+
     res.json({ success: true, data: rows[0] });
   } catch (err) {
     console.error('GET /api/incidents/:id error:', err);
@@ -134,7 +155,7 @@ router.get('/:id', async (req, res) => {
 });
 
 /* CREATE */
-router.post('/', async (req, res) => {
+router.post('/', protect, async (req, res) => {
   try {
     const ready = await ensureIncidentsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
@@ -150,9 +171,38 @@ router.post('/', async (req, res) => {
     const status = req.body.status ?? null;
 
     // property id may be sent as property_id or propertyId or property
-    const propertyId = req.body.property_id ?? req.body.propertyId ?? req.body.property ?? null;
+    let propertyId = req.body.property_id ?? req.body.propertyId ?? req.body.property ?? null;
     const serviceUserId = req.body.service_user_id ?? req.body.serviceUserId ?? req.body.serviceUser ?? null;
     const propertyNameBody = req.body.property_name ?? req.body.propertyName ?? null;
+
+    // Restrict staff/manager to allowed properties
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+      if (assignedHotelId) {
+        propertyId = assignedHotelId;
+      }
+    }
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+      if (!propertyId || !restrictedHotelIds.some((x) => String(x) === String(propertyId))) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
+    }
 
     if (!type || !propertyId || !description) {
       console.error('POST /api/incidents error: Missing required fields', { type, propertyId, description, body: req.body });
@@ -230,7 +280,7 @@ router.post('/', async (req, res) => {
 });
 
 /* UPDATE */
-router.put('/:id', async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   try {
     const ready = await ensureIncidentsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
@@ -240,9 +290,35 @@ router.put('/:id', async (req, res) => {
     const existingCols = colRows.map(r => r.column_name).filter(c => c !== 'id' && c !== 'created_at' && c !== 'updated_at');
 
     // First, verify the incident exists
-    const checkExists = await pool.query('SELECT id FROM maintenance.incidents WHERE id = $1', [id]);
+    const checkExists = await pool.query('SELECT id, property_id FROM maintenance.incidents WHERE id = $1', [id]);
     if (!checkExists.rows || checkExists.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Incident not found' });
+    }
+
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+    }
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.status(404).json({ success: false, message: 'Incident not found' });
+      }
+      const existingPid = checkExists.rows[0]?.property_id;
+      if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ success: false, message: 'Incident not found' });
+      }
     }
 
     const updates = [];
@@ -260,7 +336,15 @@ router.put('/:id', async (req, res) => {
       else if (col === 'reported_date') val = req.body.reported_date ?? req.body.reportedDate ?? null;
       else if (col === 'assigned_to') val = req.body.assigned_to ?? req.body.assignedTo ?? null;
       else if (col === 'status') val = req.body.status ?? null;
-      else if (col === 'property_id') val = req.body.property_id ?? req.body.propertyId ?? req.body.property ?? null;
+      else if (col === 'property_id') {
+        const requestedPid = req.body.property_id ?? req.body.propertyId ?? req.body.property ?? null;
+        if (req.user?.role === 'staff') {
+          const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+          val = assignedHotelId ?? requestedPid;
+        } else {
+          val = requestedPid;
+        }
+      }
       else if (col === 'service_user_id') val = req.body.service_user_id ?? req.body.serviceUserId ?? req.body.serviceUser ?? null;
       else if (col === 'property_name') {
         val = req.body.property_name ?? req.body.propertyName ?? null;
@@ -339,11 +423,38 @@ router.put('/:id', async (req, res) => {
 });
 
 /* DELETE */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
     const ready = await ensureIncidentsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
     const { id } = req.params;
+
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+    }
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.status(404).json({ success: false, message: 'Not found' });
+      }
+      const existing = await pool.query('SELECT property_id FROM maintenance.incidents WHERE id = $1 LIMIT 1', [id]);
+      const existingPid = existing.rows?.[0]?.property_id;
+      if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ success: false, message: 'Not found' });
+      }
+    }
     console.log('DELETE /api/incidents - id:', id);
     const { rows } = await pool.query('DELETE FROM maintenance.incidents WHERE id = $1 RETURNING *', [id]);
     console.log('DELETE /api/incidents - deleted row:', rows[0]);

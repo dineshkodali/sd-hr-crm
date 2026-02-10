@@ -152,14 +152,9 @@ router.get("/", protect, async (req, res) => {
 
       restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
     } else if (currentUser.role === "staff") {
-      // Staff see hotels in their branch
-      if (currentUser.branch) {
-        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
-        restrictedHotelIds = branchRes.rows.map(r => r.id);
-      } else {
-        // Staff with no branch sees nothing (or maybe everything? Safest is nothing)
-        restrictedHotelIds = [];
-      }
+      // Staff: only assigned property
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
     }
     // Admin sees everything (restrictedHotelIds remains null)
 
@@ -270,7 +265,7 @@ router.get("/", protect, async (req, res) => {
 });
 
 /* GET BY ID */
-router.get("/:id", async (req, res) => {
+router.get("/:id", protect, async (req, res) => {
   try {
     const ready = await ensureInspectionsTable();
     if (!ready) {
@@ -280,6 +275,32 @@ router.get("/:id", async (req, res) => {
     const { id } = req.params;
     const { rows } = await pool.query("SELECT * FROM inspections WHERE id = $1 LIMIT 1", [id]);
     if (!rows.length) return res.status(404).json({ success: false, message: "Not found" });
+
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+    }
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, message: "Not found" });
+      const row = rows[0];
+      const pid = row.property ?? row.property_id ?? row.hotel_id ?? null;
+      if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
+        return res.status(404).json({ success: false, message: "Not found" });
+      }
+    }
+
     res.json({ success: true, data: rows[0] });
   } catch (err) {
     console.error("GET /api/inspections/:id error:", err);
@@ -288,7 +309,7 @@ router.get("/:id", async (req, res) => {
 });
 
 /* CREATE */
-router.post("/", async (req, res) => {
+router.post("/", protect, async (req, res) => {
   try {
     const ready = await ensureInspectionsTable();
     if (!ready) {
@@ -316,7 +337,36 @@ router.post("/", async (req, res) => {
     }
 
     // Use property or propertyId (frontend might send either)
-    const finalProperty = property || propertyId;
+    let finalProperty = property || propertyId;
+
+    // Restrict staff/manager to allowed properties
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+      if (assignedHotelId) {
+        finalProperty = assignedHotelId;
+      }
+    }
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) {
+        return res.status(403).json({ success: false, message: "Forbidden" });
+      }
+      if (!finalProperty || !restrictedHotelIds.some((x) => String(x) === String(finalProperty))) {
+        return res.status(403).json({ success: false, message: "Forbidden" });
+      }
+    }
 
     const ref = reference || makeReference();
 
@@ -425,7 +475,7 @@ router.post("/", async (req, res) => {
 });
 
 /* UPDATE (partial allowed) */
-router.put("/:id", async (req, res) => {
+router.put("/:id", protect, async (req, res) => {
   try {
     const ready = await ensureInspectionsTable();
     if (!ready) {
@@ -433,6 +483,34 @@ router.put("/:id", async (req, res) => {
     }
 
     const { id } = req.params;
+
+    // Enforce scoping by existing record property
+    const existingRowRes = await pool.query("SELECT * FROM inspections WHERE id = $1 LIMIT 1", [id]);
+    if (!existingRowRes.rows.length) return res.status(404).json({ success: false, message: "Not found" });
+
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+    }
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, message: "Not found" });
+      const pid = existingRowRes.rows[0]?.property ?? existingRowRes.rows[0]?.property_id ?? existingRowRes.rows[0]?.hotel_id ?? null;
+      if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
+        return res.status(404).json({ success: false, message: "Not found" });
+      }
+    }
     // get existing columns so we only try to update columns that exist
     const { rows: colRows } = await pool.query(`
         SELECT column_name, data_type
@@ -495,6 +573,15 @@ router.put("/:id", async (req, res) => {
         let val = bodyValue;
         if (key === "issues_found") val = Number(bodyValue) || 0;
         if (key === "action_required") val = !!bodyValue;
+
+        // Staff cannot change property; force to assigned
+        if (req.user?.role === "staff" && key === "property") {
+          const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+          if (assignedHotelId) {
+            val = assignedHotelId;
+          }
+        }
+
         values.push(val);
         idx++;
       }
@@ -541,7 +628,7 @@ router.put("/:id", async (req, res) => {
 });
 
 /* DELETE */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protect, async (req, res) => {
   try {
     const ready = await ensureInspectionsTable();
     if (!ready) {
@@ -549,6 +636,34 @@ router.delete("/:id", async (req, res) => {
     }
 
     const { id } = req.params;
+
+    const existingRowRes = await pool.query("SELECT * FROM inspections WHERE id = $1 LIMIT 1", [id]);
+    if (!existingRowRes.rows.length) return res.status(404).json({ success: false, message: "Not found" });
+
+    const currentUser = req.user;
+    let restrictedHotelIds = null;
+    if (currentUser.role === "manager") {
+      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+      const managedIds = managedRes.rows.map(r => r.id);
+      let branchIds = [];
+      if (currentUser.branch) {
+        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+        branchIds = branchRes.rows.map(r => r.id);
+      }
+      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+    } else if (currentUser.role === "staff") {
+      const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+      restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+    }
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, message: "Not found" });
+      const pid = existingRowRes.rows[0]?.property ?? existingRowRes.rows[0]?.property_id ?? existingRowRes.rows[0]?.hotel_id ?? null;
+      if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
+        return res.status(404).json({ success: false, message: "Not found" });
+      }
+    }
+
     const { rows } = await pool.query("DELETE FROM inspections WHERE id = $1 RETURNING *", [id]);
     if (!rows.length) return res.status(404).json({ success: false, message: "Not found" });
     res.json({ success: true, data: rows[0] });

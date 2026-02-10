@@ -39,12 +39,9 @@ const getRestrictedHotelIds = async (user) => {
     }
     return [...new Set([...managedIds, ...branchIds])];
   } else if (user.role === "staff") {
-    if (user.branch) {
-      const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [user.branch]);
-      return branchRes.rows.map(r => r.id);
-    } else {
-      return [];
-    }
+    const assignedHotelId = user.hotel_id || user.hotelId || user.hotel || null;
+    if (!assignedHotelId) return [];
+    return [assignedHotelId];
   }
   return null; // Admin or others
 };
@@ -165,11 +162,21 @@ router.get("/scheduled", protect, async (req, res) => {
 router.get("/:id", protect, async (req, res) => {
   try {
     const { id } = req.params;
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
     const r = await pool.query(
       `SELECT id, service_user_id, service_user_name, property_id, property_name, meal_type, scheduled_date, portion, dietary, notes, status, created_at, updated_at FROM public.meal_schedules WHERE id = $1 LIMIT 1`,
       [id]
     );
     if (!r.rows[0]) return res.status(404).json({ message: "Meal not found" });
+
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(404).json({ message: "Meal not found" });
+      const pid = r.rows[0]?.property_id;
+      if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
+        return res.status(404).json({ message: "Meal not found" });
+      }
+    }
+
     return res.json(r.rows[0]);
   } catch (err) {
     console.error(`GET /api/meals/${req.params.id} error:`, err && (err.stack || err));
@@ -196,6 +203,13 @@ router.post("/", protect, async (req, res) => {
       status = "Pending",
     } = req.body || {};
 
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(403).json({ message: "Forbidden" });
+      const ok = property_id && restrictedHotelIds.some((x) => String(x) === String(property_id));
+      if (!ok) return res.status(403).json({ message: "Forbidden" });
+    }
+
     if (!service_user_id) return res.status(400).json({ message: "service_user_id is required" });
     if (!property_id) return res.status(400).json({ message: "property_id is required" });
     if (!meal_type) return res.status(400).json({ message: "meal_type is required" });
@@ -205,7 +219,10 @@ router.post("/", protect, async (req, res) => {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, now(), now())
                RETURNING id, service_user_id, service_user_name, property_id, property_name, meal_type, scheduled_date, portion, dietary, notes, status, created_at, updated_at`;
 
-    const vals = [service_user_id, toText(service_user_name), property_id, toText(property_name), meal_type, scheduled_date, portion, toText(dietary), toText(notes), status];
+    const effectivePropertyId = (req.user?.role === "staff" && req.user?.hotel_id)
+      ? req.user.hotel_id
+      : property_id;
+    const vals = [service_user_id, toText(service_user_name), effectivePropertyId, toText(property_name), meal_type, scheduled_date, portion, toText(dietary), toText(notes), status];
     const r = await pool.query(q, vals);
     return res.status(201).json(r.rows[0]);
   } catch (err) {
@@ -234,13 +251,35 @@ router.patch("/:id", protect, async (req, res) => {
       status,
     } = req.body || {};
 
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(404).json({ message: "Meal not found" });
+      const existing = await pool.query(
+        `SELECT property_id FROM public.meal_schedules WHERE id = $1 LIMIT 1`,
+        [id]
+      );
+      const existingPid = existing.rows?.[0]?.property_id;
+      if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ message: "Meal not found" });
+      }
+      if (property_id !== undefined && !restrictedHotelIds.some((x) => String(x) === String(property_id))) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+    }
+
     const fields = [];
     const params = [];
     let idx = 1;
 
     if (service_user_id !== undefined) { fields.push(`service_user_id = $${idx++}`); params.push(service_user_id); }
     if (service_user_name !== undefined) { fields.push(`service_user_name = $${idx++}`); params.push(toText(service_user_name)); }
-    if (property_id !== undefined) { fields.push(`property_id = $${idx++}`); params.push(property_id); }
+    if (property_id !== undefined) {
+      const effectivePropertyId = (req.user?.role === "staff" && req.user?.hotel_id)
+        ? req.user.hotel_id
+        : property_id;
+      fields.push(`property_id = $${idx++}`);
+      params.push(effectivePropertyId);
+    }
     if (property_name !== undefined) { fields.push(`property_name = $${idx++}`); params.push(toText(property_name)); }
     if (meal_type !== undefined) { fields.push(`meal_type = $${idx++}`); params.push(meal_type); }
     if (scheduled_date !== undefined) { fields.push(`scheduled_date = $${idx++}`); params.push(scheduled_date); }
@@ -268,6 +307,19 @@ router.patch("/:id", protect, async (req, res) => {
 router.delete("/:id", protect, async (req, res) => {
   try {
     const { id } = req.params;
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(404).json({ message: "Meal not found" });
+      const existing = await pool.query(
+        `SELECT property_id FROM public.meal_schedules WHERE id = $1 LIMIT 1`,
+        [id]
+      );
+      const existingPid = existing.rows?.[0]?.property_id;
+      if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ message: "Meal not found" });
+      }
+    }
+
     const r = await pool.query(`DELETE FROM public.meal_schedules WHERE id = $1`, [id]);
     if (r.rowCount === 0) return res.status(404).json({ message: "Meal not found" });
     return res.json({ message: "Deleted" });

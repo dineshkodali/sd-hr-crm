@@ -44,10 +44,8 @@ router.get('/', protect, async (req, res) => {
         }
         restrictedIds = [...new Set([...managedIds, ...branchIds])];
       } else if (currentUser.role === 'staff') {
-        if (currentUser.branch) {
-          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
-          restrictedIds = branchRes.rows.map(r => r.id);
-        }
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
       }
 
       if (restrictedIds.length === 0) {
@@ -81,6 +79,33 @@ router.get('/:id', protect, async (req, res) => {
     const { id } = req.params;
     const r = await pool.query(`SELECT * FROM public.litigation_tasks WHERE id = $1 LIMIT 1`, [id]);
     if (!r.rows[0]) return res.status(404).json({ message: 'Litigation task not found' });
+
+    const currentUser = req.user;
+    if (currentUser && currentUser.role !== 'admin') {
+      let restrictedIds = [];
+      if (currentUser.role === 'manager') {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+        let branchIds = [];
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          branchIds = branchRes.rows.map(r => r.id);
+        }
+        restrictedIds = [...new Set([...managedIds, ...branchIds])];
+      } else if (currentUser.role === 'staff') {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
+      }
+
+      if (restrictedIds.length === 0) {
+        return res.status(404).json({ message: 'Litigation task not found' });
+      }
+      const pid = r.rows[0]?.property_id ?? null;
+      if (!pid || !restrictedIds.some((x) => String(x) === String(pid))) {
+        return res.status(404).json({ message: 'Litigation task not found' });
+      }
+    }
+
     return res.json(r.rows[0]);
   } catch (err) {
     console.error(`GET /api/litigation/${req.params.id} error:`, err && (err.stack || err));
@@ -109,6 +134,31 @@ router.post('/', protect, async (req, res) => {
 
     if (!title || String(title).trim() === '') return res.status(400).json({ message: 'Title is required' });
     if (!property_id) return res.status(400).json({ message: 'Property is required' });
+
+    const currentUser = req.user;
+    if (currentUser && currentUser.role !== 'admin') {
+      let restrictedIds = [];
+      if (currentUser.role === 'manager') {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+        let branchIds = [];
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          branchIds = branchRes.rows.map(r => r.id);
+        }
+        restrictedIds = [...new Set([...managedIds, ...branchIds])];
+      } else if (currentUser.role === 'staff') {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
+        if (assignedHotelId && String(property_id) !== String(assignedHotelId)) {
+          return res.status(403).json({ message: 'Forbidden' });
+        }
+      }
+      if (restrictedIds.length === 0) return res.status(403).json({ message: 'Forbidden' });
+      if (!restrictedIds.some((x) => String(x) === String(property_id))) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
 
     const reference = genRef();
 
@@ -193,6 +243,39 @@ router.post('/', protect, async (req, res) => {
 router.patch('/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const existing = await pool.query(`SELECT property_id FROM public.litigation_tasks WHERE id = $1 LIMIT 1`, [id]);
+    const existingPid = existing.rows?.[0]?.property_id;
+    if (!existing.rows?.length) return res.status(404).json({ message: 'Litigation task not found' });
+
+    const currentUser = req.user;
+    if (currentUser && currentUser.role !== 'admin') {
+      let restrictedIds = [];
+      if (currentUser.role === 'manager') {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+        let branchIds = [];
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          branchIds = branchRes.rows.map(r => r.id);
+        }
+        restrictedIds = [...new Set([...managedIds, ...branchIds])];
+      } else if (currentUser.role === 'staff') {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
+        if (assignedHotelId) {
+          req.body.property_id = assignedHotelId;
+        }
+      }
+
+      if (restrictedIds.length === 0) return res.status(404).json({ message: 'Litigation task not found' });
+      if (!existingPid || !restrictedIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ message: 'Litigation task not found' });
+      }
+      if (req.body?.property_id !== undefined && !restrictedIds.some((x) => String(x) === String(req.body.property_id))) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
     const {
       title,
       description,
@@ -264,6 +347,33 @@ router.patch('/:id', protect, async (req, res) => {
 router.delete('/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const existing = await pool.query(`SELECT property_id FROM public.litigation_tasks WHERE id = $1 LIMIT 1`, [id]);
+    if (!existing.rows?.length) return res.status(404).json({ message: 'Litigation task not found' });
+
+    const currentUser = req.user;
+    if (currentUser && currentUser.role !== 'admin') {
+      let restrictedIds = [];
+      if (currentUser.role === 'manager') {
+        const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+        const managedIds = managedRes.rows.map(r => r.id);
+        let branchIds = [];
+        if (currentUser.branch) {
+          const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+          branchIds = branchRes.rows.map(r => r.id);
+        }
+        restrictedIds = [...new Set([...managedIds, ...branchIds])];
+      } else if (currentUser.role === 'staff') {
+        const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+        restrictedIds = assignedHotelId ? [assignedHotelId] : [];
+      }
+
+      if (restrictedIds.length === 0) return res.status(404).json({ message: 'Litigation task not found' });
+      const existingPid = existing.rows[0]?.property_id;
+      if (!existingPid || !restrictedIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ message: 'Litigation task not found' });
+      }
+    }
     const r = await pool.query(`DELETE FROM public.litigation_tasks WHERE id = $1`, [id]);
     if (r.rowCount === 0) return res.status(404).json({ message: 'Litigation task not found' });
     return res.json({ message: 'Deleted' });

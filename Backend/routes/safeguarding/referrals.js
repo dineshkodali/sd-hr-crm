@@ -33,12 +33,8 @@ router.get('/', protect, async (req, res) => {
             }
             restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
         } else if (currentUser.role === "staff") {
-            if (currentUser.branch) {
-                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
-                restrictedHotelIds = branchRes.rows.map(r => r.id);
-            } else {
-                restrictedHotelIds = [];
-            }
+            const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+            restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
         }
 
         const limit = parseInt(req.query.limit) || 50;
@@ -52,8 +48,8 @@ router.get('/', protect, async (req, res) => {
             if (restrictedHotelIds.length === 0) {
                 return res.json([]);
             }
-            where.push(`property_id = ANY($${idx++})`);
-            values.push(restrictedHotelIds);
+            where.push(`property_id::text = ANY($${idx++}::text[])`);
+            values.push(restrictedHotelIds.map((x) => String(x)));
         }
 
         const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -80,6 +76,31 @@ router.get('/:id', protect, async (req, res) => {
             return res.status(404).json({ message: 'Referral not found' });
         }
 
+        const currentUser = req.user;
+        let restrictedHotelIds = null;
+        if (currentUser.role === "manager") {
+            const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+            const managedIds = managedRes.rows.map(r => r.id);
+
+            let branchIds = [];
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                branchIds = branchRes.rows.map(r => r.id);
+            }
+            restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+        } else if (currentUser.role === "staff") {
+            const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+            restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+        }
+
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) return res.status(404).json({ message: 'Referral not found' });
+            const pid = result.rows[0]?.property_id ?? null;
+            if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
+                return res.status(404).json({ message: 'Referral not found' });
+            }
+        }
+
         res.json(result.rows[0]);
     } catch (err) {
         console.error('GET /safeguarding/referrals/:id error:', err);
@@ -91,6 +112,34 @@ router.get('/:id', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
     try {
         const reference = genRef();
+
+        const currentUser = req.user;
+        let restrictedHotelIds = null;
+        if (currentUser.role === "manager") {
+            const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+            const managedIds = managedRes.rows.map(r => r.id);
+
+            let branchIds = [];
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                branchIds = branchRes.rows.map(r => r.id);
+            }
+            restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+        } else if (currentUser.role === "staff") {
+            const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+            restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+            if (assignedHotelId) {
+                req.body.property_id = assignedHotelId;
+            }
+        }
+
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) return res.status(403).json({ message: 'Forbidden' });
+            const requestedPid = req.body.property_id ?? null;
+            if (!requestedPid || !restrictedHotelIds.some((x) => String(x) === String(requestedPid))) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+        }
 
         // Get all columns from the table
         const columnsResult = await pool.query(
@@ -166,6 +215,42 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
 
+        const checkRes = await pool.query('SELECT property_id FROM public.safeguarding_referrals WHERE id=$1', [id]);
+        if (!checkRes.rows || checkRes.rows.length === 0) {
+            return res.status(404).json({ message: 'Referral not found' });
+        }
+
+        const currentUser = req.user;
+        let restrictedHotelIds = null;
+        if (currentUser.role === "manager") {
+            const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+            const managedIds = managedRes.rows.map(r => r.id);
+
+            let branchIds = [];
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                branchIds = branchRes.rows.map(r => r.id);
+            }
+            restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+        } else if (currentUser.role === "staff") {
+            const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+            restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+            if (assignedHotelId) {
+                req.body.property_id = assignedHotelId;
+            }
+        }
+
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) return res.status(404).json({ message: 'Referral not found' });
+            const existingPid = checkRes.rows[0]?.property_id;
+            if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+                return res.status(404).json({ message: 'Referral not found' });
+            }
+            if (req.body?.property_id !== undefined && !restrictedHotelIds.some((x) => String(x) === String(req.body.property_id))) {
+                return res.status(403).json({ message: 'Forbidden' });
+            }
+        }
+
         // Get all columns from the table
         const columnsResult = await pool.query(
             `SELECT column_name FROM information_schema.columns 
@@ -219,6 +304,36 @@ router.patch('/:id', protect, async (req, res) => {
 router.delete('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
+
+        const checkRes = await pool.query('SELECT property_id FROM public.safeguarding_referrals WHERE id=$1', [id]);
+        if (!checkRes.rows || checkRes.rows.length === 0) {
+            return res.status(404).json({ message: 'Referral not found' });
+        }
+
+        const currentUser = req.user;
+        let restrictedHotelIds = null;
+        if (currentUser.role === "manager") {
+            const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+            const managedIds = managedRes.rows.map(r => r.id);
+
+            let branchIds = [];
+            if (currentUser.branch) {
+                const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+                branchIds = branchRes.rows.map(r => r.id);
+            }
+            restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
+        } else if (currentUser.role === "staff") {
+            const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+            restrictedHotelIds = assignedHotelId ? [assignedHotelId] : [];
+        }
+
+        if (restrictedHotelIds !== null) {
+            if (restrictedHotelIds.length === 0) return res.status(404).json({ message: 'Referral not found' });
+            const existingPid = checkRes.rows[0]?.property_id;
+            if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+                return res.status(404).json({ message: 'Referral not found' });
+            }
+        }
         const query = 'DELETE FROM public.safeguarding_referrals WHERE id = $1 RETURNING id';
         const result = await pool.query(query, [id]);
 

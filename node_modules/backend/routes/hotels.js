@@ -235,9 +235,16 @@ router.get("/", protect, async (req, res) => {
       const rows = await fetchHotelsWithManager("WHERE h.manager_id = $1", [req.user.id]);
       return res.json({ hotels: rows });
     }
-    // other roles: show all by default (adjust as necessary)
-    const all = await fetchHotelsWithManager();
-    return res.json({ hotels: all });
+    if (req.user.role === "staff") {
+      const assignedHotelId = req.user.hotel_id;
+      if (!assignedHotelId) {
+        return res.json({ hotels: [] });
+      }
+      const rows = await fetchHotelsWithManager("WHERE h.id = $1", [assignedHotelId]);
+      return res.json({ hotels: rows });
+    }
+    // other roles: default to empty to avoid accidental data exposure
+    return res.json({ hotels: [] });
   } catch (err) {
     console.error("list properties:", err);
     return res.status(500).json({ message: "Server error" });
@@ -256,6 +263,14 @@ router.get("/:id", protect, async (req, res) => {
     if (req.user && req.user.role === "manager") {
       if (String(hotel.manager_id) !== String(req.user.id)) {
         return res.status(403).json({ message: "Forbidden — not your property" });
+      }
+    }
+
+    // If staff, ensure they are assigned to this hotel
+    if (req.user && req.user.role === "staff") {
+      const assignedHotelId = req.user.hotel_id;
+      if (!assignedHotelId || String(assignedHotelId) !== String(hotel.id)) {
+        return res.status(403).json({ message: "Forbidden — not your assigned property" });
       }
     }
 
@@ -436,6 +451,14 @@ router.get("/:id/access", protect, async (req, res) => {
   try {
     const { id } = req.params;
 
+    // If staff, only allow access to their assigned hotel
+    if (req.user.role === "staff") {
+      const assignedHotelId = req.user.hotel_id;
+      if (!assignedHotelId || String(assignedHotelId) !== String(id)) {
+        return res.status(403).json({ message: "Forbidden — not your assigned property" });
+      }
+    }
+
     // If manager, ensure they manage this hotel
     if (req.user.role === "manager") {
       const check = await pool.query("SELECT manager_id FROM hotels WHERE id = $1 LIMIT 1", [id]);
@@ -484,6 +507,12 @@ router.put("/:id/access", protect, async (req, res) => {
   try {
     const { id } = req.params;
     const { allowedUserIds } = req.body;
+
+    // Staff can never update access lists
+    if (req.user.role === "staff") {
+      client.release();
+      return res.status(403).json({ message: "Forbidden" });
+    }
 
     // validate hotel exists
     const exists = await pool.query("SELECT manager_id FROM hotels WHERE id = $1 LIMIT 1", [id]);
@@ -551,6 +580,14 @@ router.put("/:id/access", protect, async (req, res) => {
 router.get("/:hotelId/service-users", protect, async (req, res) => {
   try {
     const { hotelId } = req.params;
+
+    // If staff, only allow service-users for their assigned hotel
+    if (req.user.role === "staff") {
+      const assignedHotelId = req.user.hotel_id;
+      if (!assignedHotelId || String(assignedHotelId) !== String(hotelId)) {
+        return res.status(403).json({ message: "Forbidden — not your assigned property" });
+      }
+    }
 
     if (!hotelId) {
       return res.status(400).json({ error: "hotelId is required" });

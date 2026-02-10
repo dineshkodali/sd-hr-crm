@@ -32,9 +32,10 @@ async function getAllowedPropertyIds(user) {
       params.push(user.branch);
     }
   } else if (user.role === 'staff') {
-    if (!user.branch) return []; // Staff with no branch sees nothing
-    query = 'SELECT id FROM public.hotels WHERE branch = $1';
-    params = [user.branch];
+    const assignedHotelId = user.hotel_id || user.hotelId || user.hotel || null;
+    if (!assignedHotelId) return [];
+    query = 'SELECT id FROM public.hotels WHERE id = $1';
+    params = [assignedHotelId];
   }
 
   const result = await pool.query(query, params);
@@ -48,15 +49,16 @@ router.get('/hse-incidents', protect, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 500;
     const allowedIds = await getAllowedPropertyIds(req.user);
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
 
     let text = 'SELECT * FROM public.hse_incidents';
     const values = [];
 
     // Apply filtering if user is not admin
-    if (allowedIds !== null) {
-      if (allowedIds.length === 0) return res.json([]); // Security: Return empty if no properties assigned
-      text += ' WHERE property_id = ANY($1::int[])';
-      values.push(allowedIds);
+    if (allowedIdsText !== null) {
+      if (allowedIdsText.length === 0) return res.json([]); // Security: Return empty if no properties assigned
+      text += ' WHERE property_id::text = ANY($1::text[])';
+      values.push(allowedIdsText);
     }
 
     const limitParamIndex = values.length + 1;
@@ -76,6 +78,7 @@ router.get('/hse-incidents/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
     const allowedIds = await getAllowedPropertyIds(req.user);
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
 
     const result = await pool.query('SELECT * FROM public.hse_incidents WHERE id=$1', [id]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Not found' });
@@ -83,7 +86,7 @@ router.get('/hse-incidents/:id', protect, async (req, res) => {
     const record = result.rows[0];
 
     // Security check: Verify if the record belongs to an allowed property
-    if (allowedIds !== null && !allowedIds.includes(record.property_id)) {
+    if (allowedIdsText !== null && !allowedIdsText.includes(String(record.property_id))) {
       return res.status(403).json({ message: 'Access denied: You do not have permission to view this property' });
     }
 
@@ -99,9 +102,18 @@ router.post('/hse-incidents', protect, async (req, res) => {
   try {
     const { incident_type, severity, property_id, property_name, affected_person, reported_by, details, assigned_investigator, status, incident_date } = req.body;
 
+    let resolvedPropertyId = property_id;
+    if (req.user?.role === 'staff') {
+      const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+      if (assignedHotelId) {
+        resolvedPropertyId = assignedHotelId;
+      }
+    }
+
     // Security check: Prevent posting to a property the user doesn't manage
     const allowedIds = await getAllowedPropertyIds(req.user);
-    if (allowedIds !== null && !allowedIds.includes(parseInt(property_id))) {
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+    if (allowedIdsText !== null && !allowedIdsText.includes(String(resolvedPropertyId))) {
       return res.status(403).json({ message: 'Cannot create incident for a property outside your branch/management' });
     }
 
@@ -115,7 +127,7 @@ router.post('/hse-incidents', protect, async (req, res) => {
     const existingCols = colRows.map(r => r.column_name);
 
     const dataMap = {
-      reference, incident_type, severity, property_id, property_name,
+      reference, incident_type, severity, property_id: resolvedPropertyId, property_name,
       affected_person, reported_by, details, assigned_investigator,
       status: status || 'Open',
       incident_date: incident_date || null,
@@ -159,11 +171,20 @@ router.patch('/hse-incidents/:id', protect, async (req, res) => {
     const { id } = req.params;
     const allowedIds = await getAllowedPropertyIds(req.user);
 
+    if (req.user?.role === 'staff') {
+      const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+      if (assignedHotelId) {
+        req.body.property_id = assignedHotelId;
+      }
+    }
+
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+
     // 1. Check if user has access to the record they want to update
     const checkRes = await pool.query('SELECT property_id FROM public.hse_incidents WHERE id=$1', [id]);
     if (checkRes.rows.length === 0) return res.status(404).json({ message: 'Not found' });
 
-    if (allowedIds !== null && !allowedIds.includes(checkRes.rows[0].property_id)) {
+    if (allowedIdsText !== null && !allowedIdsText.includes(String(checkRes.rows[0].property_id))) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -218,12 +239,13 @@ router.delete('/hse-incidents/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
     const allowedIds = await getAllowedPropertyIds(req.user);
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
 
     // Security Check
     const checkRes = await pool.query('SELECT property_id FROM public.hse_incidents WHERE id=$1', [id]);
     if (checkRes.rows.length === 0) return res.status(404).json({ message: 'Not found' });
 
-    if (allowedIds !== null && !allowedIds.includes(checkRes.rows[0].property_id)) {
+    if (allowedIdsText !== null && !allowedIdsText.includes(String(checkRes.rows[0].property_id))) {
       return res.status(403).json({ message: 'Access denied' });
     }
 

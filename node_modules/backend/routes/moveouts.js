@@ -15,12 +15,46 @@ function coalesceCamelSnake(body, camel, snake) {
   return body[snake];
 }
 
+async function getRestrictedHotelIds(currentUser) {
+  if (!currentUser) return null;
+  if (currentUser.role === "admin") return null;
+
+  if (currentUser.role === "manager") {
+    const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
+    const managedIds = managedRes.rows.map((r) => r.id);
+
+    let branchIds = [];
+    if (currentUser.branch) {
+      const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
+      branchIds = branchRes.rows.map((r) => r.id);
+    }
+    return [...new Set([...managedIds, ...branchIds])];
+  }
+
+  if (currentUser.role === "staff") {
+    const assignedHotelId = currentUser.hotel_id || currentUser.hotelId || currentUser.hotel || null;
+    return assignedHotelId ? [assignedHotelId] : [];
+  }
+
+  return [];
+}
+
 // Create move-out
-router.post("/", async (req, res) => {
+router.post("/", protect, async (req, res) => {
   try {
     const b = req.body || {};
     const service_user_id = coalesceCamelSnake(b, "service_user_id", "serviceUserId") || coalesceCamelSnake(b, "serviceUserId", "service_user_id");
     const service_user_name = coalesceCamelSnake(b, "service_user_name", "serviceUserName") || coalesceCamelSnake(b, "serviceUserName", "service_user_name");
+
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(403).json({ success: false, error: "Forbidden" });
+      const suRes = await pool.query('SELECT property_id FROM service_users WHERE id::text = $1::text LIMIT 1', [service_user_id]);
+      const suPid = suRes.rows[0]?.property_id ?? null;
+      if (!suPid || !restrictedHotelIds.some((x) => String(x) === String(suPid))) {
+        return res.status(403).json({ success: false, error: "Forbidden" });
+      }
+    }
 
     const move_out_date = coalesceCamelSnake(b, "move_out_date", "moveOutDate") || b.moveOutDate || null;
     const checklist = b.checklist || b.check_list || {};
@@ -56,28 +90,7 @@ router.post("/", async (req, res) => {
 // List move-outs
 router.get("/", protect, async (req, res) => {
   try {
-    const currentUser = req.user;
-    let restrictedHotelIds = null;
-
-    // Role-Based Restriction
-    if (currentUser.role === "manager") {
-      const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [currentUser.id]);
-      const managedIds = managedRes.rows.map(r => r.id);
-
-      let branchIds = [];
-      if (currentUser.branch) {
-        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
-        branchIds = branchRes.rows.map(r => r.id);
-      }
-      restrictedHotelIds = [...new Set([...managedIds, ...branchIds])];
-    } else if (currentUser.role === "staff") {
-      if (currentUser.branch) {
-        const branchRes = await pool.query("SELECT id FROM hotels WHERE branch = $1", [currentUser.branch]);
-        restrictedHotelIds = branchRes.rows.map(r => r.id);
-      } else {
-        restrictedHotelIds = [];
-      }
-    }
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
 
     let query = `
       SELECT mo.* 
@@ -112,10 +125,29 @@ router.get("/", protect, async (req, res) => {
 });
 
 // Delete move-out by id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ success: false, error: 'Missing id' });
+
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
+      const checkRes = await pool.query(
+        `SELECT su.property_id
+         FROM maintenance.move_outs mo
+         LEFT JOIN service_users su ON mo.service_user_id::text = su.id::text
+         WHERE mo.id = $1
+         LIMIT 1`,
+        [id]
+      );
+      if (!checkRes.rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+      const existingPid = checkRes.rows[0]?.property_id ?? null;
+      if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ success: false, error: 'Not found' });
+      }
+    }
+
     const q = 'DELETE FROM maintenance.move_outs WHERE id = $1 RETURNING *';
     const result = await pool.query(q, [id]);
     if (!result.rows || result.rows.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
@@ -127,10 +159,28 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Update move-out by id
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', protect, async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ success: false, error: 'Missing id' });
+
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+    if (restrictedHotelIds !== null) {
+      if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
+      const checkRes = await pool.query(
+        `SELECT su.property_id
+         FROM maintenance.move_outs mo
+         LEFT JOIN service_users su ON mo.service_user_id::text = su.id::text
+         WHERE mo.id = $1
+         LIMIT 1`,
+        [id]
+      );
+      if (!checkRes.rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+      const existingPid = checkRes.rows[0]?.property_id ?? null;
+      if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+        return res.status(404).json({ success: false, error: 'Not found' });
+      }
+    }
 
     const b = req.body || {};
     const move_out_date = coalesceCamelSnake(b, "move_out_date", "moveOutDate") || null;

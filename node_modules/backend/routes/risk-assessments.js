@@ -15,14 +15,57 @@ function genRef() {
   return `RAST-${year}-${random}`;
 }
 
+async function getAllowedPropertyIds(user) {
+  if (!user) return [];
+  if (user.role === 'admin') return null;
+
+  let query = '';
+  let params = [];
+
+  if (user.role === 'manager') {
+    query = 'SELECT id FROM public.hotels WHERE manager_id = $1';
+    params = [user.id];
+    if (user.branch) {
+      query += ' OR branch = $2';
+      params.push(user.branch);
+    }
+  } else if (user.role === 'staff') {
+    const assignedHotelId = user.hotel_id || user.hotelId || user.hotel || null;
+    if (!assignedHotelId) return [];
+    query = 'SELECT id FROM public.hotels WHERE id = $1';
+    params = [assignedHotelId];
+  } else {
+    return [];
+  }
+
+  const result = await pool.query(query, params);
+  return result.rows.map(r => r.id);
+}
+
 // --- GET: List all risk assessments (with pagination) ---
 router.get('/risk-assessments', protect, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
 
-    const query = 'SELECT * FROM public.risk_assessments ORDER BY created_at DESC LIMIT $1 OFFSET $2';
-    const result = await pool.query(query, [limit, offset]);
+    const allowedIds = await getAllowedPropertyIds(req.user);
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+
+    const where = [];
+    const values = [];
+    let idx = 1;
+
+    if (allowedIdsText !== null) {
+      if (allowedIdsText.length === 0) return res.json([]);
+      where.push(`property_id::text = ANY($${idx++}::text[])`);
+      values.push(allowedIdsText);
+    }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const query = `SELECT * FROM public.risk_assessments ${whereClause} ORDER BY created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
+    values.push(limit, offset);
+
+    const result = await pool.query(query, values);
 
     res.json(Array.isArray(result.rows) ? result.rows : []);
   } catch (err) {
@@ -42,6 +85,16 @@ router.get('/risk-assessments/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Risk assessment not found' });
     }
 
+    const allowedIds = await getAllowedPropertyIds(req.user);
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+    if (allowedIdsText !== null) {
+      if (allowedIdsText.length === 0) return res.status(404).json({ message: 'Risk assessment not found' });
+      const pid = result.rows[0]?.property_id ?? null;
+      if (!pid || !allowedIdsText.includes(String(pid))) {
+        return res.status(404).json({ message: 'Risk assessment not found' });
+      }
+    }
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error('GET /risk-assessments/:id error:', err);
@@ -53,6 +106,22 @@ router.get('/risk-assessments/:id', protect, async (req, res) => {
 router.post('/risk-assessments', protect, async (req, res) => {
   try {
     const reference = genRef();
+
+    const allowedIds = await getAllowedPropertyIds(req.user);
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+    let propertyId = req.body.property_id ?? null;
+    if (req.user?.role === 'staff') {
+      const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+      if (assignedHotelId) {
+        propertyId = assignedHotelId;
+        req.body.property_id = assignedHotelId;
+      }
+    }
+    if (allowedIdsText !== null) {
+      if (!propertyId || !allowedIdsText.includes(String(propertyId))) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
     
     // Get all columns from the table
     const columnsResult = await pool.query(
@@ -128,6 +197,31 @@ router.post('/risk-assessments', protect, async (req, res) => {
 router.patch('/risk-assessments/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const allowedIds = await getAllowedPropertyIds(req.user);
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+
+    if (req.user?.role === 'staff') {
+      const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
+      if (assignedHotelId) {
+        req.body.property_id = assignedHotelId;
+      }
+    }
+
+    if (allowedIdsText !== null) {
+      const checkRes = await pool.query('SELECT property_id FROM public.risk_assessments WHERE id=$1', [id]);
+      if (!checkRes.rows || checkRes.rows.length === 0) return res.status(404).json({ message: 'Risk assessment not found' });
+      const existingPropertyId = checkRes.rows[0].property_id;
+      if (!existingPropertyId || !allowedIdsText.includes(String(existingPropertyId))) {
+        return res.status(404).json({ message: 'Risk assessment not found' });
+      }
+      if (req.body.property_id !== undefined && req.body.property_id !== null) {
+        const nextPropertyId = req.body.property_id;
+        if (!allowedIdsText.includes(String(nextPropertyId))) {
+          return res.status(403).json({ message: 'Forbidden' });
+        }
+      }
+    }
     
     // Get all columns from the table
     const columnsResult = await pool.query(
@@ -191,6 +285,16 @@ router.patch('/risk-assessments/:id', protect, async (req, res) => {
 router.delete('/risk-assessments/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const allowedIds = await getAllowedPropertyIds(req.user);
+    const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
+    if (allowedIdsText !== null) {
+      const checkRes = await pool.query('SELECT property_id FROM public.risk_assessments WHERE id=$1', [id]);
+      if (!checkRes.rows || checkRes.rows.length === 0) return res.status(404).json({ message: 'Risk assessment not found' });
+      if (!checkRes.rows[0].property_id || !allowedIdsText.includes(String(checkRes.rows[0].property_id))) {
+        return res.status(404).json({ message: 'Risk assessment not found' });
+      }
+    }
     const query = 'DELETE FROM public.risk_assessments WHERE id = $1 RETURNING id';
     const result = await pool.query(query, [id]);
 
