@@ -5,6 +5,9 @@ import axios from "axios";
 import { Eye, ChevronDown, Filter, Columns, X, Home } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import { usePermissions } from "../hooks/usePermissions";
+import { generatePDF } from "../utils/pdfGenerator";
+import { generateCSV } from "../utils/csvGenerator";
+import { DownloadDropdown } from "../components/DownloadDropdown";
 
 // Checklist labels reused by MoveInModal, MoveOutModal and DetailModal
 const MOVE_IN_CHECKLIST_ITEMS = [
@@ -118,6 +121,10 @@ export default function MoveInOutPage({ user }) {
     message: '',
     type: 'info'
   });
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null);
+  const [selectedExportKeys, setSelectedExportKeys] = useState([]);
 
 
   const api = useMemo(
@@ -256,6 +263,96 @@ export default function MoveInOutPage({ user }) {
       (r) => r?.property_name || r?.propertyName || ''
     );
   }, [moveOuts, filterStatus, sortRecords]);
+
+  const exportColumns = useMemo(() => {
+    return [
+      { header: 'Service User', key: 'serviceUser' },
+      { header: 'Property', key: 'property' },
+      { header: 'Room', key: 'room' },
+      { header: 'Bedspace', key: 'bedspace' },
+      { header: 'Date', key: 'date' },
+      { header: 'Status', key: 'status' },
+      { header: 'Notes', key: 'notes' },
+    ];
+  }, []);
+
+  useEffect(() => {
+    const nextKeys = exportColumns.map((c) => c.key);
+    setSelectedExportKeys((prev) => {
+      const prevSet = new Set(prev);
+      const merged = nextKeys.filter((k) => prevSet.has(k));
+      if (merged.length === 0) return nextKeys;
+      for (const k of nextKeys) {
+        if (!prevSet.has(k)) merged.push(k);
+      }
+      return merged;
+    });
+  }, [exportColumns]);
+
+  const getExportList = useCallback(() => {
+    if (activeTab === 'active') return activeMoveInsForDisplay || [];
+    if (activeTab === 'outs') return moveOutsForDisplay || [];
+    return moveInsForDisplay || [];
+  }, [activeTab, activeMoveInsForDisplay, moveInsForDisplay, moveOutsForDisplay]);
+
+  const normalizeExportRow = useCallback((r) => {
+    const isOut = activeTab === 'outs';
+    const name = isOut
+      ? (r.service_user_name || r.serviceUserName || r.serviceUser || 'Unknown User')
+      : resolveServiceUserName(r);
+
+    const date = isOut
+      ? (r.move_out_date || r.moveOutDate || r.created_at || '')
+      : (r.move_in_date || r.moveInDate || r.created_at || '');
+
+    return {
+      serviceUser: name,
+      property: r.property_name || r.propertyName || 'No Property',
+      room: r.room_name || r.roomName || '',
+      bedspace: r.bedspace_name || r.bedspaceName || '',
+      date,
+      status: isOut ? 'inactive' : moveInStatus(r),
+      notes: r.notes || '',
+    };
+  }, [activeTab, resolveServiceUserName, moveInStatus]);
+
+  const openExport = (format) => {
+    setExportFormat(format);
+    setShowExportModal(true);
+    setSelectedExportKeys((prev) => (prev && prev.length ? prev : exportColumns.map((c) => c.key)));
+  };
+
+  const closeExport = () => {
+    setShowExportModal(false);
+    setExportFormat(null);
+  };
+
+  const runExport = () => {
+    try {
+      const keySet = new Set(selectedExportKeys || []);
+      const columns = (exportColumns || []).filter((c) => keySet.has(c.key));
+      if (!columns.length) {
+        alert('Please select at least one column to download.');
+        return;
+      }
+
+      const list = getExportList();
+      const data = (list || []).map(normalizeExportRow);
+      const fileBase = activeTab === 'outs' ? 'move-outs' : activeTab === 'active' ? 'active-residents' : 'move-ins';
+      const title = activeTab === 'outs' ? 'Move-Outs Report' : activeTab === 'active' ? 'Active Residents Report' : 'Move-Ins Report';
+
+      if (exportFormat === 'pdf') {
+        generatePDF(data, columns, title, fileBase);
+      } else if (exportFormat === 'csv') {
+        generateCSV(data, columns, fileBase);
+      }
+
+      closeExport();
+    } catch (error) {
+      console.error('Error exporting move-in/out:', error);
+      alert('Failed to download: ' + error.message);
+    }
+  };
 
   const activeResidentsCount = activeMoveIns.length;
 
@@ -888,6 +985,10 @@ export default function MoveInOutPage({ user }) {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <DownloadDropdown
+              onDownloadPDF={() => openExport('pdf')}
+              onDownloadCSV={() => openExport('csv')}
+            />
             {canCreatePage && (
               <button
                 onClick={() => setShowModal(true)}
@@ -1574,6 +1675,89 @@ export default function MoveInOutPage({ user }) {
           "
               >
                 {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExportModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div>
+                <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                <div className="text-xs text-gray-500 mt-0.5">Select the columns you want to include</div>
+              </div>
+              <button
+                onClick={closeExport}
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm font-medium text-gray-700">Columns</div>
+                <div className="flex items-center gap-3 text-xs">
+                  <button
+                    onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
+                    className="text-teal-600 hover:text-teal-700 font-medium"
+                  >
+                    Select all
+                  </button>
+                  <button
+                    onClick={() => setSelectedExportKeys([])}
+                    className="text-gray-600 hover:text-gray-700 font-medium"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
+                {exportColumns.map((col) => {
+                  const checked = (selectedExportKeys || []).includes(col.key);
+                  return (
+                    <label
+                      key={col.key}
+                      className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          setSelectedExportKeys((prev) => {
+                            const set = new Set(prev || []);
+                            if (isChecked) set.add(col.key);
+                            else set.delete(col.key);
+                            return Array.from(set);
+                          });
+                        }}
+                        className="w-4 h-4 text-teal-600 rounded"
+                      />
+                      <span className="text-sm text-gray-700">{col.header}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                onClick={closeExport}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={runExport}
+                className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors"
+              >
+                Download
               </button>
             </div>
           </div>

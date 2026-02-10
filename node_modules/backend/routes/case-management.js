@@ -54,6 +54,14 @@ function makeCaseReference() {
   return `CSM-${year}-${rnd}`;
 }
 
+function toIntOrNull(value) {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  if (!/^\d+$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
 async function getAllowedHotels(user) {
   if (!user) return { ids: [], namesLower: [] };
   if (user.role === 'admin') return { ids: null, namesLower: null };
@@ -62,8 +70,10 @@ async function getAllowedHotels(user) {
   let params = [];
 
   if (user.role === 'manager') {
+    const managerId = toIntOrNull(user.id);
+    if (managerId === null) return { ids: [], namesLower: [] };
     query = 'SELECT id, name FROM public.hotels WHERE manager_id = $1';
-    params = [user.id];
+    params = [managerId];
     if (user.branch) {
       query += ' OR branch = $2';
       params.push(user.branch);
@@ -191,27 +201,37 @@ router.post('/', protect, async (req, res) => {
       'title', 'description', 'category', 'priority', 'property_id', 'property_name', 'status',
       'assigned_to', 'reported_by', 'reported_date', 'scheduled_date', 'notes'
     ];
+
+    const allColsSet = new Set(allColumns);
+
     // Find custom columns
     const customColumns = allColumns.filter(col => !standardColumns.includes(col));
-    // Build column list and parameter values for standard fields
-    // IMPORTANT: do NOT push NOW() into the values array because custom columns may be
-    // appended later (which would shift placeholder positions and break the query).
-    const columns = ['reference', 'title', 'description', 'category', 'priority', 'property_id', 'property_name', 'status', 'reported_by', 'reported_date', 'assigned_to', 'scheduled_date', 'notes'];
-    const values = [
-      reference,
-      req.body.title,
-      req.body.description,
-      req.body.category,
-      req.body.priority || 'medium',
-      req.body.property_id || null,
-      req.body.property_name || '',
-      req.body.status || 'open',
-      req.body.reported_by || '',
-      req.body.reported_date && req.body.reported_date.trim() ? req.body.reported_date : null,
-      req.body.assigned_to || '',
-      req.body.scheduled_date && req.body.scheduled_date.trim() ? req.body.scheduled_date : null,
-      req.body.notes || ''
+
+    // Build column list and parameter values for standard fields.
+    // Only include columns that actually exist in DB (schema can differ between environments).
+    const basePairs = [
+      ['reference', reference],
+      ['title', req.body.title],
+      ['description', req.body.description],
+      ['category', req.body.category],
+      ['priority', req.body.priority || 'medium'],
+      ['property_id', req.body.property_id || null],
+      ['property_name', req.body.property_name || ''],
+      ['status', req.body.status || 'open'],
+      ['reported_by', req.body.reported_by || ''],
+      ['reported_date', (req.body.reported_date && String(req.body.reported_date).trim()) ? req.body.reported_date : null],
+      ['assigned_to', req.body.assigned_to || ''],
+      ['scheduled_date', (req.body.scheduled_date && String(req.body.scheduled_date).trim()) ? req.body.scheduled_date : null],
+      ['notes', req.body.notes || ''],
     ];
+
+    const columns = [];
+    const values = [];
+    for (const [col, val] of basePairs) {
+      if (!allColsSet.has(col)) continue;
+      columns.push(col);
+      values.push(val);
+    }
     // Add custom columns if they exist in the request and sanitize input
     customColumns.forEach(col => {
       if (req.body.hasOwnProperty(col)) {
@@ -288,8 +308,10 @@ router.put('/:id', protect, async (req, res) => {
     const setClauses = [];
     const values = [];
     let paramIndex = 1;
-    // Standard fields
-    const standardFields = ['title', 'description', 'category', 'priority', 'property_id', 'property_name', 'status', 'reported_by', 'reported_date', 'assigned_to', 'scheduled_date', 'notes'];
+    const existingSet = new Set(allColumns);
+    // Standard fields (only if exist)
+    const standardFields = ['title', 'description', 'category', 'priority', 'property_id', 'property_name', 'status', 'reported_by', 'reported_date', 'assigned_to', 'scheduled_date', 'notes']
+      .filter((f) => existingSet.has(f));
     standardFields.forEach(field => {
       if (req.body.hasOwnProperty(field)) {
         let value = req.body[field];

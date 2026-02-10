@@ -3,6 +3,9 @@ import axios from "axios";
 import { Eye, EyeOff, ChevronDown, Filter, Columns, X, Home } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import { usePermissions } from "../hooks/usePermissions";
+import { generatePDF } from "../utils/pdfGenerator";
+import { generateCSV } from "../utils/csvGenerator";
+import { DownloadDropdown } from "../components/DownloadDropdown";
 
 export default function MealManagement({ user }) {
   const MODULE_KEY = 'meals';
@@ -88,6 +91,10 @@ export default function MealManagement({ user }) {
     message: '',
     type: 'info'
   });
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null);
+  const [selectedExportKeys, setSelectedExportKeys] = useState([]);
 
   // Prevent infinite re-renders
   const api = useMemo(
@@ -375,6 +382,80 @@ export default function MealManagement({ user }) {
 
     return list;
   }
+
+  const exportColumns = useMemo(() => {
+    return [
+      { header: 'Service User', key: 'serviceUser' },
+      { header: 'Property', key: 'property' },
+      { header: 'Meal Type', key: 'mealType' },
+      { header: 'Portion', key: 'portion' },
+      { header: 'Dietary', key: 'dietary' },
+      { header: 'Status', key: 'status' },
+      { header: 'Scheduled Date', key: 'scheduledDate' },
+      { header: 'Notes', key: 'notes' },
+    ];
+  }, []);
+
+  useEffect(() => {
+    const nextKeys = exportColumns.map((c) => c.key);
+    setSelectedExportKeys((prev) => {
+      const prevSet = new Set(prev);
+      const merged = nextKeys.filter((k) => prevSet.has(k));
+      if (merged.length === 0) return nextKeys;
+      for (const k of nextKeys) {
+        if (!prevSet.has(k)) merged.push(k);
+      }
+      return merged;
+    });
+  }, [exportColumns]);
+
+  const normalizeMealExportRow = (m) => {
+    return {
+      serviceUser: m.serviceUser || m.service_user_name || 'N/A',
+      property: m.property || m.property_name || 'N/A',
+      mealType: m.mealType || m.meal_type || 'N/A',
+      portion: m.portion || 'N/A',
+      dietary: m.dietary || 'N/A',
+      status: m.status || 'N/A',
+      scheduledDate: m.scheduledDate || m.scheduled_date || date || '',
+      notes: m.notes || '',
+    };
+  };
+
+  const openExport = (format) => {
+    setExportFormat(format);
+    setShowExportModal(true);
+    setSelectedExportKeys((prev) => (prev && prev.length ? prev : exportColumns.map((c) => c.key)));
+  };
+
+  const closeExport = () => {
+    setShowExportModal(false);
+    setExportFormat(null);
+  };
+
+  const runExport = () => {
+    try {
+      const keySet = new Set(selectedExportKeys || []);
+      const columns = (exportColumns || []).filter((c) => keySet.has(c.key));
+      if (!columns.length) {
+        alert('Please select at least one column to download.');
+        return;
+      }
+
+      const data = (filteredMeals() || []).map(normalizeMealExportRow);
+
+      if (exportFormat === 'pdf') {
+        generatePDF(data, columns, 'Meals Report', 'meals-report');
+      } else if (exportFormat === 'csv') {
+        generateCSV(data, columns, 'meals-report');
+      }
+
+      closeExport();
+    } catch (error) {
+      console.error('Error exporting meals:', error);
+      alert('Failed to download: ' + error.message);
+    }
+  };
 
   async function markConsumed(id) {
     if (!canUpdatePage) {
@@ -671,7 +752,11 @@ export default function MealManagement({ user }) {
               </span>
             </div>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
+            <DownloadDropdown
+              onDownloadPDF={() => openExport('pdf')}
+              onDownloadCSV={() => openExport('csv')}
+            />
             {canCreatePage && (
               <button
                 onClick={() => {
@@ -697,6 +782,89 @@ export default function MealManagement({ user }) {
             )}
           </div>
         </div>
+
+        {showExportModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Select the columns you want to include</div>
+                </div>
+                <button
+                  onClick={closeExport}
+                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                  title="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="px-5 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium text-gray-700">Columns</div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <button
+                      onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
+                      className="text-teal-600 hover:text-teal-700 font-medium"
+                    >
+                      Select all
+                    </button>
+                    <button
+                      onClick={() => setSelectedExportKeys([])}
+                      className="text-gray-600 hover:text-gray-700 font-medium"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
+                  {exportColumns.map((col) => {
+                    const checked = (selectedExportKeys || []).includes(col.key);
+                    return (
+                      <label
+                        key={col.key}
+                        className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setSelectedExportKeys((prev) => {
+                              const set = new Set(prev || []);
+                              if (isChecked) set.add(col.key);
+                              else set.delete(col.key);
+                              return Array.from(set);
+                            });
+                          }}
+                          className="w-4 h-4 text-teal-600 rounded"
+                        />
+                        <span className="text-sm text-gray-700">{col.header}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-3">
+                <button
+                  onClick={closeExport}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={runExport}
+                  className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors"
+                >
+                  Download
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* --- SCHEDULE MODAL --- */}
         {showScheduleModal && (

@@ -2,6 +2,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import axios from "axios";
+import { usePermissions } from "../hooks/usePermissions";
 // Ensure you have these icons installed: npm install lucide-react
 import {
   Download, Eye, Trash2, Edit, Plus, Search, FileText,
@@ -163,6 +164,18 @@ function StatusBadge({ status }) {
 
 // --- Main Page Component ---
 export default function Compliance() {
+  const currentUser = (() => {
+    try {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const { canCreate: canCreatePerm } = usePermissions(currentUser);
+  const canCreateTasks = canCreatePerm("aire_tasks");
+
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -190,6 +203,21 @@ export default function Compliance() {
   const [staffUsers, setStaffUsers] = useState([]);
   const [staffLoading, setStaffLoading] = useState(false);
   const [documentFile, setDocumentFile] = useState(null);
+
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [taskSubmitting, setTaskSubmitting] = useState(false);
+  const [taskError, setTaskError] = useState("");
+  const [taskForm, setTaskForm] = useState({
+    title: "",
+    description: "",
+    priority: "Medium",
+    status: "Pending",
+    property_id: "",
+    property_name: "",
+    due_date: "",
+    scheduled_date: "",
+    category: "Compliance",
+  });
 
   // Dialogs
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: () => { }, type: 'warning' });
@@ -510,6 +538,58 @@ export default function Compliance() {
     setModalOpen(true);
   }
 
+  function openTaskModalForCertificate(cert) {
+    if (!cert) return;
+    setTaskError("");
+
+    const pid = cert.property_id ?? cert.hotel_id ?? "";
+    const pname = cert.hotel_name || cert.property_name || "";
+    const expiry = cert.expiry_date ? toInputYMD(cert.expiry_date) : "";
+
+    setTaskForm({
+      title: `Renew: ${cert.certificate_type || "Certificate"} (${pname || "Property"})`,
+      description: `Compliance certificate renewal reminder.\n\nCertificate Type: ${cert.certificate_type || ""}\nCertificate Number: ${cert.certificate_number || ""}\nProperty: ${pname || ""}\nIssue Date: ${cert.issue_date || ""}\nExpiry Date: ${cert.expiry_date || ""}`,
+      priority: "Medium",
+      status: "Pending",
+      property_id: pid,
+      property_name: pname,
+      due_date: expiry,
+      scheduled_date: "",
+      category: "Compliance",
+    });
+    setTaskModalOpen(true);
+  }
+
+  async function submitTask(e) {
+    e?.preventDefault();
+    setTaskError("");
+    setTaskSubmitting(true);
+    try {
+      if (!canCreateTasks) {
+        throw new Error("Permission denied");
+      }
+
+      const payload = {
+        title: taskForm.title,
+        description: taskForm.description,
+        priority: taskForm.priority,
+        status: taskForm.status,
+        property_id: taskForm.property_id || null,
+        property_name: taskForm.property_name || null,
+        due_date: taskForm.due_date || null,
+        scheduled_date: taskForm.scheduled_date || null,
+        category: taskForm.category || "Compliance",
+      };
+
+      await api.post("/api/aire-tasks", payload);
+      setTaskModalOpen(false);
+    } catch (err) {
+      setTaskError(err?.response?.data?.message || err?.message || "Failed to create task");
+    } finally {
+      setTaskSubmitting(false);
+    }
+  }
+
   async function submitCertificate(e) {
     e?.preventDefault();
     setFormError(""); setSubmitting(true);
@@ -753,6 +833,15 @@ export default function Compliance() {
                         <button onClick={() => handleDelete(c)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
                           <Trash2 className="w-5 h-5" />
                         </button>
+                        {canCreateTasks && (
+                          <button
+                            onClick={() => openTaskModalForCertificate(c)}
+                            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Create Task"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -761,6 +850,101 @@ export default function Compliance() {
             </div>
           )}
         </div>
+
+        {taskModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl relative flex flex-col h-[70vh]">
+              <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Create Task</h2>
+                  <p className="text-sm text-slate-500 mt-0.5">Create a compliance renewal task</p>
+                </div>
+                <button onClick={() => setTaskModalOpen(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full p-2 transition-colors">
+                  <XCircle size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={submitTask} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                {taskError && (
+                  <div className="p-4 rounded-lg bg-red-50 text-red-600 text-sm flex items-center gap-2 border border-red-100">
+                    <AlertTriangle size={16} /> {taskError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
+                  <input
+                    required
+                    value={taskForm.title}
+                    onChange={(e) => setTaskForm((p) => ({ ...p, title: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                    <select
+                      value={taskForm.priority}
+                      onChange={(e) => setTaskForm((p) => ({ ...p, priority: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Urgent">Urgent</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      value={taskForm.status}
+                      onChange={(e) => setTaskForm((p) => ({ ...p, status: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none bg-white"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                    <input
+                      type="date"
+                      value={taskForm.due_date || ""}
+                      onChange={(e) => setTaskForm((p) => ({ ...p, due_date: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Scheduled Date</label>
+                    <input
+                      type="date"
+                      value={taskForm.scheduled_date || ""}
+                      onChange={(e) => setTaskForm((p) => ({ ...p, scheduled_date: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    rows={6}
+                    value={taskForm.description}
+                    onChange={(e) => setTaskForm((p) => ({ ...p, description: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 outline-none"
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                  <button type="button" onClick={() => setTaskModalOpen(false)} className="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors">Cancel</button>
+                  <button type="submit" disabled={taskSubmitting} className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm transition-colors">{taskSubmitting ? "Creating..." : "Create Task"}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Modal Logic (Same as before but styled) */}
         {modalOpen && (

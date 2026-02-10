@@ -57,6 +57,50 @@ async function safeQuery(sql, params = []) {
   }
 }
 
+function toIntOrNull(value) {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  if (!/^\d+$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+let COMPLIANCE_INIT_PROMISE = null;
+async function ensureComplianceInitialized() {
+  if (COMPLIANCE_INIT_PROMISE) return COMPLIANCE_INIT_PROMISE;
+  COMPLIANCE_INIT_PROMISE = (async () => {
+    try {
+      await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS hotel_name TEXT");
+      await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS document_name TEXT");
+      await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS document_mime TEXT");
+      await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS document_data BYTEA");
+
+      await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true");
+      await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()");
+      await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()");
+      await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS created_by TEXT");
+    } catch (err) {
+      console.warn("Compliance init warning:", err && (err.message || err));
+    }
+  })();
+  return COMPLIANCE_INIT_PROMISE;
+}
+
+let CERT_COLS_CACHE = { at: 0, cols: null };
+async function getCertificateColumns() {
+  const now = Date.now();
+  if (CERT_COLS_CACHE.cols && now - CERT_COLS_CACHE.at < 60_000) return CERT_COLS_CACHE.cols;
+  const r = await safeQuery(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'certificates'`,
+    []
+  );
+  const set = new Set((r.ok ? r.rows : []).map((x) => x.column_name));
+  CERT_COLS_CACHE = { at: now, cols: set };
+  return set;
+}
+
 async function getAllowedHotelIds(user) {
   if (!user) return [];
   if (user.role === "admin") return null;
@@ -65,8 +109,10 @@ async function getAllowedHotelIds(user) {
   let params = [];
 
   if (user.role === "manager") {
+    const managerId = toIntOrNull(user.id);
+    if (managerId === null) return [];
     query = "SELECT id FROM public.hotels WHERE manager_id = $1";
-    params = [user.id];
+    params = [managerId];
     if (user.branch) {
       query += " OR branch = $2";
       params.push(user.branch);
@@ -129,34 +175,22 @@ async function getHotelsPkColumn() {
 }
 
 /* ensure denormalized column exists */
-(async function ensureHotelNameColumn() {
-  try {
-    await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS hotel_name TEXT");
-  } catch (err) {
-    console.warn("Could not ensure hotel_name column exists:", err && (err.message || err));
-  }
-})();
 
-(async function ensureCertificateDocumentColumns() {
-  try {
-    await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS document_name TEXT");
-    await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS document_mime TEXT");
-    await safeQuery("ALTER TABLE public.certificates ADD COLUMN IF NOT EXISTS document_data BYTEA");
-  } catch (err) {
-    console.warn("Could not ensure certificate document columns exist:", err && (err.message || err));
-  }
-})();
 
 /* join: resolve hotels.name using certificates.hotel_name (text) as canonical source, but prefer ID match */
 const HOTEL_JOIN = `
-  LEFT JOIN hotels h
+  LEFT JOIN public.hotels h
     ON (c.property_id IS NOT NULL AND h.id::text = c.property_id::text)
     OR (c.property_id IS NULL AND c.hotel_name IS NOT NULL AND h.name ILIKE c.hotel_name)
 `;
 
+
+
 /* stats */
 router.get("/stats/summary", protect, async (req, res) => {
   try {
+    await ensureComplianceInitialized();
+    const cols = await getCertificateColumns();
     const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
     if (allowedHotelIds !== null && allowedHotelIds.length === 0) {
       return res.json({ ok: true, data: { valid_count: 0, expiring_count: 0, expired_count: 0 } });
@@ -164,23 +198,31 @@ router.get("/stats/summary", protect, async (req, res) => {
 
     const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
 
-    const where = ["is_active IS TRUE"];
+    const where = [];
+    if (cols.has("is_active")) where.push("is_active IS TRUE");
     const params = [];
     let idx = 1;
 
     if (allowedHotelIds !== null) {
-      where.push(`(property_id::text = ANY($${idx}::text[]) OR (hotel_name IS NOT NULL AND lower(hotel_name) = ANY($${idx + 1}::text[])))`);
-      params.push(allowedHotelIds.map((x) => String(x)));
-      params.push(allowedHotelNamesLower);
-      idx += 2;
+      if (cols.has("hotel_name")) {
+        where.push(`(property_id::text = ANY($${idx}::text[]) OR (hotel_name IS NOT NULL AND lower(hotel_name) = ANY($${idx + 1}::text[])))`);
+        params.push(allowedHotelIds.map((x) => String(x)));
+        params.push(allowedHotelNamesLower);
+        idx += 2;
+      } else {
+        where.push(`property_id::text = ANY($${idx}::text[])`);
+        params.push(allowedHotelIds.map((x) => String(x)));
+        idx += 1;
+      }
     }
 
+    const activeFilter = cols.has("is_active") ? " AND is_active IS TRUE" : "";
     const q = `SELECT
-      COUNT(*) FILTER (WHERE expiry_date > (current_date + INTERVAL '30 days') AND is_active IS TRUE) AS valid_count,
-      COUNT(*) FILTER (WHERE expiry_date <= (current_date + INTERVAL '30 days') AND expiry_date >= current_date AND is_active IS TRUE) AS expiring_count,
-      COUNT(*) FILTER (WHERE expiry_date < current_date AND is_active IS TRUE) AS expired_count
+      COUNT(*) FILTER (WHERE expiry_date > (current_date + INTERVAL '30 days')${activeFilter}) AS valid_count,
+      COUNT(*) FILTER (WHERE expiry_date <= (current_date + INTERVAL '30 days') AND expiry_date >= current_date${activeFilter}) AS expiring_count,
+      COUNT(*) FILTER (WHERE expiry_date < current_date${activeFilter}) AS expired_count
     FROM public.certificates
-    WHERE ${where.join(" AND ")};`;
+    ${where.length ? `WHERE ${where.join(" AND ")}` : ""};`;
 
     const r = await safeQuery(q, params);
     if (!r.ok) return res.json({ ok: true, data: { valid_count: 0, expiring_count: 0, expired_count: 0 } });
@@ -194,6 +236,8 @@ router.get("/stats/summary", protect, async (req, res) => {
 /* list */
 router.get("/", protect, async (req, res) => {
   try {
+    await ensureComplianceInitialized();
+    const cols = await getCertificateColumns();
     // Support both hotel_id (or property_id) param; treat it as either hotel id or hotel name fragment
     const hotelParam = req.query.hotel_id ?? req.query.property_id;
     const hotelNameParam = req.query.hotel_name ?? req.query.site;
@@ -206,15 +250,22 @@ router.get("/", protect, async (req, res) => {
 
     const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
 
-    const where = ["is_active IS TRUE"];
+    const where = [];
+    if (cols.has("is_active")) where.push("is_active IS TRUE");
     const params = [];
     let idx = 1;
 
     if (allowedHotelIds !== null) {
-      where.push(`(property_id::text = ANY($${idx}::text[]) OR (hotel_name IS NOT NULL AND lower(hotel_name) = ANY($${idx + 1}::text[])))`);
-      params.push(allowedHotelIds.map((x) => String(x)));
-      params.push(allowedHotelNamesLower);
-      idx += 2;
+      if (cols.has("hotel_name")) {
+        where.push(`(property_id::text = ANY($${idx}::text[]) OR (hotel_name IS NOT NULL AND lower(hotel_name) = ANY($${idx + 1}::text[])))`);
+        params.push(allowedHotelIds.map((x) => String(x)));
+        params.push(allowedHotelNamesLower);
+        idx += 2;
+      } else {
+        where.push(`property_id::text = ANY($${idx}::text[])`);
+        params.push(allowedHotelIds.map((x) => String(x)));
+        idx += 1;
+      }
     }
 
     if (status === "expired") where.push("expiry_date < current_date");
@@ -222,7 +273,11 @@ router.get("/", protect, async (req, res) => {
     else if (status === "valid") where.push("expiry_date > (current_date + INTERVAL '30 days')");
 
     if (search) {
-      where.push(`(certificate_type ILIKE $${idx} OR issued_by ILIKE $${idx} OR notes ILIKE $${idx} OR hotel_name ILIKE $${idx})`);
+      const parts = [`certificate_type ILIKE $${idx}`];
+      if (cols.has("issued_by")) parts.push(`issued_by ILIKE $${idx}`);
+      if (cols.has("notes")) parts.push(`notes ILIKE $${idx}`);
+      if (cols.has("hotel_name")) parts.push(`hotel_name ILIKE $${idx}`);
+      where.push(`(${parts.join(" OR ")})`);
       params.push(`%${search}%`);
       idx++;
     }
@@ -236,7 +291,7 @@ router.get("/", protect, async (req, res) => {
       }
     }
 
-    if (hotelNameParam && String(hotelNameParam).trim() !== "") {
+    if (cols.has("hotel_name") && hotelNameParam && String(hotelNameParam).trim() !== "") {
       where.push(`hotel_name ILIKE $${idx}`);
       params.push(`%${String(hotelNameParam)}%`);
       idx++;
@@ -253,7 +308,7 @@ router.get("/", protect, async (req, res) => {
         ELSE 'valid'
       END AS status
     FROM public.certificates
-    WHERE ${where.join(" AND ")}
+    ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
     ORDER BY expiry_date ASC
     LIMIT $${idx} OFFSET $${idx + 1};`;
 
@@ -265,7 +320,13 @@ router.get("/", protect, async (req, res) => {
     }
     if (!r.ok) {
       console.error("Compliance List Query Failed:", r.error);
-      return res.status(500).json({ ok: false, error: r.error?.message || "Database Query Warning" });
+      return res.status(500).json({
+        ok: false,
+        error: r.error?.message || "Database Query Warning",
+        code: r.error?.code,
+        detail: r.error?.detail,
+        hint: r.error?.hint,
+      });
     }
 
     const out = (r.rows || []).map((row) => {
@@ -284,6 +345,7 @@ router.get("/", protect, async (req, res) => {
 /* get one */
 router.get("/:id", protect, async (req, res) => {
   try {
+    await ensureComplianceInitialized();
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
 
@@ -297,7 +359,7 @@ router.get("/:id", protect, async (req, res) => {
     const sql = `
       SELECT c.*,
         COALESCE(h.name, c.hotel_name) AS hotel_name
-      FROM certificates c
+      FROM public.certificates c
       ${HOTEL_JOIN}
       WHERE c.id::text = $1 AND c.is_active = true
     `;
@@ -321,6 +383,7 @@ router.get("/:id", protect, async (req, res) => {
 
 router.get("/:id/document", protect, async (req, res) => {
   try {
+    await ensureComplianceInitialized();
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
 
@@ -368,6 +431,7 @@ router.get("/:id/document", protect, async (req, res) => {
 /* create */
 router.post("/", protect, upload.single("document"), async (req, res) => {
   try {
+    await ensureComplianceInitialized();
     const {
       certificate_type,
       // accept either a textual hotel name (preferred) or hotel_id/property_id (legacy)
@@ -469,7 +533,7 @@ router.post("/", protect, upload.single("document"), async (req, res) => {
       document_mime,
       document_data,
       notes || null,
-      (req.session?.user?.id || req.user?.id || null),
+      toIntOrNull(req.session?.user?.id || req.user?.id || null),
       true, // is_active
     ];
 
@@ -489,7 +553,7 @@ router.post("/", protect, upload.single("document"), async (req, res) => {
       const fetchSql = `
         SELECT c.*,
           COALESCE(h.name, c.hotel_name) AS hotel_name
-        FROM certificates c
+        FROM public.certificates c
         ${HOTEL_JOIN}
         WHERE c.id::text = $1
       `;
@@ -511,6 +575,7 @@ router.post("/", protect, upload.single("document"), async (req, res) => {
 /* update */
 router.put("/:id", protect, upload.single("document"), async (req, res) => {
   try {
+    await ensureComplianceInitialized();
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
 
@@ -640,7 +705,7 @@ router.put("/:id", protect, upload.single("document"), async (req, res) => {
       const fetchSql = `
         SELECT c.*,
           COALESCE(h.name, c.hotel_name) AS hotel_name
-        FROM certificates c
+        FROM public.certificates c
         ${HOTEL_JOIN}
         WHERE c.id::text = $1
       `;
@@ -662,6 +727,7 @@ router.put("/:id", protect, upload.single("document"), async (req, res) => {
 /* soft delete */
 router.delete("/:id", protect, async (req, res) => {
   try {
+    await ensureComplianceInitialized();
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
 

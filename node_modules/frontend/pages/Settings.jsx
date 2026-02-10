@@ -101,6 +101,9 @@ export default function Settings() {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showAssignRoleModal, setShowAssignRoleModal] = useState(false);
+  const [assignRoleSearch, setAssignRoleSearch] = useState("");
+  const [assignRoleFilter, setAssignRoleFilter] = useState("all");
+  const [assignRoleSelectedUserIds, setAssignRoleSelectedUserIds] = useState(() => new Set());
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showAlertModal, setShowAlertModal] = useState(false);
   const [alertMessage, setAlertMessage] = useState({ title: "", message: "", type: "info" });
@@ -121,6 +124,37 @@ export default function Settings() {
     window.dispatchEvent(new Event('accessMenuChanged'));
     setSuccessMessage(`Access Control menu ${newValue ? 'enabled' : 'disabled'} in sidebar`);
     setTimeout(() => setSuccessMessage(""), 3000);
+  };
+
+  const handleAssignRoleToUsersBulk = async () => {
+    if (!selectedRole) return;
+    const ids = Array.from(assignRoleSelectedUserIds || []);
+    if (ids.length === 0) return;
+
+    setSaving(true);
+    try {
+      await Promise.all(
+        ids.map((userId) =>
+          axios.post(
+            `/api/access/roles/${selectedRole.id}/users`,
+            { user_id: userId },
+            { withCredentials: true }
+          )
+        )
+      );
+      await loadRoleDetails(selectedRole.id);
+      setShowAssignRoleModal(false);
+      setAssignRoleSearch("");
+      setAssignRoleFilter("all");
+      setAssignRoleSelectedUserIds(new Set());
+      setSuccessMessage("Role assigned to users successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err) {
+      console.error("Error assigning role to users:", err);
+      showAlert("Error", "Failed to assign role to selected users. Please try again.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   /* Dialog State */
@@ -1748,34 +1782,99 @@ export default function Settings() {
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-bold text-gray-900">Assign Role to User</h3>
               </div>
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={assignRoleSearch}
+                    onChange={(e) => setAssignRoleSearch(e.target.value)}
+                    placeholder="Search name or email..."
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <select
+                    value={assignRoleFilter}
+                    onChange={(e) => setAssignRoleFilter(e.target.value)}
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="all">All</option>
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="staff">Staff</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="p-6 overflow-y-auto flex-1">
                 <div className="space-y-2">
-                  {users.filter(u => !selectedRole?.users?.some(ru => ru.id === u.id)).map(user => (
-                    <button
-                      key={user.id}
-                      onClick={() => handleAssignRoleToUser(user.id)}
-                      className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-left transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-semibold">
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                        <div className="text-xs text-gray-500">{user.email}</div>
-                      </div>
-                    </button>
-                  ))}
-                  {users.filter(u => !selectedRole?.users?.some(ru => ru.id === u.id)).length === 0 && (
+                  {users
+                    .filter((u) => !selectedRole?.users?.some((ru) => ru.id === u.id))
+                    .filter((u) => {
+                      const q = String(assignRoleSearch || "").trim().toLowerCase();
+                      if (!q) return true;
+                      const name = String(u?.name || "").toLowerCase();
+                      const email = String(u?.email || "").toLowerCase();
+                      return name.includes(q) || email.includes(q);
+                    })
+                    .filter((u) => {
+                      if (assignRoleFilter === "all") return true;
+                      return String(u?.role || "").toLowerCase() === String(assignRoleFilter).toLowerCase();
+                    })
+                    .map((user) => {
+                      const checked = assignRoleSelectedUserIds?.has(user.id);
+                      return (
+                        <div
+                          key={user.id}
+                          onClick={() => {
+                            setAssignRoleSelectedUserIds((prev) => {
+                              const next = new Set(prev || []);
+                              if (next.has(user.id)) next.delete(user.id);
+                              else next.add(user.id);
+                              return next;
+                            });
+                          }}
+                          className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-left transition-colors cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!!checked}
+                            onChange={() => { }}
+                            className="w-4 h-4 text-teal-600 rounded"
+                          />
+                          <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center font-semibold">
+                            {String(user.name || "U").charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">{user.name}</div>
+                            <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                  {users.filter((u) => !selectedRole?.users?.some((ru) => ru.id === u.id)).length === 0 && (
                     <p className="text-sm text-gray-500 text-center py-4">All users already have this role</p>
                   )}
                 </div>
               </div>
-              <div className="p-6 border-t border-gray-200 flex justify-end">
+
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
                 <button
-                  onClick={() => setShowAssignRoleModal(false)}
+                  onClick={() => {
+                    setShowAssignRoleModal(false);
+                    setAssignRoleSearch("");
+                    setAssignRoleFilter("all");
+                    setAssignRoleSelectedUserIds(new Set());
+                  }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   Close
+                </button>
+                <button
+                  onClick={handleAssignRoleToUsersBulk}
+                  disabled={saving || !assignRoleSelectedUserIds || assignRoleSelectedUserIds.size === 0}
+                  className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save"}
                 </button>
               </div>
             </div>

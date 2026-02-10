@@ -24,6 +24,9 @@ import {
   Trash2
 } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { generatePDF } from "../utils/pdfGenerator";
+import { generateCSV } from "../utils/csvGenerator";
+import { DownloadDropdown } from "../components/DownloadDropdown";
 
 /* Helper functions */
 function formatDate(value) {
@@ -151,6 +154,10 @@ export default function Bookings({ user }) {
     message: '',
     type: 'info'
   });
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null);
+  const [selectedExportKeys, setSelectedExportKeys] = useState([]);
 
   const api = useMemo(() => axios.create({
     baseURL: import.meta.env.VITE_API_URL || '',
@@ -611,6 +618,84 @@ export default function Bookings({ user }) {
     return list;
   }, [bookings, query, filterStatus, filterProperty, sortBy, activeTab]);
 
+  const exportColumns = useMemo(() => {
+    return [
+      { header: 'Name', key: 'full_name' },
+      { header: 'Order No', key: 'order_no' },
+      { header: 'Property', key: 'property_name' },
+      { header: 'Room', key: 'room_number' },
+      { header: 'Check-In', key: 'check_in' },
+      { header: 'Day', key: 'day' },
+      { header: 'Guests', key: 'guests' },
+      { header: 'Origin', key: 'origin' },
+      { header: 'Immigration Status', key: 'immigration_status' },
+      { header: 'Status', key: 'status' },
+    ];
+  }, []);
+
+  useEffect(() => {
+    const nextKeys = exportColumns.map((c) => c.key);
+    setSelectedExportKeys((prev) => {
+      const prevSet = new Set(prev);
+      const merged = nextKeys.filter((k) => prevSet.has(k));
+      if (merged.length === 0) return nextKeys;
+      for (const k of nextKeys) {
+        if (!prevSet.has(k)) merged.push(k);
+      }
+      return merged;
+    });
+  }, [exportColumns]);
+
+  const normalizeBookingExportRow = (b) => {
+    return {
+      full_name: b.full_name || `${b.first_name || ''} ${b.last_name || ''}`.trim(),
+      order_no: b.order_no || b.orderNumber || b.reference || '',
+      property_name: b.property_name || b.propertyName || b.property || '',
+      room_number: b.room_number || b.room || '',
+      check_in: b.check_in || b.check_in_date || b.checkIn || '',
+      day: b.day || '',
+      guests: b.guests ?? '',
+      origin: b.origin || '',
+      immigration_status: b.immigration_status || b.immigrationStatus || '',
+      status: b.status || '',
+    };
+  };
+
+  const openExport = (format) => {
+    setExportFormat(format);
+    setShowExportModal(true);
+    setSelectedExportKeys((prev) => (prev && prev.length ? prev : exportColumns.map((c) => c.key)));
+  };
+
+  const closeExport = () => {
+    setShowExportModal(false);
+    setExportFormat(null);
+  };
+
+  const runExport = () => {
+    try {
+      const keySet = new Set(selectedExportKeys || []);
+      const columns = (exportColumns || []).filter((c) => keySet.has(c.key));
+      if (!columns.length) {
+        alert('Please select at least one column to download.');
+        return;
+      }
+
+      const data = (filteredBookings || []).map(normalizeBookingExportRow);
+
+      if (exportFormat === 'pdf') {
+        generatePDF(data, columns, 'Bookings Report', 'bookings-report');
+      } else if (exportFormat === 'csv') {
+        generateCSV(data, columns, 'bookings-report');
+      }
+
+      closeExport();
+    } catch (error) {
+      console.error('Error exporting bookings:', error);
+      alert('Failed to download: ' + error.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
@@ -627,13 +712,19 @@ export default function Bookings({ user }) {
             </div>
             <p className="text-sm text-gray-600 mt-1">Manage reservations and check-ins</p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>New Booking</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <DownloadDropdown
+              onDownloadPDF={() => openExport('pdf')}
+              onDownloadCSV={() => openExport('csv')}
+            />
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-lg py-2.5 px-5 flex items-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>New Booking</span>
+            </button>
+          </div>
         </div>
 
         {/* Stats Overview */}
@@ -675,6 +766,89 @@ export default function Bookings({ user }) {
             </div>
           </div>
         </div>
+
+        {showExportModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Select the columns you want to include</div>
+                </div>
+                <button
+                  onClick={closeExport}
+                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                  title="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="px-5 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium text-gray-700">Columns</div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <button
+                      onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
+                      className="text-teal-600 hover:text-teal-700 font-medium"
+                    >
+                      Select all
+                    </button>
+                    <button
+                      onClick={() => setSelectedExportKeys([])}
+                      className="text-gray-600 hover:text-gray-700 font-medium"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
+                  {exportColumns.map((col) => {
+                    const checked = (selectedExportKeys || []).includes(col.key);
+                    return (
+                      <label
+                        key={col.key}
+                        className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 hover:bg-gray-50"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setSelectedExportKeys((prev) => {
+                              const set = new Set(prev || []);
+                              if (isChecked) set.add(col.key);
+                              else set.delete(col.key);
+                              return Array.from(set);
+                            });
+                          }}
+                          className="w-4 h-4 text-teal-600 rounded"
+                        />
+                        <span className="text-sm text-gray-700">{col.header}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-3">
+                <button
+                  onClick={closeExport}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={runExport}
+                  className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors"
+                >
+                  Download
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Area - Bookings Table */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
