@@ -352,8 +352,6 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
     role: 'staff',
     phone: '',
     branch: '',
-    hotel_id: '',
-    hotel_name: '',
     address: '',
     city: '',
     status: 'active'
@@ -369,8 +367,6 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
   const [branches, setBranches] = useState([]);
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   const [branchInputFocused, setBranchInputFocused] = useState(false);
-
-  const [hotels, setHotels] = useState([]);
 
   // Dynamic Columns State
   const [dynamicColumns, setDynamicColumns] = useState([]);
@@ -419,27 +415,12 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
     }
   };
 
-  const fetchHotels = async () => {
-    try {
-      const res = await axios.get('/api/hotels', {
-        params: { limit: 500 },
-        withCredentials: true,
-      });
-      const list = res?.data?.hotels ?? res?.data?.data ?? res?.data ?? [];
-      setHotels(Array.isArray(list) ? list : []);
-    } catch (err) {
-      console.error('Failed to fetch hotels:', err);
-      setHotels([]);
-    }
-  };
-
   // Fetch branches and columns when modal opens
   React.useEffect(() => {
     if (open) {
       document.body.classList.add("form-modal-open");
       fetchBranches();
       fetchDynamicColumns();
-      fetchHotels();
     } else {
       document.body.classList.remove("form-modal-open");
     }
@@ -512,8 +493,6 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
         role: formData.role,
         phone: formData.phone?.trim() || null,
         branch: formData.branch?.trim() || null,
-        hotel_id: formData.hotel_id || null,
-        hotel_name: formData.hotel_name || null,
         address: formData.address?.trim() || null,
         city: formData.city?.trim() || null,
         status: formData.status || 'active'
@@ -537,8 +516,6 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
           role: 'staff',
           phone: '',
           branch: '',
-          hotel_id: '',
-          hotel_name: '',
           address: '',
           city: '',
           status: 'active'
@@ -731,33 +708,6 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">
-                  Property
-                </label>
-                <select
-                  value={formData.hotel_id}
-                  onChange={(e) => {
-                    const nextId = e.target.value;
-                    const h = hotels.find((x) => String(x.id) === String(nextId));
-                    setFormData({
-                      ...formData,
-                      hotel_id: nextId,
-                      hotel_name: h?.name || '',
-                    });
-                  }}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm
-                             focus:outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-200 transition-all"
-                >
-                  <option value="">Select property</option>
-                  {hotels.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.name}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {/* Status */}

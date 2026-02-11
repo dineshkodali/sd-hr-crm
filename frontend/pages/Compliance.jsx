@@ -429,13 +429,15 @@ export default function Compliance() {
     fetchHotels(controller.signal);
     fetchStats(controller.signal);
     fetchData(controller.signal);
-    fetchAvailableColumns();
-    const intervalId = setInterval(fetchAvailableColumns, 5000);
     return () => {
       controller.abort();
-      clearInterval(intervalId);
     };
   }, []);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    fetchAvailableColumns();
+  }, [modalOpen]);
 
   const fetchStaffForHotel = async (hotelId) => {
     if (!hotelId) { setStaffUsers([]); return; }

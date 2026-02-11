@@ -36,6 +36,66 @@ const api = axios.create({ baseURL: API_BASE, withCredentials: true, timeout: 30
 // --- MOCK DATA FOR CARDS ---
 const REPORTS_CONFIG = [
   {
+    id: "service_users",
+    title: "Service Users",
+    description: "Service users list export with selectable columns.",
+    category: "OPERATIONS",
+    icon: <UsersIcon />,
+    color: "bg-purple-50 text-purple-600",
+    endpoint: "/api/su/users",
+    tableName: null,
+    dataKey: "users",
+    defaultColumns: ["first_name", "last_name", "email", "phone", "status", "property_name", "room_number"],
+  },
+  {
+    id: "users",
+    title: "Users",
+    description: "Staff/users export (same dataset used by Users page).",
+    category: "OPERATIONS",
+    icon: <UsersIcon />,
+    color: "bg-teal-50 text-teal-600",
+    endpoint: "/api/admin/users",
+    tableName: null,
+    dataKey: "users",
+    defaultColumns: ["name", "email", "phone", "role", "branch", "status", "hotel_name", "hotel_id"],
+  },
+  {
+    id: "bookings",
+    title: "Bookings",
+    description: "Bookings export (same dataset used by Bookings page).",
+    category: "OPERATIONS",
+    icon: <CalendarIcon />,
+    color: "bg-blue-50 text-blue-600",
+    endpoint: "/api/su/users",
+    tableName: null,
+    dataKey: "users",
+    defaultColumns: ["full_name", "order_no", "property_name", "room_number", "check_in", "guests", "status"],
+  },
+  {
+    id: "move_in_out",
+    title: "Move In / Out",
+    description: "Move-in / move-out activity export.",
+    category: "OPERATIONS",
+    icon: <LayersIcon />,
+    color: "bg-emerald-50 text-emerald-600",
+    endpoint: "/api/move-ins",
+    tableName: null,
+    dataKey: "rows",
+    defaultColumns: ["service_user_name", "property_name", "room_name", "bedspace_name", "move_in_date", "status"],
+  },
+  {
+    id: "meal_management",
+    title: "Meal Management",
+    description: "Meals export (scheduled meals and status).",
+    category: "OPERATIONS",
+    icon: <BriefcaseIcon />,
+    color: "bg-orange-50 text-orange-600",
+    endpoint: "/api/meals",
+    tableName: null,
+    dataKey: "rows",
+    defaultColumns: ["service_user_name", "property_name", "meal_type", "portion", "dietary", "scheduled_date", "status"],
+  },
+  {
     id: "inspections",
     title: "Inspections Report",
     description: "Complete log of property inspections, statuses, and auditor remarks.",
@@ -257,13 +317,15 @@ function AlertCircleIcon() { return <AlertCircle className="w-6 h-6" />; }
 function UsersIcon() { return <Users className="w-6 h-6" />; }
 function Building2Icon() { return <Building2 className="w-6 h-6" />; }
 function BriefcaseIcon() { return <Briefcase className="w-6 h-6" />; }
+function CalendarIcon() { return <Calendar className="w-6 h-6" />; }
 
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState("library"); // library, templates
   const [selectedReport, setSelectedReport] = useState(null); // The report object currently in modal
-  const [modalStep, setModalStep] = useState(1); // 1 = Selection, 2 = Filtered Analysis
+  const [modalStep, setModalStep] = useState(1); // 0 = Report selector (custom), 1 = Selection, 2 = Filtered Analysis
   const [loading, setLoading] = useState(false);
+  const [isCustomReportFlow, setIsCustomReportFlow] = useState(false);
 
   // Filter State
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
@@ -273,10 +335,10 @@ export default function Reports() {
   const [availableColumns, setAvailableColumns] = useState([]);
 
   // Fetch columns helper
-  const fetchColumns = async (report) => {
+  const fetchColumns = async (report, { preselect = true } = {}) => {
     if (!report.tableName) {
       setAvailableColumns(report.defaultColumns);
-      setSelectedColumns(report.defaultColumns);
+      setSelectedColumns(preselect ? report.defaultColumns : []);
       return;
     }
 
@@ -288,31 +350,53 @@ export default function Reports() {
 
       if (columnNames.length > 0) {
         setAvailableColumns(columnNames);
-        setSelectedColumns(columnNames); // Default to all selected
+        setSelectedColumns(preselect ? columnNames : []);
       } else {
         setAvailableColumns(report.defaultColumns);
-        setSelectedColumns(report.defaultColumns);
+        setSelectedColumns(preselect ? report.defaultColumns : []);
       }
     } catch (err) {
       console.warn("Failed to fetch columns:", err);
       setAvailableColumns(report.defaultColumns);
-      setSelectedColumns(report.defaultColumns);
+      setSelectedColumns(preselect ? report.defaultColumns : []);
     }
   };
 
   const handleOpenModal = (report) => {
     setSelectedReport(report);
     setModalStep(1);
+    setIsCustomReportFlow(false);
     setDateRange({ start: "", end: "" });
     setSelectedColumns([]);
     // Fetch available columns immediately when opening modal or when switching to step 2? 
     // Let's do it now to be ready
-    fetchColumns(report);
+    fetchColumns(report, { preselect: true });
+  };
+
+  const handleOpenCustomReportModal = () => {
+    setIsCustomReportFlow(true);
+    setSelectedReport(null);
+    setModalStep(0);
+    setDateRange({ start: "", end: "" });
+    setAvailableColumns([]);
+    setSelectedColumns([]);
+  };
+
+  const handleSelectCustomReport = (reportId) => {
+    const report = REPORTS_CONFIG.find((r) => r.id === reportId) || null;
+    setSelectedReport(report);
+    setDateRange({ start: "", end: "" });
+    setSelectedColumns([]);
+    if (report) {
+      fetchColumns(report, { preselect: false });
+      setModalStep(2);
+    }
   };
 
   const handleCloseModal = () => {
     setSelectedReport(null);
     setModalStep(1);
+    setIsCustomReportFlow(false);
   };
 
   const handleFullDatasetDownload = async () => {
@@ -354,7 +438,7 @@ export default function Reports() {
     }
   };
 
-  const handleFilteredDownload = async () => {
+  const handleFilteredDownload = async (type = 'csv') => {
     // This would ideally apply server-side filtering params
     // For MVP, we can fetch all and filter client-side OR assume the backend supports start_date/end_date params
     if (!selectedReport) return;
@@ -396,7 +480,16 @@ export default function Reports() {
       // Use selected columns if available, otherwise default
       const columnsToExport = selectedColumns.length > 0 ? selectedColumns : selectedReport.defaultColumns;
 
-      generateCSV(data, columnsToExport, `${selectedReport.id}_filtered_report_${new Date().toISOString().slice(0, 10)}`);
+      const filename = `${selectedReport.id}_filtered_report_${new Date().toISOString().slice(0, 10)}`;
+      if (type === 'pdf') {
+        const pdfColumns = columnsToExport.map((key) => ({
+          header: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+          key,
+        }));
+        generatePDF(data, pdfColumns, selectedReport.title, filename);
+      } else {
+        generateCSV(data, columnsToExport, filename);
+      }
       handleCloseModal();
     } catch (err) {
       console.error("Filtered download failed:", err);
@@ -434,8 +527,11 @@ export default function Reports() {
         return;
       }
 
-      // Derive columns from first record or defaults
-      const keys = data.length > 0 ? Object.keys(data[0]) : report.defaultColumns;
+      // Use configured columns by default to avoid exporting unexpected/unselected keys
+      // (some endpoints return many extra fields).
+      const keys = (report.defaultColumns && report.defaultColumns.length > 0)
+        ? report.defaultColumns
+        : (data.length > 0 ? Object.keys(data[0]) : []);
 
       const filename = `${report.id}_${type}_report_${new Date().toISOString().slice(0, 10)}`;
 
@@ -464,7 +560,10 @@ export default function Reports() {
           <h1 className="text-2xl font-bold text-slate-800">Intelligence & Reports</h1>
           <p className="text-gray-500 mt-1 text-sm">Cross-module collation and strategic insight generation.</p>
         </div>
-        <button className="bg-[#4dc8c3] hover:bg-[#2ddad6] text-white px-5 py-2.5 rounded-lg shadow-lg shadow-[#4dc8c3]/20 font-medium flex items-center gap-2 transition-all">
+        <button
+          onClick={handleOpenCustomReportModal}
+          className="bg-[#4dc8c3] hover:bg-[#2ddad6] text-white px-5 py-2.5 rounded-lg shadow-lg shadow-[#4dc8c3]/20 font-medium flex items-center gap-2 transition-all"
+        >
           <Plus className="w-4 h-4" />
           <span>New Custom Report</span>
         </button>
@@ -555,18 +654,24 @@ export default function Reports() {
       )}
 
       {/* --- MODAL --- */}
-      {selectedReport && (
+      {(selectedReport || isCustomReportFlow) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all">
           <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="px-8 py-6 border-b border-gray-100 flex items-start justify-between bg-white shrink-0">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selectedReport.color}`}>
-                  {selectedReport.icon}
-                </div>
+                {selectedReport ? (
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selectedReport.color}`}>
+                    {selectedReport.icon}
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-100 text-slate-500">
+                    <Database className="w-6 h-6" />
+                  </div>
+                )}
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">Collation Parameters</h2>
-                  <p className="text-[#4dc8c3] text-xs font-bold tracking-wider uppercase mt-1">{selectedReport.title}</p>
+                  <p className="text-[#4dc8c3] text-xs font-bold tracking-wider uppercase mt-1">{selectedReport ? selectedReport.title : 'Custom Report'}</p>
                 </div>
               </div>
               <button onClick={handleCloseModal} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -576,7 +681,27 @@ export default function Reports() {
 
             {/* Modal Content */}
             <div className="p-8 bg-slate-50/50 flex-1 overflow-y-auto">
-              {modalStep === 1 ? (
+              {modalStep === 0 ? (
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Report</label>
+                    <select
+                      value={selectedReport?.id || ''}
+                      onChange={(e) => handleSelectCustomReport(e.target.value)}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-800 outline-none focus:ring-2 focus:ring-[#4dc8c3]/30"
+                    >
+                      <option value="" disabled>Select a report</option>
+                      {REPORTS_CONFIG.map((r) => (
+                        <option key={r.id} value={r.id}>{r.title}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="bg-white border border-gray-100 rounded-xl p-4 text-sm text-gray-500">
+                    Choose a report to configure columns and download as PDF or CSV.
+                  </div>
+                </div>
+              ) : modalStep === 1 ? (
                 /* STEP 1: SELECTION */
                 <div className="space-y-4">
                   <div className="text-center mb-8 px-8">
@@ -696,35 +821,71 @@ export default function Reports() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleFilteredDownload}
-                    disabled={loading}
-                    className="w-full bg-[#4dc8c3] hover:bg-[#2ddad6] text-white py-4 rounded-xl font-bold shadow-lg shadow-[#4dc8c3]/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.99]"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                        <span>Generating Insight...</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-5 h-5" />
-                        <span>Generate Insight</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handleFilteredDownload('pdf')}
+                      disabled={loading}
+                      className="w-full bg-[#4dc8c3] hover:bg-[#2ddad6] text-white py-4 rounded-xl font-bold shadow-lg shadow-[#4dc8c3]/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.99]"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                          <span>Generating PDF...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-5 h-5" />
+                          <span>Download PDF</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => handleFilteredDownload('csv')}
+                      disabled={loading}
+                      className="w-full bg-white hover:bg-gray-50 text-slate-800 py-4 rounded-xl font-bold shadow-lg border border-gray-200 flex items-center justify-center gap-2 transition-transform active:scale-[0.99]"
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin w-5 h-5 border-2 border-slate-800 border-t-transparent rounded-full" />
+                          <span>Generating CSV...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-5 h-5" />
+                          <span>Download CSV</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Back Button for Step 2 */}
-            {modalStep === 2 && (
+            {modalStep === 2 && !isCustomReportFlow && (
               <div className="px-8 py-4 bg-white border-t border-gray-100 flex justify-start">
                 <button
                   onClick={() => setModalStep(1)}
                   className="text-gray-400 hover:text-gray-600 text-sm font-medium flex items-center gap-2"
                 >
                   ← Back to Parameters
+                </button>
+              </div>
+            )}
+
+            {modalStep === 2 && isCustomReportFlow && (
+              <div className="px-8 py-4 bg-white border-t border-gray-100 flex justify-start">
+                <button
+                  onClick={() => {
+                    setSelectedReport(null);
+                    setAvailableColumns([]);
+                    setSelectedColumns([]);
+                    setModalStep(0);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-sm font-medium flex items-center gap-2"
+                >
+                  ← Back to Report Selection
                 </button>
               </div>
             )}

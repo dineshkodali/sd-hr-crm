@@ -8,6 +8,7 @@ import {
   LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, Legend, AreaChart, Area
 } from "recharts";
+import MealAnalysis from "../components/MealAnalysis";
 
 /* --- 1. CONFIG & UTILS --- */
 
@@ -40,7 +41,7 @@ const useCountUp = (end, duration = 1500) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
       // Ease-out function for smooth effect
-      const easeOut = 1 - Math.pow(1 - progress, 3); 
+      const easeOut = 1 - Math.pow(1 - progress, 3);
       setCount(Math.floor(easeOut * end));
       if (progress < 1) {
         animationFrame = requestAnimationFrame(step);
@@ -55,7 +56,7 @@ const useCountUp = (end, duration = 1500) => {
 /* --- 2. SUB-COMPONENTS --- */
 
 const DashboardCard = ({ title, action, children, className = "", delay = 0, onClick }) => (
-  <div 
+  <div
     className={`bg-white rounded-2xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] hover:shadow-xl transition-all duration-300 flex flex-col relative overflow-hidden group ${className} ${onClick ? 'cursor-pointer' : ''}`}
     style={{ animation: `fadeInUp 0.6s ease-out ${delay}ms forwards`, opacity: 0 }}
     onClick={onClick}
@@ -79,7 +80,7 @@ const StatCard = ({ title, value, sub, color, icon, delay = 0, onClick }) => {
   const isString = typeof value === 'string' && isNaN(parseInt(value));
 
   return (
-    <div 
+    <div
       className={`bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_10px_-4px_rgba(6,81,237,0.1)] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out group relative overflow-hidden ${onClick ? 'cursor-pointer' : ''}`}
       style={{ animation: `fadeInUp 0.6s ease-out ${delay}ms forwards`, opacity: 0, transform: 'translateY(10px)' }}
       onClick={onClick}
@@ -91,19 +92,19 @@ const StatCard = ({ title, value, sub, color, icon, delay = 0, onClick }) => {
             {isString ? value : displayValue.toLocaleString()}
           </div>
           {sub && <div className="text-xs text-slate-400 mt-2 font-medium flex items-center gap-1">
-             <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> {sub}
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span> {sub}
           </div>}
         </div>
-        <div 
-          className="p-3 rounded-xl text-white shadow-lg transform group-hover:rotate-12 transition-transform duration-500" 
+        <div
+          className="p-3 rounded-xl text-white shadow-lg transform group-hover:rotate-12 transition-transform duration-500"
           style={{ background: `linear-gradient(135deg, ${color}, ${adjustColor(color, -20)})` }}
         >
           {icon}
         </div>
       </div>
       {/* Decorative Blob */}
-      <div 
-        className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full opacity-10 group-hover:scale-110 transition-transform duration-700" 
+      <div
+        className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full opacity-10 group-hover:scale-110 transition-transform duration-700"
         style={{ backgroundColor: color }}
       ></div>
     </div>
@@ -112,7 +113,7 @@ const StatCard = ({ title, value, sub, color, icon, delay = 0, onClick }) => {
 
 // Helper to darken color for gradient
 const adjustColor = (color, amount) => {
-    return color; // Simplified for demo, ideally uses hex manipulation
+  return color; // Simplified for demo, ideally uses hex manipulation
 }
 
 const LoadingSkeleton = () => (
@@ -144,7 +145,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         <p className="font-bold mb-1 opacity-70">{label}</p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full" style={{background: entry.color}}></div>
+            <div className="w-2 h-2 rounded-full" style={{ background: entry.color }}></div>
             <span className="font-medium">{entry.name}:</span>
             <span className="font-bold">{entry.value}</span>
           </div>
@@ -156,25 +157,25 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 /* --- Icons --- */
-const IconBuilding = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/><path d="M17 21v-8.5a1.5 1.5 0 0 0-1.5-1.5h-7a1.5 1.5 0 0 0-1.5 1.5V21"/></svg>;
-const IconUsers = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
-const IconAlert = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
-const IconCheck = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
-const IconWrench = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>;
+const IconBuilding = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V7l8-4 8 4v14" /><path d="M17 21v-8.5a1.5 1.5 0 0 0-1.5-1.5h-7a1.5 1.5 0 0 0-1.5 1.5V21" /></svg>;
+const IconUsers = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+const IconAlert = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
+const IconCheck = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
+const IconWrench = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>;
 
 /* --- 3. MAIN COMPONENT --- */
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  
+  const [loading, setLoading] = useState(false);
+
   // Filter States
   const [selectedBranch, setSelectedBranch] = useState('all');
   const [selectedProperty, setSelectedProperty] = useState('all');
   const [timeRange, setTimeRange] = useState('30d');
   const [branches, setBranches] = useState([]);
   const [properties, setProperties] = useState([]);
-  
+
   // Data State
   const [kpis, setKpis] = useState([]);
   const [trends, setTrends] = useState([]);
@@ -184,6 +185,15 @@ export default function AdminDashboard() {
   const [attentionItems, setAttentionItems] = useState([]);
   const [demographics, setDemographics] = useState([]);
   const [maintenanceStats, setMaintenanceStats] = useState({ pending: 0, inProgress: 0, completed: 0 });
+  const [maintenanceTrends, setMaintenanceTrends] = useState([]);
+  const [complianceDonutTooltip, setComplianceDonutTooltip] = useState({
+    open: false,
+    x: 0,
+    y: 0,
+    label: '',
+    value: 0,
+    color: '#5dcab9',
+  });
   const [expiringSoonCount, setExpiringSoonCount] = useState(0);
   const [validComplianceCount, setValidComplianceCount] = useState(0);
   const [expiredComplianceCount, setExpiredComplianceCount] = useState(0);
@@ -216,7 +226,7 @@ export default function AdminDashboard() {
           api.get('/api/branches'),
           api.get('/api/hotels')
         ]);
-        
+
         if (mounted) {
           if (branchesRes.status === 'fulfilled') {
             setBranches(extractArray(branchesRes.value));
@@ -235,17 +245,17 @@ export default function AdminDashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        
+
         // Build query params based on filters
         const params = {
           timeRange,
           ...(selectedBranch !== 'all' && { branch_id: selectedBranch }),
           ...(selectedProperty !== 'all' && { property_id: selectedProperty })
         };
-        
+
         // 1. Fetch Summary endpoints (Optimized/Aggregated) with filters
         const results = await Promise.allSettled([
-          api.get('/api/dashboard/kpis', { params }),           
+          api.get('/api/dashboard/kpis', { params }),
           api.get('/api/dashboard/trends', { params }),
           api.get('/api/dashboard/occupancy', { params }),
           api.get('/api/dashboard/incidents-summary', { params }),
@@ -253,176 +263,51 @@ export default function AdminDashboard() {
           api.get('/api/dashboard/attention-items', { params }),
           api.get('/api/incidents', { params: { ...params, limit: 5 } }),
           api.get('/api/dashboard/demographics', { params }),
-          api.get('/api/dashboard/maintenance-stats', { params })
+          api.get('/api/dashboard/maintenance-stats', { params }),
+          api.get('/api/dashboard/maintenance-trends', { params })
         ]);
 
         if (!mounted) return;
         const val = (idx) => results[idx].status === 'fulfilled' ? results[idx].value : null;
 
         // --- KPI LOGIC ---
+        // Keep dashboard fast: if aggregated KPI endpoint is missing/slow, don't trigger heavy fallback
+        // that performs multiple large table scans. UI will still render quickly using existing card fallbacks.
         if (val(0) && val(0).data && Array.isArray(val(0).data) && val(0).data.length > 0) {
-           setKpis(val(0).data);
+          setKpis(val(0).data);
         } else {
-           // --- FALLBACK CALCULATION (Real Database Counts) ---
-           try {
-              const [hotelsRes, usersRes, incRes, compRes, roomsRes, maintenanceRes] = await Promise.allSettled([
-                  api.get('/api/hotels'),         
-                  api.get('/api/su/users'),  
-                  api.get('/api/incidents'),
-                  api.get('/api/compliance'),
-                  api.get('/api/rooms'),
-                  api.get('/api/maintenance')
-              ]);
-              
-              const getCount = (r) => {
-                  if (r.status !== 'fulfilled') return 0;
-                  const arr = extractArray(r.value);
-                  return arr.length;
-              };
-
-              // Count only active service users
-              let usersCount = 0;
-              if (usersRes.status === 'fulfilled') {
-                const allUsers = extractArray(usersRes.value);
-                usersCount = allUsers.filter(u => u.status === 'Active' || u.active === true).length;
-              }
-              setServiceUserCount(usersCount);
-
-              // Calculate occupancy based on beds in hotels
-              if (hotelsRes.status === 'fulfilled') {
-                const hotels = extractArray(hotelsRes.value);
-                const totalBeds = hotels.reduce((sum, h) => sum + (parseInt(h.total_beds) || 0), 0);
-                const occupiedBeds = hotels.reduce((sum, h) => sum + (parseInt(h.occupied_beds) || 0), 0);
-                setTotalRooms(totalBeds);
-                setOccupiedRooms(occupiedBeds);
-              }
-
-              // Calculate maintenance stats
-              if (maintenanceRes.status === 'fulfilled') {
-                const maintenanceTasks = extractArray(maintenanceRes.value);
-                const pending = maintenanceTasks.filter(m => {
-                  const status = String(m.status || '').toLowerCase();
-                  return status === 'pending' || status === 'open';
-                }).length;
-                const inProgress = maintenanceTasks.filter(m => {
-                  const status = String(m.status || '').toLowerCase();
-                  return status === 'in progress' || status === 'under review';
-                }).length;
-                const completed = maintenanceTasks.filter(m => {
-                  const status = String(m.status || '').toLowerCase();
-                  return status === 'completed' || status === 'closed';
-                }).length;
-                setMaintenanceStats({ pending, inProgress, completed });
-              }
-
-              // Calculate expiring soon compliance certificates
-              if (compRes.status === 'fulfilled') {
-                const complianceCerts = extractArray(compRes.value);
-                const today = new Date();
-                const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-                
-                const expiringSoon = complianceCerts.filter(cert => {
-                  const expiryDate = new Date(cert.expiry_date);
-                  const status = String(cert.status || '').toLowerCase();
-                  // Count certificates that are expiring within 30 days or have status 'expiring-soon'
-                  return (expiryDate >= today && expiryDate <= thirtyDaysFromNow) || status === 'expiring-soon' || status === 'expiring soon';
-                }).length;
-                
-                const validCerts = complianceCerts.filter(cert => {
-                  const status = String(cert.status || '').toLowerCase();
-                  const expiryDate = new Date(cert.expiry_date);
-                  // Count certificates with status 'valid' or expiry date in the future (beyond 30 days)
-                  return status === 'valid' || (expiryDate > thirtyDaysFromNow);
-                }).length;
-                
-                const expiredCerts = complianceCerts.filter(cert => {
-                  const status = String(cert.status || '').toLowerCase();
-                  const expiryDate = new Date(cert.expiry_date);
-                  // Count certificates with status 'expired' or expiry date in the past
-                  return status === 'expired' || expiryDate < today;
-                }).length;
-                
-                setExpiringSoonCount(expiringSoon);
-                setValidComplianceCount(validCerts);
-                setExpiredComplianceCount(expiredCerts);
-              }
-
-              // Calculate open incidents count
-              if (incRes.status === 'fulfilled') {
-                const incidents = extractArray(incRes.value);
-                const openIncidents = incidents.filter(inc => {
-                  const status = String(inc.status || '').toLowerCase();
-                  return status === 'open' || status === 'pending' || status === 'in progress';
-                }).length;
-                setOpenIncidentsCount(openIncidents);
-              }
-
-              setKpis([
-                  { title: "Total Properties", main: getCount(hotelsRes), sub: "Registered", color: COLORS.primary },
-                  { title: "Total Users", main: usersCount, sub: "Active Accounts", color: COLORS.success },
-                  { title: "Open Incidents", main: openIncidentsCount, sub: "Unresolved", color: COLORS.warning },
-                  { title: "Compliance", main: getCount(compRes), sub: "Records", color: COLORS.danger },
-              ]);
-           } catch (e) {
-               console.warn("KPI Calculation failed", e);
-               setKpis([]); 
-           }
+          setKpis([]);
         }
-        
+
         // 2. TRENDS
+        // Keep dashboard fast: avoid extra incident fetches to synthesize trends.
         if (val(1) && Array.isArray(val(1).data) && val(1).data.length > 0) {
-            setTrends(val(1).data);
+          setTrends(val(1).data);
         } else {
-            // Generate trend data from actual incidents
-            try {
-              const incidentsResponse = await api.get('/api/incidents');
-              const allIncidents = extractArray(incidentsResponse);
-              
-              // Get last 12 months
-              const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-              const currentDate = new Date();
-              const currentYear = currentDate.getFullYear();
-              const currentMonth = currentDate.getMonth();
-              
-              // Create array of last 12 months
-              const last12Months = [];
-              for (let i = 11; i >= 0; i--) {
-                const monthIndex = (currentMonth - i + 12) % 12;
-                const year = currentMonth - i < 0 ? currentYear - 1 : currentYear;
-                last12Months.push({ month: months[monthIndex], monthIndex, year });
-              }
-              
-              // Count incidents and resolutions by month
-              const trendData = last12Months.map(({ month, monthIndex, year }) => {
-                const monthIncidents = allIncidents.filter(inc => {
-                  const incDate = new Date(inc.created_at || inc.date || inc.incident_date);
-                  return incDate.getMonth() === monthIndex && incDate.getFullYear() === year;
-                });
-                
-                const resolvedIncidents = monthIncidents.filter(inc => {
-                  const status = String(inc.status || '').toLowerCase();
-                  return status === 'resolved' || status === 'closed' || status === 'completed';
-                });
-                
-                return {
-                  month,
-                  incidents: monthIncidents.length,
-                  resolutions: resolvedIncidents.length
-                };
-              });
-              
-              setTrends(trendData);
-            } catch (error) {
-              console.error('Error generating trends:', error);
-              setTrends([]);
-            }
+          setTrends([]);
         }
 
         // 3. Occupancy
-        if (val(2)) setOccupancy(val(2).data || []);
-        
+        if (val(2)) {
+          const occ = val(2).data || val(2) || {};
+          setOccupancy(occ);
+          const total = Number(occ.totalBeds ?? occ.total_beds ?? 0);
+          const occupied = Number(occ.occupiedBeds ?? occ.occupied_beds ?? 0);
+          if (Number.isFinite(total) && total >= 0) setTotalRooms(total);
+          if (Number.isFinite(occupied) && occupied >= 0) setOccupiedRooms(occupied);
+        }
+
         // 4. Compliance
-        if (val(4)) setCompliance(val(4).data || []);
+        if (val(4)) {
+          const comp = val(4).data || val(4) || {};
+          setCompliance(comp);
+          const valid = Number(comp.validCount ?? comp.valid_count ?? 0);
+          const expired = Number(comp.expiredCount ?? comp.expired_count ?? 0);
+          const expiring = Number(comp.expiringSoonCount ?? comp.expiring_count ?? comp.expiring_soon_count ?? 0);
+          if (Number.isFinite(valid)) setValidComplianceCount(valid);
+          if (Number.isFinite(expired)) setExpiredComplianceCount(expired);
+          if (Number.isFinite(expiring)) setExpiringSoonCount(expiring);
+        }
 
         // 5. Attention Items
         if (val(5)) setAttentionItems(val(5).data || []);
@@ -430,11 +315,45 @@ export default function AdminDashboard() {
         // 6. Recent Incidents
         if (val(6)) setRecentIncidents(extractArray(val(6)));
 
+        // Open Incidents count (summary)
+        if (val(3)) {
+          const incSum = val(3).data || val(3) || {};
+          const open = Number(incSum.openIncidents ?? incSum.open_incidents ?? 0);
+          if (Number.isFinite(open)) setOpenIncidentsCount(open);
+        }
+
         // 7. Demographics
         if (val(7)) setDemographics(val(7).data || []);
 
         // 8. Maintenance
-        if (val(8)) setMaintenanceStats(val(8).data || { pending: 0, inProgress: 0, completed: 0 });
+        if (val(8)) {
+          const ms = val(8).data || val(8) || {};
+          // backend returns { taskStats: { pending: 1, ... } }
+          const statsObj = ms.taskStats || ms.task_stats || ms || {};
+          const get = (k) => {
+            const direct = statsObj?.[k];
+            if (direct !== undefined) return Number(direct);
+            const lowerKey = Object.keys(statsObj || {}).find((x) => String(x).toLowerCase() === String(k).toLowerCase());
+            return lowerKey ? Number(statsObj[lowerKey]) : 0;
+          };
+          const pending = get('pending') + get('open');
+          const inProgress = get('in_progress') + get('in progress') + get('inprogress') + get('under review');
+          const completed = get('completed') + get('closed') + get('resolved');
+          setMaintenanceStats({
+            pending: Number.isFinite(pending) ? pending : 0,
+            inProgress: Number.isFinite(inProgress) ? inProgress : 0,
+            completed: Number.isFinite(completed) ? completed : 0,
+          });
+        }
+
+        // 9. Maintenance trends (bar chart)
+        if (val(9)) {
+          const mt = val(9).data || val(9) || {};
+          const series = Array.isArray(mt.data) ? mt.data : (Array.isArray(mt) ? mt : []);
+          setMaintenanceTrends(series);
+        } else {
+          setMaintenanceTrends([]);
+        }
 
       } catch (err) {
         console.error("Dashboard Load Error", err);
@@ -450,89 +369,91 @@ export default function AdminDashboard() {
   // Mini Chart Component
   const PageAnalyticsItem = ({ page, index }) => {
     const [stats, setStats] = useState({ count: 0, breakdown: [] });
-    
+
     useEffect(() => {
-        let active = true;
+      let active = true;
+      const timer = setTimeout(() => {
         api.get(page.endpoint + '?limit=1000').then(res => {
-            if(!active) return;
-            const arr = extractArray(res);
-            const map = {};
-            arr.forEach(i => {
-                const k = i.status || i.priority || i.severity || 'Other';
-                map[k] = (map[k]||0)+1;
-            });
-            const breakdown = Object.keys(map).slice(0,4).map(k => ({ name: k, value: map[k] }));
-            setStats({ count: arr.length, breakdown });
+          if (!active) return;
+          const arr = extractArray(res);
+          const map = {};
+          arr.forEach(i => {
+            const k = i.status || i.priority || i.severity || 'Other';
+            map[k] = (map[k] || 0) + 1;
+          });
+          const breakdown = Object.keys(map).slice(0, 4).map(k => ({ name: k, value: map[k] }));
+          setStats({ count: arr.length, breakdown });
         }).catch(() => {
-            if(active) setStats({ count: 0, breakdown: [] });
+          if (active) setStats({ count: 0, breakdown: [] });
         });
-        return () => { active = false; };
+      }, 600);
+      return () => {
+        active = false;
+        clearTimeout(timer);
+      };
     }, [page.endpoint]);
 
     return (
-        <div 
-          className="bg-white border border-slate-100 rounded-xl p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden cursor-pointer"
-          style={{ animation: `fadeInUp 0.6s ease-out ${index * 100 + 500}ms forwards`, opacity: 0 }}
-          onClick={() => navigate(page.route)}
-        >
-            <div className="flex justify-between items-center mb-3 relative z-10">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{page.title}</span>
-                <span className="text-sm font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{stats.count}</span>
-            </div>
-            <div style={{ width: '100%', height: 40, minWidth: 0, minHeight: 40 }} className="overflow-hidden relative z-10">
-                {stats.breakdown.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                        <BarChart data={stats.breakdown}>
-                            <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
-                            <Bar dataKey="value" fill={COLORS.primary} radius={[2,2,2,2]} animationDuration={1500} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                ) : <div className="h-full bg-slate-50/50 rounded flex items-center justify-center text-[10px] text-slate-400">0 Records</div>}
-            </div>
+      <div
+        className="bg-white border border-slate-100 rounded-xl p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 relative overflow-hidden cursor-pointer"
+        style={{ animation: `fadeInUp 0.6s ease-out ${index * 100 + 500}ms forwards`, opacity: 0 }}
+        onClick={() => navigate(page.route)}
+      >
+        <div className="flex justify-between items-center mb-3 relative z-10">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{page.title}</span>
+          <span className="text-sm font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{stats.count}</span>
         </div>
+        <div style={{ width: '100%', height: 40, minWidth: 0, minHeight: 40 }} className="overflow-hidden relative z-10">
+          {stats.breakdown.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <BarChart data={stats.breakdown}>
+                <Tooltip cursor={{ fill: 'transparent' }} content={<CustomTooltip />} />
+                <Bar dataKey="value" fill={COLORS.primary} radius={[2, 2, 2, 2]} animationDuration={1500} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <div className="h-full bg-slate-50/50 rounded flex items-center justify-center text-[10px] text-slate-400">0 Records</div>}
+        </div>
+      </div>
     );
   };
 
-  if (loading) return <LoadingSkeleton />;
-
   return (
     <div className="min-h-screen bg-gray-50 p-8 font-sans">
-      
+
       {/* --- Keyframes Injection --- */}
       <style>{`
          @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       <div className="max-w-[1600px] mx-auto space-y-6">
-        
+
         {/* --- HEADER --- */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Analytics Dashboard</h1>
             <p className="text-sm text-gray-500">Overview of your accommodation portfolio</p>
           </div>
-          
+
           <div className="flex items-center gap-3">
             {/* Time Range Buttons */}
             {['7D', '30D', '90D', '1Y'].map(range => (
-              <button 
-                key={range} 
+              <button
+                key={range}
                 onClick={() => setTimeRange(range.toLowerCase())}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  timeRange === range.toLowerCase()
-                    ? 'bg-blue-50 text-blue-600 border border-blue-200'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${timeRange === range.toLowerCase()
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'text-gray-600 hover:bg-gray-100'
+                  }`}
               >
                 {range}
               </button>
             ))}
-            
+
             {/* Icon Button */}
             <button className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             </button>
-            
+
             {/* Property Dropdown */}
             <select
               value={selectedProperty}
@@ -550,7 +471,7 @@ export default function AdminDashboard() {
         {/* --- ROW 1: PRIMARY KPI CARDS --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Total Properties */}
-          <div 
+          <div
             onClick={() => navigate('/hotels')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -569,7 +490,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Occupancy Rate */}
-          <div 
+          <div
             onClick={() => navigate('/rooms')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -594,7 +515,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Active Residents */}
-          <div 
+          <div
             onClick={() => navigate('/su/users')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -613,7 +534,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Open Incidents */}
-          <div 
+          <div
             onClick={() => navigate('/admin/incidents')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -635,7 +556,7 @@ export default function AdminDashboard() {
         {/* --- ROW 2: SECONDARY KPI CARDS --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Compliance Health */}
-          <div 
+          <div
             onClick={() => navigate('/compliance')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -658,7 +579,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Expiring Soon */}
-          <div 
+          <div
             onClick={() => navigate('/compliance')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -675,7 +596,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Pending Maintenance */}
-          <div 
+          <div
             onClick={() => navigate('/admin/maintenance')}
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
@@ -692,7 +613,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Completion Rate */}
-          <div 
+          <div
             className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all cursor-pointer"
           >
             <div className="flex items-start justify-between mb-4">
@@ -726,11 +647,11 @@ export default function AdminDashboard() {
             </div>
             <h2 className="text-base font-semibold text-gray-900">Items Requiring Immediate Attention</h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Show real attention items if available, otherwise show defaults */}
             {attentionItems.length > 0 ? attentionItems.slice(0, 3).map((item, idx) => (
-              <div 
+              <div
                 key={idx}
                 onClick={() => {
                   if (item.type === 'compliance' || item.category === 'compliance') navigate('/compliance');
@@ -760,7 +681,7 @@ export default function AdminDashboard() {
               { title: 'Legionella Risk Assessment Expired', location: 'Riverside Hotel' },
               { title: 'Asbestos Survey Expired', location: 'Riverside Hotel' }
             ].map((item, idx) => (
-              <div 
+              <div
                 key={idx}
                 onClick={() => navigate('/compliance')}
                 className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer group border border-gray-100"
@@ -804,20 +725,32 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="space-y-3">
-              {properties.slice(0, 8).map((property) => {
-                const total = parseInt(property.total_beds) || 0;
-                const occupied = parseInt(property.occupied_beds) || 0;
-                const percentage = total > 0 ? Math.round((occupied / total) * 100) : 0;
+              {((occupancy && Array.isArray(occupancy.topProperties) && occupancy.topProperties.length > 0)
+                ? occupancy.topProperties
+                : properties.slice(0, 8)
+              ).map((property) => {
+                const serviceUsersCount =
+                  property.serviceUsers ??
+                  property.service_users ??
+                  property.service_users_count ??
+                  null;
+                const percentage = Number(property.percentage) || (() => {
+                  const total = parseInt(property.total_beds) || 0;
+                  const occupied = parseInt(property.occupied_beds) || 0;
+                  return total > 0 ? Math.round((occupied / total) * 100) : 0;
+                })();
                 const barColor = percentage >= 80 ? '#5dcab9' : percentage >= 50 ? '#a7cdcc' : '#dcf2f1';
-                
+
                 return (
                   <div key={property.id}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-base font-medium text-gray-700 truncate">{property.name}</span>
-                      <span className="text-sm font-semibold text-gray-600 ml-2">{percentage}%</span>
+                      <span className="text-sm font-semibold text-gray-600 ml-2">
+                        {serviceUsersCount !== null && serviceUsersCount !== undefined ? Number(serviceUsersCount) : `${percentage}%`}
+                      </span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-4">
-                      <div 
+                      <div
                         className="h-4 rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%`, backgroundColor: barColor }}
                       ></div>
@@ -828,198 +761,290 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Incidents Overview */}
+          {/* Maintenance Overview */}
           <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Incidents Overview</h3>
-            <div className="flex gap-8 items-center justify-center h-[300px]">
-              <div className="text-center text-gray-400 text-sm">
-                <p>By Severity</p>
-                <p className="text-xs mt-1">No data available</p>
-              </div>
-              <div className="text-center text-gray-400 text-sm">
-                <p>By Type</p>
-                <p className="text-xs mt-1">No data available</p>
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Maintenance Overview</h3>
+            <div className="space-y-6">
+              <div>
+                <div className="text-sm text-gray-500 mb-3">Maintenance Analysis</div>
+                <div className="h-[340px]" style={{ height: 340, width: '100%' }}>
+                  {maintenanceTrends.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <BarChart
+                        data={maintenanceTrends}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                        barCategoryGap="15%"
+                        barGap={2}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="pending" stackId="a" fill="#5dcab9" radius={[6, 6, 0, 0]} barSize={30} animationDuration={1800} animationEasing="ease-in-out" />
+                        <Bar dataKey="inProgress" stackId="a" fill="#a7cdcc" radius={[6, 6, 0, 0]} barSize={30} animationDuration={1800} animationEasing="ease-in-out" />
+                        <Bar dataKey="completed" stackId="a" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={30} animationDuration={1800} animationEasing="ease-in-out" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full bg-slate-50/50 rounded flex items-center justify-center text-xs text-slate-400">No data</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Compliance Status */}
           <div className="bg-white rounded-xl p-6 border border-gray-200">
             <h3 className="text-base font-semibold text-gray-900 mb-4">Compliance Status</h3>
-            <div className="flex items-center justify-between">
+            <div
+              className="flex items-center justify-between relative"
+              style={{ minHeight: 300 }}
+              onMouseLeave={() => setComplianceDonutTooltip((p) => ({ ...p, open: false }))}
+            >
               <div className="flex-1">
-                <svg className="w-48 h-48 mx-auto" viewBox="0 0 200 200">
+                <svg className="w-52 h-52 mx-auto" viewBox="0 0 200 200">
                   {(() => {
-                    const total = validComplianceCount + expiringSoonCount + expiredComplianceCount;
-                    if (total === 0) return <circle cx="100" cy="100" r="80" fill="none" stroke="#e5e7eb" strokeWidth="20"/>;
-                    
-                    const circumference = 2 * Math.PI * 80; // 502.4
-                    const validPercent = (validComplianceCount / total);
-                    const expiringSoonPercent = (expiringSoonCount / total);
-                    const expiredPercent = (expiredComplianceCount / total);
-                    
+                    const total = Number(validComplianceCount) + Number(expiringSoonCount) + Number(expiredComplianceCount);
+                    if (!total) {
+                      return <circle cx="100" cy="100" r="78" fill="none" stroke="#e5e7eb" strokeWidth="18" />;
+                    }
+
+                    const circumference = 2 * Math.PI * 78;
+                    const validPercent = Number(validComplianceCount) / total;
+                    const expiringSoonPercent = Number(expiringSoonCount) / total;
+                    const expiredPercent = Number(expiredComplianceCount) / total;
+
                     const validOffset = 0;
                     const expiringSoonOffset = validPercent * circumference;
                     const expiredOffset = (validPercent + expiringSoonPercent) * circumference;
-                    
+
                     return (
                       <>
-                        <circle cx="100" cy="100" r="80" fill="none" stroke="#e5e7eb" strokeWidth="20"/>
-                        {/* Valid segment */}
-                        {validComplianceCount > 0 && (
-                          <circle 
-                            cx="100" cy="100" r="80" 
-                            fill="none" 
-                            stroke="#5dcab9" 
-                            strokeWidth="20"
+                        <circle cx="100" cy="100" r="78" fill="none" stroke="#e5e7eb" strokeWidth="18" />
+                        {Number(validComplianceCount) > 0 && (
+                          <circle
+                            cx="100"
+                            cy="100"
+                            r="78"
+                            fill="none"
+                            stroke="#5dcab9"
+                            strokeWidth="18"
+                            strokeLinecap="round"
                             strokeDasharray={`${validPercent * circumference} ${circumference}`}
-                            strokeDashoffset={-validOffset}
+                            strokeDashoffset={-(validOffset + circumference)}
                             transform="rotate(-90 100 100)"
                             className="transition-all duration-500"
-                          />
+                            onMouseEnter={() =>
+                              setComplianceDonutTooltip((p) => ({
+                                ...p,
+                                open: true,
+                                label: 'Valid',
+                                value: Number(validComplianceCount) || 0,
+                                color: '#5dcab9',
+                              }))
+                            }
+                            onMouseMove={(e) =>
+                              setComplianceDonutTooltip((p) => ({
+                                ...p,
+                                open: true,
+                                x: e.clientX,
+                                y: e.clientY,
+                              }))
+                            }
+                            style={{ filter: 'drop-shadow(0 6px 10px rgba(93,202,185,0.18))' }}
+                          >
+                            <animate
+                              attributeName="stroke-dashoffset"
+                              from={-(validOffset + circumference)}
+                              to={-validOffset}
+                              dur="1.5s"
+                              begin="0s"
+                              fill="freeze"
+                              calcMode="spline"
+                              keySplines="0.22 1 0.36 1"
+                            />
+                          </circle>
                         )}
-                        {/* Expiring Soon segment */}
-                        {expiringSoonCount > 0 && (
-                          <circle 
-                            cx="100" cy="100" r="80" 
-                            fill="none" 
-                            stroke="#a7cdcc" 
-                            strokeWidth="20"
+                        {Number(expiringSoonCount) > 0 && (
+                          <circle
+                            cx="100"
+                            cy="100"
+                            r="78"
+                            fill="none"
+                            stroke="#a7cdcc"
+                            strokeWidth="18"
+                            strokeLinecap="round"
                             strokeDasharray={`${expiringSoonPercent * circumference} ${circumference}`}
-                            strokeDashoffset={-expiringSoonOffset}
+                            strokeDashoffset={-(expiringSoonOffset + circumference)}
                             transform="rotate(-90 100 100)"
                             className="transition-all duration-500"
-                          />
+                            onMouseEnter={() =>
+                              setComplianceDonutTooltip((p) => ({
+                                ...p,
+                                open: true,
+                                label: 'Expiring Soon',
+                                value: Number(expiringSoonCount) || 0,
+                                color: '#a7cdcc',
+                              }))
+                            }
+                            onMouseMove={(e) =>
+                              setComplianceDonutTooltip((p) => ({
+                                ...p,
+                                open: true,
+                                x: e.clientX,
+                                y: e.clientY,
+                              }))
+                            }
+                            style={{ filter: 'drop-shadow(0 6px 10px rgba(167,205,204,0.18))' }}
+                          >
+                            <animate
+                              attributeName="stroke-dashoffset"
+                              from={-(expiringSoonOffset + circumference)}
+                              to={-expiringSoonOffset}
+                              dur="1.5s"
+                              begin="0.08s"
+                              fill="freeze"
+                              calcMode="spline"
+                              keySplines="0.22 1 0.36 1"
+                            />
+                          </circle>
                         )}
-                        {/* Expired segment */}
-                        {expiredComplianceCount > 0 && (
-                          <circle 
-                            cx="100" cy="100" r="80" 
-                            fill="none" 
-                            stroke="#dcf2f1" 
-                            strokeWidth="20"
+                        {Number(expiredComplianceCount) > 0 && (
+                          <circle
+                            cx="100"
+                            cy="100"
+                            r="78"
+                            fill="none"
+                            stroke="#dcf2f1"
+                            strokeWidth="18"
+                            strokeLinecap="round"
                             strokeDasharray={`${expiredPercent * circumference} ${circumference}`}
-                            strokeDashoffset={-expiredOffset}
+                            strokeDashoffset={-(expiredOffset + circumference)}
                             transform="rotate(-90 100 100)"
                             className="transition-all duration-500"
-                          />
+                            onMouseEnter={() =>
+                              setComplianceDonutTooltip((p) => ({
+                                ...p,
+                                open: true,
+                                label: 'Expired',
+                                value: Number(expiredComplianceCount) || 0,
+                                color: '#dcf2f1',
+                              }))
+                            }
+                            onMouseMove={(e) =>
+                              setComplianceDonutTooltip((p) => ({
+                                ...p,
+                                open: true,
+                                x: e.clientX,
+                                y: e.clientY,
+                              }))
+                            }
+                            style={{ filter: 'drop-shadow(0 6px 10px rgba(220,242,241,0.18))' }}
+                          >
+                            <animate
+                              attributeName="stroke-dashoffset"
+                              from={-(expiredOffset + circumference)}
+                              to={-expiredOffset}
+                              dur="1.5s"
+                              begin="0.16s"
+                              fill="freeze"
+                              calcMode="spline"
+                              keySplines="0.22 1 0.36 1"
+                            />
+                          </circle>
                         )}
                       </>
                     );
                   })()}
                 </svg>
               </div>
-              <div className="flex-1 space-y-4">
-                <div 
-                  onClick={() => navigate('/compliance')}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#5dcab9' }}></div>
-                    <span className="text-sm text-gray-700">Valid</span>
+              <div className="w-full max-w-[360px] ml-6">
+                <div className="space-y-2">
+                  <div
+                    onClick={() => navigate('/compliance')}
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#5dcab9' }}></div>
+                      <span className="text-sm text-gray-700">Valid</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-gray-900">{Number(validComplianceCount) || 0}</span>
+                      <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-semibold text-gray-900">{validComplianceCount}</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
+
+                  <div
+                    onClick={() => navigate('/compliance')}
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#a7cdcc' }}></div>
+                      <span className="text-sm text-gray-700">Expiring Soon</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-gray-900">{Number(expiringSoonCount) || 0}</span>
+                      <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </div>
                   </div>
-                </div>
-                <div 
-                  onClick={() => navigate('/compliance')}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#a7cdcc' }}></div>
-                    <span className="text-sm text-gray-700">Expiring Soon</span>
+
+                  <div
+                    onClick={() => navigate('/compliance')}
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#dcf2f1' }}></div>
+                      <span className="text-sm text-gray-700">Expired</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold text-gray-900">{Number(expiredComplianceCount) || 0}</span>
+                      <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-semibold text-gray-900">{expiringSoonCount}</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                  </div>
-                </div>
-                <div 
-                  onClick={() => navigate('/compliance')}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#dcf2f1' }}></div>
-                    <span className="text-sm text-gray-700">Expired</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-semibold text-gray-900">{expiredComplianceCount}</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                  </div>
-                </div>
-                <div className="pt-3 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
+
+                  <div className="border-t border-gray-100 my-3"></div>
+
+                  <div className="flex items-center justify-between px-3">
                     <span className="text-sm text-gray-500">Total Certificates</span>
-                    <span className="text-lg font-semibold text-gray-900">{validComplianceCount + expiringSoonCount + expiredComplianceCount}</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {(() => {
+                        const apiTotal = Number(compliance?.totalCertificates ?? compliance?.total_certificates ?? compliance?.total_certificates_count);
+                        if (Number.isFinite(apiTotal) && apiTotal > 0) return apiTotal;
+                        return (Number(validComplianceCount) || 0) + (Number(expiringSoonCount) || 0) + (Number(expiredComplianceCount) || 0);
+                      })()}
+                    </span>
                   </div>
                 </div>
               </div>
+
+              {complianceDonutTooltip.open && (
+                <div
+                  className="fixed z-[80] px-3 py-2 rounded-lg shadow-lg border border-gray-100 bg-slate-900 text-white text-xs"
+                  style={{
+                    left: complianceDonutTooltip.x + 12,
+                    top: complianceDonutTooltip.y + 12,
+                    pointerEvents: 'none',
+                    minWidth: 140,
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: complianceDonutTooltip.color }}></span>
+                    <span className="font-semibold">{complianceDonutTooltip.label}</span>
+                  </div>
+                  <div className="text-white/90">Count: {Number(complianceDonutTooltip.value) || 0}</div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Maintenance Overview */}
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Maintenance Overview</h3>
-            <div className="space-y-6">
-              <div>
-                <div className="text-sm text-gray-500 mb-3">By Status</div>
-                <div className="space-y-3">
-                  <div 
-                    onClick={() => navigate('/admin/maintenance')}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group"
-                  >
-                    <span className="text-sm text-gray-700">Pending</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-gray-900">{maintenanceStats.pending || 0}</span>
-                      <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-                      </svg>
-                    </div>
-                  </div>
-                  <div 
-                    onClick={() => navigate('/admin/maintenance')}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group"
-                  >
-                    <span className="text-sm text-gray-700">In Progress</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-gray-900">{maintenanceStats.inProgress || 0}</span>
-                      <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-                      </svg>
-                    </div>
-                  </div>
-                  <div 
-                    onClick={() => navigate('/admin/maintenance')}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group"
-                  >
-                    <span className="text-sm text-gray-700">Completed</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-gray-900">{maintenanceStats.completed || 0}</span>
-                      <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500 mb-3">Active by Priority</div>
-                <div className="flex items-center gap-2 h-2 rounded-full overflow-hidden">
-                  <div className="flex-1 h-full" style={{ backgroundColor: '#5dcab9' }}></div>
-                  <div className="flex-1 h-full" style={{ backgroundColor: '#a7cdcc' }}></div>
-                  <div className="flex-1 h-full" style={{ backgroundColor: '#b3f0e7' }}></div>
-                  <div className="flex-1 h-full" style={{ backgroundColor: '#dcf2f1' }}></div>
-                </div>
-              </div>
-            </div>
+          {/* Meal Analysis */}
+          <div className="h-full">
+            <MealAnalysis delay={600} />
           </div>
         </div>
 
@@ -1037,7 +1062,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-gray-500">Incidents & Resolutions</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
@@ -1054,50 +1079,50 @@ export default function AdminDashboard() {
               </select>
             </div>
           </div>
-          
+
           <div className="h-[300px]">
             {trends.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trends} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorIncidents" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis 
-                    dataKey="month" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#9ca3af', fontSize: 12 }} 
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#9ca3af', fontSize: 12 }}
                   />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#9ca3af', fontSize: 12 }} 
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#9ca3af', fontSize: 12 }}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="incidents" 
-                    stroke="#3b82f6" 
+                  <Area
+                    type="monotone"
+                    dataKey="incidents"
+                    stroke="#3b82f6"
                     strokeWidth={2}
-                    fillOpacity={1} 
+                    fillOpacity={1}
                     fill="url(#colorIncidents)"
                     animationDuration={1500}
                     animationEasing="ease-in-out"
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="resolutions" 
-                    stroke="#14b8a6" 
+                  <Area
+                    type="monotone"
+                    dataKey="resolutions"
+                    stroke="#14b8a6"
                     strokeWidth={2}
-                    fillOpacity={1} 
+                    fillOpacity={1}
                     fill="url(#colorResolved)"
                     animationDuration={1500}
                     animationEasing="ease-in-out"

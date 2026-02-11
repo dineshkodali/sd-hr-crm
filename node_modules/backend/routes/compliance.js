@@ -3,6 +3,10 @@ import express from "express";
 import multer from "multer";
 import { protect } from "../middleware/auth.js";
 
+function quoteIdent(name) {
+  return `"${String(name).replace(/"/g, '""')}"`;
+}
+
 let pool;
 try {
   // try to load configured DB pool; tolerate different module shapes
@@ -301,7 +305,12 @@ router.get("/", protect, async (req, res) => {
     const limit = Math.max(Math.min(parseInt(req.query.limit || "50", 10) || 50, 100), 1);
     const offset = Math.max(parseInt(req.query.offset || "0", 10) || 0, 0);
 
-    const sql = `SELECT *,
+    const selectableCols = Array.from(cols || [])
+      .filter(Boolean)
+      .filter((c) => !['document_data', 'document_mime'].includes(String(c).toLowerCase()));
+    const selectList = selectableCols.length ? selectableCols.map(quoteIdent).join(', ') : '*';
+
+    const sql = `SELECT ${selectList},
       CASE
         WHEN expiry_date < current_date THEN 'expired'
         WHEN expiry_date <= (current_date + INTERVAL '30 days') THEN 'expiring'

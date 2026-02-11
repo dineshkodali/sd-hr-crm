@@ -609,7 +609,7 @@ export default function App() {
                       </PermissionRoute>
                     } />
                     <Route path="users" element={
-                      <RoleRoute user={user} allowed={["admin", "manager"]}>
+                      <RoleRoute user={user} allowed={["admin", "manager", "staff"]}>
                         <UsersSafe user={user} />
                       </RoleRoute>
                     } />
@@ -619,7 +619,7 @@ export default function App() {
                       </RoleRoute>
                     } />
                     <Route path="staff-grid" element={
-                      <RoleRoute user={user} allowed={["admin", "manager"]}>
+                      <RoleRoute user={user} allowed={["admin", "manager", "staff"]}>
                         <StaffGridSafe user={user} />
                       </RoleRoute>
                     } />

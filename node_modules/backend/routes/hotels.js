@@ -73,6 +73,7 @@ async function fetchHotelsWithManager(sqlWhere = "", params = []) {
     const postcodeCandidates = [r.postcode, r.zipcode, r.postal_code];
     const totalBedsCandidates = [r.total_beds, r.total_bed, r.beds];
     const occupiedBedsCandidates = [r.occupied_beds, r.occupied, r.occupied_bed];
+    const totalFloorsCandidates = [r.total_floors, r.floors, r.no_of_floors, r.number_of_floors];
 
     const obj = {
       ...r, // keep all existing DB columns for backward compatibility
@@ -90,6 +91,12 @@ async function fetchHotelsWithManager(sqlWhere = "", params = []) {
       // total beds / occupied beds as numbers
       total_beds: Number(totalBedsCandidates.find(v => typeof v !== "undefined" && v !== null) ?? 0) || 0,
       occupied_beds: Number(occupiedBedsCandidates.find(v => typeof v !== "undefined" && v !== null) ?? 0) || 0,
+      // total floors normalized for RoomsManager floor dropdown
+      total_floors: (() => {
+        const v = totalFloorsCandidates.find(x => typeof x !== "undefined" && x !== null && String(x) !== "");
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      })(),
       // is_self_contained: if explicit column exists use it, else infer from property_type
       is_self_contained: (typeof r.is_self_contained !== "undefined" && r.is_self_contained !== null)
         ? !!r.is_self_contained

@@ -65,6 +65,16 @@ export default function RoomsManager({ user }) {
   const occupiedBeds = Number(hotel?.occupied_beds ?? hotel?.occupied ?? 0);
   const remainingBeds = Math.max(0, totalBeds - occupiedBeds);
 
+  const totalFloors = Number(
+    hotel?.total_floors ??
+    hotel?.totalFloors ??
+    hotel?.total_floor ??
+    hotel?.floors ??
+    hotel?.no_of_floors ??
+    hotel?.number_of_floors ??
+    0
+  );
+
   // Determine if current user is allowed to manage rooms for this hotel
   const computeCanManage = (userObj, hotelObj) => {
     if (!userObj) return false;
@@ -402,7 +412,7 @@ export default function RoomsManager({ user }) {
                   <label className="block text-sm font-semibold text-slate-700">
                     Floor
                   </label>
-                  {hotel?.total_floors && Number(hotel.total_floors) > 0 ? (
+                  {Number.isFinite(totalFloors) && totalFloors > 0 ? (
                     <select
                       value={form.floor}
                       onChange={(e) => setForm({ ...form, floor: e.target.value })}
@@ -410,7 +420,7 @@ export default function RoomsManager({ user }) {
                     >
                       <option value="">Select Floor</option>
                       <option value="0">Ground Floor - 0</option>
-                      {Array.from({ length: Number(hotel.total_floors) }, (_, i) => (
+                      {Array.from({ length: Number(totalFloors) }, (_, i) => (
                         <option key={i + 1} value={i + 1}>
                           Floor {i + 1}
                         </option>
@@ -728,33 +738,37 @@ export default function RoomsManager({ user }) {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {rooms.map(r => (
-                    <div
-                      key={r.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => navigate(`/hotels/${hotelId}/rooms/${r.id}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          navigate(`/hotels/${hotelId}/rooms/${r.id}`);
-                        }
-                      }}
-                      className="group bg-white rounded-xl border border-[#d3f1ec] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-lg bg-[#f0faf9] border border-[#d3f1ec] flex items-center justify-center text-teal-800 font-bold text-lg">
-                            {r.room_number}
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-800 text-lg group-hover:text-teal-700 transition-colors">Room {r.room_number}</div>
-                            <div className="text-sm text-slate-500">{r.type || 'Standard'}</div>
+                  {rooms.map((r) => {
+                    const hasBathroomVal = r.has_bathroom ?? r.bathroom ?? r.bathroom_available ?? r.hasBathroom ?? null;
+                    const hasKitchenVal = r.has_kitchen ?? r.kitchen ?? r.hasKitchen ?? null;
+
+                    return (
+                      <div
+                        key={r.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate(`/hotels/${hotelId}/rooms/${r.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            navigate(`/hotels/${hotelId}/rooms/${r.id}`);
+                          }
+                        }}
+                        className="group bg-white rounded-xl border border-[#d3f1ec] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-lg bg-[#f0faf9] border border-[#d3f1ec] flex items-center justify-center text-teal-800 font-bold text-lg">
+                              {r.room_number}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-800 text-lg group-hover:text-teal-700 transition-colors">Room {r.room_number}</div>
+                              <div className="text-sm text-slate-500">{r.type || 'Standard'}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="space-y-3 mb-5">
+                        <div className="space-y-3 mb-5">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-slate-500">Bedspaces</span>
                           <span className="font-bold text-slate-700">{Number(r.bedspaces ?? 0) || 0}</span>
@@ -779,7 +793,7 @@ export default function RoomsManager({ user }) {
                           <span className="text-slate-500">Has Bathroom</span>
                           <span className="font-bold text-slate-700">
                             {(() => {
-                              const v = r.has_bathroom;
+                              const v = hasBathroomVal;
                               const s = String(v).toLowerCase();
                               if (v === true || s === 'true' || s === 't' || s === '1' || s === 'yes') return 'Yes';
                               if (v === false || s === 'false' || s === 'f' || s === '0' || s === 'no') return 'No';
@@ -791,7 +805,7 @@ export default function RoomsManager({ user }) {
                           <span className="text-slate-500">Kitchen</span>
                           <span className="font-bold text-slate-700">
                             {(() => {
-                              const v = r.has_kitchen;
+                              const v = hasKitchenVal;
                               const s = String(v).toLowerCase();
                               if (v === true || s === 'true' || s === 't' || s === '1' || s === 'yes') return 'Yes';
                               if (v === false || s === 'false' || s === 'f' || s === '0' || s === 'no') return 'No';
@@ -836,8 +850,9 @@ export default function RoomsManager({ user }) {
                       </div>
 
                       {canManage ? (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="flex gap-3">
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               startEdit(r);
@@ -850,6 +865,7 @@ export default function RoomsManager({ user }) {
                             Edit
                           </button>
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               remove(r.id);
@@ -863,7 +879,7 @@ export default function RoomsManager({ user }) {
                           </button>
                         </div>
                       ) : (
-                        <div className="pt-3 border-t border-slate-100 text-center">
+                        <div className="pt-3 border border-slate-100 text-center">
                           <span className="text-xs text-slate-400 inline-flex items-center gap-1">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
@@ -873,7 +889,8 @@ export default function RoomsManager({ user }) {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import pool from "../config/db.js";
 import { protect } from "../middleware/auth.js"; // keep protect; role checks are inside handlers
 import { logActivityWithComparison } from "../utils/activityLogger.js"; // Add enhanced activity logging
+import { hasModuleAccess } from "../middleware/checkPermission.js";
 
 // new imports for file uploads
 import multer from "multer";
@@ -267,6 +268,9 @@ function isAdmin(user) {
 }
 function isManager(user) {
   return user && user.role === "manager";
+}
+function isStaff(user) {
+  return user && user.role === "staff";
 }
 
 /**
@@ -1012,7 +1016,12 @@ router.get("/users", protect, async (req, res) => {
   try {
     const cur = req.user;
     if (!cur) return res.status(401).json({ message: "Unauthorized" });
-    if (!isAdmin(cur) && !isManager(cur)) return res.status(403).json({ message: "Forbidden" });
+    if (!isAdmin(cur) && !isManager(cur) && !isStaff(cur)) return res.status(403).json({ message: "Forbidden" });
+
+    if (isStaff(cur)) {
+      const ok = await hasModuleAccess(cur.id, "employees");
+      if (!ok) return res.status(403).json({ message: "Forbidden" });
+    }
 
     const hotelCol = await detectUsersHotelColumn();
     // include phone, status and created_at as joining_date so the frontend table can show them
@@ -1023,6 +1032,30 @@ router.get("/users", protect, async (req, res) => {
       const rows = await tryQuery(`SELECT ${baseFields.join(", ")} FROM users WHERE role IN ('staff','manager','admin') ORDER BY role, name`);
       if (rows === null) return res.status(500).json({ message: "Failed to load users" });
       return res.json({ users: rows });
+    }
+
+    if (isStaff(cur)) {
+      const parts = [];
+      const params = [];
+      let idx = 1;
+
+      const assignedHotelId = cur.hotel_id || cur.hotelId || cur.hotel || null;
+      if (hotelCol && assignedHotelId) {
+        params.push(assignedHotelId);
+        parts.push(`"${hotelCol}" = $${idx++}`);
+      } else if (cur.branch) {
+        params.push(cur.branch);
+        parts.push(`branch = $${idx++}`);
+      }
+
+      if (parts.length === 0) {
+        return res.json({ users: [] });
+      }
+
+      const where = `WHERE role IN ('staff','manager') AND (${parts.join(" AND ")})`;
+      const sql = `SELECT ${baseFields.join(", ")} FROM users ${where} ORDER BY role, name LIMIT 2000`;
+      const r = await pool.query(sql, params);
+      return res.json({ users: r.rows || [] });
     }
 
     // manager: build where clause

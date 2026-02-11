@@ -29,6 +29,7 @@ function toText(v) {
 // (POST/PATCH/DELETE remain protected)
 // Helper to get restricted hotel IDs
 const getRestrictedHotelIds = async (user) => {
+  if (!user) return null;
   if (user.role === "manager") {
     const managedRes = await pool.query("SELECT id FROM hotels WHERE manager_id = $1", [user.id]);
     const managedIds = managedRes.rows.map(r => r.id);
@@ -85,9 +86,9 @@ router.get("/", protect, async (req, res) => {
       where.push(`status = $${params.length}`);
     }
     if (date !== undefined) {
-      // match scheduled_date
+      // match scheduled_date (date-only; works for DATE and TIMESTAMP columns)
       params.push(date);
-      where.push(`scheduled_date = $${params.length}`);
+      where.push(`scheduled_date::date = $${params.length}`);
     }
 
     let sql = `SELECT id, service_user_id, service_user_name, property_id, property_name, meal_type, scheduled_date, portion, dietary, notes, status, created_at, updated_at FROM public.meal_schedules`;
@@ -141,7 +142,8 @@ router.get("/scheduled", protect, async (req, res) => {
     }
     if (date !== undefined) {
       params.push(date);
-      where.push(`scheduled_date = $${params.length}`);
+      // match scheduled_date (date-only; works for DATE and TIMESTAMP columns)
+      where.push(`scheduled_date::date = $${params.length}`);
     }
 
     let sql = `SELECT id, service_user_id, service_user_name, property_id, property_name, meal_type, scheduled_date, portion, dietary, notes, status, created_at, updated_at FROM public.meal_schedules`;

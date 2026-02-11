@@ -52,13 +52,16 @@ export default function RoomDetails() {
         setHotel(hotelRes?.data?.hotel ?? hotelRes?.data ?? null);
         const loadedRoom = roomRes?.data?.room ?? roomRes?.data ?? null;
         setRoom(loadedRoom);
+
+        const loadedHasKitchen = loadedRoom?.has_kitchen ?? loadedRoom?.kitchen ?? loadedRoom?.hasKitchen ?? null;
+        const loadedHasBathroom = loadedRoom?.has_bathroom ?? loadedRoom?.bathroom ?? loadedRoom?.bathroom_available ?? loadedRoom?.hasBathroom ?? null;
         setOverviewFormData({
           type: loadedRoom?.type || "",
           length: loadedRoom?.length ?? loadedRoom?.room_length ?? "",
           width: loadedRoom?.width ?? loadedRoom?.room_width ?? "",
           bathroom_type: loadedRoom?.bathroom_type ?? loadedRoom?.bathroom ?? "",
-          has_kitchen: loadedRoom?.has_kitchen === true ? "yes" : loadedRoom?.has_kitchen === false ? "no" : "",
-          has_bathroom: loadedRoom?.has_bathroom === true ? "yes" : loadedRoom?.has_bathroom === false ? "no" : "",
+          has_kitchen: loadedHasKitchen === true ? "yes" : loadedHasKitchen === false ? "no" : "",
+          has_bathroom: loadedHasBathroom === true ? "yes" : loadedHasBathroom === false ? "no" : "",
         });
         setInventoryFormData(
           Array.isArray(loadedRoom?.inventory) 
@@ -167,8 +170,8 @@ export default function RoomDetails() {
         length: room?.length ?? room?.room_length ?? "",
         width: room?.width ?? room?.room_width ?? "",
         bathroom_type: room?.bathroom_type ?? room?.bathroom ?? "",
-        has_kitchen: room?.has_kitchen === true ? "yes" : room?.has_kitchen === false ? "no" : "",
-        has_bathroom: room?.has_bathroom === true ? "yes" : room?.has_bathroom === false ? "no" : "",
+        has_kitchen: (room?.has_kitchen ?? room?.kitchen ?? room?.hasKitchen) === true ? "yes" : (room?.has_kitchen ?? room?.kitchen ?? room?.hasKitchen) === false ? "no" : "",
+        has_bathroom: (room?.has_bathroom ?? room?.bathroom ?? room?.bathroom_available ?? room?.hasBathroom) === true ? "yes" : (room?.has_bathroom ?? room?.bathroom ?? room?.bathroom_available ?? room?.hasBathroom) === false ? "no" : "",
       });
     }
     setIsEditingOverview(true);
@@ -183,8 +186,8 @@ export default function RoomDetails() {
         length: room?.length ?? room?.room_length ?? "",
         width: room?.width ?? room?.room_width ?? "",
         bathroom_type: room?.bathroom_type ?? room?.bathroom ?? "",
-        has_kitchen: room?.has_kitchen === true ? "yes" : room?.has_kitchen === false ? "no" : "",
-        has_bathroom: room?.has_bathroom === true ? "yes" : room?.has_bathroom === false ? "no" : "",
+        has_kitchen: (room?.has_kitchen ?? room?.kitchen ?? room?.hasKitchen) === true ? "yes" : (room?.has_kitchen ?? room?.kitchen ?? room?.hasKitchen) === false ? "no" : "",
+        has_bathroom: (room?.has_bathroom ?? room?.bathroom ?? room?.bathroom_available ?? room?.hasBathroom) === true ? "yes" : (room?.has_bathroom ?? room?.bathroom ?? room?.bathroom_available ?? room?.hasBathroom) === false ? "no" : "",
       });
     }
   };
@@ -200,6 +203,10 @@ export default function RoomDetails() {
         has_kitchen: overviewFormData.has_kitchen === "yes" ? true : overviewFormData.has_kitchen === "no" ? false : null,
         has_bathroom: overviewFormData.has_bathroom === "yes" ? true : overviewFormData.has_bathroom === "no" ? false : null,
       };
+
+      // Schema compatibility: some DBs use `kitchen`/`bathroom` boolean columns instead.
+      updateData.kitchen = updateData.has_kitchen;
+      updateData.bathroom = updateData.has_bathroom;
       
       const response = await axios.put(
         `/api/hotels/${hotelId}/rooms/${roomId}`,
@@ -345,7 +352,7 @@ export default function RoomDetails() {
 
   const bathroomTypeVal = room?.bathroom_type ?? room?.bathroom ?? room?.bathroomType ?? null;
   const hasKitchenVal = room?.has_kitchen ?? room?.kitchen ?? room?.hasKitchen ?? null;
-  const hasBathroomVal = room?.has_bathroom ?? room?.bathroom_available ?? room?.hasBathroom ?? null;
+  const hasBathroomVal = room?.has_bathroom ?? room?.bathroom ?? room?.bathroom_available ?? room?.hasBathroom ?? null;
 
   const yesNoUnknown = (v) => {
     const s = String(v).toLowerCase();

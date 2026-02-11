@@ -166,7 +166,7 @@ const IconWrench = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="n
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Filter States
   const [selectedBranch, setSelectedBranch] = useState('all');
@@ -255,47 +255,12 @@ export default function AdminDashboard() {
         const val = (idx) => results[idx].status === 'fulfilled' ? results[idx].value : null;
 
         // --- KPI LOGIC ---
+        // Keep dashboard fast: if aggregated KPI endpoint is missing/slow, don't trigger heavy fallback
+        // that performs multiple large requests. UI will still render quickly using existing card fallbacks.
         if (val(0) && val(0).data && Array.isArray(val(0).data) && val(0).data.length > 0) {
           setKpis(val(0).data);
         } else {
-          // --- FALLBACK CALCULATION (Real Database Counts) ---
-          try {
-            const [hotelsRes, usersRes, incRes, compRes, roomsRes] = await Promise.allSettled([
-              api.get('/api/hotels'),
-              api.get('/api/service-users'),
-              api.get('/api/incidents?status=Open'),
-              api.get('/api/compliance'),
-              api.get('/api/rooms')
-            ]);
-
-            const getCount = (r) => {
-              if (r.status !== 'fulfilled') return 0;
-              const arr = extractArray(r.value);
-              return arr.length;
-            };
-
-            const usersCount = getCount(usersRes);
-            setServiceUserCount(usersCount);
-
-            // Calculate occupancy
-            if (roomsRes.status === 'fulfilled') {
-              const rooms = extractArray(roomsRes.value);
-              const total = rooms.length;
-              const occupied = rooms.filter(r => r.status === 'Occupied' || r.service_user_id).length;
-              setTotalRooms(total);
-              setOccupiedRooms(occupied);
-            }
-
-            setKpis([
-              { title: "Total Properties", main: getCount(hotelsRes), sub: "Registered", color: COLORS.primary },
-              { title: "Total Users", main: usersCount, sub: "Active Accounts", color: COLORS.success },
-              { title: "Open Incidents", main: getCount(incRes), sub: "Unresolved", color: COLORS.warning },
-              { title: "Compliance", main: getCount(compRes), sub: "Records", color: COLORS.danger },
-            ]);
-          } catch (e) {
-            console.warn("KPI Calculation failed", e);
-            setKpis([]);
-          }
+          setKpis([]);
         }
 
         // 2. TRENDS
@@ -306,10 +271,20 @@ export default function AdminDashboard() {
         }
 
         // 3. Occupancy
-        if (val(2)) setOccupancy(val(2).data || []);
+        if (val(2)) {
+          const occ = val(2).data || val(2) || {};
+          setOccupancy(occ);
+          const total = Number(occ.totalBeds ?? occ.total_beds ?? 0);
+          const occupied = Number(occ.occupiedBeds ?? occ.occupied_beds ?? 0);
+          if (Number.isFinite(total) && total >= 0) setTotalRooms(total);
+          if (Number.isFinite(occupied) && occupied >= 0) setOccupiedRooms(occupied);
+        }
 
         // 4. Compliance
-        if (val(4)) setCompliance(val(4).data || []);
+        if (val(4)) {
+          const comp = val(4).data || val(4) || {};
+          setCompliance(comp);
+        }
 
         // 5. Attention Items
         if (val(5)) setAttentionItems(val(5).data || []);
@@ -317,11 +292,41 @@ export default function AdminDashboard() {
         // 6. Recent Incidents
         if (val(6)) setRecentIncidents(extractArray(val(6)));
 
+        // 9. Open incidents count (summary)
+        if (val(3)) {
+          const incSum = val(3).data || val(3) || {};
+          const open = Number(incSum.openIncidents ?? incSum.open_incidents ?? 0);
+          if (Number.isFinite(open)) {
+            // leave KPI cards to read from kpis if present, otherwise recentIncidents length
+            // (we don't have a dedicated openIncidentsCount state in this component).
+            // Ensure recentIncidents card fallback sees a non-zero number when summary exists.
+            // If incidents list isn't loaded yet, set a synthetic recentIncidents length-like value.
+            if (!val(6)) setRecentIncidents(Array.from({ length: open }).map((_, i) => ({ id: `synthetic-${i}` })));
+          }
+        }
+
         // 7. Demographics
         if (val(7)) setDemographics(val(7).data || []);
 
         // 8. Maintenance
-        if (val(8)) setMaintenanceStats(val(8).data || { pending: 0, inProgress: 0, completed: 0 });
+        if (val(8)) {
+          const ms = val(8).data || val(8) || {};
+          const statsObj = ms.taskStats || ms.task_stats || ms || {};
+          const get = (k) => {
+            const direct = statsObj?.[k];
+            if (direct !== undefined) return Number(direct);
+            const lowerKey = Object.keys(statsObj || {}).find((x) => String(x).toLowerCase() === String(k).toLowerCase());
+            return lowerKey ? Number(statsObj[lowerKey]) : 0;
+          };
+          const pending = get('pending') + get('open');
+          const inProgress = get('in_progress') + get('in progress') + get('inprogress') + get('under review');
+          const completed = get('completed') + get('closed') + get('resolved');
+          setMaintenanceStats({
+            pending: Number.isFinite(pending) ? pending : 0,
+            inProgress: Number.isFinite(inProgress) ? inProgress : 0,
+            completed: Number.isFinite(completed) ? completed : 0,
+          });
+        }
 
       } catch (err) {
         console.error("Dashboard Load Error", err);
@@ -340,20 +345,26 @@ export default function AdminDashboard() {
 
     useEffect(() => {
       let active = true;
-      api.get(page.endpoint + '?limit=1000').then(res => {
-        if (!active) return;
-        const arr = extractArray(res);
-        const map = {};
-        arr.forEach(i => {
-          const k = i.status || i.priority || i.severity || 'Other';
-          map[k] = (map[k] || 0) + 1;
+      const timer = setTimeout(() => {
+        api.get(page.endpoint + '?limit=1000').then(res => {
+          if (!active) return;
+          const arr = extractArray(res);
+          const map = {};
+          arr.forEach(i => {
+            const k = i.status || i.priority || i.severity || 'Other';
+            map[k] = (map[k] || 0) + 1;
+          });
+          const breakdown = Object.keys(map).slice(0, 4).map(k => ({ name: k, value: map[k] }));
+          setStats({ count: arr.length, breakdown });
+        }).catch(() => {
+          if (active) setStats({ count: 0, breakdown: [] });
         });
-        const breakdown = Object.keys(map).slice(0, 4).map(k => ({ name: k, value: map[k] }));
-        setStats({ count: arr.length, breakdown });
-      }).catch(() => {
-        if (active) setStats({ count: 0, breakdown: [] });
-      });
-      return () => { active = false; };
+      }, 600);
+
+      return () => {
+        active = false;
+        clearTimeout(timer);
+      };
     }, [page.endpoint]);
 
     return (
@@ -379,8 +390,6 @@ export default function AdminDashboard() {
       </div>
     );
   };
-
-  if (loading) return <LoadingSkeleton />;
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 font-sans">
@@ -536,7 +545,7 @@ export default function AdminDashboard() {
             <div className="text-3xl font-bold text-gray-900 mb-2">1/162</div>
             <div className="text-sm text-gray-500">Valid certificates</div>
             <div className="flex items-center gap-1 mt-2 text-xs text-red-600 font-medium">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6 6"></path></svg>
               156 expired
             </div>
           </div>

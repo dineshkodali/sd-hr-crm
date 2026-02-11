@@ -107,6 +107,16 @@ router.post('/users', protect, async (req, res, next) => {
     return res.status(403).json({ message: 'Forbidden — managers can only create staff users' });
   }
 
+  // Staff can create staff only if they have employees:create permission.
+  // Scope enforcement is done in the handler below.
+  if (req.user?.role === 'staff') {
+    const requestedRole = String(req.body?.role || '').toLowerCase();
+    if (requestedRole !== 'staff') {
+      return res.status(403).json({ message: 'Forbidden — staff can only create staff users' });
+    }
+    return checkPermission('employees', 'create')(req, res, next);
+  }
+
   // Everyone else must have manage_users permission
   return checkPermission('manage_users')(req, res, next);
 }, async (req, res) => {
@@ -150,6 +160,19 @@ router.post('/users', protect, async (req, res, next) => {
     // Explicitly allowed fields from body (including standard ones + any potential custom ones)
     // We filter req.body against validLines to avoid SQL injection or errors
     // We also overwrite standard fields to ensuring logic compliance
+
+    // Staff creation: enforce scope
+    if (req.user?.role === 'staff') {
+      const staffHotelId = req.user?.hotel_id;
+      if (staffHotelId) {
+        // Force created user into the staff member's hotel
+        req.body.hotel_id = staffHotelId;
+      } else if (req.user?.branch) {
+        // Force created user into the staff member's branch if present
+        req.body.branch = req.user.branch;
+      }
+    }
+
     const insertData = {
       ...req.body,
       name,
