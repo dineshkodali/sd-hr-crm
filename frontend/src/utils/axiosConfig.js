@@ -10,6 +10,22 @@ import axios from 'axios';
 // Request interceptor: add Authorization header with token
 axios.interceptors.request.use(
   (config) => {
+    const base = String(config.baseURL || "");
+    const url = typeof config.url === "string" ? config.url : "";
+
+    if (!base && axios.defaults.baseURL) {
+      config.baseURL = axios.defaults.baseURL;
+    }
+
+    if (
+      typeof config.baseURL === "string" &&
+      config.baseURL.replace(/\/+$/, "").endsWith("/api") &&
+      typeof config.url === "string" &&
+      config.url.startsWith("/api/")
+    ) {
+      config.url = config.url.slice(4);
+    }
+
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
