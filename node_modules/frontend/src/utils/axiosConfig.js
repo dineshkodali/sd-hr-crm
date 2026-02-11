@@ -53,6 +53,12 @@ axios.interceptors.response.use(
 // Enable credentials for all axios instances
 axios.defaults.withCredentials = true;
 
+// In Docker / production we typically serve the API under the same origin at `/api`.
+// Many pages create their own axios instances using `import.meta.env.VITE_API_URL || axios.defaults.baseURL || ""`.
+// If `VITE_API_URL` is not set, ensure `axios.defaults.baseURL` points to the working `/api` prefix.
+const resolvedApiBase = import.meta.env.VITE_API_URL || `${window.location.origin}/api`;
+axios.defaults.baseURL = resolvedApiBase;
+
 // Set Authorization header from stored token on initialization
 const token = localStorage.getItem('authToken');
 if (token) {
@@ -64,7 +70,7 @@ if (token) {
 // ==========================================
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || window.location.origin,
+  baseURL: resolvedApiBase,
   withCredentials: true,
   timeout: 15000,
 });
