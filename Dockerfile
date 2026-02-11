@@ -1,17 +1,17 @@
 # Multi-stage Dockerfile for SD HR CRM
 
 # --- Frontend Build Stage ---
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 WORKDIR /app
-COPY frontend/package*.json ./
-RUN npm install
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 
 # --- Backend Shared Stage ---
 FROM node:18-alpine AS backend
 WORKDIR /app
-COPY Backend/package.json ./
+COPY Backend/package.json Backend/package-lock.json ./
 # Add build tools for native modules if needed
 RUN apk add --no-cache python3 make g++ wget
 RUN npm install --no-audit --no-fund
