@@ -27,6 +27,8 @@ import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 
+const aireStaffCache = {};
+
 /* helper for normalizing hotels responses */
 function normalizeHotelsResponse(data) {
   if (!data) return [];
@@ -599,6 +601,16 @@ export default function AIRETasks({ user }) {
   }
 
   async function handleDelete(task) {
+    const taskId = task?.id;
+    if (taskId === undefined || taskId === null || String(taskId).trim() === "") {
+      setAlertDialog({
+        isOpen: true,
+        title: 'Delete Failed',
+        message: 'Invalid task id.',
+        type: 'error'
+      });
+      return;
+    }
     setConfirmDialog({
       isOpen: true,
       title: 'Delete Task',
@@ -608,7 +620,7 @@ export default function AIRETasks({ user }) {
         try {
           setTasks(prev => prev.filter(t => String(t.id) !== String(task.id)));
           setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-          await api.delete(`/api/aire-tasks/${encodeURIComponent(task.id)}`).catch(() => null);
+          await api.delete(`/api/aire-tasks/${encodeURIComponent(taskId)}`).catch(() => null);
         } catch (err) {
           console.warn('Failed to delete task', err?.message || err);
           setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -1289,7 +1301,7 @@ export default function AIRETasks({ user }) {
                               )}
                               {hasDelete && (
                                 <button
-                                  onClick={() => handleDelete(task.id)}
+                                  onClick={() => handleDelete(task)}
                                   className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                   title="Delete"
                                 >
@@ -1468,7 +1480,7 @@ export default function AIRETasks({ user }) {
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleDelete(task.id);
+                                          handleDelete(task);
                                         }}
                                         className="p-1.5 bg-gray-50 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-md transition-colors"
                                         title="Delete"
@@ -1559,7 +1571,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
   const [staffLoading, setStaffLoading] = useState(false);
   const [hotelsLoading, setHotelsLoading] = useState(false);
   const hotelsControllerRef = React.useRef(null);
-  const staffCacheRef = React.useRef({});
+  const staffCacheRef = React.useRef(aireStaffCache);
   const staffAbortRef = React.useRef(null);
 
   const handleChange = (e) => {
@@ -1676,6 +1688,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
       if (normalized.length === 1 && !form.property) {
         setForm((f) => ({ ...f, property: normalized[0].id, propertyName: normalized[0].name }));
         fetchServiceUsers(normalized[0].id);
+        fetchStaffForHotel(normalized[0].id);
       }
     } catch (err) {
       const isCanceled = err && (err.name === 'CanceledError' || err.code === 'ERR_CANCELED' || axios.isCancel?.(err));
@@ -1753,7 +1766,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
         .filter((u) => u.id && u.name);
       setStaffUsers(normalized);
 
-      staffCacheRef.current = { ...staffCacheRef.current, [cacheKey]: normalized };
+      staffCacheRef.current[cacheKey] = normalized;
     } catch (err) {
       if (err?.name === 'CanceledError' || err?.name === 'AbortError') return;
       console.error('fetchStaffForHotel error:', err);
@@ -1764,6 +1777,11 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
       }
     }
   }
+
+  React.useEffect(() => {
+    if (!form.property) return;
+    fetchStaffForHotel(form.property);
+  }, [form.property]);
 
   function handlePropertyChange(e) {
     const hotelId = e.target.value;

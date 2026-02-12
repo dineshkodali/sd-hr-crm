@@ -1,6 +1,6 @@
 /* eslint-disable no-empty */
 /* eslint-disable no-unused-vars */
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { usePermissions } from "../hooks/usePermissions";
 import { AlertModal, ConfirmModal } from "../components/ModalDialogs";
@@ -27,6 +27,23 @@ import {
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
+
+const inspectionsColumnsCache = {
+  ts: 0,
+  columns: null,
+};
+
+const DEFAULT_COLUMNS = [
+  "checkbox",
+  "type",
+  "reference",
+  "description",
+  "priority",
+  "status",
+  "assigned",
+  "date",
+  "actions",
+];
 
 /* axios instance (matches your other pages) */
 const API_BASE = import.meta.env.VITE_API_URL || axios.defaults.baseURL || "";
@@ -256,19 +273,6 @@ export default function Inspections({ user }) {
     });
   }, [exportColumns]);
 
-  // Default visible columns for inspections (must match other pages)
-  const DEFAULT_COLUMNS = [
-    "checkbox",
-    "type",
-    "reference",
-    "description",
-    "priority",
-    "status",
-    "assigned",
-    "date",
-    "actions",
-  ];
-
   const [formData, setFormData] = useState({
     inspectionType: "",
     propertyId: "",
@@ -392,8 +396,61 @@ export default function Inspections({ user }) {
   // Fetch available columns from the database
   const fetchAvailableColumns = async () => {
     try {
-      const res = await api.get('/api/forms-builder/tables/inspections/columns');
+      const now = Date.now();
+      if (inspectionsColumnsCache.columns && now - inspectionsColumnsCache.ts < 60_000) {
+        const cachedColumns = inspectionsColumnsCache.columns;
+        const columns = cachedColumns?.columns || cachedColumns || [];
+
+        // System and known inspection columns to exclude
+        const systemColumns = [
+          'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
+          'inspection_type', 'property_id', 'property_name', 'service_user_id',
+          'service_user_name', 'inspector_name', 'inspection_date', 'findings',
+          'issues_found', 'action_required', 'status', 'priority', 'assigned_to'
+        ];
+
+        const customCols = (Array.isArray(columns) ? columns : [])
+          .filter(col => !systemColumns.includes(col.column_name) && !DEFAULT_COLUMNS.includes(col.column_name))
+          .map(col => col.column_name);
+
+        const nextTypes = {};
+        (Array.isArray(columns) ? columns : []).forEach((col) => {
+          const name = col?.column_name;
+          if (!name) return;
+          nextTypes[name] = normalizeColumnDataType(col?.data_type ?? col?.udt_name ?? col?.type);
+        });
+
+        const nextMetadata = {};
+        (Array.isArray(columns) ? columns : []).forEach((col) => {
+          const name = col?.column_name;
+          if (!name) return;
+          nextMetadata[name] = {
+            input_type: col.input_type || 'text',
+            input_options: col.input_options || []
+          };
+        });
+
+        const newColumns = [...DEFAULT_COLUMNS.slice(0, -1), ...customCols, DEFAULT_COLUMNS[DEFAULT_COLUMNS.length - 1]];
+
+        setCustomColumns(prevCols => {
+          if (JSON.stringify(customCols) !== JSON.stringify(prevCols)) {
+            setCustomColumnTypes((prev) => ({ ...prev, ...nextTypes }));
+            setCustomColumnMetadata((prev) => ({ ...prev, ...nextMetadata }));
+            setAvailableColumns(newColumns);
+            return customCols;
+          }
+          setCustomColumnTypes((prev) => ({ ...prev, ...nextTypes }));
+          setCustomColumnMetadata((prev) => ({ ...prev, ...nextMetadata }));
+          return prevCols;
+        });
+        return;
+      }
+
+      const res = await api.get('/api/forms-builder/tables/inspections/columns', { timeout: 60000 });
       const columns = res?.data?.columns || res?.data || [];
+
+      inspectionsColumnsCache.ts = now;
+      inspectionsColumnsCache.columns = columns;
 
       // System and known inspection columns to exclude
       const systemColumns = [
@@ -480,13 +537,13 @@ export default function Inspections({ user }) {
       if (mounted) {
         fetchAvailableColumns();
       }
-    }, 5000); // Check every 5 seconds
+    }, 60000); // Check every 60 seconds
 
     return () => {
       mounted = false;
       clearInterval(intervalId);
     };
-  }, [DEFAULT_COLUMNS]);
+  }, []);
 
   // Save column visibility to localStorage whenever it changes
   useEffect(() => {

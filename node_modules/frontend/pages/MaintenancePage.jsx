@@ -393,7 +393,7 @@ export default function MaintenancePage({ user }) {
       mounted = false;
       clearInterval(interval);
     };
-  }, [DEFAULT_COLUMNS]);
+  }, []);
 
   // Save column visibility to localStorage
   useEffect(() => {

@@ -398,7 +398,18 @@ export default function MoveInOutPage({ user }) {
           : [];
 
         if (!mounted) return;
-        setRecent(normalized);
+        if (!mounted) return;
+
+        // Deduplicate by ID
+        const unique = [];
+        const seen = new Set();
+        for (const item of normalized) {
+          if (item.id && !seen.has(String(item.id))) {
+            seen.add(String(item.id));
+            unique.push(item);
+          }
+        }
+        setRecent(unique);
       } catch (err) {
         console.warn("Failed to load move-ins:", err?.message || err);
       }
@@ -429,7 +440,16 @@ export default function MoveInOutPage({ user }) {
           created_at: r.created_at || null,
         }))
         : [];
-      setMoveOuts(normalized.filter((m) => m?.service_user_id));
+      // Deduplicate by ID and ensure user ID exists
+      const unique = [];
+      const seen = new Set();
+      for (const item of normalized) {
+        if (item.id && item.service_user_id && !seen.has(String(item.id))) {
+          seen.add(String(item.id));
+          unique.push(item);
+        }
+      }
+      setMoveOuts(unique);
     } catch (err) {
       console.warn("fetchMoveOuts failed", err?.message || err);
     }
@@ -748,7 +768,7 @@ export default function MoveInOutPage({ user }) {
         throw err;
       }
     },
-    [api]
+    [api, canDeletePage]
   );
 
   const onDeleteMoveOut = useCallback(
@@ -768,7 +788,7 @@ export default function MoveInOutPage({ user }) {
         throw err;
       }
     },
-    [api]
+    [api, canDeletePage]
   );
 
   const handleDeleteConfirm = async () => {
@@ -1273,7 +1293,7 @@ export default function MoveInOutPage({ user }) {
 
                       return (
                         <div
-                          key={r.id || Math.random()}
+                          key={r.id}
                           className="group bg-emerald-50/50 border border-emerald-100 rounded-xl p-5 flex items-center justify-between hover:shadow-md hover:border-emerald-200 transition-all duration-200"
                         >
                           <div className="flex items-center gap-5">
@@ -1371,7 +1391,7 @@ export default function MoveInOutPage({ user }) {
                         : "";
                       return (
                         <div
-                          key={r.id || Math.random()}
+                          key={r.id}
                           className="group bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between hover:shadow-md hover:border-slate-300 transition-all duration-200"
                         >
                           <div className="flex items-center gap-5">
@@ -1491,7 +1511,7 @@ export default function MoveInOutPage({ user }) {
                         : "";
                       return (
                         <div
-                          key={r.id || Math.random()}
+                          key={r.id}
                           className="group bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between hover:shadow-md hover:border-slate-300 transition-all duration-200"
                         >
                           <div className="flex items-center gap-5">

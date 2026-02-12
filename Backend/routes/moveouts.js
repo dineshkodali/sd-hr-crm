@@ -9,6 +9,30 @@ const router = express.Router();
 
 // Apply CRUD logging to all operations
 applyCrudLogging(router, 'move_outs', 'move_outs');
+
+function quoteIdent(ident) {
+  return `"${String(ident).replace(/"/g, '""')}"`;
+}
+
+let _serviceUsersPropertyColPromise = null;
+async function getServiceUsersPropertyColumn() {
+  if (_serviceUsersPropertyColPromise) return _serviceUsersPropertyColPromise;
+  _serviceUsersPropertyColPromise = (async () => {
+    const candidates = ["property_id", "hotel_id", "accommodation_id"];
+    const { rows } = await pool.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_name = 'service_users'
+         AND column_name = ANY($1::text[])
+       ORDER BY array_position($1::text[], column_name)
+       LIMIT 1`,
+      [candidates]
+    );
+    return rows?.[0]?.column_name || null;
+  })();
+  return _serviceUsersPropertyColPromise;
+}
+
 function coalesceCamelSnake(body, camel, snake) {
   if (body == null) return undefined;
   if (body[camel] !== undefined) return body[camel];
@@ -49,9 +73,35 @@ router.post("/", protect, async (req, res) => {
     const restrictedHotelIds = await getRestrictedHotelIds(req.user);
     if (restrictedHotelIds !== null) {
       if (restrictedHotelIds.length === 0) return res.status(403).json({ success: false, error: "Forbidden" });
-      const suRes = await pool.query('SELECT property_id FROM service_users WHERE id::text = $1::text LIMIT 1', [service_user_id]);
-      const suPid = suRes.rows[0]?.property_id ?? null;
-      if (!suPid || !restrictedHotelIds.some((x) => String(x) === String(suPid))) {
+      const propertyCol = await getServiceUsersPropertyColumn();
+      if (!propertyCol) {
+        return res.status(500).json({ success: false, error: "Server misconfiguration: service_users property column not found" });
+      }
+      const suRes = await pool.query(
+        `SELECT ${quoteIdent(propertyCol)} AS property_id FROM service_users WHERE id::text = $1::text LIMIT 1`,
+        [service_user_id]
+      );
+      const suPid = suRes.rows?.[0]?.property_id ?? null;
+      let allowed = false;
+
+      // 1. Check current service_user assignment
+      if (suPid && restrictedHotelIds.some((x) => String(x) === String(suPid))) {
+        allowed = true;
+      }
+
+      // 2. Fallback: Check latest move-in record for this user
+      if (!allowed) {
+        const lastMoveIn = await pool.query(
+          `SELECT property_id FROM maintenance.move_ins WHERE service_user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+          [service_user_id]
+        );
+        const lastPid = lastMoveIn.rows?.[0]?.property_id;
+        if (lastPid && restrictedHotelIds.some((x) => String(x) === String(lastPid))) {
+          allowed = true;
+        }
+      }
+
+      if (!allowed) {
         return res.status(403).json({ success: false, error: "Forbidden" });
       }
     }
@@ -91,12 +141,20 @@ router.post("/", protect, async (req, res) => {
 router.get("/", protect, async (req, res) => {
   try {
     const restrictedHotelIds = await getRestrictedHotelIds(req.user);
+    const colName = await getServiceUsersPropertyColumn();
+    const propertyCol = colName || 'property_id';
 
     let query = `
-      SELECT mo.* 
+      SELECT mo.*
       FROM maintenance.move_outs mo
-      LEFT JOIN service_users su ON mo.service_user_id::text = su.id::text
-    `;
+      LEFT JOIN service_users su ON mo.service_user_id:: text = su.id:: text
+      LEFT JOIN LATERAL(
+        SELECT property_id 
+        FROM maintenance.move_ins mi 
+        WHERE mi.service_user_id = mo.service_user_id 
+        ORDER BY created_at DESC LIMIT 1
+      ) last_mi ON true
+        `;
     let whereClauses = [];
     let params = [];
     let paramIdx = 1;
@@ -105,12 +163,18 @@ router.get("/", protect, async (req, res) => {
       if (restrictedHotelIds.length === 0) {
         return res.json({ success: true, rows: [] });
       }
-      whereClauses.push(`su.property_id::text = ANY($${paramIdx++}::text[])`);
+      // Check either service_users property OR last move_in property
+      whereClauses.push(`(
+          ${quoteIdent("su")}.${quoteIdent(propertyCol)}:: text = ANY($${paramIdx}:: text[])
+        OR
+        last_mi.property_id:: text = ANY($${paramIdx}:: text[])
+        )`);
       params.push(restrictedHotelIds.map(String));
+      paramIdx++;
     }
 
     if (whereClauses.length > 0) {
-      query += ` WHERE ${whereClauses.join(' AND ')}`;
+      query += ` WHERE ${whereClauses.join(' AND ')} `;
     }
 
     query += ` ORDER BY mo.created_at DESC LIMIT 500`;
@@ -133,17 +197,40 @@ router.delete('/:id', protect, async (req, res) => {
     const restrictedHotelIds = await getRestrictedHotelIds(req.user);
     if (restrictedHotelIds !== null) {
       if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
+      const propertyCol = await getServiceUsersPropertyColumn();
+      if (!propertyCol) {
+        return res.status(500).json({ success: false, error: "Server misconfiguration: service_users property column not found" });
+      }
       const checkRes = await pool.query(
-        `SELECT su.property_id
+        `SELECT su.${quoteIdent(propertyCol)} AS property_id, mo.service_user_id
          FROM maintenance.move_outs mo
-         LEFT JOIN service_users su ON mo.service_user_id::text = su.id::text
+         LEFT JOIN service_users su ON mo.service_user_id:: text = su.id:: text
          WHERE mo.id = $1
          LIMIT 1`,
         [id]
       );
       if (!checkRes.rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+
       const existingPid = checkRes.rows[0]?.property_id ?? null;
-      if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+      const moServiceUserId = checkRes.rows[0]?.service_user_id;
+
+      let allowed = false;
+      if (existingPid && restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+        allowed = true;
+      }
+
+      if (!allowed && moServiceUserId) {
+        const lastMoveIn = await pool.query(
+          `SELECT property_id FROM maintenance.move_ins WHERE service_user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+          [moServiceUserId]
+        );
+        const lastPid = lastMoveIn.rows?.[0]?.property_id;
+        if (lastPid && restrictedHotelIds.some((x) => String(x) === String(lastPid))) {
+          allowed = true;
+        }
+      }
+
+      if (!allowed) {
         return res.status(404).json({ success: false, error: 'Not found' });
       }
     }
@@ -167,17 +254,40 @@ router.patch('/:id', protect, async (req, res) => {
     const restrictedHotelIds = await getRestrictedHotelIds(req.user);
     if (restrictedHotelIds !== null) {
       if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, error: 'Not found' });
+      const propertyCol = await getServiceUsersPropertyColumn();
+      if (!propertyCol) {
+        return res.status(500).json({ success: false, error: "Server misconfiguration: service_users property column not found" });
+      }
       const checkRes = await pool.query(
-        `SELECT su.property_id
+        `SELECT su.${quoteIdent(propertyCol)} AS property_id, mo.service_user_id
          FROM maintenance.move_outs mo
-         LEFT JOIN service_users su ON mo.service_user_id::text = su.id::text
+         LEFT JOIN service_users su ON mo.service_user_id:: text = su.id:: text
          WHERE mo.id = $1
          LIMIT 1`,
         [id]
       );
       if (!checkRes.rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+
       const existingPid = checkRes.rows[0]?.property_id ?? null;
-      if (!existingPid || !restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+      const moServiceUserId = checkRes.rows[0]?.service_user_id;
+
+      let allowed = false;
+      if (existingPid && restrictedHotelIds.some((x) => String(x) === String(existingPid))) {
+        allowed = true;
+      }
+
+      if (!allowed && moServiceUserId) {
+        const lastMoveIn = await pool.query(
+          `SELECT property_id FROM maintenance.move_ins WHERE service_user_id = $1 ORDER BY created_at DESC LIMIT 1`,
+          [moServiceUserId]
+        );
+        const lastPid = lastMoveIn.rows?.[0]?.property_id;
+        if (lastPid && restrictedHotelIds.some((x) => String(x) === String(lastPid))) {
+          allowed = true;
+        }
+      }
+
+      if (!allowed) {
         return res.status(404).json({ success: false, error: 'Not found' });
       }
     }
@@ -193,19 +303,19 @@ router.patch('/:id', protect, async (req, res) => {
     let paramCount = 1;
 
     if (move_out_date !== null) {
-      updates.push(`move_out_date = $${paramCount++}`);
+      updates.push(`move_out_date = $${paramCount++} `);
       values.push(move_out_date);
     }
     if (checklist !== null) {
-      updates.push(`checklist = $${paramCount++}::jsonb`);
+      updates.push(`checklist = $${paramCount++}:: jsonb`);
       values.push(JSON.stringify(checklist));
     }
     if (notes !== null) {
-      updates.push(`notes = $${paramCount++}`);
+      updates.push(`notes = $${paramCount++} `);
       values.push(notes);
     }
     if (signature !== null) {
-      updates.push(`signature = $${paramCount++}`);
+      updates.push(`signature = $${paramCount++} `);
       values.push(signature);
     }
 
@@ -214,7 +324,7 @@ router.patch('/:id', protect, async (req, res) => {
     }
 
     values.push(id);
-    const q = `UPDATE maintenance.move_outs SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
+    const q = `UPDATE maintenance.move_outs SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING * `;
     const result = await pool.query(q, values);
 
     if (!result.rows || result.rows.length === 0) {

@@ -66,6 +66,11 @@ function makeReference() {
   return `ISPT-${year}-${rnd}`;
 }
 
+function quoteIdent(ident) {
+  const s = String(ident);
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
 function coerceValueByPgType(pgType, value) {
   if (value === undefined) return undefined;
   if (value === null) return null;
@@ -107,6 +112,23 @@ function coerceValueByPgType(pgType, value) {
 
   // fallback (text, varchar, etc)
   return value;
+}
+
+async function resolveHotelIdFromInspectionRow(row) {
+  const direct = row?.property ?? row?.property_id ?? row?.hotel_id ?? null;
+  if (direct !== null && direct !== undefined && String(direct).trim() !== "") return direct;
+
+  const propName = row?.property_name ?? row?.propertyName ?? null;
+  if (!propName) return null;
+  try {
+    const r = await pool.query(
+      `SELECT id FROM hotels WHERE LOWER(name) = LOWER($1) LIMIT 1`,
+      [String(propName).trim()]
+    );
+    return r.rows?.[0]?.id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 
@@ -295,7 +317,7 @@ router.get("/:id", protect, async (req, res) => {
     if (restrictedHotelIds !== null) {
       if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, message: "Not found" });
       const row = rows[0];
-      const pid = row.property ?? row.property_id ?? row.hotel_id ?? null;
+      const pid = await resolveHotelIdFromInspectionRow(row);
       if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
         return res.status(404).json({ success: false, message: "Not found" });
       }
@@ -446,7 +468,7 @@ router.post("/", protect, async (req, res) => {
         const coerced = coerceValueByPgType(colTypeMap.get(col), req.body[col]);
         if (coerced === undefined) continue;
 
-        columnsToInsert.push(col);
+        columnsToInsert.push(quoteIdent(col));
         valuesToInsert.push(coerced);
       }
     } catch (e) {
@@ -506,7 +528,7 @@ router.put("/:id", protect, async (req, res) => {
 
     if (restrictedHotelIds !== null) {
       if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, message: "Not found" });
-      const pid = existingRowRes.rows[0]?.property ?? existingRowRes.rows[0]?.property_id ?? existingRowRes.rows[0]?.hotel_id ?? null;
+      const pid = await resolveHotelIdFromInspectionRow(existingRowRes.rows[0]);
       if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
         return res.status(404).json({ success: false, message: "Not found" });
       }
@@ -599,7 +621,7 @@ router.put("/:id", protect, async (req, res) => {
         const coerced = coerceValueByPgType(colTypeMap.get(col), req.body[col]);
         if (coerced === undefined) continue;
 
-        updates.push(`${col} = $${idx}`);
+        updates.push(`${quoteIdent(col)} = $${idx}`);
         values.push(coerced);
         idx++;
       }
@@ -658,7 +680,7 @@ router.delete("/:id", protect, async (req, res) => {
 
     if (restrictedHotelIds !== null) {
       if (restrictedHotelIds.length === 0) return res.status(404).json({ success: false, message: "Not found" });
-      const pid = existingRowRes.rows[0]?.property ?? existingRowRes.rows[0]?.property_id ?? existingRowRes.rows[0]?.hotel_id ?? null;
+      const pid = await resolveHotelIdFromInspectionRow(existingRowRes.rows[0]);
       if (!pid || !restrictedHotelIds.some((x) => String(x) === String(pid))) {
         return res.status(404).json({ success: false, message: "Not found" });
       }

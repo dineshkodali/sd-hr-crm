@@ -19,14 +19,23 @@
   <script>
     (function () {
       try {
-        var globalCrypto = (typeof window !== 'undefined' && (window.crypto || window.msCrypto)) || (typeof crypto !== 'undefined' && crypto) || null;
-        if (!globalCrypto) return;
-        if (typeof globalCrypto.randomUUID === 'function') return;
-        var getRandomValues = (globalCrypto.getRandomValues && typeof globalCrypto.getRandomValues === 'function')
-          ? function (arr) { return globalCrypto.getRandomValues(arr); }
+        var root = (typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : this));
+        var existing = (typeof window !== 'undefined' && (window.crypto || window.msCrypto)) || (typeof root !== 'undefined' && root.crypto) || null;
+        if (!existing) {
+          root.crypto = {};
+          existing = root.crypto;
+        } else {
+          root.crypto = existing;
+        }
+
+        if (typeof existing.randomUUID === 'function') return;
+
+        var getRandomValues = (existing.getRandomValues && typeof existing.getRandomValues === 'function')
+          ? function (arr) { return existing.getRandomValues(arr); }
           : null;
+        var uuidImpl;
         if (getRandomValues) {
-          globalCrypto.randomUUID = function () {
+          uuidImpl = function () {
             var bytes = new Uint8Array(16);
             getRandomValues(bytes);
             bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -35,13 +44,39 @@
             return hex.substring(0, 8) + '-' + hex.substring(8, 12) + '-' + hex.substring(12, 16) + '-' + hex.substring(16, 20) + '-' + hex.substring(20, 32);
           };
         } else {
-          globalCrypto.randomUUID = function () {
+          uuidImpl = function () {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
               var r = Math.random() * 16 | 0;
               var v = c === 'x' ? r : (r & 0x3 | 0x8);
               return v.toString(16);
             });
           };
+        }
+
+        try {
+          Object.defineProperty(existing, 'randomUUID', {
+            value: uuidImpl,
+            configurable: true,
+            writable: true,
+          });
+        } catch (e) {
+          try { existing.randomUUID = uuidImpl; } catch (e2) { }
+        }
+
+        try {
+          if (typeof window !== 'undefined' && window.crypto) {
+            try {
+              Object.defineProperty(window.crypto, 'randomUUID', {
+                value: existing.randomUUID,
+                configurable: true,
+                writable: true,
+              });
+            } catch (e) {
+              try { window.crypto.randomUUID = existing.randomUUID; } catch (e2) { }
+            }
+          }
+        } catch (e) {
+          // best-effort
         }
       } catch (e) {
         // best-effort

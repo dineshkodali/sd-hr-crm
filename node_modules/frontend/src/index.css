@@ -85,3 +85,7 @@ body.form-modal-open .admin-sidebar,
 body.form-modal-open .top-navbar {
   display: none !important;
 }
+
+body.form-modal-open {
+  overflow: hidden;
+}

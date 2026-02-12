@@ -1099,7 +1099,15 @@ router.get("/users/:id", protect, async (req, res) => {
   try {
     const cur = req.user;
     if (!cur) return res.status(401).json({ message: "Unauthorized" });
-    if (!isAdmin(cur) && !isManager(cur)) return res.status(403).json({ message: "Forbidden" });
+    if (!isAdmin(cur) && !isManager(cur) && !isStaff(cur)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    // Staff must have employees read access
+    if (isStaff(cur)) {
+      const ok = await hasModuleAccess(cur.id, "employees");
+      if (!ok) return res.status(403).json({ message: "Forbidden" });
+    }
 
     const id = req.params.id;
     const hotelCol = await detectUsersHotelColumn();
@@ -1113,6 +1121,31 @@ router.get("/users/:id", protect, async (req, res) => {
     // Admins get full record (with sensitive fields removed)
     if (isAdmin(cur)) {
       // strip sensitive fields
+      delete userRow.password;
+      delete userRow.reset_token;
+      delete userRow.token;
+      delete userRow.tokens;
+      return res.json({ user: userRow });
+    }
+
+    // Staff: only allow reading users within the same branch or assigned hotel
+    if (isStaff(cur)) {
+      const sameBranch = cur.branch && userRow.branch && String(cur.branch) === String(userRow.branch);
+
+      // compare hotel's assignment if present on users table
+      let sameHotel = false;
+      const staffHotelId = cur.hotel_id || cur.hotelId || cur.hotel || null;
+      if (staffHotelId && hotelCol) {
+        const targetHotelId = userRow[hotelCol] || userRow.hotel_id || userRow.hotel || null;
+        if (targetHotelId && String(targetHotelId) === String(staffHotelId)) {
+          sameHotel = true;
+        }
+      }
+
+      if (!sameBranch && !sameHotel) {
+        return res.status(403).json({ message: "Forbidden — user outside your branch/hotel" });
+      }
+
       delete userRow.password;
       delete userRow.reset_token;
       delete userRow.token;
@@ -1159,7 +1192,19 @@ router.put("/users/:id", protect, upload.single("avatar"), async (req, res) => {
   try {
     const cur = req.user;
     if (!cur) return res.status(401).json({ message: "Unauthorized" });
-    if (!isAdmin(cur) && !isManager(cur)) return res.status(403).json({ message: "Forbidden" });
+    if (!isAdmin(cur) && !isManager(cur) && !isStaff(cur)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    if (isStaff(cur)) {
+      const pr = await pool.query(
+        `SELECT can_read, can_update FROM user_permissions WHERE user_id = $1 AND module = $2 LIMIT 1`,
+        [cur.id, "employees"]
+      );
+      const perm = pr.rows?.[0] || null;
+      const ok = !!(perm && perm.can_read && perm.can_update);
+      if (!ok) return res.status(403).json({ message: "Forbidden" });
+    }
 
     const id = req.params.id;
 
@@ -1182,6 +1227,24 @@ router.put("/users/:id", protect, upload.single("avatar"), async (req, res) => {
       }
     }
 
+    if (isStaff(cur)) {
+      const hotelCol = await detectUsersHotelColumn();
+      const sameBranch = cur.branch && existing.branch && String(cur.branch) === String(existing.branch);
+
+      let sameHotel = false;
+      const staffHotelId = cur.hotel_id || cur.hotelId || cur.hotel || null;
+      if (staffHotelId && hotelCol) {
+        const targetHotelId = existing[hotelCol] || existing.hotel_id || existing.hotel || null;
+        if (targetHotelId && String(targetHotelId) === String(staffHotelId)) {
+          sameHotel = true;
+        }
+      }
+
+      if (!sameBranch && !sameHotel) {
+        return res.status(403).json({ message: "Forbidden — cannot update user outside your branch/hotel" });
+      }
+    }
+
     // Only update allowed fields
     // Accept fields from either multipart form-data (req.body) or JSON
     const body = req.body || {};
@@ -1199,10 +1262,17 @@ router.put("/users/:id", protect, upload.single("avatar"), async (req, res) => {
       values.push(email || null);
     }
     if (branch !== undefined) {
-      // manager is allowed to update branch only within their own branch? To keep safe allow admin only.
+      if (isStaff(cur)) {
+        if (existing.branch && String(branch) !== String(existing.branch)) {
+          return res.status(403).json({ message: "Forbidden — branch updates require admin privilege" });
+        }
+      }
       if (isManager(cur)) {
-        // disallow changing branch by manager to avoid privilege escalation
-        return res.status(403).json({ message: "Forbidden — branch updates require admin privilege" });
+        // checks if branch is changing
+        if (existing.branch && String(branch) !== String(existing.branch)) {
+          return res.status(403).json({ message: "Forbidden — branch updates require admin privilege" });
+        }
+        // if not changing, we can either update or skip. Let's update (no harm)
       }
       updates.push(`branch = $${idx++}`);
       values.push(branch || null);
@@ -1212,19 +1282,29 @@ router.put("/users/:id", protect, upload.single("avatar"), async (req, res) => {
       values.push(status || null);
     }
     if (role !== undefined) {
-      // managers cannot escalate someone to admin
-      if (isManager(cur) && role === "admin") {
-        return res.status(403).json({ message: "Forbidden — cannot set admin role" });
+      if (isStaff(cur)) {
+        if (existing.role && String(role) !== String(existing.role)) {
+          return res.status(403).json({ message: "Forbidden — role updates require admin privilege" });
+        }
       }
-      // allow role change for admin; manager can change role among staff/manager? manager->manager would be odd; keep safe: allow admin only
+      // managers cannot escalate someone to admin
       if (isManager(cur)) {
-        return res.status(403).json({ message: "Forbidden — role updates require admin privilege" });
+        if (role === "admin") {
+          return res.status(403).json({ message: "Forbidden — cannot set admin role" });
+        }
+        // forbid role change if attempting to change current role
+        if (existing.role && String(role) !== String(existing.role)) {
+          return res.status(403).json({ message: "Forbidden — role updates require admin privilege" });
+        }
       }
       updates.push(`role = $${idx++}`);
       values.push(role || null);
     }
 
     if (password) {
+      if (isStaff(cur)) {
+        return res.status(403).json({ message: "Forbidden — password updates require admin privilege" });
+      }
       const hashed = await bcrypt.hash(password, 10);
       updates.push(`password = $${idx++}`);
       values.push(hashed);
@@ -1263,9 +1343,9 @@ router.put("/users/:id", protect, upload.single("avatar"), async (req, res) => {
     const sql = `UPDATE users SET ${updates.join(", ")}, updated_at = NOW() WHERE id = $${idx} RETURNING id, name, email, role, branch, status, phone, avatar, city, country`;
     const result = await pool.query(sql, values);
     if (!result.rows.length) return res.status(404).json({ message: "User not found after update" });
-    
+
     const updatedUser = result.rows[0];
-    
+
     // Log the update activity with before/after comparison
     try {
       await logActivityWithComparison({
@@ -1287,7 +1367,7 @@ router.put("/users/:id", protect, upload.single("avatar"), async (req, res) => {
     } catch (logError) {
       console.error('Failed to log user update:', logError);
     }
-    
+
     return res.json({ user: updatedUser, message: "User updated" });
   } catch (err) {
     console.error("PUT /api/admin/users/:id error:", err && err.stack ? err.stack : err);
@@ -1304,13 +1384,49 @@ router.delete("/users/:id", protect, async (req, res) => {
   try {
     const cur = req.user;
     if (!cur) return res.status(401).json({ message: "Unauthorized" });
-    if (!isAdmin(cur) && !isManager(cur)) return res.status(403).json({ message: "Forbidden" });
+    if (!isAdmin(cur) && !isManager(cur) && !isStaff(cur)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    if (isStaff(cur)) {
+      const pr = await pool.query(
+        `SELECT can_read, can_delete FROM user_permissions WHERE user_id = $1 AND module = $2 LIMIT 1`,
+        [cur.id, "employees"]
+      );
+      const perm = pr.rows?.[0] || null;
+      const ok = !!(perm && perm.can_read && perm.can_delete);
+      if (!ok) return res.status(403).json({ message: "Forbidden" });
+    }
 
     const id = req.params.id;
     // fetch existing user
     const r0 = await pool.query("SELECT * FROM users WHERE id = $1 LIMIT 1", [id]);
     if (!r0.rows.length) return res.status(404).json({ message: "User not found" });
     const existing = r0.rows[0];
+
+    if (isStaff(cur)) {
+      // Staff can only delete staff users
+      const targetRole = String(existing.role || "").toLowerCase();
+      if (targetRole !== "staff") {
+        return res.status(403).json({ message: "Forbidden — cannot delete this user" });
+      }
+
+      const hotelCol = await detectUsersHotelColumn();
+      const sameBranch = cur.branch && existing.branch && String(cur.branch) === String(existing.branch);
+
+      let sameHotel = false;
+      const staffHotelId = cur.hotel_id || cur.hotelId || cur.hotel || null;
+      if (staffHotelId && hotelCol) {
+        const targetHotelId = existing[hotelCol] || existing.hotel_id || existing.hotel || null;
+        if (targetHotelId && String(targetHotelId) === String(staffHotelId)) {
+          sameHotel = true;
+        }
+      }
+
+      if (!sameBranch && !sameHotel) {
+        return res.status(403).json({ message: "Forbidden — cannot delete user outside your branch/hotel" });
+      }
+    }
 
     if (isManager(cur)) {
       const sameBranch = cur.branch && existing.branch && String(cur.branch) === String(existing.branch);

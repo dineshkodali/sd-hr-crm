@@ -18,6 +18,11 @@ const parseId = (val) => {
   return id;
 };
 
+const quoteIdent = (ident) => {
+  const s = String(ident);
+  return '"' + s.replace(/"/g, '""') + '"';
+};
+
 async function getAllowedHotelIds(clientOrPool, user) {
   if (!user) return [];
   if (user.role === "admin") return null;
@@ -71,13 +76,32 @@ function getTaskSiteLower(taskRow) {
   return v ? v : null;
 }
 
+let maintenanceHotelIdColCache = null;
+async function getMaintenanceHotelIdCol(client) {
+  if (maintenanceHotelIdColCache) return maintenanceHotelIdColCache;
+  try {
+    const { rows } = await client.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'maintenance_tasks'`
+    );
+    const cols = (rows || []).map((r) => r.column_name);
+    if (cols.includes('hotel_id')) maintenanceHotelIdColCache = 'hotel_id';
+    else if (cols.includes('property_id')) maintenanceHotelIdColCache = 'property_id';
+    else maintenanceHotelIdColCache = null;
+  } catch {
+    maintenanceHotelIdColCache = null;
+  }
+  return maintenanceHotelIdColCache;
+}
+
 async function assertTaskAccess(client, user, taskId) {
   const allowedIds = await getAllowedHotelIds(client, user);
   if (allowedIds === null) return { allowed: true, allowedIds: null };
   if (allowedIds.length === 0) return { allowed: false, allowedIds };
 
+  const idCol = await getMaintenanceHotelIdCol(client);
+  const selectId = idCol ? `${quoteIdent(idCol)} AS hotel_id` : `NULL::int AS hotel_id`;
   const { rows } = await client.query(
-    "SELECT hotel_id, property_id, site, hotel_name FROM maintenance_tasks WHERE id = $1 LIMIT 1",
+    `SELECT ${selectId}, site FROM maintenance_tasks WHERE id = $1 LIMIT 1`,
     [taskId]
   );
   if (!rows.length) return { allowed: false, allowedIds, notFound: true };
@@ -217,7 +241,7 @@ export async function createTask(req, res) {
     ];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
-        columnsToInsert.push(col);
+        columnsToInsert.push(quoteIdent(col));
         valuesToInsert.push(req.body[col]);
         placeholders.push(`$${idx++}`);
       }
@@ -558,7 +582,7 @@ export async function updateTask(req, res) {
     ];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
-        setParts.push(`${col} = $${idx++}`);
+        setParts.push(`${quoteIdent(col)} = $${idx++}`);
         values.push(req.body[col]);
       }
     }

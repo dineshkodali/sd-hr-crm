@@ -47,10 +47,18 @@ const missingConfig = !connectionString && !hasDiscreteConfig;
    Pool configuration
    -------------------------- */
 
+const poolTuning = {
+  max: present(process.env.PGPOOL_MAX) ? parseInt(process.env.PGPOOL_MAX, 10) : 10,
+  idleTimeoutMillis: present(process.env.PG_IDLE_TIMEOUT) ? parseInt(process.env.PG_IDLE_TIMEOUT, 10) : 30000,
+  connectionTimeoutMillis: present(process.env.PG_CONN_TIMEOUT) ? parseInt(process.env.PG_CONN_TIMEOUT, 10) : 20000,
+  keepAlive: true,
+};
+
 const poolConfig = connectionString
   ? {
       connectionString,
       // Add options like ssl here if you need them, e.g. ssl: { rejectUnauthorized: false }
+      ...poolTuning,
     }
   : {
       host,
@@ -58,9 +66,7 @@ const poolConfig = connectionString
       database,
       user,
       password,
-      max: present(process.env.PGPOOL_MAX) ? parseInt(process.env.PGPOOL_MAX, 10) : 10,
-      idleTimeoutMillis: present(process.env.PG_IDLE_TIMEOUT) ? parseInt(process.env.PG_IDLE_TIMEOUT, 10) : 30000,
-      connectionTimeoutMillis: present(process.env.PG_CONN_TIMEOUT) ? parseInt(process.env.PG_CONN_TIMEOUT, 10) : 5000,
+      ...poolTuning,
     };
 
 /* --------------------------

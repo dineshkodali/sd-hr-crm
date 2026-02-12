@@ -1179,15 +1179,27 @@ router.put("/users/:id", protect, async (req, res) => {
 
     const sets = [];
     const params = [];
+    const setIndexByColumn = new Map();
 
     const pushSet = (colName, val) => {
       if (!suCols.includes(colName)) return;
       const v =
         typeof val === "string" && val.trim() === "" ? null : val;
-      if (v !== undefined) {
-        params.push(v);
-        sets.push(`${quoteIdent(colName)} = $${params.length}`);
+      if (v === undefined) return;
+
+      // Prevent multiple assignments to the same column in the UPDATE statement.
+      // If the column was already added earlier, overwrite the previous param value.
+      const existing = setIndexByColumn.get(colName);
+      if (existing) {
+        const { paramIndex } = existing;
+        params[paramIndex - 1] = v;
+        return;
       }
+
+      params.push(v);
+      const paramIndex = params.length;
+      sets.push(`${quoteIdent(colName)} = $${paramIndex}`);
+      setIndexByColumn.set(colName, { paramIndex });
     };
 
     // Basic fields
@@ -1298,7 +1310,6 @@ router.put("/users/:id", protect, async (req, res) => {
         .json({ error: "No valid fields to update" });
     }
 
-    params.push(id);
     // Get the current data before updating (for before/after comparison)
     const { rows: beforeRows } = await pool.query(
       `SELECT * FROM service_users WHERE id = $1`,
@@ -1321,8 +1332,8 @@ router.put("/users/:id", protect, async (req, res) => {
       const propertyFkCandidates = ["property_id", "hotel_id", "accommodation_id", "propertyid", "hotelid"];
       const existingPropertyCol = propertyFkCandidates.find((c) => suCols.includes(c));
       if (existingPropertyCol) {
-        const existingHotelId = beforeData?.[existingPropertyCol];
-        if (existingHotelId && String(existingHotelId) !== String(assignedHotelId)) {
+        const existingHotelIdValue = beforeData?.[existingPropertyCol];
+        if (existingHotelIdValue && String(existingHotelIdValue) !== String(assignedHotelId)) {
           return res.status(403).json({ error: "Forbidden" });
         }
 
@@ -1335,6 +1346,8 @@ router.put("/users/:id", protect, async (req, res) => {
         pushSet(existingPropertyCol, assignedHotelId);
       }
     }
+
+    params.push(id);
 
     const updateQ = `
       UPDATE service_users

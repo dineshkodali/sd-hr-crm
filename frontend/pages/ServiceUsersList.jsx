@@ -1188,8 +1188,8 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
 
       {/* MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl relative flex flex-col h-[70vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl relative flex flex-col max-h-[85vh]">
             <div className="p-6 border-b border-gray-100 flex justify-between items-start shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">
@@ -1219,11 +1219,11 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto custom-scrollbar">
+            <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
               <form
                 id="service-user-form"
                 onSubmit={handleSubmitUser}
-                className="flex-1 overflow-y-auto space-y-5"
+                className="space-y-5"
               >
                 <div className="grid grid-cols-2 gap-4">
                   <div>

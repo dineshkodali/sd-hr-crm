@@ -25,6 +25,11 @@ import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 
+const litigationColumnsCache = {
+  ts: 0,
+  columns: null,
+};
+
 /* --- Helper: Normalize API Data --- */
 function normalizeHotelsResponse(data) {
   if (!data) return [];
@@ -216,8 +221,67 @@ export default function Litigation({ user }) {
   // Fetch available columns from Forms Builder
   const fetchAvailableColumns = async () => {
     try {
-      const res = await api.get('/api/forms-builder/tables/litigation_tasks/columns');
+      const now = Date.now();
+      if (litigationColumnsCache.columns && now - litigationColumnsCache.ts < 60_000) {
+        const cols = litigationColumnsCache.columns?.columns || litigationColumnsCache.columns || [];
+
+        // Extract column names (handle both string arrays and object arrays)
+        const columnNames = (Array.isArray(cols) ? cols : []).map(col => {
+          if (typeof col === 'string') return col;
+          if (col.column_name) return col.column_name;
+          if (col.name) return col.name;
+          return String(col);
+        });
+
+        setAvailableColumns(columnNames);
+
+        const nextMetadata = {};
+        (Array.isArray(cols) ? cols : []).forEach(col => {
+          const cName = typeof col === 'string' ? col : (col.column_name || col.name);
+          if (cName) {
+            nextMetadata[cName] = {
+              input_type: col.input_type || 'text',
+              input_options: col.input_options || []
+            };
+          }
+        });
+        setCustomColumnMetadata(nextMetadata);
+
+        // Filter out standard columns to get custom ones
+        const standardCols = ['id', 'reference', 'title', 'description', 'priority', 'status',
+          'assigned_to_id', 'assigned_to_name', 'service_user_id', 'property_id',
+          'property_name', 'scheduled_date', 'reported_by', 'category', 'notes',
+          'created_at', 'updated_at'];
+        const custom = columnNames.filter(col => !standardCols.includes(col));
+
+        // Only update if different to avoid infinite loops
+        setCustomColumns(prev => {
+          const prevStr = JSON.stringify(prev);
+          const newStr = JSON.stringify(custom);
+          if (prevStr !== newStr) {
+            // Auto-show new custom columns only if never seen before
+            setVisibleColumns(currentVis => {
+              const updated = { ...currentVis };
+              custom.forEach(col => {
+                // Only auto-show if not explicitly set in localStorage
+                if (currentVis[col] === undefined) {
+                  updated[col] = true;
+                }
+              });
+              return updated;
+            });
+            return custom;
+          }
+          return prev;
+        });
+        return;
+      }
+
+      const res = await api.get('/api/forms-builder/tables/litigation_tasks/columns', { timeout: 60000 });
       const cols = res.data?.columns || [];
+
+      litigationColumnsCache.ts = now;
+      litigationColumnsCache.columns = cols;
 
       // Extract column names (handle both string arrays and object arrays)
       const columnNames = cols.map(col => {
@@ -276,7 +340,7 @@ export default function Litigation({ user }) {
   // Poll for new columns every 5 seconds
   useEffect(() => {
     fetchAvailableColumns();
-    const interval = setInterval(fetchAvailableColumns, 5000);
+    const interval = setInterval(fetchAvailableColumns, 60000);
     return () => clearInterval(interval);
   }, []);
 

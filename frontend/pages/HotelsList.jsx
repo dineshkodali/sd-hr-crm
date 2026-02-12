@@ -191,6 +191,13 @@ export default function HotelsList({ user: userProp }) {
     return () => document.removeEventListener("click", onDocClick);
   }, [editingHotel]);
 
+  // Fetch managers when Add Modal is opened
+  useEffect(() => {
+    if (showAdd) {
+      fetchAllManagers();
+    }
+  }, [showAdd]);
+
   // --- CREATE PROPERTY ---
   const handleCreate = async (e) => {
     e?.preventDefault();
@@ -377,15 +384,17 @@ export default function HotelsList({ user: userProp }) {
     try {
       const res = await axios.get("/api/staff");
       const list = res?.data?.users ?? res.data ?? [];
-      const normalized = (Array.isArray(list) ? list : []).map((u) => ({
-        id: u.id,
-        name: u.name || u.email || "Unknown",
-        email: u.email || null,
-        avatar: u.avatar || u.photo || null,
-        role: u.role || "staff",
-        manager_id: u.manager_id ?? null,
-        branch: u.branch ?? null,
-      }));
+      const normalized = (Array.isArray(list) ? list : [])
+        .filter((u) => (u.role || "").toLowerCase() === "manager") // Filter only managers
+        .map((u) => ({
+          id: u.id,
+          name: u.name || u.email || "Unknown",
+          email: u.email || null,
+          avatar: u.avatar || u.photo || null,
+          role: u.role || "staff",
+          manager_id: u.manager_id ?? null,
+          branch: u.branch ?? null,
+        }));
       setManagersList(normalized);
     } catch (err) {
       console.error("fetchAllManagers error:", err);
@@ -1363,14 +1372,32 @@ export default function HotelsList({ user: userProp }) {
                     <label className="block text-sm text-gray-700 font-medium mb-1">
                       Manager Name
                     </label>
-                    <input
-                      value={form.manager_name}
-                      onChange={(e) =>
-                        setForm({ ...form, manager_name: e.target.value })
-                      }
-                      className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
-                      placeholder="John Doe"
-                    />
+                    <div className="relative">
+                      <select
+                        value={form.manager_name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const manager = managersList.find(m => m.name === val);
+                          setForm({
+                            ...form,
+                            manager_name: val,
+                            manager_email: manager?.email || form.manager_email,
+                            manager_phone: manager?.phone || form.manager_phone // Assuming manager object has phone, otherwise keep existing
+                          });
+                        }}
+                        className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 appearance-none bg-white"
+                      >
+                        <option value="">Select Manager</option>
+                        {managersList.map((m) => (
+                          <option key={m.id} value={m.name}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm text-gray-700 font-medium mb-1">
@@ -1396,8 +1423,9 @@ export default function HotelsList({ user: userProp }) {
                     onChange={(e) =>
                       setForm({ ...form, manager_email: e.target.value })
                     }
-                    className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+                    className="w-full rounded-md border border-gray-300 p-2 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200 bg-gray-50 text-gray-600"
                     placeholder="manager@example.com"
+                    readOnly
                   />
                 </div>
 
