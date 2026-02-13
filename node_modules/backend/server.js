@@ -124,7 +124,13 @@ app.use(cors({
       'http://172.22.48.1:3002', // Added your current access IP
       'http://172.22.48.1:3000', // Added your current access IP
       'http://crm.sdgsolutions.in',
+      'https://crm.sdgsolutions.in',
+      'http://crm.sdgsolutions.in:3002',
+      'https://crm.sdgsolutions.in:3002',
       'http://crm.sdcsolutions.in',
+      'https://crm.sdcsolutions.in',
+      'http://crm.sdcsolutions.in:3002',
+      'https://crm.sdcsolutions.in:3002',
     ];
     
     if (process.env.CORS_ORIGINS === '*') {

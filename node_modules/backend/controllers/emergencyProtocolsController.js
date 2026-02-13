@@ -2,19 +2,32 @@
  * getColumns
  * GET /api/emergency-protocols/columns
  */
+const emergencyProtocolsColumnsCache = {
+  ts: 0,
+  columns: null,
+};
+
 export async function getColumns(req, res) {
-  const client = await pool.connect();
   try {
-    const columnsResult = await client.query(
+    const now = Date.now();
+    if (emergencyProtocolsColumnsCache.columns && now - emergencyProtocolsColumnsCache.ts < 5 * 60_000) {
+      return res.json({ success: true, columns: emergencyProtocolsColumnsCache.columns });
+    }
+
+    const columnsResult = await pool.query(
       `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'emergency_protocols'`
     );
     const columns = columnsResult.rows.map(r => r.column_name);
+
+    emergencyProtocolsColumnsCache.ts = now;
+    emergencyProtocolsColumnsCache.columns = columns;
     return res.json({ success: true, columns });
   } catch (err) {
     console.error("getColumns error:", err);
+    if (emergencyProtocolsColumnsCache.columns) {
+      return res.json({ success: true, columns: emergencyProtocolsColumnsCache.columns });
+    }
     return res.status(500).json({ success: false, error: err.message });
-  } finally {
-    client.release();
   }
 }
 // controllers/emergencyProtocolsController.js
@@ -387,13 +400,27 @@ export async function deleteTask(req, res) {
       return res.status(403).json({ success: false, error: "Access denied" });
     }
 
-    const q = `
+    const columnsRes = await client.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'emergency_protocols'`
+    );
+    const cols = new Set((columnsRes.rows || []).map((r) => r.column_name));
+    const hasDeletedAt = cols.has('deleted_at');
+
+    const now = new Date();
+    const q = hasDeletedAt
+      ? `
       UPDATE emergency_protocols
       SET deleted = true, deleted_at = $1, updated_at = $1
       WHERE id = $2 AND deleted = false
       RETURNING id;
+    `
+      : `
+      UPDATE emergency_protocols
+      SET deleted = true, updated_at = $1
+      WHERE id = $2 AND deleted = false
+      RETURNING id;
     `;
-    const now = new Date();
+
     const { rows } = await client.query(q, [now, id]);
     if (!rows.length) return res.status(404).json({ success: false, error: "Task not found or already deleted" });
 

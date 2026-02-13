@@ -215,6 +215,33 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
 
+        function quoteIdent(ident) {
+            const s = String(ident);
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+
+        function coerceValueByPgType(pgType, value) {
+            if (value === undefined) return undefined;
+            if (value === null) return null;
+            if (typeof value === 'string' && value.trim() === '') {
+                const t = String(pgType || '').toLowerCase();
+                if (
+                    t.includes('date') ||
+                    t.includes('timestamp') ||
+                    t.includes('time') ||
+                    t.includes('int') ||
+                    t.includes('numeric') ||
+                    t.includes('decimal') ||
+                    t.includes('double') ||
+                    t.includes('real') ||
+                    t.includes('bool')
+                ) {
+                    return null;
+                }
+            }
+            return value;
+        }
+
         const checkRes = await pool.query('SELECT property_id FROM public.safeguarding_referrals WHERE id=$1', [id]);
         if (!checkRes.rows || checkRes.rows.length === 0) {
             return res.status(404).json({ message: 'Referral not found' });
@@ -257,6 +284,15 @@ router.patch('/:id', protect, async (req, res) => {
        WHERE table_schema = 'public' AND table_name = 'safeguarding_referrals'`
         );
 
+        const columnsResultWithTypes = await pool.query(
+            `SELECT column_name, data_type, udt_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'safeguarding_referrals'`
+        );
+
+        const colTypeMap = new Map(
+            (columnsResultWithTypes.rows || []).map((r) => [r.column_name, r.data_type || r.udt_name])
+        );
+
         const allColumns = columnsResult.rows.map(r => r.column_name);
         const standardColumns = ['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by'];
         const updatableColumns = allColumns.filter(col => !standardColumns.includes(col));
@@ -271,8 +307,8 @@ router.patch('/:id', protect, async (req, res) => {
         // Standard fields
         standardFields.forEach(field => {
             if (req.body[field] !== undefined) {
-                setClauses.push(`${field}=$${paramIndex}`);
-                values.push(req.body[field]);
+                setClauses.push(`${quoteIdent(field)}=$${paramIndex}`);
+                values.push(coerceValueByPgType(colTypeMap.get(field), req.body[field]));
                 paramIndex++;
             }
         });
@@ -280,8 +316,8 @@ router.patch('/:id', protect, async (req, res) => {
         // Custom columns
         updatableColumns.forEach(col => {
             if (!standardFields.includes(col) && req.body[col] !== undefined) {
-                setClauses.push(`${col}=$${paramIndex}`);
-                values.push(req.body[col]);
+                setClauses.push(`${quoteIdent(col)}=$${paramIndex}`);
+                values.push(coerceValueByPgType(colTypeMap.get(col), req.body[col]));
                 paramIndex++;
             }
         });

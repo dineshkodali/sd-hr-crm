@@ -33,6 +33,23 @@ const api = axios.create({
   timeout: 15000,
 });
 
+const emergencyProtocolsColumnsCache = {
+  ts: 0,
+  columns: null,
+};
+
+const DEFAULT_COLUMNS = [
+  "checkbox",
+  "type",
+  "reference",
+  "description",
+  "priority",
+  "status",
+  "assigned",
+  "date",
+  "actions",
+];
+
 /* --- UTILS --- */
 function normalizeHotelsResponse(data) {
   if (!data) return [];
@@ -107,19 +124,6 @@ const DetailField = ({ label, value }) => (
 
 /* --- MAIN COMPONENT --- */
 export default function EmergencyProtocols() {
-  // Default visible columns for Emergency Protocols (must match other pages)
-  const DEFAULT_COLUMNS = [
-    "checkbox",
-    "type",
-    "reference",
-    "description",
-    "priority",
-    "status",
-    "assigned",
-    "date",
-    "actions",
-  ];
-
   // Custom columns state (AIRETasks pattern)
   const [customColumns, setCustomColumns] = useState([]);
   const [customColumnMetadata, setCustomColumnMetadata] = useState({});
@@ -128,8 +132,35 @@ export default function EmergencyProtocols() {
   // Poll columns from backend and update visibility state
   const fetchAvailableColumns = useCallback(async () => {
     try {
-      const res = await api.get('/api/emergency-protocols/columns');
+      const now = Date.now();
+      if (emergencyProtocolsColumnsCache.columns && now - emergencyProtocolsColumnsCache.ts < 60_000) {
+        const cached = emergencyProtocolsColumnsCache.columns;
+        const columns = cached?.columns || cached || [];
+
+        const systemColumns = [
+          'id', 'reference', 'type', 'title', 'description', 'property_id', 'property_name', 'category',
+          'priority', 'reported_by', 'assigned_to_id', 'assigned_to_name', 'scheduled_date', 'due_date',
+          'status', 'created_by_id', 'created_at', 'updated_at', 'deleted', 'completed_date', 'notes'
+        ];
+        const columnNames = (Array.isArray(columns) ? columns : []).map(col => typeof col === 'string' ? col : (col.column_name || col.name || String(col)));
+        const customCols = columnNames.filter(col => !systemColumns.includes(col) && !DEFAULT_COLUMNS.includes(col));
+        const newColumns = [...DEFAULT_COLUMNS.slice(0, -1), ...customCols, DEFAULT_COLUMNS[DEFAULT_COLUMNS.length - 1]];
+
+        setCustomColumns(prev => {
+          if (JSON.stringify(customCols) !== JSON.stringify(prev)) {
+            setAvailableColumns(newColumns);
+            return customCols;
+          }
+          return prev;
+        });
+        return;
+      }
+
+      const res = await api.get('/api/emergency-protocols/columns', { timeout: 60000 });
       const columns = res?.data?.columns || res?.data || [];
+
+      emergencyProtocolsColumnsCache.ts = now;
+      emergencyProtocolsColumnsCache.columns = columns;
       const systemColumns = [
         'id', 'reference', 'type', 'title', 'description', 'property_id', 'property_name', 'category',
         'priority', 'reported_by', 'assigned_to_id', 'assigned_to_name', 'scheduled_date', 'due_date',
@@ -183,7 +214,7 @@ export default function EmergencyProtocols() {
 
   useEffect(() => {
     fetchAvailableColumns();
-    const intervalId = setInterval(fetchAvailableColumns, 5000);
+    const intervalId = setInterval(fetchAvailableColumns, 60000);
     return () => clearInterval(intervalId);
   }, [fetchAvailableColumns]);
 

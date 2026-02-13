@@ -122,6 +122,15 @@ router.post('/', protect, async (req, res) => {
        WHERE table_schema = 'public' AND table_name = 'risk_assessments'`
         );
 
+        const columnsResultWithTypes = await pool.query(
+            `SELECT column_name, data_type, udt_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'risk_assessments'`
+        );
+
+        const colTypeMap = new Map(
+            (columnsResultWithTypes.rows || []).map((r) => [r.column_name, r.data_type || r.udt_name])
+        );
+
         const allColumns = columnsResult.rows.map(r => r.column_name);
 
         // Standard columns (excluding id, timestamps, and auto-generated fields)
@@ -191,6 +200,33 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
 
+        function quoteIdent(ident) {
+            const s = String(ident);
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+
+        function coerceValueByPgType(pgType, value) {
+            if (value === undefined) return undefined;
+            if (value === null) return null;
+            if (typeof value === 'string' && value.trim() === '') {
+                const t = String(pgType || '').toLowerCase();
+                if (
+                    t.includes('date') ||
+                    t.includes('timestamp') ||
+                    t.includes('time') ||
+                    t.includes('int') ||
+                    t.includes('numeric') ||
+                    t.includes('decimal') ||
+                    t.includes('double') ||
+                    t.includes('real') ||
+                    t.includes('bool')
+                ) {
+                    return null;
+                }
+            }
+            return value;
+        }
+
         if (req.user?.role === 'staff') {
             const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
             if (assignedHotelId) {
@@ -215,6 +251,15 @@ router.patch('/:id', protect, async (req, res) => {
                 }
             }
         }
+
+        const columnsResultWithTypes = await pool.query(
+            `SELECT column_name, data_type, udt_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'risk_assessments'`
+        );
+
+        const colTypeMap = new Map(
+            (columnsResultWithTypes.rows || []).map((r) => [r.column_name, r.data_type || r.udt_name])
+        );
 
         // Get all columns from the table
         const columnsResult = await pool.query(
@@ -242,8 +287,8 @@ router.patch('/:id', protect, async (req, res) => {
 
         standardFields.forEach(field => {
             if (req.body[field] !== undefined) {
-                setClauses.push(`${field}=$${paramIndex}`);
-                values.push(req.body[field]);
+                setClauses.push(`${quoteIdent(field)}=$${paramIndex}`);
+                values.push(coerceValueByPgType(colTypeMap.get(field), req.body[field]));
                 paramIndex++;
             }
         });
@@ -251,8 +296,8 @@ router.patch('/:id', protect, async (req, res) => {
         // Custom columns
         updatableColumns.forEach(col => {
             if (!standardFields.includes(col) && req.body[col] !== undefined) {
-                setClauses.push(`${col}=$${paramIndex}`);
-                values.push(req.body[col]);
+                setClauses.push(`${quoteIdent(col)}=$${paramIndex}`);
+                values.push(coerceValueByPgType(colTypeMap.get(col), req.body[col]));
                 paramIndex++;
             }
         });

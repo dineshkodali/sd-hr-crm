@@ -7,6 +7,21 @@ import { logActivity, logActivityWithComparison } from "../utils/activityLogger.
 const router = express.Router();
 const pool = poolImport && poolImport.default ? poolImport.default : poolImport;
 
+function isDbUnavailableError(err) {
+  const msg = String(err?.message || "").toLowerCase();
+  const code = String(err?.code || "");
+  return (
+    code === "ECONNABORTED" ||
+    code === "ENETUNREACH" ||
+    code === "ECONNREFUSED" ||
+    code === "ETIMEDOUT" ||
+    msg.includes("connection terminated") ||
+    msg.includes("connect enetunreach") ||
+    msg.includes("connect econnaborted") ||
+    msg.includes("timeout")
+  );
+}
+
 if (!pool || typeof pool.query !== "function") {
   console.error(
     "DB pool not found. Ensure ../config/db.js exports a pg Pool (default or named)."
@@ -706,6 +721,12 @@ router.get("/users", protect, async (req, res) => {
       "GET /api/su/users error:",
       err && err.stack ? err.stack : err
     );
+    if (isDbUnavailableError(err)) {
+      return res.status(503).json({
+        error: "Database unavailable",
+        details: err?.message,
+      });
+    }
     return res.status(500).json({
       error: "Server error while fetching service users",
       details: err?.message,
@@ -746,6 +767,8 @@ router.get("/users/:id", protect, async (req, res) => {
 
     if (!pool || typeof pool.query !== "function")
       return res.status(500).json({ error: "DB not initialized" });
+
+    const restrictedHotelIds = await getRestrictedHotelIds(req.user);
 
     const names = await resolveSchemaNames();
     const su = "service_users";
@@ -899,6 +922,9 @@ router.get("/users/:id", protect, async (req, res) => {
       "GET /api/su/users/:id error:",
       err && err.stack ? err.stack : err
     );
+    if (isDbUnavailableError(err)) {
+      return res.status(503).json({ error: "Database unavailable", details: err?.message });
+    }
     return res.status(500).json({ error: "Server error", details: err?.message });
   }
 });

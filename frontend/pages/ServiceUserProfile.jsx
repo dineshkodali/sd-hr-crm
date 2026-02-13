@@ -312,7 +312,8 @@ export default function ServiceUserProfile() {
       setLoading(true);
       setError("");
       try {
-        await resolveApiBase();
+        // Do not block on /health checks; use default base immediately
+        resolveApiBase().catch(() => null);
         if (!mounted) return;
         const res = await apiRef.current.get(`/su/users/${id}`);
         // Handle response structure - axios wraps data in res.data

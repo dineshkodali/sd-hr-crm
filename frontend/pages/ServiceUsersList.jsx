@@ -240,7 +240,8 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
     };
 
     const init = async () => {
-      await resolveApiBase();
+      // Do not block page load on /health checks (backend can be slow/unreachable)
+      resolveApiBase().catch(() => null);
       if (cancelled) return;
       fetchUsers();
       fetchHotels();

@@ -12,6 +12,21 @@ import { logActivity } from "../utils/activityLogger.js";
 let pool;
 let poolSource = null;
 
+function isDbUnavailableError(err) {
+  const msg = String(err?.message || "");
+  const code = String(err?.code || "");
+  return (
+    code === "ECONNABORTED" ||
+    code === "ENETUNREACH" ||
+    code === "ECONNREFUSED" ||
+    code === "ETIMEDOUT" ||
+    msg.toLowerCase().includes("connection terminated") ||
+    msg.toLowerCase().includes("connect enetunreach") ||
+    msg.toLowerCase().includes("connect econnaborted") ||
+    msg.toLowerCase().includes("timeout")
+  );
+}
+
 async function loadPool() {
   // Try config/db.js first (common pattern), then try ../db.js
   const candidates = ["../config/db.js", "../db.js", "./db.js", "../src/backend/db.js"];
@@ -49,21 +64,67 @@ if (!pool) {
  * Checks common column names used to store staff -> hotel assignment
  * in the users table. Returns the found column name or null.
  */
+const detectUsersHotelColumnCache = {
+  ts: 0,
+  value: null,
+  inFlight: null,
+  failTs: 0,
+};
+
 export async function detectUsersHotelColumn() {
   if (!pool) return null; // cannot query without pool
-  const candidates = ["hotel_id", "hotelId", "hotel", "hotelid"];
-  for (const col of candidates) {
+
+  const now = Date.now();
+  // cache success for 1 hour
+  if (detectUsersHotelColumnCache.value !== null && now - detectUsersHotelColumnCache.ts < 60 * 60_000) {
+    return detectUsersHotelColumnCache.value;
+  }
+  // backoff after failure for 30 seconds to avoid hammering DB
+  if (detectUsersHotelColumnCache.failTs && now - detectUsersHotelColumnCache.failTs < 30_000) {
+    return detectUsersHotelColumnCache.value;
+  }
+  if (detectUsersHotelColumnCache.inFlight) {
     try {
-      const r = await pool.query(
-        `SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = $1 LIMIT 1`,
-        [col]
-      );
-      if (r && r.rows && r.rows.length) return col;
-    } catch (err) {
-      console.warn("detectUsersHotelColumn check failed for", col, err && err.message);
+      return await detectUsersHotelColumnCache.inFlight;
+    } catch {
+      return detectUsersHotelColumnCache.value;
     }
   }
-  return null;
+
+  const candidates = ["hotel_id", "hotelId", "hotel", "hotelid"];
+
+  detectUsersHotelColumnCache.inFlight = (async () => {
+    for (const col of candidates) {
+      try {
+        const r = await pool.query(
+          `SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = $1 LIMIT 1`,
+          [col]
+        );
+        if (r && r.rows && r.rows.length) {
+          detectUsersHotelColumnCache.value = col;
+          detectUsersHotelColumnCache.ts = Date.now();
+          detectUsersHotelColumnCache.failTs = 0;
+          return col;
+        }
+      } catch (err) {
+        detectUsersHotelColumnCache.failTs = Date.now();
+        console.warn("detectUsersHotelColumn check failed for", col, err && err.message);
+        if (isDbUnavailableError(err)) {
+          break;
+        }
+      }
+    }
+    // Cache negative result for 1 hour as well
+    detectUsersHotelColumnCache.value = null;
+    detectUsersHotelColumnCache.ts = Date.now();
+    return null;
+  })();
+
+  try {
+    return await detectUsersHotelColumnCache.inFlight;
+  } finally {
+    detectUsersHotelColumnCache.inFlight = null;
+  }
 }
 
 /**
@@ -156,14 +217,32 @@ export const protect = async (req, res, next) => {
     }
 
     // Detect hotel assignment column and include it as hotel_id if present
-    const hotelCol = await detectUsersHotelColumn();
+    let hotelCol = null;
+    try {
+      hotelCol = await detectUsersHotelColumn();
+    } catch (err) {
+      console.error("Auth protect unexpected error (detectUsersHotelColumn):", err && err.message);
+      if (isDbUnavailableError(err)) {
+        return res.status(503).json({ message: "Database unavailable. Please try again." });
+      }
+      throw err;
+    }
     const baseCols = ["id", "name", "email", "role", "status", "branch"];
     if (hotelCol) {
       baseCols.push(`"${hotelCol}" as hotel_id`);
     }
 
     const q = `SELECT ${baseCols.join(", ")} FROM users WHERE id = $1 LIMIT 1`;
-    const userRes = await pool.query(q, [decoded.id]);
+    let userRes;
+    try {
+      userRes = await pool.query(q, [decoded.id]);
+    } catch (err) {
+      console.error("Auth protect unexpected error (user lookup):", err && err.message);
+      if (isDbUnavailableError(err)) {
+        return res.status(503).json({ message: "Database unavailable. Please try again." });
+      }
+      throw err;
+    }
 
     if (!userRes.rows || !userRes.rows.length) {
       console.warn("Auth: token verified but user not found:", decoded.id);

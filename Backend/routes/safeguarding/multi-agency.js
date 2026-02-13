@@ -114,6 +114,15 @@ router.post('/', protect, async (req, res) => {
        WHERE table_schema = 'public' AND table_name = 'multi_agency'`
         );
 
+        const columnsResultWithTypes = await pool.query(
+            `SELECT column_name, data_type, udt_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'multi_agency'`
+        );
+
+        const colTypeMap = new Map(
+            (columnsResultWithTypes.rows || []).map((r) => [r.column_name, r.data_type || r.udt_name])
+        );
+
         const allColumns = columnsResult.rows.map(r => r.column_name);
 
         // Standard columns (excluding id, timestamps, and auto-generated fields)
@@ -181,6 +190,33 @@ router.patch('/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
 
+        function quoteIdent(ident) {
+            const s = String(ident);
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+
+        function coerceValueByPgType(pgType, value) {
+            if (value === undefined) return undefined;
+            if (value === null) return null;
+            if (typeof value === 'string' && value.trim() === '') {
+                const t = String(pgType || '').toLowerCase();
+                if (
+                    t.includes('date') ||
+                    t.includes('timestamp') ||
+                    t.includes('time') ||
+                    t.includes('int') ||
+                    t.includes('numeric') ||
+                    t.includes('decimal') ||
+                    t.includes('double') ||
+                    t.includes('real') ||
+                    t.includes('bool')
+                ) {
+                    return null;
+                }
+            }
+            return value;
+        }
+
         const restrictedHotelIds = await getRestrictedHotelIds(req.user);
         if (restrictedHotelIds !== null) {
             if (restrictedHotelIds.length === 0) return res.status(404).json({ message: 'Record not found' });
@@ -199,6 +235,15 @@ router.patch('/:id', protect, async (req, res) => {
         const columnsResult = await pool.query(
             `SELECT column_name FROM information_schema.columns 
        WHERE table_schema = 'public' AND table_name = 'multi_agency'`
+        );
+
+        const columnsResultWithTypes = await pool.query(
+            `SELECT column_name, data_type, udt_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'multi_agency'`
+        );
+
+        const colTypeMap = new Map(
+            (columnsResultWithTypes.rows || []).map((r) => [r.column_name, r.data_type || r.udt_name])
         );
 
         const allColumns = columnsResult.rows.map(r => r.column_name);
@@ -222,8 +267,8 @@ router.patch('/:id', protect, async (req, res) => {
         // Add standard fields
         standardFields.forEach(field => {
             if (req.body[field] !== undefined) {
-                setClauses.push(`${field}=$${paramIndex}`);
-                values.push(req.body[field]);
+                setClauses.push(`${quoteIdent(field)}=$${paramIndex}`);
+                values.push(coerceValueByPgType(colTypeMap.get(field), req.body[field]));
                 paramIndex++;
             }
         });
@@ -231,8 +276,8 @@ router.patch('/:id', protect, async (req, res) => {
         // Add custom columns
         updatableColumns.forEach(col => {
             if (!standardFields.includes(col) && req.body[col] !== undefined) {
-                setClauses.push(`${col}=$${paramIndex}`);
-                values.push(req.body[col]);
+                setClauses.push(`${quoteIdent(col)}=$${paramIndex}`);
+                values.push(coerceValueByPgType(colTypeMap.get(col), req.body[col]));
                 paramIndex++;
             }
         });
