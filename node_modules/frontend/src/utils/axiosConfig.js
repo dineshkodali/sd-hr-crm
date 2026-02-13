@@ -3,6 +3,67 @@
 
 import axios from 'axios';
 
+const attachInterceptors = (instance) => {
+  instance.interceptors.request.use(
+    (config) => {
+      const base = String(config.baseURL || "");
+      const url = typeof config.url === "string" ? config.url : "";
+
+      if (!base && axios.defaults.baseURL) {
+        config.baseURL = axios.defaults.baseURL;
+      }
+
+      const normalizedBase =
+        typeof config.baseURL === "string" ? config.baseURL.replace(/\/+$/, "") : "";
+
+      if (
+        normalizedBase.endsWith("/api") &&
+        typeof config.url === "string" &&
+        (config.url.startsWith("/api/") || config.url === "/api")
+      ) {
+        config.url = config.url === "/api" ? "/" : config.url.slice(4);
+      }
+
+      if (typeof config.url === "string") {
+        config.url = config.url.replace(/\/api\/api\//g, "/api/");
+      }
+
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  instance.interceptors.response.use(
+    (response) => {
+      if (response.data?.token) {
+        localStorage.setItem('authToken', response.data.token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+      }
+      return response;
+    },
+    (error) => {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        delete axios.defaults.headers.common['Authorization'];
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  return instance;
+};
+
+const originalCreate = axios.create.bind(axios);
+axios.create = (...args) => attachInterceptors(originalCreate(...args));
+
 // ==========================================
 // Global Interceptors (for all axios instances)
 // ==========================================

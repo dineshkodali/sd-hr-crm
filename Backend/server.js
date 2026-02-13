@@ -192,6 +192,12 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
+// Backward-compatible alias: some stale frontend bundles may call /api/api/*
+app.use("/api/api", (req, res) => {
+  const target = req.originalUrl.replace(/^\/api\/api/, "/api");
+  return res.redirect(308, target);
+});
+
 /* ----------------------------
    Static uploads directory
    ---------------------------- */
