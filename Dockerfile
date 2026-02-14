@@ -13,7 +13,7 @@ FROM node:18-alpine AS backend
 WORKDIR /app
 COPY Backend/package.json Backend/package-lock.json ./
 # Add build tools for native modules if needed
-RUN apk add --no-cache python3 make g++ wget
+
 RUN npm install --no-audit --no-fund
 COPY Backend/ ./
 EXPOSE 4000

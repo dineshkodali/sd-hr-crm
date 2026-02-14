@@ -146,6 +146,17 @@ app.use(cors({
     if (!origin) return callback(null, true);
 
     const normalizedOrigin = normalizeOrigin(origin);
+    const isTrustedDomainOrigin = (() => {
+      // Allow our known production domains (with optional port)
+      // Examples:
+      //  - http://crm.sdgsolutions.in:3002
+      //  - https://crm.sdgsolutions.in
+      //  - https://crm.sdcsolutions.in:3002
+      return (
+        /^https?:\/\/crm\.sdgsolutions\.in(?::3002)?$/i.test(normalizedOrigin) ||
+        /^https?:\/\/crm\.sdcsolutions\.in(?::3002)?$/i.test(normalizedOrigin)
+      );
+    })();
     const isPrivateLanOrigin = (() => {
       // Allow local network IPs where frontend may be accessed directly by IP.
       // Only allow expected ports for frontend.
@@ -165,6 +176,10 @@ app.use(cors({
     })();
 
     if (allowedOrigins.includes(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    if (isTrustedDomainOrigin) {
       return callback(null, true);
     }
 
