@@ -66,7 +66,7 @@ app.get('/api/health', (req, res) => res.send('OK'));
 app.get('/api/auth-health', (req, res) => {
   const jwtSecret = process.env.JWT_SECRET || process.env.JWT_SECRET_KEY;
   const corsOrigins = process.env.CORS_ORIGINS;
-  
+
   res.json({
     status: 'ok',
     auth: {
@@ -112,9 +112,7 @@ app.use(cors({
         .replace(/^https:\/\/(.+):443$/i, "https://$1");
     };
 
-    const allowedOrigins = (process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(",").map((s) => normalizeOrigin(s)).filter(Boolean)
-      : null) || [
+    const defaultAllowedOrigins = [
       'http://localhost:3002',
       'http://localhost:3000',
       'http://127.0.0.1:3002',
@@ -132,11 +130,19 @@ app.use(cors({
       'http://crm.sdcsolutions.in:3002',
       'https://crm.sdcsolutions.in:3002',
     ];
-    
+
+    const envAllowedOrigins = process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(",").map((s) => normalizeOrigin(s)).filter(Boolean)
+      : [];
+
+    const allowedOrigins = Array.from(
+      new Set([...defaultAllowedOrigins.map(normalizeOrigin), ...envAllowedOrigins])
+    ).filter(Boolean);
+
     if (process.env.CORS_ORIGINS === '*') {
       return callback(null, true);
     }
-    
+
     if (!origin) return callback(null, true);
 
     const normalizedOrigin = normalizeOrigin(origin);
@@ -165,14 +171,22 @@ app.use(cors({
     if (isPrivateLanOrigin) {
       return callback(null, true);
     }
-    
+
+    // DEBUG: Log blocked origin to file
+    const logMessage = `[${new Date().toISOString()}] BLOCKED ORIGIN: "${origin}" (normalized: "${normalizedOrigin}")\nAllowed: ${JSON.stringify(allowedOrigins)}\n\n`;
+    try {
+      fs.appendFileSync(path.join(__dirname, 'cors_debug.log'), logMessage);
+    } catch (err) {
+      console.error('Failed to write to cors_debug.log', err);
+    }
+
     console.warn('CORS blocked origin:', origin, 'normalized:', normalizedOrigin, 'allowed:', allowedOrigins);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200 
+  optionsSuccessStatus: 200
 }));
 
 // ... (rest of the file remains the same)
