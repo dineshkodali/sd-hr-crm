@@ -21,7 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.12",
-    "pg": "^8.16.3",
+    "pg": "^8.17.2",
     "pg-query-stream": "^4.11.2",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
