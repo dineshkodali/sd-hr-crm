@@ -1,0 +1,43 @@
+# === Git / Version control ===
+.git
+.gitignore
+
+# === Dependencies (will be installed inside the container) ===
+node_modules
+**/node_modules
+frontend/node_modules
+Backend/node_modules
+
+# === Build artifacts ===
+frontend/dist
+*.log
+npm-debug.log*
+
+# === Dev / IDE files ===
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# === Docker files (don't copy into context recursively) ===
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# === Documentation ===
+docs/
+*.md
+!README.md
+LICENSE
+
+# === Environment files ===
+.env
+.env.*
+!.env.example
+
+# === Misc ===
+.gemini/
+uploads/
+cors_debug.log

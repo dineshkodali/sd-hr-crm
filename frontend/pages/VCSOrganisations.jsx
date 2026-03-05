@@ -1,0 +1,1836 @@
+/* eslint-disable no-unused-vars */
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import axios from 'axios';
+import { usePermissions } from '../hooks/usePermissions';
+import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { generatePDF } from '../utils/pdfGenerator';
+import { generateCSV } from '../utils/csvGenerator';
+import { DownloadDropdown } from '../components/DownloadDropdown';
+import Breadcrumbs from "../components/Breadcrumbs";
+import {
+    Home,
+    Building2,
+    Search,
+    ChevronDown,
+    Filter,
+    Columns,
+    Download,
+    X,
+    Edit,
+    Trash2,
+    Eye,
+    EyeOff,
+    Check
+} from "lucide-react";
+
+/* Inject delete animation CSS once */
+const DELETE_STYLE_ID = 'vcs-organisations-delete-anim';
+if (typeof document !== 'undefined' && !document.getElementById(DELETE_STYLE_ID)) {
+    const style = document.createElement('style');
+    style.id = DELETE_STYLE_ID;
+    style.textContent = `
+  @keyframes vcsOrgSlideOut {
+   0%   { opacity: 1; transform: translateX(0) scaleY(1); max-height: 80px; }
+   40%  { opacity: 0.3; transform: translateX(40px) scaleY(0.85); background: #fee2e2; max-height: 80px; }
+   100% { opacity: 0; transform: translateX(80px) scaleY(0); max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; border: none; }
+  }
+  tr.vcs-org-deleting {
+   animation: vcsOrgSlideOut 0.45s cubic-bezier(0.4,0,1,1) forwards;
+   overflow: hidden;
+   pointer-events: none;
+  }
+ `;
+    document.head.appendChild(style);
+}
+
+/* --- Helper: Normalize API Data --- */
+function normalizeHotelsResponse(data) {
+    if (!data) return [];
+    let items = [];
+    if (Array.isArray(data)) items = data;
+    else if (Array.isArray(data.data)) items = data.data;
+    else if (Array.isArray(data.rows)) items = data.rows;
+    else if (Array.isArray(data.hotels)) items = data.hotels;
+    else if (typeof data === 'object') {
+        const vals = Object.values(data);
+        const possibleObjects = vals.filter((v) => v && (v.id || v.name || v.hotel_name));
+        if (possibleObjects.length && !Array.isArray(data)) {
+            items = Array.isArray(possibleObjects[0]) ? possibleObjects[0] : possibleObjects;
+        }
+    }
+    return items.map((h) => {
+        const id = h?.id ?? h?.hotel_id ?? h?._id ?? null;
+        const name = h?.name ?? h?.title ?? h?.hotel_name ?? `${id ?? ''}`;
+        return { id, name };
+    }).filter((x) => x.id && x.name);
+}
+
+/* Helper functions */
+function formatDate(value) {
+    if (!value) return "";
+    try {
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return value;
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    } catch { return value; }
+}
+
+function formatDateISO(value) {
+    if (!value) return "";
+    try {
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return value;
+        return d.toISOString().slice(0, 10);
+    } catch { return value; }
+}
+
+function getPriorityColor(p) {
+    const low = String(p).toLowerCase();
+    if (low === "urgent" || low === "high" || low === "critical") return { dot: "bg-red-500", text: "text-red-700" };
+    if (low === "medium") return { dot: "bg-orange-500", text: "text-orange-700" };
+    return { dot: "bg-green-500", text: "text-green-700" };
+}
+
+function getStatusColor(s) {
+    const low = String(s).toLowerCase();
+    if (low === "completed" || low === "closed" || low === "resolved") return { dot: "bg-green-500", text: "text-green-700" };
+    if (low === "pending" || low === "open" || low === "new") return { dot: "bg-orange-500", text: "text-orange-700" };
+    if (low === "under review" || low === "in progress") return { dot: "bg-purple-500", text: "text-purple-700" };
+    if (low === "escalated") return { dot: "bg-red-500", text: "text-red-700" };
+    return { dot: "bg-gray-500", text: "text-gray-700" };
+}
+
+function getAvatarColor(name) {
+    return "bg-teal-100 text-teal-700";
+}
+
+function getInitials(name) {
+    if (!name || name === "Unassigned") return "UA";
+    return name.match(/(\b\S)?/g).join("").match(/(^\S|\S$)?/g).join("").toUpperCase().slice(0, 2);
+}
+
+/* Helper for View Details */
+const DetailField = ({ label, value }) => (
+    <div>
+        <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">{label}</div>
+        <div className="text-slate-800 font-medium text-sm">{value || '-'}</div>
+    </div>
+);
+
+const categoryOptions = ['Charity', 'Social Enterprise', 'Community Group', 'Voluntary', 'Other'];
+
+const VCSOrganisations = () => {
+    // Get current user from props or localStorage
+    const currentUser = (() => {
+        try {
+            const raw = localStorage.getItem("user");
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    })();
+
+    // Get permissions for vcs_organisations module
+    const { canRead, canCreate, canUpdate, canDelete } = usePermissions(currentUser);
+    const hasRead = canRead("vcs_organisations");
+    const hasCreate = canCreate("vcs_organisations");
+    const hasUpdate = canUpdate("vcs_organisations");
+    const hasDelete = canDelete("vcs_organisations");
+
+    const [organisations, setOrganisations] = useState([]);
+    const [loading, setLoading] = useState(false);
+    // Track rows currently being deleted for animation
+    const [deletingIds, setDeletingIds] = useState(new Set());
+    const [showForm, setShowForm] = useState(false);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [viewingOrganisation, setViewingOrganisation] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+
+    // Filter States
+    const [query, setQuery] = useState('');
+    const [filterPriority, setFilterPriority] = useState('All Priority');
+    const [filterStatus, setFilterStatus] = useState('All Status');
+    const [propertyFilter, setPropertyFilter] = useState('');
+    const [sortBy, setSortBy] = useState('');
+
+    // Column Visibility State
+    const [showViewMenu, setShowViewMenu] = useState(false);
+    const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+    const [viewMode, setViewMode] = useState('table');
+    const viewRef = useRef(null);
+
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        category: '',
+        priority: 'medium',
+        property_id: '',
+        property_name: '',
+        reported_by: '',
+        reported_date: '',
+        assigned_to: '',
+        scheduled_date: '',
+        status: 'new'
+    });
+
+    const CATEGORY_STORAGE_KEY = 'vcsOrganisations.customCategories';
+    const [customCategories, setCustomCategories] = useState([]);
+    const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false);
+    const [customCategoryValue, setCustomCategoryValue] = useState('');
+    const [properties, setProperties] = useState([]);
+    const [staffMembers, setStaffMembers] = useState([]);
+
+    const propertyNameById = useMemo(() => {
+        const m = new Map();
+        (properties || []).forEach((p) => {
+            const id = p?.id ?? p?.hotel_id ?? null;
+            const name = p?.name ?? p?.property_name ?? p?.hotel_name ?? null;
+            if (id !== null && id !== undefined && name) {
+                m.set(String(id), String(name));
+            }
+        });
+        return m;
+    }, [properties]);
+
+    const resolvePropertyName = (org) => {
+        const direct = String(org?.property_name || org?.hotel_name || '').trim();
+        if (direct) return direct;
+
+        const pid = org?.property_id ?? org?.hotel_id ?? null;
+        if (pid !== null && pid !== undefined) {
+            const fromMap = propertyNameById.get(String(pid));
+            if (fromMap) return fromMap;
+        }
+
+        return 'Unknown Property';
+    };
+
+    /* Dialog State */
+    const [confirmDialog, setConfirmDialog] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        type: 'warning'
+    });
+
+    const [alertDialog, setAlertDialog] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info'
+    });
+
+    // Default visible columns for VCS Organisations (must match other pages)
+    const DEFAULT_COLUMNS = [
+        "checkbox",
+        "type",
+        "reference",
+        "description",
+        "priority",
+        "status",
+        "assigned",
+        "date",
+        "actions",
+    ];
+
+    const [customColumns, setCustomColumns] = useState([]);
+    const [customColumnMetadata, setCustomColumnMetadata] = useState({});
+    const [availableColumns, setAvailableColumns] = useState([]);
+
+    // Column visibility state - default columns visible, custom columns from localStorage or hidden
+    const [visibleColumns, setVisibleColumns] = useState(() => {
+        try {
+            const saved = localStorage.getItem('vcsOrganisationsVisibleColumns');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), ...parsed };
+            }
+        } catch (e) {
+            console.error('Failed to parse saved columns:', e);
+        }
+        return DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
+    });
+
+    const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true }), []);
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(CATEGORY_STORAGE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                setCustomCategories(parsed.filter(Boolean).map(String));
+            }
+        } catch {
+            setCustomCategories([]);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!showCustomCategoryInput) {
+            setCustomCategoryValue('');
+        }
+    }, [showCustomCategoryInput]);
+
+    const persistCustomCategories = (list) => {
+        try {
+            localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify(list));
+        } catch {
+        }
+    };
+
+    const handleCategoryChange = (e) => {
+        const value = e.target.value;
+        if (value === '__add_new__') {
+            setShowCustomCategoryInput(true);
+            setCustomCategoryValue('');
+            setFormData((p) => ({ ...p, category: '' }));
+            return;
+        }
+        setShowCustomCategoryInput(false);
+        setCustomCategoryValue('');
+        setFormData((p) => ({ ...p, category: value }));
+    };
+
+    const saveCustomCategory = () => {
+        const next = String(customCategoryValue || '').trim();
+        if (!next) return;
+
+        const builtins = categoryOptions;
+        const builtinLower = new Set((builtins || []).map((t) => String(t).toLowerCase()));
+        const merged = [...customCategories];
+        if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
+            merged.push(next);
+            setCustomCategories(merged);
+            persistCustomCategories(merged);
+        }
+
+        setFormData((p) => ({ ...p, category: next }));
+        setShowCustomCategoryInput(false);
+        setCustomCategoryValue('');
+    };
+
+    // Save visible columns to localStorage
+    useEffect(() => {
+        localStorage.setItem('vcsOrganisationsVisibleColumns', JSON.stringify(visibleColumns));
+    }, [visibleColumns]);
+
+    // Fetch available columns from Forms Builder
+    useEffect(() => {
+        let mounted = true;
+
+        const fetchAvailableColumns = async () => {
+            try {
+                const res = await api.get('/api/forms-builder/tables/vcs_organisations/columns');
+                const cols = res?.data?.columns || res?.data || [];
+                // Extract column names if cols contains objects
+                const columnNames = cols.map(c => typeof c === 'string' ? c : c.column_name || c.name || c);
+
+                if (!mounted) return;
+                setAvailableColumns(columnNames);
+
+                const standardCols = ['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
+                    'name', 'description', 'category', 'priority', 'property_id', 'property_name', 'status',
+                    'assigned_to', 'reported_by', 'reported_date', 'scheduled_date', 'notes'];
+                const custom = columnNames.filter(c => !standardCols.includes(c));
+
+                // Check if custom columns changed to avoid infinite loop
+                if (JSON.stringify(custom) !== JSON.stringify(customColumns)) {
+                    const nextMetadata = {};
+                    cols.forEach(col => {
+                        const cName = typeof col === 'string' ? col : (col.column_name || col.name);
+                        if (cName) {
+                            nextMetadata[cName] = {
+                                input_type: col.input_type || 'text',
+                                input_options: col.input_options || []
+                            };
+                        }
+                    });
+                    setCustomColumnMetadata(nextMetadata);
+
+                    setCustomColumns(custom);
+                    // Update visibleColumns for new custom columns (default to visible)
+                    setVisibleColumns(prev => {
+                        const updated = { ...prev };
+                        custom.forEach(col => {
+                            if (updated[col] === undefined) {
+                                updated[col] = true;
+                            }
+                        });
+                        return updated;
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to fetch columns:', err);
+            }
+        };
+
+        fetchAvailableColumns();
+        return () => {
+            mounted = false;
+        };
+    }, [api, customColumns]);
+
+    // Fetch organisations
+    const fetchOrganisations = async () => {
+        try {
+            setLoading(true);
+            const res = await api.get('/api/vcs-organisations?limit=2000');
+            const data = res.data?.data || res.data || [];
+            setOrganisations(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Error fetching organisations:', err);
+            setOrganisations([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch properties for dropdown
+    const fetchProperties = async () => {
+        try {
+            const res = await api.get('/api/hotels?limit=1000');
+            const hotelsList = res.data?.hotels || res.data?.data || [];
+            setProperties(Array.isArray(hotelsList) ? hotelsList : []);
+        } catch (err) {
+            console.error('Error fetching properties:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchOrganisations();
+        fetchProperties();
+    }, []);
+
+    // Close view menu on outside click
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (viewRef.current && !viewRef.current.contains(e.target)) {
+                setShowViewMenu(false);
+                setShowPropertyVisibility(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    // Hide sidebar and navbar when modal/form is open
+    useEffect(() => {
+        const isModalOpen = showForm || showViewModal || confirmDialog.isOpen;
+        if (isModalOpen) {
+            document.body.classList.add('form-modal-open');
+        } else {
+            document.body.classList.remove('form-modal-open');
+        }
+        return () => {
+            document.body.classList.remove('form-modal-open');
+        };
+    }, [showForm, showViewModal, confirmDialog.isOpen]);
+
+    const handleAddClick = () => {
+        setEditingId(null);
+        setFormData({
+            name: '',
+            description: '',
+            category: '',
+            priority: 'medium',
+            property_id: '',
+            property_name: '',
+            reported_by: currentUser?.name || '',
+            reported_date: '',
+            assigned_to: '',
+            scheduled_date: '',
+            status: 'new'
+        });
+        setStaffMembers([]); // Clear staff members for new record
+        setShowForm(true);
+    };
+
+    const handleEditClick = async (organisation) => {
+        setEditingId(organisation.id);
+
+        const safeData = { ...organisation };
+        Object.keys(safeData).forEach(key => {
+            if (safeData[key] === null) safeData[key] = '';
+        });
+
+        setFormData({
+            ...safeData,
+            name: organisation.name || '',
+            description: organisation.description || '',
+            category: organisation.category || '',
+            priority: organisation.priority || 'medium',
+            property_id: organisation.property_id || '',
+            property_name: organisation.property_name || '',
+            reported_by: organisation.reported_by || '',
+            reported_date: organisation.reported_date ? organisation.reported_date.split('T')[0] : '',
+            assigned_to: organisation.assigned_to || '',
+            scheduled_date: organisation.scheduled_date ? organisation.scheduled_date.split('T')[0] : '',
+            status: organisation.status || 'new'
+        });
+
+        // Fetch staff members if property is already set
+        if (organisation?.property_id) {
+            try {
+                const response = await api.get(`/api/staff/for-hotel/${organisation.property_id}`);
+                const staff = response?.data?.staff || [];
+                setStaffMembers(staff);
+            } catch (err) {
+                console.warn('Failed to fetch staff for property:', err);
+                setStaffMembers([]);
+            }
+        } else {
+            setStaffMembers([]);
+        }
+
+        setShowForm(true);
+    };
+
+    const handleViewClick = (organisation) => {
+        setViewingOrganisation(organisation);
+        setShowViewModal(true);
+    };
+
+    const handlePropertyChange = async (propId) => {
+        const prop = properties.find(h => h.id == propId);
+        setFormData(prev => ({
+            ...prev,
+            property_id: propId,
+            property_name: prop?.name || '',
+            // Reset assigned_to and reported_by when property changes
+            assigned_to: '',
+            reported_by: currentUser?.name || '',
+        }));
+
+        // Fetch staff members for the selected property
+        if (propId) {
+            try {
+                const response = await api.get(`/api/staff/for-hotel/${propId}`);
+                const staff = response?.data?.staff || [];
+                setStaffMembers(staff);
+            } catch (err) {
+                console.warn('Failed to fetch staff for property:', err);
+                setStaffMembers([]);
+            }
+        } else {
+            setStaffMembers([]);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const missing = [];
+            if (!String(formData.name || '').trim()) missing.push('Title');
+            if (!String(formData.description || '').trim()) missing.push('Description');
+            if (!String(formData.property_id || '').trim()) missing.push('Property');
+            if (!String(formData.property_name || '').trim()) missing.push('Property Name');
+            if (!String(formData.category || '').trim()) missing.push('Category');
+            if (!String(formData.priority || '').trim()) missing.push('Priority');
+            if (!String(formData.reported_by || '').trim()) missing.push('Reported By');
+            if (!String(formData.assigned_to || '').trim()) missing.push('Assigned To');
+            if (!String(formData.scheduled_date || '').trim()) missing.push('Scheduled Date');
+            if (!String(formData.status || '').trim()) missing.push('Status');
+
+            for (const col of customColumns || []) {
+                const meta = customColumnMetadata[col] || {};
+                const inputType = String(meta.input_type || 'text').toLowerCase();
+                const v = formData[col];
+
+                if (inputType === 'checkbox' || inputType === 'boolean') {
+                    if (!(v === true || v === false || v === 'true' || v === 'false')) {
+                        missing.push(col.replace(/_/g, ' '));
+                    }
+                } else if (v === undefined || v === null || String(v).trim() === '') {
+                    missing.push(col.replace(/_/g, ' '));
+                }
+            }
+
+            if (missing.length) {
+                setAlertDialog({
+                    isOpen: true,
+                    title: 'Required fields missing',
+                    message: `Please fill required fields: ${missing.join(', ')}.`,
+                    type: 'warning'
+                });
+                return;
+            }
+
+            const payload = { ...formData };
+            for (const col of customColumns || []) {
+                const meta = customColumnMetadata[col] || {};
+                const inputType = String(meta.input_type || 'text').toLowerCase();
+                if (inputType === 'checkbox' || inputType === 'boolean') {
+                    const v = payload[col];
+                    if (v === true || v === 'true') payload[col] = true;
+                    else if (v === false || v === 'false') payload[col] = false;
+                    else payload[col] = null;
+                }
+            }
+
+            if (editingId) {
+                await api.put(`/api/vcs-organisations/${editingId}`, payload);
+            } else {
+                await api.post('/api/vcs-organisations', payload);
+            }
+            setShowForm(false);
+            fetchOrganisations();
+        } catch (err) {
+            console.error('Error submitting form:', err);
+            setAlertDialog({
+                isOpen: true,
+                title: 'Submit Failed',
+                message: 'Failed to submit organisation',
+                type: 'error'
+            });
+        }
+    };
+
+    const handleDeleteClick = async (organisation) => {
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Delete Organisation',
+            message: 'Are you sure you want to delete this organisation?',
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    const id = organisation.id;
+                    setDeletingIds(prev => new Set(prev).add(id));
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+
+                    const ANIM_DURATION = 460;
+                    setTimeout(() => {
+                        setOrganisations(prev => (Array.isArray(prev) ? prev.filter(o => String(o.id) !== String(id)) : prev));
+                        setDeletingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+                    }, ANIM_DURATION);
+
+                    await api.delete(`/api/vcs-organisations/${id}`).catch(() => null);
+                    fetchOrganisations();
+                } catch (err) {
+                    console.error('Error deleting organisation:', err);
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                    setDeletingIds(prev => { const next = new Set(prev); next.delete(organisation?.id); return next; });
+                    setAlertDialog({
+                        isOpen: true,
+                        title: 'Delete Failed',
+                        message: 'Failed to delete organisation',
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    };
+
+    // Filter Logic
+    const filteredOrganisations = useMemo(() => {
+        const q = (query || "").trim().toLowerCase();
+        let list = organisations.filter(r => {
+            const matchSearch = !q ||
+                r.name?.toLowerCase().includes(q) ||
+                r.description?.toLowerCase().includes(q) ||
+                r.reference?.toLowerCase().includes(q);
+            const matchPriority = filterPriority === 'All Priority' || r.priority === filterPriority.toLowerCase();
+            const matchStatus = filterStatus === 'All Status' || r.status === filterStatus.toLowerCase();
+            const matchProperty = !propertyFilter || String(r.property_id) === String(propertyFilter);
+            return matchSearch && matchPriority && matchStatus && matchProperty;
+        });
+
+        // Apply sorting
+        if (sortBy) {
+            list = [...list].sort((a, b) => {
+                if (sortBy === 'date') {
+                    const dateA = new Date(a.scheduled_date || a.created_at || 0);
+                    const dateB = new Date(b.scheduled_date || b.created_at || 0);
+                    return dateB - dateA;
+                }
+                if (sortBy === 'priority') {
+                    const priorityOrder = { 'urgent': 0, 'high': 1, 'medium': 2, 'low': 3 };
+                    const priorityA = (a.priority || 'medium').toLowerCase();
+                    const priorityB = (b.priority || 'medium').toLowerCase();
+                    return (priorityOrder[priorityA] || 2) - (priorityOrder[priorityB] || 2);
+                }
+                if (sortBy === 'status') {
+                    return (a.status || '').localeCompare(b.status || '');
+                }
+                if (sortBy === 'name') {
+                    return (a.name || '').localeCompare(b.name || '');
+                }
+                return 0;
+            });
+        }
+
+        return list;
+    }, [organisations, query, filterPriority, filterStatus, propertyFilter, sortBy]);
+
+    // Export modal state
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportFormat, setExportFormat] = useState(null);
+    const [selectedExportKeys, setSelectedExportKeys] = useState([]);
+
+    // Define BASE_EXPORT_COLUMNS and exportColumns
+    const BASE_EXPORT_COLUMNS = useMemo(
+        () => [
+            { header: 'Reference', key: 'reference' },
+            { header: 'Name', key: 'name' },
+            { header: 'Category', key: 'category' },
+            { header: 'Priority', key: 'priority' },
+            { header: 'Status', key: 'status' },
+            { header: 'Date', key: 'date' },
+            { header: 'Property', key: 'property' }
+        ],
+        []
+    );
+
+    const exportColumns = useMemo(() => {
+        const custom = (customColumns || []).map((col) => ({
+            header: String(col).replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+            key: col,
+        }));
+        return [...BASE_EXPORT_COLUMNS, ...custom];
+    }, [BASE_EXPORT_COLUMNS, customColumns]);
+
+    // Initialize selectedExportKeys when exportColumns changes
+    useEffect(() => {
+        const nextKeys = exportColumns.map((c) => c.key);
+        setSelectedExportKeys((prev) => {
+            const prevSet = new Set(prev);
+            const merged = nextKeys.filter((k) => prevSet.has(k));
+            if (merged.length === 0) return nextKeys;
+            for (const k of nextKeys) {
+                if (!prevSet.has(k)) merged.push(k);
+            }
+            return merged;
+        });
+    }, [exportColumns]);
+
+    // Normalize organisation for export
+    const normalizeOrganisationExportRow = (organisation) => {
+        const resolvedProperty = resolvePropertyName(organisation);
+        const base = {
+            reference: organisation.reference || 'N/A',
+            name: organisation.name || 'N/A',
+            category: organisation.category || 'N/A',
+            priority: organisation.priority || 'N/A',
+            status: organisation.status || 'N/A',
+            date: organisation.created_at ? new Date(organisation.created_at).toLocaleDateString() : 'N/A',
+            property: resolvedProperty === 'Unknown Property' ? 'N/A' : resolvedProperty
+        };
+
+        for (const col of customColumns || []) {
+            base[col] = organisation?.[col] ?? '';
+        }
+
+        return base;
+    };
+
+    // Export modal handlers
+    const openExport = (format) => {
+        setExportFormat(format);
+        setShowExportModal(true);
+        setSelectedExportKeys((prev) => (prev && prev.length ? prev : exportColumns.map((c) => c.key)));
+    };
+
+    const closeExport = () => {
+        setShowExportModal(false);
+        setExportFormat(null);
+    };
+
+    const runExport = () => {
+        const columnsToExport = exportColumns.filter((c) => selectedExportKeys.includes(c.key));
+        const data = filteredOrganisations.map(normalizeOrganisationExportRow).map((row) => {
+            const filteredRow = {};
+            columnsToExport.forEach((col) => {
+                filteredRow[col.key] = row[col.key];
+            });
+            return filteredRow;
+        });
+
+        if (exportFormat === 'pdf') {
+            generatePDF(data, columnsToExport, 'VCS Organisations', 'vcs-organisations');
+        } else if (exportFormat === 'csv') {
+            generateCSV(data, columnsToExport, 'vcs-organisations');
+        }
+
+        closeExport();
+    };
+
+    // Calculate summary stats
+    const statsData = useMemo(() => ({
+        total: organisations.length,
+        active: organisations.filter((o) => o.status === 'completed').length,
+        highRisk: organisations.filter((o) => o.priority === 'high' || o.priority === 'urgent').length,
+        referrals: organisations.filter((o) => {
+            const date = new Date(o.created_at);
+            const now = new Date();
+            return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        }).length,
+    }), [organisations]);
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+            <div className="p-3 sm:p-4 md:p-6">
+                {/* Page Header */}
+                <div className="mb-6 flex items-start justify-between">
+                    <div>
+                        <Breadcrumbs items={[{ label: 'Safeguarding', path: '/admin/safeguarding-referrals' }, { label: 'VCS Organisations', path: '/admin/vcs-organisations' }]} />
+                        <h1 className="text-3xl font-black text-slate-900 mt-1">VCS Organisations Dashboard</h1>
+                    </div>
+                    {hasCreate && (
+                        <div className="flex items-center gap-3">
+                            <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
+                            <button
+                                onClick={handleAddClick}
+                                className="bg-teal-500 text-white font-semibold rounded-xl px-5 py-2.5 text-sm flex items-center gap-2 transition-colors shadow-sm"
+                            >
+                                <span>+</span>
+                                <span>Add Task</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Stats Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div className="bg-white rounded-xl p-5 border border-gray-200 flex items-center gap-4 transition-all">
+                        <div className="bg-orange-100 text-orange-600 h-14 w-14 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-7 h-7" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Organisations</div>
+                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.total}</div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-5 border border-gray-200 flex items-center gap-4 transition-all">
+                        <div className="bg-green-100 text-green-600 h-14 w-14 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-7 h-7" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Active Partnerships</div>
+                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.active}</div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-5 border border-gray-200 flex items-center gap-4 transition-all">
+                        <div className="bg-red-100 text-red-600 h-14 w-14 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-7 h-7" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">High Risk Partners</div>
+                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.highRisk}</div>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-5 border border-gray-200 flex items-center gap-4 transition-all">
+                        <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-7 h-7" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Referrals This Month</div>
+                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.referrals}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Export Column Selection Modal */}
+                {showExportModal && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+                        <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                                <div>
+                                    <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5">Select columns you want to include</div>
+                                </div>
+                                <button
+                                    onClick={closeExport}
+                                    className="p-2 rounded-xl text-gray-500"
+                                    aria-label="Close"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="px-5 py-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="text-sm font-medium text-gray-700">Columns</div>
+                                    <div className="flex items-center gap-3 text-xs">
+                                        <button
+                                            onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
+                                            className="text-teal-600 font-medium rounded-xl"
+                                        >
+                                            Select all
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedExportKeys([])}
+                                            className="text-gray-600 font-medium rounded-xl"
+                                        >
+                                            Clear
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
+                                    {exportColumns.map((col) => {
+                                        const checked = (selectedExportKeys || []).includes(col.key);
+                                        return (
+                                            <label
+                                                key={col.key}
+                                                className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(e) => {
+                                                        const isChecked = e.target.checked;
+                                                        setSelectedExportKeys((prev) => {
+                                                            const set = new Set(prev || []);
+                                                            if (isChecked) set.add(col.key);
+                                                            else set.delete(col.key);
+                                                            return Array.from(set);
+                                                        });
+                                                    }}
+                                                    className="h-4 w-4 accent-teal-600 rounded-xl"
+                                                />
+                                                <span className="text-sm text-gray-800">{col.header}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
+                                <button
+                                    onClick={closeExport}
+                                    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-700 border border-gray-300 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={runExport}
+                                    className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-teal-500 transition-colors shadow-sm"
+                                >
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Main Content Area - VCS Organisations Table */}
+                <div className="bg-white rounded-xl border border-gray-200">
+                    {/* Table Header Section */}
+                    <div className="p-6 pb-0">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900 mb-1">VCS Directory</h2>
+                                <p className="text-sm text-gray-500">{statsData.total} total records</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                {/* Search Input */}
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        value={query}
+                                        onChange={e => setQuery(e.target.value)}
+                                        placeholder="Search organisations..."
+                                        className="form-input pl-10 w-72 rounded-xl"
+                                    />
+                                </div>
+
+                                {/* View Dropdown */}
+                                <div className="relative" ref={viewRef}>
+                                    <button
+                                        onClick={() => setShowViewMenu(!showViewMenu)}
+                                        className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 border border-gray-300 transition-colors flex items-center gap-2 bg-white shadow-sm"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        <span>{viewMode === 'table' ? 'Table' : 'Board'}</span>
+                                        <ChevronDown className="w-4 h-4" />
+                                    </button>
+
+                                    {/* View Settings Dropdown Panel */}
+                                    {showViewMenu && (
+                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                                            <div className="p-4">
+                                                <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
+
+                                                {/* View Mode Selector */}
+                                                <div className="mb-3 pb-3 border-b border-gray-200">
+                                                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => setViewMode('table')}
+                                                            className={`flex-1 px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
+                                                                ? 'bg-teal-500 text-white shadow-sm'
+                                                                : 'bg-gray-100 text-gray-700'
+                                                                }`}
+                                                        >
+                                                            <Columns className="w-4 h-4" />
+                                                            <span>Table</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setViewMode('board')}
+                                                            className={`flex-1 px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
+                                                                ? 'bg-teal-500 text-white shadow-sm'
+                                                                : 'bg-gray-100 text-gray-700'
+                                                                }`}
+                                                        >
+                                                            <Building2 className="w-4 h-4" />
+                                                            <span>Board</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {viewMode === 'table' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
+                                                            className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 rounded-xl transition-colors"
+                                                        >
+                                                            <span>Column visibility</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-xs text-gray-500">
+                                                                    {Object.values(visibleColumns).filter(Boolean).length} shown
+                                                                </span>
+                                                                <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
+                                                            </div>
+                                                        </button>
+
+                                                        {/* Column Visibility Panel */}
+                                                        {showPropertyVisibility && (
+                                                            <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
+                                                                {/* Default Columns Section */}
+                                                                <div className="mb-4">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const updates = {};
+                                                                                    DEFAULT_COLUMNS.forEach(c => updates[c] = true);
+                                                                                    setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                                                                }}
+                                                                                className="text-xs text-teal-600 font-medium rounded-xl"
+                                                                            >
+                                                                                Show all
+                                                                            </button>
+                                                                            <span className="text-gray-300">|</span>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    const updates = {};
+                                                                                    DEFAULT_COLUMNS.forEach(c => updates[c] = false);
+                                                                                    setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                                                                }}
+                                                                                className="text-xs text-teal-600 font-medium rounded-xl"
+                                                                            >
+                                                                                Hide all
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
+                                                                    <div className="space-y-1">
+                                                                        {DEFAULT_COLUMNS.map(col => (
+                                                                            <button
+                                                                                key={col}
+                                                                                onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors border ${visibleColumns[col]
+                                                                                    ? 'text-gray-700 border-gray-200 bg-white'
+                                                                                    : 'text-gray-500 border-gray-100 bg-gray-50'
+                                                                                    }`}
+                                                                            >
+                                                                                <span className="capitalize font-medium">{col}</span>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    {visibleColumns[col] ? (
+                                                                                        <Eye className="w-4 h-4 text-teal-600" />
+                                                                                    ) : (
+                                                                                        <EyeOff className="w-4 h-4 text-gray-400" />
+                                                                                    )}
+                                                                                </div>
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Custom Columns Section - All custom columns */}
+                                                                {customColumns.length > 0 && (
+                                                                    <div className="pt-4 border-t border-gray-200">
+                                                                        <div className="flex items-center justify-between mb-2">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
+                                                                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                                                                    {customColumns.length}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        const updates = {};
+                                                                                        customColumns.forEach(c => updates[c] = true);
+                                                                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                                                                    }}
+                                                                                    className="text-xs text-teal-600 font-medium rounded-xl"
+                                                                                >
+                                                                                    Show all
+                                                                                </button>
+                                                                                <span className="text-gray-300">|</span>
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        const updates = {};
+                                                                                        customColumns.forEach(c => updates[c] = false);
+                                                                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
+                                                                                    }}
+                                                                                    className="text-xs text-teal-600 font-medium rounded-xl"
+                                                                                >
+                                                                                    Hide all
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="text-xs text-gray-500 mb-2">
+                                                                            Custom columns from Forms Builder
+                                                                            <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            {customColumns.map(col => (
+                                                                                <button
+                                                                                    key={col}
+                                                                                    onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                                                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors border ${visibleColumns[col]
+                                                                                        ? 'text-gray-700 border-gray-200 bg-white'
+                                                                                        : 'text-gray-500 border-gray-100 bg-gray-50'
+                                                                                        }`}
+                                                                                >
+                                                                                    <span className="capitalize">{col.replace(/_/g, ' ')}</span>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        {visibleColumns[col] ? (
+                                                                                            <Eye className="w-4 h-4 text-teal-600" />
+                                                                                        ) : (
+                                                                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                                                                        )}
+                                                                                    </div>
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {hasCreate && (
+                                    <button
+                                        onClick={handleAddClick}
+                                        className="bg-teal-500 text-white font-semibold rounded-xl px-5 py-2.5 text-sm flex items-center gap-2 transition-colors shadow-sm"
+                                    >
+                                        <span>+</span>
+                                        <span>Add Task</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Filter Row */}
+                        <div className="flex items-center gap-4 py-4 border-t border-gray-100">
+                            <div className="relative">
+                                <select
+                                    value={filterPriority}
+                                    onChange={(e) => setFilterPriority(e.target.value)}
+                                    className="form-select pl-10 rounded-xl"
+                                >
+                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    <option>All Priority</option>
+                                    <option value="urgent">Urgent</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                </select>
+                            </div>
+
+                            <div className="relative">
+                                <select
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    className="form-select pl-10 rounded-xl"
+                                >
+                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    <option>All Status</option>
+                                    <option value="new">New</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="resolved">Resolved</option>
+                                </select>
+                            </div>
+
+                            <div className="relative">
+                                <select
+                                    value={propertyFilter}
+                                    onChange={(e) => setPropertyFilter(e.target.value)}
+                                    className="form-select pl-10 rounded-xl"
+                                >
+                                    <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    <option value="">All Properties</option>
+                                    {properties.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div className="relative">
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    className="form-select pl-10 rounded-xl"
+                                >
+                                    <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    <option value="">Sort By</option>
+                                    <option value="date">Date (Newest)</option>
+                                    <option value="priority">Priority</option>
+                                    <option value="status">Status</option>
+                                    <option value="name">Name</option>
+                                </select>
+                            </div>
+
+                            {(filterPriority !== 'All Priority' || filterStatus !== 'All Status' || propertyFilter || sortBy) && (
+                                <button
+                                    onClick={() => {
+                                        setFilterPriority('All Priority');
+                                        setFilterStatus('All Status');
+                                        setPropertyFilter('');
+                                        setSortBy('');
+                                    }}
+                                    className="btn-secondary rounded-xl"
+                                >
+                                    <X className="w-4 h-4" />
+                                    <span>Clear</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Data Display - Table View */}
+                    {viewMode === 'table' && (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        {visibleColumns.checkbox && (
+                                            <th className="text-left py-4 px-6">
+                                                <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
+                                            </th>
+                                        )}
+                                        {visibleColumns.type && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">CATEGORY</th>
+                                        )}
+                                        {visibleColumns.reference && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">REFERENCE</th>
+                                        )}
+                                        {visibleColumns.description && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>
+                                        )}
+                                        {visibleColumns.priority && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>
+                                        )}
+                                        {visibleColumns.status && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">STATUS</th>
+                                        )}
+                                        {visibleColumns.assigned && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>
+                                        )}
+                                        {visibleColumns.date && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DATE</th>
+                                        )}
+                                        {/* Custom columns - Standardized UI to Gray */}
+                                        {customColumns.map(col => visibleColumns[col] && (
+                                            <th key={col} className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                                {col.replace(/_/g, ' ')}
+                                            </th>
+                                        ))}
+                                        {visibleColumns.actions && (
+                                            <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
+                                        )}
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white">
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="9" className="py-8 text-center text-gray-500">Loading organisations...</td>
+                                        </tr>
+                                    ) : filteredOrganisations.length > 0 ? filteredOrganisations.map((organisation) => {
+                                        const priorityStyle = getPriorityColor(organisation.priority || "medium");
+                                        const statusStyle = getStatusColor(organisation.status || "new");
+                                        const isDeleting = deletingIds.has(organisation.id);
+
+                                        return (
+                                            <tr key={organisation.id} className={`transition-colors ${isDeleting ? 'vcs-org-deleting' : ''}`}>
+                                                {visibleColumns.checkbox && (
+                                                    <td className="py-5 px-6">
+                                                        <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
+                                                    </td>
+                                                )}
+                                                {visibleColumns.type && (
+                                                    <td className="py-5 px-6">
+                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">
+                                                            {organisation.category || "VCS Organisations"}
+                                                        </span>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.reference && (
+                                                    <td className="py-5 px-6">
+                                                        <span className="text-gray-900 font-semibold text-sm whitespace-nowrap">{organisation.reference || `VCS-${organisation.id}`}</span>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.description && (
+                                                    <td className="py-5 px-6">
+                                                        <div>
+                                                            <div
+                                                                className={`text-gray-900 font-semibold text-sm ${hasUpdate ? 'cursor-pointer' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`}
+                                                                onClick={hasUpdate ? () => handleEditClick(organisation) : undefined}
+                                                            >
+                                                                <Building2 className="w-4 h-4 text-gray-400" />
+                                                                <span>{resolvePropertyName(organisation)}</span>
+                                                            </div>
+                                                            <div className="text-gray-500 text-sm mt-1 truncate max-w-[200px]">
+                                                                {organisation.description || "No description"}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.priority && (
+                                                    <td className="py-5 px-6">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span>
+                                                            <span className={`text-sm font-semibold ${priorityStyle.text}`}>{organisation.priority || "Medium"}</span>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.status && (
+                                                    <td className="py-5 px-6">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span>
+                                                            <span className={`text-sm font-semibold ${statusStyle.text}`}>{organisation.status || "New"}</span>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.assigned && (
+                                                    <td className="py-5 px-6">
+                                                        {!organisation.assigned_to ? (
+                                                            <span className="text-gray-400 text-sm">Unassigned</span>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2">
+                                                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(organisation.assigned_to)} flex items-center justify-center text-xs font-semibold shadow-sm`}>
+                                                                    {getInitials(organisation.assigned_to)}
+                                                                </div>
+                                                                <span className="text-gray-900 text-sm font-medium">{organisation.assigned_to}</span>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                )}
+                                                {visibleColumns.date && (
+                                                    <td className="py-4 px-4 whitespace-nowrap">
+                                                        <span className="text-gray-900 font-medium text-sm">{formatDate(organisation.scheduled_date)}</span>
+                                                    </td>
+                                                )}
+                                                {/* Custom columns - Standardized UI to Gray */}
+                                                {customColumns.map(col => visibleColumns[col] && (
+                                                    <td key={col} className="py-5 px-6">
+                                                        <span className="text-gray-900 font-medium text-sm">{organisation[col] || '-'}</span>
+                                                    </td>
+                                                ))}
+                                                {visibleColumns.actions && (
+                                                    <td className="py-4 px-4 text-center sticky right-0 z-10 bg-white" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            <button
+                                                                onClick={() => handleViewClick(organisation)}
+                                                                className="p-1.5 text-gray-600 rounded-xl transition-all"
+                                                                title="View"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleEditClick(organisation)}
+                                                                className="p-1.5 text-gray-600 rounded-xl transition-all"
+                                                                title="Edit"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteClick(organisation)}
+                                                                className="p-1.5 text-gray-600 rounded-xl transition-all"
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        );
+                                    }) : (
+                                        <tr>
+                                            <td colSpan="9" className="py-8 text-center text-gray-500">No organisations found.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {/* ----------------- MODAL SECTION ----------------- */}
+                    {showForm && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto">
+                            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative h-[73vh] flex flex-col border border-gray-100">
+
+                                {/* Modal Header */}
+                                <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10 flex-shrink-0 rounded-t-2xl">
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-gray-900">
+                                            {editingId ? "Edit Organisation" : "New Organisation"}
+                                        </h2>
+                                        <p className="text-sm text-gray-500 mt-1">Complete the organisation information below</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowForm(false)}
+                                        className="text-gray-400 transition-colors rounded-xl"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                {/* Modal Form Content */}
+                                <form onSubmit={handleSubmit} className="p-6 flex-1 overflow-y-auto">
+                                    <div className="space-y-5">
+
+                                        {/* Row 1: Title */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                Title <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                required
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                placeholder="Brief description of issue"
+                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                            />
+                                        </div>
+
+                                        {/* Row 2: Description */}
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                Description <span className="text-red-500">*</span>
+                                            </label>
+                                            <textarea
+                                                required
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                                rows={3}
+                                                placeholder="Detailed description of the complaint issue..."
+                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"
+                                            />
+                                        </div>
+
+                                        {/* Row 3: Property & Category */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                    Property <span className="text-red-500">*</span>
+                                                </label>
+                                                <select
+                                                    required
+                                                    value={formData.property_id}
+                                                    onChange={(e) => handlePropertyChange(e.target.value)}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                >
+                                                    <option value="">Select property</option>
+                                                    {properties.map((prop) => (
+                                                        <option key={prop.id} value={prop.id}>
+                                                            {prop.name || prop.property_name || `Property #${prop.id}`}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                    Category <span className="text-red-500">*</span>
+                                                </label>
+                                                <select
+                                                    required
+                                                    value={formData.category}
+                                                    onChange={handleCategoryChange}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                >
+                                                    <option value="">Select category</option>
+                                                    {[...categoryOptions, ...customCategories].map((c) => (
+                                                        <option key={c} value={c}>{c}</option>
+                                                    ))}
+                                                    {!!formData.category && ![...categoryOptions, ...customCategories].some((c) => String(c) === String(formData.category)) && (
+                                                        <option value={formData.category}>{formData.category}</option>
+                                                    )}
+                                                    <option value="__add_new__">+ Add new...</option>
+                                                </select>
+                                                {showCustomCategoryInput && (
+                                                    <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={customCategoryValue}
+                                                            onChange={(e) => setCustomCategoryValue(e.target.value)}
+                                                            placeholder="Enter new category"
+                                                            className="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                        />
+                                                        <div className="flex items-center gap-2 sm:shrink-0">
+                                                            <button
+                                                                type="button"
+                                                                onClick={saveCustomCategory}
+                                                                className="px-3 py-2 bg-teal-500 text-white rounded-xl text-sm font-medium whitespace-nowrap transition-colors"
+                                                            >
+                                                                Add
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setShowCustomCategoryInput(false);
+                                                                    setCustomCategoryValue('');
+                                                                }}
+                                                                className="px-3 py-2 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium whitespace-nowrap transition-colors"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Row 4: Priority & Reported By */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                    Priority <span className="text-red-500">*</span>
+                                                </label>
+                                                <select
+                                                    required
+                                                    value={formData.priority}
+                                                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                >
+                                                    <option value="low">Low</option>
+                                                    <option value="medium">Medium</option>
+                                                    <option value="high">High</option>
+                                                    <option value="urgent">Urgent</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                    Reported By <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={formData.reported_by}
+                                                    readOnly
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-100 cursor-not-allowed"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Row 5: Assigned To & Scheduled Date */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                    Assigned To <span className="text-red-500">*</span>
+                                                </label>
+                                                {formData.property_id && staffMembers.length > 0 ? (
+                                                    <select
+                                                        required
+                                                        value={formData.assigned_to}
+                                                        onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                    >
+                                                        <option value="">Select staff member</option>
+                                                        {staffMembers.map(staff => (
+                                                            <option key={staff.id} value={staff.name}>{staff.name}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        required
+                                                        value={formData.assigned_to}
+                                                        onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                                                        placeholder={formData.property_id ? "Loading staff..." : "Select property first"}
+                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50"
+                                                        disabled={!formData.property_id}
+                                                    />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                    Scheduled Date <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    required
+                                                    value={formatDateISO(formData.scheduled_date)}
+                                                    onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Custom Columns */}
+                                        {customColumns.map(col => {
+                                            const meta = customColumnMetadata[col] || {};
+                                            const inputType = meta.input_type || 'text';
+                                            const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                                            return (
+                                                <div key={col}>
+                                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                        {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    {inputType === 'checkbox' ? (
+                                                        <select
+                                                            required
+                                                            value={
+                                                                formData[col] === true ? 'true' :
+                                                                    formData[col] === false ? 'false' :
+                                                                        formData[col] === 'true' ? 'true' :
+                                                                            formData[col] === 'false' ? 'false' :
+                                                                                ''
+                                                            }
+                                                            onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                        >
+                                                            <option value="">Select...</option>
+                                                            <option value="true">Yes</option>
+                                                            <option value="false">No</option>
+                                                        </select>
+                                                    ) : inputType === 'dropdown' || inputType === 'select' ? (
+                                                        <select
+                                                            required
+                                                            value={formData[col] || ''}
+                                                            onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                        >
+                                                            <option value="">Select...</option>
+                                                            {options.map((opt, idx) => (
+                                                                <option key={idx} value={opt}>{opt}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : inputType === 'textarea' ? (
+                                                        <textarea
+                                                            rows={3}
+                                                            required
+                                                            value={formData[col] || ''}
+                                                            onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"
+                                                        />
+                                                    ) : inputType === 'date' ? (
+                                                        <input
+                                                            type="date"
+                                                            required
+                                                            value={formData[col] ? formatDateISO(formData[col]) : ''}
+                                                            onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                        />
+                                                    ) : (
+                                                        <input
+                                                            type={inputType}
+                                                            required
+                                                            value={formData[col] || ''}
+                                                            onChange={(e) => setFormData({ ...formData, [col]: e.target.value })}
+                                                            placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                        />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </form>
+
+                                {/* Footer Buttons */}
+                                <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex justify-end gap-3 flex-shrink-0 rounded-b-2xl">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowForm(false)}
+                                        className="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 font-medium transition-colors text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        form="organisationForm"
+                                        onClick={handleSubmit}
+                                        className="px-5 py-2.5 bg-teal-500 text-white rounded-xl font-medium shadow-sm transition-colors text-sm flex items-center gap-2"
+                                    >
+                                        {editingId ? "Update Organisation" : "Create Organisation"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* View Modal */}
+                    {showViewModal && viewingOrganisation && (
+                        <div className="modal-overlay">
+                            <div className="modal-container">
+
+                                {/* Modal Header */}
+                                <div className="modal-header">
+                                    <div>
+                                        <h2 className="modal-title">Organisation Details</h2>
+                                        <p className="modal-subtitle">View organisation information</p>
+                                    </div>
+                                    <button onClick={() => setShowViewModal(false)} className="modal-close-btn rounded-xl">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                {/* Modal Content */}
+                                <>
+                                    <div className="modal-content space-y-6">
+                                        <div className="form-grid-2">
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Name</label>
+                                                <p className="text-gray-900 font-medium">{viewingOrganisation.name || 'N/A'}</p>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                    {viewingOrganisation.status || 'N/A'}
+                                                </span>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
+                                                <p className="text-gray-900">{(() => {
+                                                    const resolved = resolvePropertyName(viewingOrganisation);
+                                                    if (resolved !== 'Unknown Property') return resolved;
+                                                    const pid = viewingOrganisation?.property_id ?? viewingOrganisation?.hotel_id;
+                                                    return pid ? `Property #${pid}` : resolved;
+                                                })()}</p>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Category</label>
+                                                <p className="text-gray-900">{viewingOrganisation.category || 'N/A'}</p>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Priority</label>
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                    {viewingOrganisation.priority || 'N/A'}
+                                                </span>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Scheduled Date</label>
+                                                <p className="text-gray-900">{formatDate(viewingOrganisation.scheduled_date) || 'N/A'}</p>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reported By</label>
+                                                <p className="text-gray-900">{viewingOrganisation.reported_by || 'N/A'}</p>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Assigned To</label>
+                                                <p className="text-gray-900">{viewingOrganisation.assigned_to || 'N/A'}</p>
+                                            </div>
+
+                                            {(customColumns || []).map((col) => {
+                                                const meta = customColumnMetadata?.[col] || {};
+                                                const label = String(meta.label || col)
+                                                    .replace(/_/g, ' ')
+                                                    .replace(/\b\w/g, (m) => m.toUpperCase());
+                                                const rawVal = viewingOrganisation?.[col];
+                                                const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
+                                                const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
+                                                const isDateType = inputType === 'date';
+
+                                                let valueText = rawVal;
+                                                if (valueText === null || valueText === undefined || valueText === '') valueText = 'N/A';
+
+                                                if (isDateType && rawVal) {
+                                                    const d = new Date(rawVal);
+                                                    if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
+                                                }
+
+                                                if (isBoolType) {
+                                                    const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
+                                                    return (
+                                                        <div key={col}>
+                                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                                {boolVal ? 'Yes' : 'No'}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <div key={col}>
+                                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                                                        <p className="text-gray-900 font-medium">{String(valueText)}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
+                                            <p className="text-gray-700">{viewingOrganisation.description || 'No description provided.'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowViewModal(false)}
+                                            className="btn-secondary rounded-xl"
+                                        >
+                                            Close
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowViewModal(false);
+                                                handleEditClick(viewingOrganisation);
+                                            }}
+                                            className="btn-primary rounded-xl"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                            Edit
+                                        </button>
+                                    </div>
+                                </>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Confirmation Dialog */}
+                <ConfirmDialog
+                    isOpen={confirmDialog.isOpen}
+                    onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                    onConfirm={confirmDialog.onConfirm}
+                    title={confirmDialog.title}
+                    message={confirmDialog.message}
+                    type={confirmDialog.type}
+                />
+
+                {/* Alert Dialog */}
+                <AlertDialog
+                    isOpen={alertDialog.isOpen}
+                    onClose={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))}
+                    title={alertDialog.title}
+                    message={alertDialog.message}
+                    type={alertDialog.type}
+                />
+            </div>
+        </div>
+    );
+};
+
+export default VCSOrganisations;

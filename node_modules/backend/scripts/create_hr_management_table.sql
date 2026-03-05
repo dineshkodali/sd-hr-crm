@@ -1,0 +1,73 @@
+-- Create HR Management Table
+-- Schema: public
+-- This table stores HR management tasks and work orders
+
+CREATE TABLE IF NOT EXISTS public.hr_management (
+    id SERIAL PRIMARY KEY,
+    
+    -- Task identification and reference
+    reference VARCHAR(255) NOT NULL UNIQUE,  -- e.g., HRM-2025-e5198a6e
+    type VARCHAR(100) DEFAULT 'HR Management',  -- Task type/category
+    
+    -- Task details
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    
+    -- Priority and Status
+    priority VARCHAR(50) DEFAULT 'Medium',   -- 'Low', 'Medium', 'Urgent'
+    status VARCHAR(50) DEFAULT 'Pending',    -- 'Pending', 'Completed', 'Overdue'
+    
+    -- Assignment
+    assigned_to_id INTEGER,                  -- FK to users table (employee/staff member)
+    assigned_to_name VARCHAR(255),           -- Denormalized name for quick display
+    
+    -- Relationships
+    property_id INTEGER,                     -- FK to hotels/properties
+    property_name VARCHAR(255),
+    
+    -- Reporting
+    reported_by VARCHAR(255),               -- Name of person reporting
+    
+    -- Dates
+    due_date DATE,
+    scheduled_date DATE,
+    completed_date TIMESTAMP,
+    
+    -- Metadata
+    notes TEXT,
+    category VARCHAR(100),  -- Task category
+    
+    -- Audit fields
+    created_by_id INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT fk_assigned_to FOREIGN KEY (assigned_to_id) REFERENCES public.users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_property FOREIGN KEY (property_id) REFERENCES public.hotels(id) ON DELETE SET NULL
+);
+
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_hr_management_status ON public.hr_management(status);
+CREATE INDEX IF NOT EXISTS idx_hr_management_priority ON public.hr_management(priority);
+CREATE INDEX IF NOT EXISTS idx_hr_management_property_id ON public.hr_management(property_id);
+CREATE INDEX IF NOT EXISTS idx_hr_management_assigned_to_id ON public.hr_management(assigned_to_id);
+CREATE INDEX IF NOT EXISTS idx_hr_management_due_date ON public.hr_management(due_date);
+CREATE INDEX IF NOT EXISTS idx_hr_management_deleted ON public.hr_management(deleted);
+
+-- Create function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_hr_management_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger to automatically update updated_at
+CREATE TRIGGER trigger_update_hr_management_updated_at
+    BEFORE UPDATE ON public.hr_management
+    FOR EACH ROW
+    EXECUTE FUNCTION update_hr_management_updated_at();
+

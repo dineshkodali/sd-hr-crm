@@ -1,0 +1,102 @@
+[
+  {
+    "column_name": "id",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "name",
+    "data_type": "text"
+  },
+  {
+    "column_name": "email",
+    "data_type": "text"
+  },
+  {
+    "column_name": "password",
+    "data_type": "text"
+  },
+  {
+    "column_name": "role",
+    "data_type": "text"
+  },
+  {
+    "column_name": "status",
+    "data_type": "text"
+  },
+  {
+    "column_name": "branch",
+    "data_type": "text"
+  },
+  {
+    "column_name": "hotel_id",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "phone",
+    "data_type": "text"
+  },
+  {
+    "column_name": "gender",
+    "data_type": "text"
+  },
+  {
+    "column_name": "dob",
+    "data_type": "date"
+  },
+  {
+    "column_name": "nationality",
+    "data_type": "text"
+  },
+  {
+    "column_name": "religion",
+    "data_type": "text"
+  },
+  {
+    "column_name": "marital_status",
+    "data_type": "text"
+  },
+  {
+    "column_name": "address",
+    "data_type": "text"
+  },
+  {
+    "column_name": "city",
+    "data_type": "text"
+  },
+  {
+    "column_name": "state",
+    "data_type": "text"
+  },
+  {
+    "column_name": "country",
+    "data_type": "text"
+  },
+  {
+    "column_name": "resume_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "column_name": "avatar",
+    "data_type": "text"
+  },
+  {
+    "column_name": "authenticator_secret",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "authenticator_enabled",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "backup_codes",
+    "data_type": "ARRAY"
+  }
+]

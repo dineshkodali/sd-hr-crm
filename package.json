@@ -1,0 +1,31 @@
+{
+  "name": "sdc-praneeth-root",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "postinstall": "echo \"Root install complete. If your platform does not install workspaces automatically, run: npm run bootstrap\"",
+    "bootstrap": "npm install --workspaces",
+    "build": "npm run bootstrap && npm --workspace frontend run build",
+    "start": "npm --workspace backend start",
+    "dev": "concurrently --kill-others \"npm run backend\" \"npm run frontend\"",
+    "backend": "npm --workspace backend start",
+    "frontend": "npm --workspace frontend run dev",
+    "install-all": "npm install --force && npm install concurrently pg-query-stream --save && npm --prefix frontend install --force && npm --prefix backend install --force && npm --prefix frontend install react-router-dom @vitejs/plugin-react --force",
+    "init-project": "npm run install-all && npm run dev"
+  },
+  "devDependencies": {
+    "baseline-browser-mapping": "^2.9.11",
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
+    "pg-query-stream": "^4.10.3",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "vite": "^7.2.7"
+  }
+}

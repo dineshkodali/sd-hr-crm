@@ -1,0 +1,85 @@
+services:
+
+  backend:
+    build:
+      context: .
+      target: backend
+    container_name: crm-backend
+    environment:
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      - PORT=4000
+      - NODE_ENV=production
+      - CORS_ORIGINS=https://crm.sdcsolutions.in,http://crm.sdcsolutions.in,http://crm.sdgsolutions.in,https://crm.sdgsolutions.in,http://localhost:3002,http://localhost:3000
+      - DATABASE_URL=postgresql://sdcommercial:sdcommercial@18.130.77.174:5432/new_CRM
+      - DB_HOST=18.130.77.174
+      - DB_PORT=5432
+      - DB_NAME=new_CRM
+      - DB_USER=sdcommercial
+      - DB_PASSWORD=sdcommercial
+      # Email Configuration
+      - EMAIL_SERVICE=gmail
+      - EMAIL_USER=dineshkodali16@gmail.com
+      - EMAIL_PASS=ffha iutj zilo mrvl
+      - EMAIL_FROM=itsupport@sdcommercial.co.uk
+      - ADMIN_EMAIL=dinesh@gmail.com
+      - ADMIN_PASSWORD=dinesh123
+    ports:
+      - "4000:4000"
+    networks:
+      - crm-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+    container_name: crm-frontend
+    ports:
+      - "3002:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - crm-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
+        reservations:
+          memory: 32M
+          cpus: "0.1"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+networks:
+  crm-network:
+    driver: bridge

@@ -1,0 +1,398 @@
+﻿@import "tailwindcss";
+
+@layer base {
+  * {
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-compact {
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+
+  .text-tight {
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+}
+
+/* Password strength meter styles */
+.pw-strength {
+  height: 8px;
+  background: #e5e7eb;
+  /* gray-200 */
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.pw-strength-inner {
+  height: 100%;
+  transition: width 180ms ease, background-color 180ms ease;
+}
+
+.pw-strength-label {
+  font-size: 12px;
+  color: #374151;
+  /* gray-700 */
+  margin-top: 6px;
+}
+
+.pw-weak {
+  background-color: #f87171;
+}
+
+/* red-400 */
+.pw-medium {
+  background-color: #f59e0b;
+}
+
+/* amber-500 */
+.pw-strong {
+  background-color: #34d399;
+}
+
+/* green-400 */
+
+/* Global Button Styles */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.5rem;
+  background: #00b8a3;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 184, 163, 0.2), 0 2px 4px -1px rgba(0, 184, 163, 0.1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  height: 2.25rem;
+  white-space: nowrap;
+}
+
+.btn-primary:hover {
+  background: #00a08e;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(0, 184, 163, 0.3), 0 4px 6px -2px rgba(0, 184, 163, 0.2);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #3b82f6;
+  /* blue-500 */
+  background-color: #eff6ff;
+  /* blue-50 */
+  border-radius: 0.75rem;
+  border: 1px solid #dbeafe;
+  /* blue-100 */
+  transition: all 0.2s ease;
+  cursor: pointer;
+  height: 1.75rem;
+}
+
+.btn-edit:hover {
+  background-color: #dbeafe;
+  /* blue-100 */
+  color: #2563eb;
+  /* blue-600 */
+  border-color: #bfdbfe;
+  /* blue-200 */
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background-color: white;
+  color: #475569;
+  /* slate-600 */
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  /* slate-200 */
+  border-radius: 0.75rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  height: 2.25rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background-color: #ef4444;
+  /* red-500 */
+  color: white;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  cursor: pointer;
+  height: 2.25rem;
+  /* Standardized compact height */
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+}
+
+/* Small Button Variant */
+.btn-sm {
+  padding: 0.5rem 1rem !important;
+  font-size: 0.75rem !important;
+  gap: 0.375rem !important;
+}
+
+/* Global Form Input Styles */
+.form-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  /* slate-300 */
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background-color: white;
+  outline: none;
+  transition: all 0.2s;
+  height: 2.25rem;
+  /* Standardized compact height */
+}
+
+.form-input:focus {
+  border-color: #a7f3d0;
+  /* emerald-200 */
+  box-shadow: 0 0 0 3px rgba(110, 231, 183, 0.5);
+  /* emerald-300 with opacity */
+}
+
+.form-select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  /* slate-300 */
+  border-radius: 0.75rem;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background-color: white;
+  outline: none;
+  transition: all 0.2s;
+  height: 2.25rem;
+  /* Standardized compact height */
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1.5em 1.5em;
+}
+
+.form-select:focus {
+  border-color: #a7f3d0;
+  box-shadow: 0 0 0 3px rgba(110, 231, 183, 0.5);
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  /* slate-700 */
+  margin-bottom: 0.5rem;
+}
+
+/* Global Table Refinement */
+table thead th {
+  font-size: 0.8125rem !important;
+  /* ~13px - slightly larger than xs but distinct from sm */
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b !important;
+  /* slate-500 */
+}
+
+table tbody td {
+  font-size: 0.8125rem !important;
+  /* Match header size for data */
+  color: #334155 !important;
+  /* slate-700 */
+}
+
+
+/* HIDE NAVBARS WHEN MODAL IS OPEN */
+body.form-modal-open .admin-sidebar,
+body.form-modal-open .top-navbar {
+  display: none !important;
+}
+
+body.form-modal-open {
+  overflow: hidden;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Shared Form & Modal Styles */
+@layer components {
+
+  /* Modal wrapper */
+  .modal-overlay {
+    @apply fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity;
+  }
+
+  .modal-container {
+    @apply bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col;
+    animation: modal-in 0.2s ease-out forwards;
+  }
+
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Modal Sections */
+  .modal-header {
+    @apply flex justify-between items-start p-6 border-b border-slate-100 shrink-0 bg-slate-50/30;
+  }
+
+  .modal-title {
+    @apply text-xl font-bold text-slate-800;
+  }
+
+  .modal-subtitle {
+    @apply text-sm text-slate-500 mt-1;
+  }
+
+  .modal-close-btn {
+    @apply p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors;
+  }
+
+  .modal-content {
+    @apply p-6 overflow-y-auto flex-1;
+  }
+
+  .modal-footer {
+    @apply flex justify-end gap-3 p-6 border-t border-slate-100 shrink-0 bg-slate-50/50 rounded-b-2xl;
+  }
+
+  /* Form Elements */
+  .form-section {
+    @apply space-y-6;
+  }
+
+  .form-grid-2 {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-6;
+  }
+
+  .form-group {
+    @apply mb-0;
+  }
+
+  /* Checkbox Card Style (for checklists) */
+  .checkbox-card {
+    @apply flex items-start gap-3 text-sm p-3 border rounded-lg cursor-pointer transition-all duration-200 border-slate-200 hover:border-slate-300 hover:bg-slate-50;
+  }
+
+  .checkbox-card.checked {
+    @apply bg-emerald-50 border-emerald-200;
+  }
+
+  .checkbox-card-text {
+    @apply text-slate-600;
+  }
+
+  .checkbox-card-text.checked {
+    @apply text-slate-900 font-medium;
+  }
+}
