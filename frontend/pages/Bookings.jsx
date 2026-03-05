@@ -979,7 +979,6 @@ export default function Bookings({ user }) {
           </div>
           <div className="flex items-center gap-3">
             <DownloadDropdown onDownloadPDF={() => { setExportFormat('pdf'); setShowExportModal(true); setSelectedExportKeys(prev => prev.length ? prev : exportColumns.map(c => c.key)); }} onDownloadCSV={() => { setExportFormat('csv'); setShowExportModal(true); setSelectedExportKeys(prev => prev.length ? prev : exportColumns.map(c => c.key)); }} />
-            <button onClick={() => setShowModal(true)} className="btn-primary rounded-xl"><UserPlus className="w-4 h-4" /><span>New Booking</span></button>
           </div>
         </div>
 

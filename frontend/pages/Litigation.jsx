@@ -618,13 +618,6 @@ export default function Litigation({ user }) {
                                 onDownloadPDF={() => openExport('pdf')}
                                 onDownloadCSV={() => openExport('csv')}
                             />
-                            <button
-                                onClick={() => { setSelectedTask(null); setModalMode('create'); setShowModal(true); }}
-                                className="bg-teal-500 text-white font-medium rounded-xl py-2 px-4 text-sm flex items-center gap-2 transition-all shadow-md "
-                            >
-                                <Gavel className="w-4 h-4" />
-                                <span>Create Task</span>
-                            </button>
                         </div>
                     )}
                 </div>

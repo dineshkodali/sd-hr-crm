@@ -1,10 +1,10 @@
 import React from 'react';
 import { X, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 
-export function ConfirmDialog({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
+export function ConfirmDialog({
+  isOpen,
+  onClose,
+  onConfirm,
   title = "Confirm Action",
   message = "Are you sure you want to proceed?",
   confirmText = "Confirm",
@@ -40,35 +40,20 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-xl"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-6">
-          <div className="flex items-start gap-4">
-            <div className={`${currentStyle.iconBg} p-3 rounded-full flex-shrink-0`}>
-              {currentStyle.icon}
-            </div>
-            <div className="flex-1 pt-1">
-              <p className="text-gray-700 text-base leading-relaxed">{message}</p>
-            </div>
+      <div className="bg-white w-full max-w-[360px] rounded-[20px] p-5 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="flex items-start gap-4 mb-5">
+          <div className={`${currentStyle.iconBg} rounded-full p-2.5 shrink-0`}>
+            {React.cloneElement(currentStyle.icon, { className: "w-6 h-6" })}
+          </div>
+          <div className="pt-1">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
+            <p className="text-gray-500 text-sm leading-relaxed">{message}</p>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-5 bg-gray-50 border-t border-gray-100">
+        <div className="flex items-center justify-end gap-2.5">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+            className="px-5 py-2 rounded-full border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 text-sm transition-colors"
           >
             {cancelText}
           </button>
@@ -77,7 +62,7 @@ export function ConfirmDialog({
               onConfirm();
               onClose();
             }}
-            className={`px-5 py-2.5 rounded-xl font-medium shadow-sm transition-all duration-200 hover:shadow ${currentStyle.confirmBtn}`}
+            className={`px-5 py-2 rounded-full font-medium shadow-sm transition-colors text-sm ${currentStyle.confirmBtn}`}
           >
             {confirmText}
           </button>
@@ -87,9 +72,9 @@ export function ConfirmDialog({
   );
 }
 
-export function AlertDialog({ 
-  isOpen, 
-  onClose, 
+export function AlertDialog({
+  isOpen,
+  onClose,
   title = "Alert",
   message = "",
   type = "info", // "info", "success", "warning", "error"
@@ -124,35 +109,20 @@ export function AlertDialog({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-xl"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-6">
-          <div className="flex items-start gap-4">
-            <div className={`${currentStyle.iconBg} p-3 rounded-full flex-shrink-0`}>
-              {currentStyle.icon}
-            </div>
-            <div className="flex-1 pt-1">
-              <p className="text-gray-700 text-base leading-relaxed">{message}</p>
-            </div>
+      <div className="bg-white w-full max-w-[360px] rounded-[20px] p-5 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="flex items-start gap-4 mb-5">
+          <div className={`${currentStyle.iconBg} rounded-full p-2.5 shrink-0`}>
+            {React.cloneElement(currentStyle.icon, { className: "w-6 h-6" })}
+          </div>
+          <div className="pt-1">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
+            <p className="text-gray-500 text-sm leading-relaxed">{message}</p>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end p-5 bg-gray-50 border-t border-gray-100">
+        <div className="flex items-center justify-end">
           <button
             onClick={onClose}
-            className={`px-6 py-2.5 rounded-xl font-medium shadow-sm transition-all duration-200 hover:shadow ${currentStyle.button}`}
+            className={`px-5 py-2 rounded-full font-medium shadow-sm transition-colors text-sm ${currentStyle.button}`}
           >
             {buttonText}
           </button>

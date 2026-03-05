@@ -31,6 +31,8 @@ import moveoutsRoutes from "./routes/moveouts.js";
 import mealsRoutes from "./routes/meals.js";
 import aireTasksRoutes from "./routes/aire-tasks.js";
 import litigationRoutes from "./routes/litigation.js";
+import shiftHandoversRoutes from "./routes/shiftHandovers.js";
+
 
 import dashboardPublicRoutes from "./routes/dashboard_public.js";
 import complaintsRoutes from "./routes/complaints.js";
@@ -242,6 +244,12 @@ function mountRoute(mountPath, router, name = mountPath) {
   console.log(`✅ Mounted ${name} at ${mountPath}`);
 }
 
+// Request Logger for debugging
+app.use("/api", (req, res, next) => {
+  console.log(`[${new Date().toISOString()}] Incoming Request: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 /* ----------------------------
    Route mounting (safe)
    ---------------------------- */
@@ -306,6 +314,10 @@ mountRoute("/api/aire-tasks", aireTasksRoutes, "aireTasksRoutes");
 
 // Litigation
 mountRoute("/api/litigation", litigationRoutes, "litigationRoutes");
+
+// Shift Handovers
+mountRoute("/api/shift-handovers", shiftHandoversRoutes, "shiftHandoversRoutes");
+
 
 
 

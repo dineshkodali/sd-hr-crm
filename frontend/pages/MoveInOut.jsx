@@ -523,11 +523,6 @@ export default function MoveInOutPage({ user }) {
           <div className="flex items-center gap-4">
             <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
             {canCreatePage && (
-              <button onClick={() => { setEditing(null); setShowModal(true); }} className="btn-primary rounded-xl">
-                <IconMoveIn size={18} /> Process Move-In
-              </button>
-            )}
-            {canCreatePage && (
               <button onClick={() => { setEditing(null); setShowOutModal(true); }} className="btn-secondary rounded-xl">
                 <IconMoveOut size={18} /> Process Move-Out
               </button>

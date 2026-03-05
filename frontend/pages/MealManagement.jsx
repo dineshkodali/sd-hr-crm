@@ -835,27 +835,6 @@ export default function MealManagement({ user }) {
                             onDownloadPDF={() => openExport('pdf')}
                             onDownloadCSV={() => openExport('csv')}
                         />
-                        {canCreatePage && (
-                            <button
-                                onClick={() => {
-                                    setEditingMeal(null);
-                                    setShowScheduleModal(true);
-                                }}
-                                className="
- bg-teal-400
- active:bg-teal-600
- text-white
- px-4 py-2
- rounded-xl
- shadow-sm
- transition-colors
- flex items-center gap-2
- "
-                            >
-                                <span className="text-lg leading-none">+</span>
-                                Schedule Meal
-                            </button>
-                        )}
                     </div>
                 </div>
 

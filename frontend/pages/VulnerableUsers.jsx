@@ -795,13 +795,6 @@ export default function VulnerableUsers({ user }) {
                     {hasCreate && (
                         <div className="flex items-center gap-3">
                             <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
-                            <button
-                                onClick={() => handleOpenModal('create')}
-                                className="bg-teal-500 text-white font-medium rounded-xl py-2 px-4 text-sm flex items-center gap-2 transition-all shadow-md "
-                            >
-                                <span>+</span>
-                                <span>New Record</span>
-                            </button>
                         </div>
                     )}
                 </div>

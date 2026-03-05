@@ -324,14 +324,22 @@ router.put('/settings/:module', protect, requireRole(['admin']), async (req, res
       notify_on_delete,
       notify_on_status_change,
       notify_roles,
-      notify_users
+      notify_users,
+      custom_triggers
     } = req.body;
+
+    // First try to ensure the custom_triggers column exists
+    try {
+      await pool.query('ALTER TABLE email_module_settings ADD COLUMN IF NOT EXISTS custom_triggers JSONB DEFAULT \'{}\'::jsonb');
+    } catch (e) {
+      console.warn('Could not auto-add custom_triggers column:', e.message);
+    }
 
     const result = await pool.query(
       `INSERT INTO email_module_settings 
        (module, enabled, notify_on_create, notify_on_update, notify_on_delete, 
-        notify_on_status_change, notify_roles, notify_users, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+        notify_on_status_change, notify_roles, notify_users, custom_triggers, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
        ON CONFLICT (module) 
        DO UPDATE SET 
          enabled = $2,
@@ -341,10 +349,11 @@ router.put('/settings/:module', protect, requireRole(['admin']), async (req, res
          notify_on_status_change = $6,
          notify_roles = $7,
          notify_users = $8,
+         custom_triggers = $9,
          updated_at = NOW()
        RETURNING *`,
       [module, enabled, notify_on_create, notify_on_update, notify_on_delete,
-        notify_on_status_change, JSON.stringify(notify_roles || []), JSON.stringify(notify_users || [])]
+        notify_on_status_change, JSON.stringify(notify_roles || []), JSON.stringify(notify_users || []), JSON.stringify(custom_triggers || {})]
     );
 
     return res.json({
@@ -361,18 +370,38 @@ router.put('/settings/:module', protect, requireRole(['admin']), async (req, res
 router.get('/modules', protect, async (req, res) => {
   try {
     const modules = [
-      { value: 'litigation', label: 'Litigation' },
-      { value: 'maintenance', label: 'Maintenance' },
-      { value: 'incidents', label: 'Incidents' },
-      { value: 'hr', label: 'HR Management' },
+      // Core entities
+      { value: 'staff', label: 'Staff Management' },
+      { value: 'service_users', label: 'Service Users' },
+      { value: 'hotels', label: 'Hotels & Properties' },
+      { value: 'rooms', label: 'Rooms Management' },
+      // Operations
+      { value: 'bookings', label: 'Bookings' },
+      { value: 'move_in_out', label: 'Move In/Out' },
+      { value: 'meal_management', label: 'Meal Management' },
       { value: 'tasks', label: 'Tasks' },
-      { value: 'complaints', label: 'Complaints' },
+      // Compliance & Risk
+      { value: 'incidents', label: 'Incidents' },
       { value: 'safeguarding', label: 'Safeguarding' },
       { value: 'compliance', label: 'Compliance' },
+      { value: 'inspections', label: 'Inspections' },
+      { value: 'risk_assessments', label: 'Risk Assessments' },
+      { value: 'case_management', label: 'Case Management' },
+      { value: 'litigation', label: 'Litigation' },
+      { value: 'complaints', label: 'Complaints' },
+      { value: 'maintenance', label: 'Maintenance' },
+      // HR
+      { value: 'hr', label: 'HR Management' },
       { value: 'payroll', label: 'Payroll' },
       { value: 'training', label: 'Training' },
       { value: 'performance', label: 'Performance' },
+      // HSE
       { value: 'hse', label: 'HSE' },
+      { value: 'hse_audits', label: 'HSE Audits' },
+      // Other
+      { value: 'reports', label: 'Reports' },
+      // Custom
+      { value: 'custom', label: 'Custom Module...' },
     ];
 
     return res.json({ modules });

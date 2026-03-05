@@ -872,13 +872,6 @@ export default function EmergencyProtocols() {
                     {hasCreate && (
                         <div className="flex items-center gap-3">
                             <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
-                            <button
-                                onClick={() => setShowCreate(true)}
-                                className="bg-teal-500 text-white font-medium rounded-xl py-2 px-4 text-sm flex items-center gap-2 transition-all shadow-md "
-                            >
-                                <span>+</span>
-                                <span>Create Work Order</span>
-                            </button>
                         </div>
                     )}
                 </div>

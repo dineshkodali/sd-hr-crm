@@ -1,4 +1,4 @@
-// src/pages/ServiceUserProfile.jsx
+﻿// src/pages/ServiceUserProfile.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
@@ -20,7 +20,7 @@ const buildCandidateBases = () => {
  list.push(`${origin}/api`);
 
  // Priority 3: Common development ports
- const ports = [4000, 4001, 4002, 4003, 4004, 4005, 5000, 8000, 8080, 3000];
+ const ports = [4001, 4000, 4002, 4003, 4004, 4005, 5000, 8000, 8080, 3000];
  ports.forEach((p) => {
  list.push(`${protocol}//localhost:${p}/api`);
  list.push(`${protocol}//127.0.0.1:${p}/api`);
@@ -397,7 +397,7 @@ export default function ServiceUserProfile() {
 
  const computed = useMemo(() => {
  if (!user) {
- return { fullName: "", ageText: "—", property: "Not assigned" };
+ return { fullName: "", ageText: "â€”", property: "Not assigned" };
  }
  const fullName = `${user.first_name || ""} ${user.last_name || ""}`.trim();
 
@@ -820,7 +820,7 @@ export default function ServiceUserProfile() {
  onClick={() => navigate(-1)}
  className="text-sm text-slate-500 hover:text-slate-800 rounded-xl"
  >
- ← Back
+ â† Back
  </button>
  <div className="bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-xl">
  {error}
@@ -948,7 +948,7 @@ export default function ServiceUserProfile() {
  />
  <SummaryCard
  title="Property"
- value={computed.property === "Not assigned" ? "—" : computed.property}
+ value={computed.property === "Not assigned" ? "â€”" : computed.property}
  subtitle={user.room_number ? `Room ${user.room_number}` : "Room not assigned"}
  icon={
  <svg

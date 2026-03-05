@@ -791,13 +791,6 @@ export default function HSEIncidents({ user }) {
           {hasCreate && (
             <div className="flex items-center gap-3">
               <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
-              <button
-                onClick={() => openModal('create')}
-                className="bg-teal-500 text-white font-medium rounded-xl py-2.5 px-5 text-sm flex items-center gap-2 transition-colors shadow-md"
-              >
-                <span>+</span>
-                <span>Report Incident</span>
-              </button>
             </div>
           )}
         </div>

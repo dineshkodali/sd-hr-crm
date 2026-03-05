@@ -53,7 +53,7 @@ export default function ServiceUserAnalytics() {
             try {
                 setLoading(true);
                 // Determine API URL (using same logic as other components)
-                let apiUrl = 'http://localhost:4000/api';
+                let apiUrl = 'http://localhost:4001/api';
                 if (import.meta.env.VITE_API_URL) apiUrl = import.meta.env.VITE_API_URL;
                 else if (typeof window !== 'undefined') {
                     if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {

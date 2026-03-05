@@ -869,18 +869,6 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
  onDownloadPDF={() => openExport('pdf')}
  onDownloadCSV={() => openExport('csv')}
  />
- {canCreateSU && (
- <button
- onClick={() => {
- resetForm();
- setIsModalOpen(true);
- }}
- className="btn-primary rounded-xl"
- >
- <Plus size={18} />
- Add Service User
- </button>
- )}
  </div>
  </div>
  </div>

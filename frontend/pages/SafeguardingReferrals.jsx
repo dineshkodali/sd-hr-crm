@@ -485,9 +485,6 @@ export default function SafeguardingReferrals({ user }) {
                     {hasCreate && (
                         <div className="flex items-center gap-3">
                             <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
-                            <button onClick={() => handleOpenModal('create')} className="bg-teal-500 text-white font-semibold rounded-xl px-5 py-2.5 text-sm flex items-center gap-2 transition-colors shadow-sm">
-                                <span>+</span><span>New Referral</span>
-                            </button>
                         </div>
                     )}
                 </div>
@@ -1067,21 +1064,32 @@ export default function SafeguardingReferrals({ user }) {
 
             {/* Delete Confirm Modal */}
             {showDeleteModal && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden">
-                        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-                            <h3 className="text-lg font-semibold text-gray-900">Delete Record</h3>
-                            <button type="button" onClick={() => { if (deleting) return; setShowDeleteModal(false); setDeleteId(null); }} className="text-gray-400 p-1 rounded-xl"><X className="w-5 h-5" /></button>
-                        </div>
-                        <div className="p-6">
-                            <div className="flex items-start gap-4">
-                                <div className="bg-rose-50 p-3 rounded-full flex-shrink-0"><AlertCircle className="w-12 h-12 text-rose-500" /></div>
-                                <div className="flex-1 pt-1"><p className="text-gray-700 text-base leading-relaxed">Delete this record?</p></div>
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-[360px] rounded-[20px] p-5 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="flex items-start gap-4 mb-5">
+                            <div className="bg-rose-50 text-rose-500 rounded-full p-2.5 shrink-0">
+                                <AlertCircle className="w-6 h-6" />
+                            </div>
+                            <div className="pt-1">
+                                <h3 className="text-lg font-bold text-gray-900 mb-1">Delete Record</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed">Delete this record?</p>
                             </div>
                         </div>
-                        <div className="flex items-center justify-end gap-3 p-5 bg-gray-50 border-t border-gray-100">
-                            <button type="button" disabled={deleting} onClick={() => { if (deleting) return; setShowDeleteModal(false); setDeleteId(null); }} className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-medium transition-colors disabled:opacity-60">Cancel</button>
-                            <button type="button" disabled={deleting} onClick={confirmDelete} className="px-5 py-2.5 rounded-xl font-medium bg-rose-500 text-white disabled:opacity-60">
+                        <div className="flex items-center justify-end gap-2.5">
+                            <button
+                                type="button"
+                                disabled={deleting}
+                                onClick={() => { if (deleting) return; setShowDeleteModal(false); setDeleteId(null); }}
+                                className="px-5 py-2 rounded-full border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-60 text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={deleting}
+                                onClick={confirmDelete}
+                                className="px-5 py-2 rounded-full font-medium shadow-sm hover:shadow bg-[#f43f5e] hover:bg-rose-600 text-white disabled:opacity-60 text-sm transition-colors"
+                            >
                                 {deleting ? 'Deleting...' : 'Confirm'}
                             </button>
                         </div>

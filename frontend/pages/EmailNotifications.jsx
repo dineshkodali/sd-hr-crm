@@ -160,7 +160,14 @@ export default function EmailNotifications({ user }) {
                 extractedVars[varName] = varName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
             });
 
-            const formToSave = { ...templateForm, variables: extractedVars };
+            // Handle custom module name
+            let finalModule = templateForm.module;
+            if (templateForm.module === 'custom' && templateForm.customModuleName) {
+                // simple slugify
+                finalModule = templateForm.customModuleName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            }
+
+            const formToSave = { ...templateForm, module: finalModule, variables: extractedVars };
 
             if (modalMode === 'create') {
                 await axios.post('/api/email-notifications/templates', formToSave);
@@ -649,7 +656,7 @@ export default function EmailNotifications({ user }) {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Module *</label>
                                 <select
-                                    value={templateForm.module}
+                                    value={templateForm.module === 'custom' && !modules.find(m => m.value === templateForm.module) ? 'custom' : templateForm.module}
                                     onChange={(e) => setTemplateForm({ ...templateForm, module: e.target.value })}
                                     className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
                                 >
@@ -658,6 +665,19 @@ export default function EmailNotifications({ user }) {
                                         <option key={m.value} value={m.value}>{m.label}</option>
                                     ))}
                                 </select>
+
+                                {templateForm.module === 'custom' && (
+                                    <div className="mt-3">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Enter Custom Module Name *</label>
+                                        <input
+                                            type="text"
+                                            value={templateForm.customModuleName || ''}
+                                            onChange={(e) => setTemplateForm({ ...templateForm, customModuleName: e.target.value })}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-sm"
+                                            placeholder="e.g. Invoicing, Inventory, etc."
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
@@ -928,8 +948,31 @@ function SettingsModal({ settings, onClose, onSave }) {
         notify_on_delete: settings.notify_on_delete,
         notify_on_status_change: settings.notify_on_status_change,
         notify_roles: settings.notify_roles || [],
-        notify_users: settings.notify_users || []
+        notify_users: settings.notify_users || [],
+        custom_triggers: settings.custom_triggers || {}
     });
+
+    const [newTriggerName, setNewTriggerName] = useState('');
+
+    const handleAddCustomTrigger = () => {
+        if (!newTriggerName.trim()) return;
+        const key = newTriggerName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        setForm({
+            ...form,
+            custom_triggers: { ...form.custom_triggers, [key]: true }
+        });
+        setNewTriggerName('');
+    };
+
+    const toggleCustomTrigger = (key) => {
+        setForm({
+            ...form,
+            custom_triggers: {
+                ...form.custom_triggers,
+                [key]: !form.custom_triggers[key]
+            }
+        });
+    };
 
     const roles = ['admin', 'manager', 'staff'];
 
@@ -998,6 +1041,50 @@ function SettingsModal({ settings, onClose, onSave }) {
                                 <span className="text-sm text-gray-700">Status Change</span>
                             </label>
                         </div>
+                    </div>
+
+                    {/* Custom Triggers Section */}
+                    <div className="space-y-4 pt-4 border-t border-gray-100">
+                        <h3 className="text-sm font-medium text-gray-900">Custom Triggers</h3>
+                        <p className="text-xs text-gray-500 mb-2">Add named events that trigger emails (e.g. payment_received, document_signed).</p>
+
+                        <div className="flex gap-2 mb-3">
+                            <input
+                                type="text"
+                                value={newTriggerName}
+                                onChange={(e) => setNewTriggerName(e.target.value)}
+                                placeholder="Trigger name (e.g. payment_received)"
+                                className="flex-1 px-3 py-1.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none text-sm"
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddCustomTrigger()}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleAddCustomTrigger}
+                                className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors"
+                            >
+                                Add
+                            </button>
+                        </div>
+
+                        {Object.keys(form.custom_triggers || {}).length > 0 ? (
+                            <div className="space-y-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                {Object.entries(form.custom_triggers).map(([key, isEnabled]) => (
+                                    <label key={key} className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={isEnabled}
+                                            onChange={() => toggleCustomTrigger(key)}
+                                            className="w-4 h-4 text-teal-500 border-gray-300 rounded-xl focus:ring-teal-500"
+                                        />
+                                        <span className="text-sm text-gray-700 font-mono text-xs">{key}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-3 bg-gray-50 rounded-xl border border-gray-100 border-dashed">
+                                <p className="text-xs text-gray-500">No custom triggers defined yet.</p>
+                            </div>
+                        )}
                     </div>
 
                     <div>

@@ -756,13 +756,6 @@ export default function HSEAudits({ user }) {
                         {hasCreate && (
                             <div className="flex items-center gap-3">
                                 <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
-                                <button
-                                    onClick={() => openModal('create')}
-                                    className="bg-teal-500 text-white font-semibold rounded-xl px-5 py-2.5 text-sm flex items-center gap-2 transition-colors shadow-sm"
-                                >
-                                    <span>+</span>
-                                    <span>New Audit</span>
-                                </button>
                             </div>
                         )}
                     </div>

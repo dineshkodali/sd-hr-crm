@@ -1152,13 +1152,6 @@ export default function MaintenancePage({ user }) {
                                 onDownloadPDF={() => openExport('pdf')}
                                 onDownloadCSV={() => openExport('csv')}
                             />
-                            <button
-                                onClick={() => setOpenModal('create')}
-                                className="bg-teal-500 text-white font-semibold rounded-xl px-5 py-2.5 text-sm flex items-center gap-2 transition-colors shadow-sm"
-                            >
-                                <span>+</span>
-                                <span>Add Work Order</span>
-                            </button>
                         </div>
                     )}
                 </div>
