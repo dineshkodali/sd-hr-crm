@@ -1011,14 +1011,15 @@ export default function ServiceUserProfile() {
  </div>
 
  <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
- <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto scrollbar-hide">
+ <div className="border-b border-gray-200 px-8 bg-white">
+ <div className="flex gap-8 overflow-x-auto scrollbar-hide">
  {['profile', 'documents', 'health', 'checklists'].map((tab) => (
  <button
  key={tab}
  onClick={() => setActiveTab(tab)}
- className={`px-6 py-4 text-sm font-semibold capitalize transition-all border-b-2 whitespace-nowrap ${activeTab === tab
- ? "text-teal-600 border-teal-500 bg-white"
- : "text-gray-600 border-transparent hover:text-gray-900 hover:bg-white"
+ className={`-mb-px px-1 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap rounded-t-xl ${activeTab === tab
+ ? "border-teal-500 text-teal-600 bg-white"
+ : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
  }`}
  >
  {tab === "health" ? "Health & Diet" : tab}
@@ -1030,15 +1031,16 @@ export default function ServiceUserProfile() {
  <button
  key={tabKey}
  onClick={() => setActiveTab(tabKey)}
- className={`px-6 py-4 text-sm font-semibold transition-all border-b-2 whitespace-nowrap ${activeTab === tabKey
- ? "text-teal-600 border-teal-500 bg-white"
- : "text-gray-600 border-transparent hover:text-gray-900 hover:bg-white"
+ className={`-mb-px px-1 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap rounded-t-xl ${activeTab === tabKey
+ ? "border-teal-500 text-teal-600 bg-white"
+ : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
  }`}
  >
  {p.title}
  </button>
  );
  })}
+ </div>
  </div>
  </div>
 

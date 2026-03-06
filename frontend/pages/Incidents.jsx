@@ -227,11 +227,12 @@ export default function Incidents({ user }) {
         propertyName: '',
         serviceUserId: '',
         description: '',
-        reportedBy: '',
+        reportedBy: currentUser?.name || '',
         reportedDate: '',
         assignedTo: '',
         status: 'Open',
     });
+    const [photos, setPhotos] = useState([]);
 
     const INCIDENT_TYPE_STORAGE_KEY = 'incidents.customIncidentTypes';
     const BUILTIN_INCIDENT_TYPES = [
@@ -309,6 +310,7 @@ export default function Incidents({ user }) {
         "type",
         "reference",
         "description",
+        "attachments",
         "priority",
         "status",
         "assigned",
@@ -358,6 +360,7 @@ export default function Incidents({ user }) {
         "type",
         "reference",
         "description",
+        "attachments",
         "priority",
         "status",
         "assigned",
@@ -400,6 +403,7 @@ export default function Incidents({ user }) {
                 "type",
                 "reference",
                 "description",
+                "attachments",
                 "priority",
                 "status",
                 "assigned",
@@ -986,19 +990,41 @@ export default function Incidents({ user }) {
                 : {};
             const payload = { ...basePayload, ...customPayload };
 
+            const hasPhotos = Array.isArray(photos) && photos.length > 0;
             let res;
-            if (editingId) {
-                // Update existing incident
-                res = await api.put(`/api/incidents/${editingId}`, payload);
-                if (!res?.data?.success) {
-                    throw new Error(res?.data?.message || 'Failed to update incident');
+            if (hasPhotos) {
+                const fd = new FormData();
+                Object.entries(payload).forEach(([k, v]) => {
+                    if (v === undefined) return;
+                    if (v === null) {
+                        fd.append(k, '');
+                        return;
+                    }
+                    if (typeof v === 'object') {
+                        fd.append(k, JSON.stringify(v));
+                        return;
+                    }
+                    fd.append(k, String(v));
+                });
+                photos.forEach((f) => fd.append('photos', f));
+
+                if (editingId) {
+                    res = await api.put(`/api/incidents/${editingId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                } else {
+                    res = await api.post('/api/incidents', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
                 }
             } else {
-                // Create new incident
-                res = await api.post('/api/incidents', payload);
-                if (!res?.data?.success) {
-                    throw new Error(res?.data?.message || 'Failed to create incident');
+                if (editingId) {
+                    // Update existing incident
+                    res = await api.put(`/api/incidents/${editingId}`, payload);
+                } else {
+                    // Create new incident
+                    res = await api.post('/api/incidents', payload);
                 }
+            }
+
+            if (!res?.data?.success) {
+                throw new Error(res?.data?.message || (editingId ? 'Failed to update incident' : 'Failed to create incident'));
             }
 
             // Refresh the incidents list from server
@@ -1011,6 +1037,7 @@ export default function Incidents({ user }) {
             setShowModal(false);
             setEditingId(null);
             setError(null);
+            setPhotos([]);
 
             // Show success message
             setAlertDialog({
@@ -1039,6 +1066,7 @@ export default function Incidents({ user }) {
 
     const openReportModal = () => {
         setEditingId(null);
+        setPhotos([]);
         const baseFormData = {
             incidentType: '',
             severity: 'Medium',
@@ -1051,6 +1079,7 @@ export default function Incidents({ user }) {
             assignedTo: '',
             status: 'Open',
         };
+
         // Reset custom columns to empty strings
         const customFormData = customColumns && customColumns.length > 0
             ? customColumns.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
@@ -1330,7 +1359,6 @@ export default function Incidents({ user }) {
                                         )}
                                     </div>
 
-
                                     {hasCreate && (
                                         <button
                                             onClick={openReportModal}
@@ -1534,37 +1562,62 @@ export default function Incidents({ user }) {
                                         <tr>
                                             <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
                                         </tr>
-                                    ) : filtered.length > 0 ? filtered.map((row) => {
-                                        const priorityStyle = getPriorityColor(row.priority || "Medium");
-                                        const statusStyle = getStatusColor(row.status || "pending");
-                                        const isDeleting = deletingIds.has(row.raw?.id);
-
-                                        return (
-                                            <tr key={row.ref} className={`transition-colors border-b border-gray-100 last:border-0 ${isDeleting ? 'incident-deleting' : ''}`}>
-                                                {/* Removed duplicate manual checkbox block */}
-                                                {ALL_COLUMNS.map(col => (
-                                                    visibleColumns[col] && (
-                                                        <td key={col} className={`py-4 px-4 ${col === 'date' || col === 'reference' ? 'whitespace-nowrap' : ''} ${col === 'actions' ? 'text-center sticky right-0 z-10 bg-white' : ''}`} style={col === 'actions' ? { boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' } : undefined}>
-                                                            {(() => {
-                                                                if (col === 'checkbox') return <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />;
-                                                                if (col === 'type') return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">{row.title || "Incident"}</span>;
-                                                                if (col === 'reference') return <span className="text-slate-900 font-semibold text-sm whitespace-nowrap">{row.ref}</span>;
-                                                                if (col === 'description') return <div><div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`} onClick={hasUpdate ? () => handleEdit(row) : undefined}><Home className="w-4 h-4 text-gray-400" /><span>{hotels.find(h => h.id == row.propertyId)?.name || row.propertyName || "Unknown Property"}</span></div><div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">{row.desc || "No description recorded."}</div></div>;
-                                                                if (col === 'priority') { const priorityStyle = getPriorityColor(row.priority || "Medium"); return <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span><span className={`text-sm font-semibold ${priorityStyle.text}`}>{row.priority || "Medium"}</span></div>; }
-                                                                if (col === 'status') { const statusStyle = getStatusColor(row.status || "pending"); return <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span><span className={`text-sm font-semibold ${statusStyle.text}`}>{row.status || "Pending"}</span></div>; }
-                                                                if (col === 'assigned') return !row.assigned || row.assigned === 'Unassigned' ? <span className="text-gray-400 text-sm">Unassigned</span> : <div className="flex items-center gap-2"><div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned)} flex items-center justify-center text-xs font-semibold shadow-sm`}>{getInitials(row.assigned)}</div><span className="text-gray-900 text-sm font-medium">{row.assigned}</span></div>;
-                                                                if (col === 'date') return <span className="text-gray-900 font-medium text-sm">{formatDate(row.date)}</span>;
-                                                                if (col === 'actions') return <div className="flex items-center justify-center gap-1"><button onClick={() => handleView(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="View"><Eye className="w-4 h-4" /></button>{hasUpdate && (<button onClick={() => handleEdit(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="Edit"><Edit className="w-4 h-4" /></button>)}{hasDelete && (<button onClick={() => handleDelete(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>)}</div>;
-                                                                // Render custom columns
-                                                                if (customColumns.includes(col)) return <span className="text-gray-900 font-medium text-sm">{row.raw?.[col] ?? ''}</span>;
-                                                                return null;
-                                                            })()}
-                                                        </td>
-                                                    )
-                                                ))}
-                                            </tr>
-                                        );
-                                    }) : (
+                                    ) : filtered.length > 0 ? (
+                                        filtered.map((row) => {
+                                            const isDeleting = deletingIds.has(row.raw?.id);
+                                            return (
+                                                <tr key={row.ref} className={`transition-colors border-b border-gray-100 last:border-0 ${isDeleting ? 'incident-deleting' : ''}`}>
+                                                    {ALL_COLUMNS.map((col) => (
+                                                        visibleColumns[col] ? (
+                                                            <td
+                                                                key={col}
+                                                                className={`py-4 px-4 ${col === 'date' || col === 'reference' ? 'whitespace-nowrap' : ''} ${col === 'actions' ? 'text-center sticky right-0 z-10 bg-white' : ''}`}
+                                                                style={col === 'actions' ? { boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' } : undefined}
+                                                            >
+                                                                {(() => {
+                                                                    if (col === 'checkbox') return <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />;
+                                                                    if (col === 'type') return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">{row.title || 'Incident'}</span>;
+                                                                    if (col === 'reference') return <span className="text-slate-900 font-semibold text-sm whitespace-nowrap">{row.ref}</span>;
+                                                                    if (col === 'description') return <div><div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`} onClick={hasUpdate ? () => handleEdit(row) : undefined}><Home className="w-4 h-4 text-gray-400" /><span>{hotels.find(h => h.id == row.propertyId)?.name || row.propertyName || 'Unknown Property'}</span></div><div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">{row.desc || 'No description recorded.'}</div></div>;
+                                                                    if (col === 'attachments') {
+                                                                        let atts = row.raw?.attachments ?? [];
+                                                                        try {
+                                                                            if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                                        } catch {
+                                                                            atts = [];
+                                                                        }
+                                                                        const list = Array.isArray(atts) ? atts : [];
+                                                                        if (list.length === 0) return <span className="text-gray-400 text-sm">—</span>;
+                                                                        const first = list[0];
+                                                                        const isNumericId = /^\d+$/.test(String(first));
+                                                                        const href = isNumericId ? `/api/incidents/attachments/${first}` : first;
+                                                                        return (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
+                                                                                className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
+                                                                                title="View first attachment"
+                                                                            >
+                                                                                <span>{list.length}</span>
+                                                                                <span className="text-xs font-bold uppercase tracking-wide">Photos</span>
+                                                                            </button>
+                                                                        );
+                                                                    }
+                                                                    if (col === 'priority') { const style = getPriorityColor(row.priority || 'Medium'); return <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${style.dot} shadow-sm`}></span><span className={`text-sm font-semibold ${style.text}`}>{row.priority || 'Medium'}</span></div>; }
+                                                                    if (col === 'status') { const style = getStatusColor(row.status || 'pending'); return <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${style.dot} shadow-sm`}></span><span className={`text-sm font-semibold ${style.text}`}>{row.status || 'Pending'}</span></div>; }
+                                                                    if (col === 'assigned') return !row.assigned || row.assigned === 'Unassigned' ? <span className="text-gray-400 text-sm">Unassigned</span> : <div className="flex items-center gap-2"><div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned)} flex items-center justify-center text-xs font-semibold shadow-sm`}>{getInitials(row.assigned)}</div><span className="text-gray-900 text-sm font-medium">{row.assigned}</span></div>;
+                                                                    if (col === 'date') return <span className="text-gray-900 font-medium text-sm">{formatDate(row.date)}</span>;
+                                                                    if (col === 'actions') return <div className="flex items-center justify-center gap-1"><button onClick={() => handleView(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="View"><Eye className="w-4 h-4" /></button>{hasUpdate && (<button onClick={() => handleEdit(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="Edit"><Edit className="w-4 h-4" /></button>)}{hasDelete && (<button onClick={() => handleDelete(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>)}</div>;
+                                                                    if (customColumns.includes(col)) return <span className="text-gray-900 font-medium text-sm">{row.raw?.[col] ?? ''}</span>;
+                                                                    return null;
+                                                                })()}
+                                                            </td>
+                                                        ) : null
+                                                    ))}
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
                                         <tr>
                                             <td colSpan="9" className="py-8 text-center text-gray-500">No incidents found.</td>
                                         </tr>
@@ -1775,6 +1828,7 @@ export default function Incidents({ user }) {
                                     setShowModal(false);
                                     setError(null);
                                     setEditingId(null);
+                                    setPhotos([]);
                                 }}
                                 className="text-gray-400 transition-colors rounded-xl"
                             >
@@ -1897,6 +1951,23 @@ export default function Incidents({ user }) {
                                             placeholder="Detailed description of the incident..."
                                             className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
                                         />
+                                    </div>
+
+                                    <div className="col-span-1 md:col-span-2">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple
+                                            onChange={(e) => {
+                                                const files = Array.from(e.target.files || []);
+                                                setPhotos(files);
+                                            }}
+                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                                        />
+                                        {photos.length > 0 && (
+                                            <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>
+                                        )}
                                     </div>
 
                                     <div className="col-span-1">

@@ -164,6 +164,7 @@ export default function Complaints({ user }) {
         assigned_to: '',
         scheduled_date: '',
     });
+    const [photos, setPhotos] = useState([]);
     const [properties, setProperties] = useState([]);
 
     // Custom Category Options Adder (similar to Inspections.jsx)
@@ -283,6 +284,7 @@ export default function Complaints({ user }) {
         "type",
         "reference",
         "description",
+        "attachments",
         "priority",
         "status",
         "assigned",
@@ -360,7 +362,7 @@ export default function Complaints({ user }) {
             // Filter out standard columns to get custom ones
             const standardCols = ['id', 'reference', 'title', 'description', 'category', 'priority',
                 'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
-                'assigned_to', 'scheduled_date', 'notes', 'created_at', 'updated_at'];
+                'assigned_to', 'scheduled_date', 'notes', 'attachments', 'service_user_id', 'created_at', 'updated_at'];
             const custom = columnNames.filter(col => !standardCols.includes(col));
 
             // Only update if different to avoid infinite loops
@@ -569,6 +571,7 @@ export default function Complaints({ user }) {
     /* --- Handlers --- */
     const handleAddClick = () => {
         setEditingId(null);
+        setPhotos([]);
         setFormData({
             title: '',
             description: '',
@@ -585,6 +588,7 @@ export default function Complaints({ user }) {
     };
 
     const handleEditClick = (complaint) => {
+        setPhotos([]);
         setEditingId(complaint.id);
         const baseFormData = {
             title: complaint.title || '',
@@ -658,12 +662,38 @@ export default function Complaints({ user }) {
                 }
             });
 
-            if (editingId) {
-                await api.put(`/api/complaints/${editingId}`, payload);
+            const hasPhotos = Array.isArray(photos) && photos.length > 0;
+            if (hasPhotos) {
+                const fd = new FormData();
+                Object.entries(payload).forEach(([k, v]) => {
+                    if (v === undefined) return;
+                    if (v === null) {
+                        fd.append(k, '');
+                        return;
+                    }
+                    if (typeof v === 'object') {
+                        fd.append(k, JSON.stringify(v));
+                        return;
+                    }
+                    fd.append(k, String(v));
+                });
+                photos.forEach((f) => fd.append('photos', f));
+
+                if (editingId) {
+                    await api.put(`/api/complaints/${editingId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                } else {
+                    await api.post('/api/complaints', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                }
             } else {
-                await api.post('/api/complaints', payload);
+                if (editingId) {
+                    await api.put(`/api/complaints/${editingId}`, payload);
+                } else {
+                    await api.post('/api/complaints', payload);
+                }
             }
+
             setShowForm(false);
+            setPhotos([]);
             fetchComplaints();
         } catch (err) {
             console.error('Error submitting form:', err);
@@ -1295,6 +1325,9 @@ export default function Complaints({ user }) {
                                             {visibleColumns.description && (
                                                 <th className="text-left py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
                                             )}
+                                            {visibleColumns.attachments && (
+                                                <th className="text-left py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ATTACHMENTS</th>
+                                            )}
                                             {visibleColumns.priority && (
                                                 <th className="text-left py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
                                             )}
@@ -1361,6 +1394,34 @@ export default function Complaints({ user }) {
                                                                     {row.title || row.description || "No description recorded."}
                                                                 </div>
                                                             </div>
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.attachments && (
+                                                        <td className="py-4 px-4">
+                                                            {(() => {
+                                                                let atts = row.attachments ?? [];
+                                                                try {
+                                                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                                } catch {
+                                                                    atts = [];
+                                                                }
+                                                                const list = Array.isArray(atts) ? atts : [];
+                                                                if (list.length === 0) return <span className="text-gray-400 text-sm">—</span>;
+                                                                const first = list[0];
+                                                                const isNumericId = /^\d+$/.test(String(first));
+                                                                const href = isNumericId ? `/api/complaints/attachments/${first}` : first;
+                                                                return (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
+                                                                        className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
+                                                                        title="View first attachment"
+                                                                    >
+                                                                        <span>{list.length}</span>
+                                                                        <span className="text-xs font-bold uppercase tracking-wide">Photos</span>
+                                                                    </button>
+                                                                );
+                                                            })()}
                                                         </td>
                                                     )}
                                                     {visibleColumns.priority && (
@@ -1651,7 +1712,10 @@ export default function Complaints({ user }) {
                                         {editingId ? "Edit Complaint" : "Create Complaint"}
                                     </h3>
                                     <button
-                                        onClick={() => setShowForm(false)}
+                                        onClick={() => {
+                                            setShowForm(false);
+                                            setPhotos([]);
+                                        }}
                                         className="modal-close-btn rounded-xl"
                                     >
                                         <X className="w-5 h-5" />
@@ -1794,6 +1858,23 @@ export default function Complaints({ user }) {
                                                 placeholder="Describe inspection findings..."
                                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none transition-all shadow-sm"
                                             />
+                                        </div>
+
+                                        <div className="col-span-1 md:col-span-2">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={(e) => {
+                                                    const files = Array.from(e.target.files || []);
+                                                    setPhotos(files);
+                                                }}
+                                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white"
+                                            />
+                                            {photos.length > 0 && (
+                                                <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>
+                                            )}
                                         </div>
 
                                         {/* Row 5: Priority & Status/Scheduled Date */}

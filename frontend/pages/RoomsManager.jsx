@@ -1,5 +1,5 @@
 /* src/pages/RoomsManager.jsx */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { Building, ChevronRight, Plus } from "lucide-react";
@@ -171,6 +171,18 @@ export default function RoomsManager({ user }) {
  }, [hotelId]);
 
  const canManage = computeCanManage(user, hotel);
+
+ const residentsByRoomId = useMemo(() => {
+ const map = new Map();
+ (residents || []).forEach((u) => {
+ const key = String(u?.room_id ?? '');
+ if (!key) return;
+ const arr = map.get(key);
+ if (arr) arr.push(u);
+ else map.set(key, [u]);
+ });
+ return map;
+ }, [residents]);
 
  const createRoom = async (e) => {
  e.preventDefault();
@@ -823,9 +835,18 @@ export default function RoomsManager({ user }) {
  <div className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">
  Active Occupants
  </div>
- {residents.filter(u => String(u.room_id) === String(r.id)).length > 0 ? (
+ {(() => {
+ const roomResidents = residentsByRoomId.get(String(r.id)) || [];
+ if (roomResidents.length === 0) {
+ return (
+ <div className="text-xs text-slate-400 italic pl-1">
+ No active residents
+ </div>
+ );
+ }
+ return (
  <div className="space-y-1">
- {residents.filter(u => String(u.room_id) === String(r.id)).map(u => (
+ {roomResidents.map(u => (
  <div key={u.id} className="flex items-center gap-2 text-sm text-slate-700 bg-slate-50 px-2 py-1.5 rounded-xl border border-slate-100">
  <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-bold">
  {(u.first_name || u.name || '?').charAt(0)}
@@ -834,11 +855,8 @@ export default function RoomsManager({ user }) {
  </div>
  ))}
  </div>
- ) : (
- <div className="text-xs text-slate-400 italic pl-1">
- No active residents
- </div>
- )}
+ );
+ })()}
  </div>
 
  {canManage ? (

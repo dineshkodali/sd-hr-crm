@@ -227,6 +227,93 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
   }
  };
 
+ const handleDeleteUser = (userId) => {
+  if (!userId) return;
+
+  setConfirmDialog({
+   isOpen: true,
+   title: 'Delete Service User',
+   message: 'Are you sure you want to delete this service user? This action cannot be undone.',
+   type: 'warning',
+   onConfirm: async () => {
+    setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+
+    try {
+     setDeletingIds((prev) => {
+      const next = new Set(prev);
+      next.add(userId);
+      return next;
+     });
+
+     const res = await apiRef.current.delete(`/su/users/${userId}`);
+     if (res?.status && res.status >= 400) {
+      throw new Error(res?.data?.error || 'Failed to delete service user');
+     }
+
+     setTimeout(() => {
+      setUsers((prev) => {
+       const next = (prev || []).filter((u) => u?.id !== userId);
+
+       const nextStats = {
+        total: next.length,
+        active: next.filter((u) => String(u?.status || '').toLowerCase() === 'active').length,
+        attention: next.filter((u) => String(u?.status || '').toLowerCase() === 'pending').length,
+        movedOut: next.filter((u) => {
+         const s = String(u?.status || '').toLowerCase().replace(/\s+/g, ' ').trim();
+         return s === 'moved out' || s === 'moved_out' || s === 'movedout';
+        }).length,
+       };
+       setStats(nextStats);
+
+       try {
+        const snap = {
+         users: next,
+         stats: nextStats,
+         hotels,
+         savedAt: Date.now(),
+        };
+        localStorage.setItem('serviceUsersListSnapshot.v1', JSON.stringify(snap));
+       } catch {
+       }
+
+       return next;
+      });
+
+      setDeletingIds((prev) => {
+       const next = new Set(prev);
+       next.delete(userId);
+       return next;
+      });
+     }, 450);
+
+     setAlertDialog({
+      isOpen: true,
+      title: 'Deleted',
+      message: 'Service user deleted successfully.',
+      type: 'success'
+     });
+    } catch (err) {
+     setDeletingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(userId);
+      return next;
+     });
+     setAlertDialog({
+      isOpen: true,
+      title: 'Delete Failed',
+      message: err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Failed to delete service user.',
+      type: 'error'
+     });
+    } finally {
+     try {
+      await fetchUsers();
+     } catch {
+     }
+    }
+   },
+  });
+ };
+
  const fetchHotels = async () => {
   try {
    const res = await apiRef.current.get('/hotels', { noCache: true });

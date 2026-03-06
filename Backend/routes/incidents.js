@@ -1,8 +1,14 @@
 import express from 'express';
 import poolImport from '../config/db.js';
 import { protect } from '../middleware/auth.js';
+import multer from 'multer';
 const router = express.Router();
 const pool = poolImport && poolImport.default ? poolImport.default : poolImport;
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 let incidentsTableReady = false;
 async function ensureIncidentsTable() {
@@ -10,6 +16,27 @@ async function ensureIncidentsTable() {
   try {
     const check = await pool.query(`SELECT to_regclass('maintenance.incidents') AS exists`);
     if (check.rows?.[0]?.exists) {
+      try {
+        await pool.query("ALTER TABLE maintenance.incidents ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb");
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS maintenance.incident_attachments (
+            id SERIAL PRIMARY KEY,
+            incident_id INTEGER,
+            file_name TEXT,
+            mime_type TEXT,
+            file_data BYTEA NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_incident_attachments_incident_id ON maintenance.incident_attachments(incident_id)`);
+      } catch (e) {
+        // ignore
+      }
       incidentsTableReady = true;
       return true;
     }
@@ -28,10 +55,23 @@ async function ensureIncidentsTable() {
         reported_date DATE,
         assigned_to VARCHAR(255),
         status VARCHAR(50) DEFAULT 'Open',
+        attachments JSONB DEFAULT '[]'::jsonb,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS maintenance.incident_attachments (
+        id SERIAL PRIMARY KEY,
+        incident_id INTEGER,
+        file_name TEXT,
+        mime_type TEXT,
+        file_data BYTEA NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_incident_attachments_incident_id ON maintenance.incident_attachments(incident_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_incidents_status ON maintenance.incidents(status)`);
     incidentsTableReady = true;
     return true;
@@ -46,6 +86,52 @@ function makeReference() {
   const year = new Date().getFullYear();
   return `INC-${year}-${rnd}`;
 }
+
+async function insertIncidentAttachments(incidentId, files = []) {
+  if (!Array.isArray(files) || files.length === 0) return [];
+  const ids = [];
+  for (const f of files) {
+    if (!f || !f.buffer) continue;
+    const r = await pool.query(
+      `INSERT INTO maintenance.incident_attachments (incident_id, file_name, mime_type, file_data)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [incidentId ?? null, f.originalname ?? null, f.mimetype ?? null, f.buffer]
+    );
+    if (r.rows?.[0]?.id != null) ids.push(r.rows[0].id);
+  }
+  return ids;
+}
+
+router.get('/attachments/:id', protect, async (req, res) => {
+  try {
+    const ready = await ensureIncidentsTable();
+    if (!ready) return res.status(500).end();
+
+    const id = req.params.id;
+    if (!/^\d+$/.test(String(id))) return res.status(400).end();
+
+    const r = await pool.query(
+      `SELECT id, file_name, mime_type, file_data
+       FROM maintenance.incident_attachments
+       WHERE id = $1
+       LIMIT 1`,
+      [Number(id)]
+    );
+    if (!r.rows?.length) return res.status(404).end();
+
+    const row = r.rows[0];
+    const mime = row.mime_type || 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    if (row.file_name) {
+      res.setHeader('Content-Disposition', `inline; filename="${String(row.file_name).replace(/"/g, '')}"`);
+    }
+    return res.send(row.file_data);
+  } catch (err) {
+    console.error('GET /api/incidents/attachments/:id error:', err);
+    return res.status(500).end();
+  }
+});
 
 /* LIST */
 router.get('/', protect, async (req, res) => {
@@ -155,7 +241,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 /* CREATE */
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, upload.array('photos', 10), async (req, res) => {
   try {
     const ready = await ensureIncidentsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
@@ -219,8 +305,19 @@ router.post('/', protect, async (req, res) => {
     const existingCols = colRows.map(r => r.column_name).filter(c => c !== 'id' && c !== 'created_at' && c !== 'updated_at');
     const standardCols = new Set([
       'reference', 'type', 'severity', 'property_id', 'property_name', 'service_user_id',
-      'description', 'reported_by', 'reported_date', 'assigned_to', 'status'
+      'description', 'reported_by', 'reported_date', 'assigned_to', 'status', 'attachments'
     ]);
+
+    let attachments = [];
+    try {
+      const raw = req.body.attachments;
+      if (raw) {
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (Array.isArray(parsed)) attachments = parsed;
+      }
+    } catch {
+      attachments = [];
+    }
 
     for (const col of existingCols) {
       if (standardCols.has(col)) continue;
@@ -254,6 +351,7 @@ router.post('/', protect, async (req, res) => {
       else if (col === 'status') val = status || 'Open';
       else if (col === 'property_id') val = propertyId;
       else if (col === 'service_user_id') val = serviceUserId;
+      else if (col === 'attachments') val = JSON.stringify(Array.isArray(attachments) ? attachments : []);
       else if (col === 'property_name') {
         val = propertyNameBody ?? req.body.propertyName ?? null;
         if (!val && propertyId) {
@@ -295,7 +393,25 @@ router.post('/', protect, async (req, res) => {
     try {
       const { rows } = await pool.query(query, values);
       console.log('POST /api/incidents - inserted row:', rows[0]);
-      res.status(201).json({ success: true, data: rows[0] });
+      const created = rows[0];
+
+      if (existingCols.includes('attachments')) {
+        const newAttachmentIds = await insertIncidentAttachments(created?.id ?? null, req.files || []);
+        if (newAttachmentIds.length) {
+          const next = [...(Array.isArray(attachments) ? attachments : []), ...newAttachmentIds];
+          try {
+            const up = await pool.query(
+              `UPDATE maintenance.incidents SET attachments = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+              [next, created.id]
+            );
+            return res.status(201).json({ success: true, data: up.rows?.[0] || created });
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      return res.status(201).json({ success: true, data: created });
     } catch (err2) {
       console.error('POST /api/incidents DB error:', err2 && err2.stack ? err2.stack : err2);
       return res.status(500).json({ success: false, message: err2 && err2.message ? err2.message : String(err2) });
@@ -307,7 +423,7 @@ router.post('/', protect, async (req, res) => {
 });
 
 /* UPDATE */
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, upload.array('photos', 10), async (req, res) => {
   try {
     const ready = await ensureIncidentsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
@@ -317,7 +433,7 @@ router.put('/:id', protect, async (req, res) => {
     const existingCols = colRows.map(r => r.column_name).filter(c => c !== 'id' && c !== 'created_at' && c !== 'updated_at');
 
     // First, verify the incident exists
-    const checkExists = await pool.query('SELECT id, property_id FROM maintenance.incidents WHERE id = $1', [id]);
+    const checkExists = await pool.query('SELECT id, property_id, attachments FROM maintenance.incidents WHERE id = $1', [id]);
     if (!checkExists.rows || checkExists.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Incident not found' });
     }
@@ -351,6 +467,25 @@ router.put('/:id', protect, async (req, res) => {
     const updates = [];
     const values = [];
     let idx = 1;
+
+    if (existingCols.includes('attachments')) {
+      const newAttachmentIds = await insertIncidentAttachments(checkExists.rows[0]?.id ?? null, req.files || []);
+      if (newAttachmentIds.length) {
+        let prev = [];
+        try {
+          const rawPrev = checkExists.rows[0]?.attachments;
+          if (Array.isArray(rawPrev)) prev = rawPrev;
+          else if (typeof rawPrev === 'string' && rawPrev) prev = JSON.parse(rawPrev);
+          else if (rawPrev && typeof rawPrev === 'object') prev = rawPrev;
+        } catch {
+          prev = [];
+        }
+        const next = [...prev, ...newAttachmentIds];
+        updates.push(`attachments = $${idx}::jsonb`);
+        values.push(JSON.stringify(next));
+        idx++;
+      }
+    }
     for (const col of existingCols) {
       let val = null;
       // Skip reference field during updates - it should not be changed
@@ -363,6 +498,9 @@ router.put('/:id', protect, async (req, res) => {
       else if (col === 'reported_date') val = req.body.reported_date ?? req.body.reportedDate ?? null;
       else if (col === 'assigned_to') val = req.body.assigned_to ?? req.body.assignedTo ?? null;
       else if (col === 'status') val = req.body.status ?? null;
+      else if (col === 'attachments') {
+        continue;
+      }
       else if (col === 'property_id') {
         const requestedPid = req.body.property_id ?? req.body.propertyId ?? req.body.property ?? null;
         if (req.user?.role === 'staff') {

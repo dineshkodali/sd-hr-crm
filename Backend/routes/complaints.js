@@ -1,8 +1,14 @@
 import express from "express";
 import pool from "../config/db.js";
 import { protect } from "../middleware/auth.js";
+import multer from "multer";
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 let complaintsTableReady = false;
 
@@ -11,6 +17,27 @@ async function ensureComplaintsTable() {
   try {
     const check = await pool.query(`SELECT to_regclass('public.complaints') AS exists`);
     if (check.rows?.[0]?.exists) {
+      try {
+        await pool.query("ALTER TABLE public.complaints ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb");
+      } catch (e) {
+        // ignore
+      }
+
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS public.complaint_attachments (
+            id SERIAL PRIMARY KEY,
+            complaint_id INTEGER,
+            file_name TEXT,
+            mime_type TEXT,
+            file_data BYTEA NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_complaint_attachments_complaint_id ON public.complaint_attachments(complaint_id)`);
+      } catch (e) {
+        // ignore
+      }
       complaintsTableReady = true;
       return true;
     }
@@ -31,10 +58,23 @@ async function ensureComplaintsTable() {
         assigned_to VARCHAR(255),
         scheduled_date DATE,
         notes TEXT,
+        attachments JSONB DEFAULT '[]'::jsonb,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.complaint_attachments (
+        id SERIAL PRIMARY KEY,
+        complaint_id INTEGER,
+        file_name TEXT,
+        mime_type TEXT,
+        file_data BYTEA NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_complaint_attachments_complaint_id ON public.complaint_attachments(complaint_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_complaints_status ON public.complaints(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_complaints_priority ON public.complaints(priority)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_complaints_created_at ON public.complaints(created_at DESC)`);
@@ -51,6 +91,52 @@ function makeReference() {
   const year = new Date().getFullYear();
   return `COMP-${year}-${rnd}`;
 }
+
+async function insertComplaintAttachments(complaintId, files = []) {
+  if (!Array.isArray(files) || files.length === 0) return [];
+  const ids = [];
+  for (const f of files) {
+    if (!f || !f.buffer) continue;
+    const r = await pool.query(
+      `INSERT INTO public.complaint_attachments (complaint_id, file_name, mime_type, file_data)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [complaintId ?? null, f.originalname ?? null, f.mimetype ?? null, f.buffer]
+    );
+    if (r.rows?.[0]?.id != null) ids.push(r.rows[0].id);
+  }
+  return ids;
+}
+
+router.get('/attachments/:id', protect, async (req, res) => {
+  try {
+    const ready = await ensureComplaintsTable();
+    if (!ready) return res.status(500).end();
+
+    const id = req.params.id;
+    if (!/^\d+$/.test(String(id))) return res.status(400).end();
+
+    const r = await pool.query(
+      `SELECT id, file_name, mime_type, file_data
+       FROM public.complaint_attachments
+       WHERE id = $1
+       LIMIT 1`,
+      [Number(id)]
+    );
+    if (!r.rows?.length) return res.status(404).end();
+
+    const row = r.rows[0];
+    const mime = row.mime_type || 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    if (row.file_name) {
+      res.setHeader('Content-Disposition', `inline; filename="${String(row.file_name).replace(/"/g, '')}"`);
+    }
+    return res.send(row.file_data);
+  } catch (err) {
+    console.error('GET /api/complaints/attachments/:id error:', err);
+    return res.status(500).end();
+  }
+});
 
 /* LIST */
 router.get('/', protect, async (req, res) => {
@@ -148,7 +234,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 /* CREATE */
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, upload.array('photos', 10), async (req, res) => {
   try {
     const ready = await ensureComplaintsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
@@ -166,6 +252,17 @@ router.post('/', protect, async (req, res) => {
     const assignedTo = req.body.assigned_to ?? req.body.assignedTo ?? null;
     const scheduledDate = (req.body.scheduled_date ?? req.body.scheduledDate ?? null) || null;
     const notes = req.body.notes ?? null;
+
+    let attachments = [];
+    try {
+      const raw = req.body.attachments;
+      if (raw) {
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (Array.isArray(parsed)) attachments = parsed;
+      }
+    } catch {
+      attachments = [];
+    }
 
     const missing = [];
     if (!title || String(title).trim() === '') missing.push('title');
@@ -189,7 +286,7 @@ router.post('/', protect, async (req, res) => {
     // Require all custom columns
     const standardColsRequired = ['id', 'reference', 'title', 'description', 'category', 'priority',
       'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
-      'assigned_to', 'scheduled_date', 'notes', 'created_at', 'updated_at'];
+      'assigned_to', 'scheduled_date', 'notes', 'attachments', 'created_at', 'updated_at'];
     for (const col of existingCols) {
       if (standardColsRequired.includes(col)) continue;
       const v = req.body[col];
@@ -244,7 +341,7 @@ router.post('/', protect, async (req, res) => {
     const standardFields = {
       category, priority, property_id: propertyId, property_name: propertyName,
       status, reported_by: reportedBy, reported_date: reportedDate,
-      assigned_to: assignedTo, scheduled_date: scheduledDate, notes
+      assigned_to: assignedTo, scheduled_date: scheduledDate, notes, attachments: JSON.stringify(attachments)
     };
 
     for (const [key, value] of Object.entries(standardFields)) {
@@ -257,7 +354,7 @@ router.post('/', protect, async (req, res) => {
     // Handle custom columns from Forms Builder
     const standardCols = ['id', 'reference', 'title', 'description', 'category', 'priority',
       'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
-      'assigned_to', 'scheduled_date', 'notes', 'created_at', 'updated_at'];
+      'assigned_to', 'scheduled_date', 'notes', 'attachments', 'created_at', 'updated_at'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         columnsToInsert.push(col);
@@ -272,7 +369,23 @@ router.post('/', protect, async (req, res) => {
        RETURNING *`,
       valuesToInsert
     );
-    res.status(201).json({ success: true, data: rows[0] });
+    const created = rows[0];
+
+    const newAttachmentIds = await insertComplaintAttachments(created?.id ?? null, req.files || []);
+    if (newAttachmentIds.length) {
+      const next = [...(Array.isArray(attachments) ? attachments : []), ...newAttachmentIds];
+      try {
+        const up = await pool.query(
+          `UPDATE public.complaints SET attachments = $1::jsonb, updated_at = now() WHERE id = $2 RETURNING *`,
+          [JSON.stringify(next), created.id]
+        );
+        return res.status(201).json({ success: true, data: up.rows?.[0] || created });
+      } catch {
+        // ignore
+      }
+    }
+
+    res.status(201).json({ success: true, data: created });
   } catch (err) {
     console.error('POST /api/complaints error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -280,14 +393,14 @@ router.post('/', protect, async (req, res) => {
 });
 
 /* UPDATE */
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, upload.array('photos', 10), async (req, res) => {
   try {
     const ready = await ensureComplaintsTable();
     if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
     const { id } = req.params;
 
     // Enforce scoping by existing record property
-    const checkExists = await pool.query('SELECT id, property_id FROM public.complaints WHERE id = $1 LIMIT 1', [id]);
+    const checkExists = await pool.query('SELECT id, property_id, attachments FROM public.complaints WHERE id = $1 LIMIT 1', [id]);
     if (!checkExists.rows || checkExists.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Not found' });
     }
@@ -350,10 +463,29 @@ router.put('/:id', protect, async (req, res) => {
       }
     }
 
+    if (existingCols.includes('attachments')) {
+      const newAttachmentIds = await insertComplaintAttachments(checkExists.rows[0]?.id ?? null, req.files || []);
+      if (newAttachmentIds.length) {
+        let prev = [];
+        try {
+          const rawPrev = checkExists.rows[0]?.attachments;
+          if (Array.isArray(rawPrev)) prev = rawPrev;
+          else if (typeof rawPrev === 'string' && rawPrev) prev = JSON.parse(rawPrev);
+          else if (rawPrev && typeof rawPrev === 'object') prev = rawPrev;
+        } catch {
+          prev = [];
+        }
+        const next = [...prev, ...newAttachmentIds];
+        updates.push(`attachments = $${idx}::jsonb`);
+        values.push(JSON.stringify(next));
+        idx++;
+      }
+    }
+
     // Handle custom columns from Forms Builder
     const standardCols = ['id', 'reference', 'title', 'description', 'category', 'priority',
       'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
-      'assigned_to', 'scheduled_date', 'notes', 'created_at', 'updated_at'];
+      'assigned_to', 'scheduled_date', 'notes', 'attachments', 'created_at', 'updated_at'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         updates.push(`${col} = $${idx}`);

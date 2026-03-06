@@ -182,40 +182,40 @@ export default function Profile({ user: userProp }) {
 
                     {/* Tabs */}
                     <div className="border-b border-gray-200 px-8">
-                        <div className="flex gap-8">
+                        <div className="flex gap-8 overflow-x-auto scrollbar-hide">
                             <button
                                 onClick={() => setActiveTab("profile")}
-                                className={`py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "profile" ? "border-teal-500 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"} rounded-xl`}
+                                className={`-mb-px px-1 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap rounded-t-xl ${activeTab === "profile" ? "border-teal-500 text-teal-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
                             >
                                 Profile
                             </button>
                             <button
                                 onClick={() => setActiveTab("security")}
-                                className={`py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "security" ? "border-teal-500 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"} rounded-xl`}
+                                className={`-mb-px px-1 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap rounded-t-xl ${activeTab === "security" ? "border-teal-500 text-teal-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
                             >
                                 Security
                             </button>
                             <button
                                 onClick={() => setActiveTab("logs")}
-                                className={`py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "logs" ? "border-teal-500 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"} rounded-xl`}
+                                className={`-mb-px px-1 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap rounded-t-xl ${activeTab === "logs" ? "border-teal-500 text-teal-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
                             >
                                 Logs
                             </button>
                             <button
                                 onClick={() => setActiveTab("shift-handover")}
-                                className={`py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "shift-handover" ? "border-teal-500 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"} rounded-xl`}
+                                className={`-mb-px px-1 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap rounded-t-xl ${activeTab === "shift-handover" ? "border-teal-500 text-teal-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
                             >
                                 Shift Handovers
                             </button>
                             <button
                                 onClick={() => setActiveTab("pipeline")}
-                                className={`py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "pipeline" ? "border-teal-500 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"} rounded-xl`}
+                                className={`-mb-px px-1 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap rounded-t-xl ${activeTab === "pipeline" ? "border-teal-500 text-teal-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
                             >
                                 Hiring Pipeline
                             </button>
                             <button
                                 onClick={() => setActiveTab("notes")}
-                                className={`py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === "notes" ? "border-teal-500 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"} rounded-xl`}
+                                className={`-mb-px px-1 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap rounded-t-xl ${activeTab === "notes" ? "border-teal-500 text-teal-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
                             >
                                 Notes
                             </button>
