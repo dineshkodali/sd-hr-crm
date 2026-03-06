@@ -506,15 +506,15 @@ export default function MoveInOutPage({ user }) {
   }
 
   if (permissionsLoading) {
-    return (<div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700"><div className="p-3 sm:p-4 md:p-6"><div className="min-h-[40vh] flex items-center justify-center text-sm text-gray-500">Loading...</div></div></div>);
+    return (<div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700"><div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto"><div className="min-h-[40vh] flex items-center justify-center text-sm text-gray-500">Loading...</div></div></div>);
   }
   if (!canReadPage) {
-    return (<div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700"><div className="p-3 sm:p-4 md:p-6"><div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-700">You do not have permission to view Move-In/Out.</div></div></div>);
+    return (<div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700"><div className="w-[90%] max-w-[1800px] mx-auto"><div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-700">You do not have permission to view Move-In/Out.</div></div></div>);
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <div className="p-3 sm:p-4 md:p-6">
+      <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
         <div className="mb-6 flex items-start justify-between">
           <div>
             <Breadcrumbs items={[{ label: 'Resident Management' }, { label: 'Move-In/Out' }]} />
@@ -522,6 +522,11 @@ export default function MoveInOutPage({ user }) {
           </div>
           <div className="flex items-center gap-4">
             <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
+            {canCreatePage && (
+              <button onClick={() => { setEditing(null); setShowModal(true); }} className="btn-primary rounded-xl">
+                <IconMoveIn size={18} /> Process Move-In
+              </button>
+            )}
             {canCreatePage && (
               <button onClick={() => { setEditing(null); setShowOutModal(true); }} className="btn-secondary rounded-xl">
                 <IconMoveOut size={18} /> Process Move-Out
@@ -562,9 +567,9 @@ export default function MoveInOutPage({ user }) {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="relative"><Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" /><select value={filterProperty} onChange={(e) => setFilterProperty(e.target.value)} className="form-select pl-10 rounded-xl"><option value="">All Properties</option>{hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}</select></div>
-                <div className="relative"><Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" /><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="form-select pl-10 rounded-xl"><option value="All Status">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-                <div className="relative"><Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" /><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="form-select pl-10 rounded-xl"><option value="">Sort by...</option><option value="date">Date (Newest)</option><option value="name">Name</option><option value="property">Property</option></select></div>
+                <div className="relative"><Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" /><select value={filterProperty} onChange={(e) => setFilterProperty(e.target.value)} className="form-select !pl-10 rounded-xl"><option value="">All Properties</option>{hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}</select></div>
+                <div className="relative"><Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" /><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="form-select !pl-10 rounded-xl"><option value="All Status">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+                <div className="relative"><Columns className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" /><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="form-select !pl-10 rounded-xl"><option value="">Sort by...</option><option value="date">Date (Newest)</option><option value="name">Name</option><option value="property">Property</option></select></div>
 
                 <div className="relative ml-auto" ref={viewRef}>
                   <button onClick={() => setShowViewMenu(!showViewMenu)} className="btn-secondary rounded-xl"><Eye className="w-4 h-4" /><span>View</span><ChevronDown className="w-4 h-4" /></button>
