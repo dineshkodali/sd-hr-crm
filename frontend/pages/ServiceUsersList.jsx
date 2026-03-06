@@ -299,7 +299,7 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
  const labelize = (name) => {
   return String(name || '')
    .replace(/_/g, ' ')
-   .replace(/\b\w/g, (l) => l.toUpperCase());
+   .replace(/\b\w/g, (c) => c.toUpperCase());
  };
 
  const parseInputOptions = (raw) => {
@@ -506,6 +506,156 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
   }
 
   return String(v);
+ };
+
+ const normalizeDateForInput = (value) => {
+  if (!value) return '';
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+   return value.toISOString().slice(0, 10);
+  }
+  const s = String(value);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  return '';
+ };
+
+ const handleEditUser = async (selectedUser) => {
+  if (!canUpdateSU) {
+   setAlertDialog({
+    isOpen: true,
+    title: 'Permission Denied',
+    message: 'You do not have permission to update service users.',
+    type: 'warning'
+   });
+   return;
+  }
+
+  if (!selectedUser?.id) {
+   setAlertDialog({
+    isOpen: true,
+    title: 'Unable to Edit',
+    message: 'Missing service user id.',
+    type: 'warning'
+   });
+   return;
+  }
+
+  // Open the modal immediately with the best data we already have.
+  const optimisticHotelId =
+   selectedUser?.hotel_id ??
+   selectedUser?.property_id ??
+   selectedUser?.accommodation_id ??
+   '';
+
+  setFormData({
+   ...initialFormState,
+   id: selectedUser.id,
+   first_name: selectedUser.first_name ?? '',
+   last_name: selectedUser.last_name ?? '',
+   date_of_birth: normalizeDateForInput(selectedUser.date_of_birth ?? selectedUser.dob),
+   dob: normalizeDateForInput(selectedUser.date_of_birth ?? selectedUser.dob),
+   nationality: selectedUser.nationality ?? '',
+   gender: selectedUser.gender ?? '',
+   immigration_status: selectedUser.immigration_status ?? '',
+   home_office_reference: selectedUser.home_office_reference ?? '',
+   hotel_id: optimisticHotelId ? String(optimisticHotelId) : '',
+   room_id: selectedUser?.room_id ? String(selectedUser.room_id) : '',
+   room_number: selectedUser?.room_number ? String(selectedUser.room_number) : '',
+   admission_date: normalizeDateForInput(selectedUser.admission_date ?? selectedUser.move_in_date ?? selectedUser.movein_date),
+   number_of_dependents:
+    selectedUser.number_of_dependents === null || selectedUser.number_of_dependents === undefined
+     ? ''
+     : String(selectedUser.number_of_dependents),
+   emergency_contact_name: selectedUser.emergency_contact_name ?? '',
+   emergency_contact_phone: selectedUser.emergency_contact_phone ?? '',
+   vulnerabilities: selectedUser.vulnerabilities ?? '',
+   medical_conditions: selectedUser.medical_conditions ?? '',
+   dietary_requirements: selectedUser.dietary_requirements ?? '',
+   family_type: selectedUser.family_type ?? '',
+   status: selectedUser.status ?? initialFormState.status,
+  });
+  setIsModalOpen(true);
+
+  // Hydrate the form in the background with the full record + dynamic columns.
+  (async () => {
+   let fullUser = selectedUser;
+   try {
+    const res = await apiRef.current.get(`/su/users/${selectedUser.id}`, { noCache: true });
+    fullUser = res?.data?.user || res?.data || selectedUser;
+   } catch {
+    fullUser = selectedUser;
+   }
+
+   let cols = suColumns;
+   try {
+    cols = await fetchServiceUserColumns();
+   } catch {
+    cols = suColumns;
+   }
+
+   const dynCols = (Array.isArray(cols) ? cols : [])
+    .filter((c) => {
+     const name = String(c?.column_name || '').trim();
+     if (!name) return false;
+     if (RESERVED_FORM_KEYS.has(name)) return false;
+     if (HIDDEN_DYNAMIC_KEYS.has(String(name).toLowerCase())) return false;
+     return true;
+    })
+    .sort((a, b) => String(a?.ordinal_position || 0) - String(b?.ordinal_position || 0));
+
+   const hotelId =
+    fullUser?.hotel_id ??
+    fullUser?.property_id ??
+    fullUser?.accommodation_id ??
+    '';
+
+   if (hotelId) {
+    try {
+     await fetchRooms(hotelId);
+    } catch {
+    }
+   } else {
+    setRooms([]);
+   }
+
+   const hydrated = {
+    ...initialFormState,
+    id: fullUser.id,
+    first_name: fullUser.first_name ?? '',
+    last_name: fullUser.last_name ?? '',
+    date_of_birth: normalizeDateForInput(fullUser.date_of_birth ?? fullUser.dob),
+    dob: normalizeDateForInput(fullUser.date_of_birth ?? fullUser.dob),
+    nationality: fullUser.nationality ?? '',
+    gender: fullUser.gender ?? '',
+    immigration_status: fullUser.immigration_status ?? '',
+    home_office_reference: fullUser.home_office_reference ?? '',
+    hotel_id: hotelId ? String(hotelId) : '',
+    room_id: fullUser?.room_id ? String(fullUser.room_id) : '',
+    room_number: fullUser?.room_number ? String(fullUser.room_number) : '',
+    admission_date: normalizeDateForInput(fullUser.admission_date ?? fullUser.move_in_date ?? fullUser.movein_date),
+    number_of_dependents:
+     fullUser.number_of_dependents === null || fullUser.number_of_dependents === undefined
+      ? ''
+      : String(fullUser.number_of_dependents),
+    emergency_contact_name: fullUser.emergency_contact_name ?? '',
+    emergency_contact_phone: fullUser.emergency_contact_phone ?? '',
+    vulnerabilities: fullUser.vulnerabilities ?? '',
+    medical_conditions: fullUser.medical_conditions ?? '',
+    dietary_requirements: fullUser.dietary_requirements ?? '',
+    family_type: fullUser.family_type ?? '',
+    status: fullUser.status ?? initialFormState.status,
+   };
+
+   for (const c of dynCols) {
+    const k = String(c?.column_name || '').trim();
+    if (!k) continue;
+    if (RESERVED_FORM_KEYS.has(k)) continue;
+    hydrated[k] = normalizeInputValue(c, fullUser?.[k]);
+   }
+
+   setFormData(hydrated);
+  })();
  };
 
  const resetForm = () => {
@@ -869,6 +1019,18 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
  onDownloadPDF={() => openExport('pdf')}
  onDownloadCSV={() => openExport('csv')}
  />
+ {canCreateSU && (
+ <button
+ onClick={() => {
+ resetForm();
+ setIsModalOpen(true);
+ }}
+ className="btn-primary rounded-xl"
+ >
+ <Plus size={18} />
+ Add Service User
+ </button>
+ )}
  </div>
  </div>
  </div>
