@@ -278,6 +278,8 @@ export default function MaintenancePage({ user }) {
     }), [currentUser?.name]);
     const [form, setForm] = useState(initialForm);
 
+    const [photos, setPhotos] = useState([]);
+
     const [categoryOptions, setCategoryOptions] = useState([
         'Plumbing',
         'Electrical',
@@ -344,7 +346,7 @@ export default function MaintenancePage({ user }) {
         "type",
         "reference",
         "description",
-
+        "attachments",
         "priority",
         "status",
         "assigned_to",
@@ -355,15 +357,19 @@ export default function MaintenancePage({ user }) {
 
     // Column visibility state
     const [visibleColumns, setVisibleColumns] = useState(() => {
+        const defaults = DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
         try {
             const saved = localStorage.getItem('maintenance_visible_columns');
             if (saved) {
-                return JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                const merged = { ...defaults, ...(parsed || {}) };
+                if (merged.attachments === undefined) merged.attachments = true;
+                return merged;
             }
         } catch (err) {
             console.warn('Failed to load column visibility', err);
         }
-        return DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
+        return defaults;
     });
 
     // Fetch custom columns from Forms Builder
@@ -464,6 +470,7 @@ export default function MaintenancePage({ user }) {
             setCreating(false);
             setEditing(false);
             setEditingId(null);
+            setPhotos([]);
             setNewCategory('');
             setCategorySelectValue('');
             setShowAddCategory(false);
@@ -545,6 +552,7 @@ export default function MaintenancePage({ user }) {
                     ref: t.ref || (t.id ? Number(t.id).toString(36).padStart(8, '0').slice(-8) : Math.random().toString(36).slice(-8)),
                     description: t.description || "",
                     raw: t,
+                    attachments: t?.attachments ?? t?.raw?.attachments ?? [],
                 };
 
                 // Include all properties from API response that might be custom columns
@@ -933,9 +941,22 @@ export default function MaintenancePage({ user }) {
                 }
             });
 
-            await api.post("/api/maintenance", createData);
+            const hasPhotos = Array.isArray(photos) && photos.length > 0;
+            if (hasPhotos) {
+                const fd = new FormData();
+                Object.entries(createData).forEach(([k, v]) => {
+                    if (v === undefined) return;
+                    if (v === null) return;
+                    fd.append(k, String(v));
+                });
+                photos.forEach((f) => fd.append('photos', f));
+                await api.post("/api/maintenance", fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            } else {
+                await api.post("/api/maintenance", createData);
+            }
             await loadTasks(); // No abort signal here
             setShowCreate(false);
+            setPhotos([]);
             setAlertDialog({
                 isOpen: true,
                 title: 'Success',
@@ -1029,9 +1050,22 @@ export default function MaintenancePage({ user }) {
                 }
             });
 
-            const res = await api.put(`/api/maintenance/${editingId}`, updateData);
+            const hasPhotos = Array.isArray(photos) && photos.length > 0;
+            if (hasPhotos) {
+                const fd = new FormData();
+                Object.entries(updateData).forEach(([k, v]) => {
+                    if (v === undefined) return;
+                    if (v === null) return;
+                    fd.append(k, String(v));
+                });
+                photos.forEach((f) => fd.append('photos', f));
+                await api.put(`/api/maintenance/${editingId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            } else {
+                await api.put(`/api/maintenance/${editingId}`, updateData);
+            }
             await loadTasks(); // No abort signal here
             setShowEdit(false);
+            setPhotos([]);
             setAlertDialog({
                 isOpen: true,
                 title: 'Success',
@@ -1048,6 +1082,30 @@ export default function MaintenancePage({ user }) {
             });
         } finally {
             setEditing(false);
+        }
+    }
+
+    async function handleRemoveMaintenanceAttachment(attachmentId) {
+        if (!attachmentId) return;
+        try {
+            await api.delete(`/api/maintenance/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+            setForm((p) => {
+                let atts = p?.attachments ?? p?.raw?.attachments ?? [];
+                try {
+                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                } catch {
+                    atts = [];
+                }
+                const next = (Array.isArray(atts) ? atts : []).filter((x) => String(x) !== String(attachmentId));
+                return {
+                    ...p,
+                    attachments: next,
+                    raw: { ...(p.raw || {}), attachments: next }
+                };
+            });
+            await loadTasks();
+        } catch (err) {
+            console.warn('Failed to remove maintenance attachment:', err?.message || err);
         }
     }
 
@@ -1600,6 +1658,9 @@ export default function MaintenancePage({ user }) {
                                         {visibleColumns.description && (
                                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
                                         )}
+                                        {visibleColumns.attachments && (
+                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ATTACHMENTS</th>
+                                        )}
                                         {visibleColumns.priority && (
                                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
                                         )}
@@ -1628,7 +1689,7 @@ export default function MaintenancePage({ user }) {
                                 <tbody className="bg-white divide-y divide-gray-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={DEFAULT_COLUMNS.length + customColumns.length} className="py-8 text-center text-gray-500">Loading...</td>
+                                            <td colSpan={DEFAULT_COLUMNS.length + customColumns.length} className="py-8 text-center text-slate-500 font-medium">Loading...</td>
                                         </tr>
                                     ) : filtered.length > 0 ? filtered.map((row) => {
                                         const priorityStyle = getPriorityColor(row.priority);
@@ -1668,6 +1729,46 @@ export default function MaintenancePage({ user }) {
                                                                 {row.title || row.description || "No description recorded."}
                                                             </div>
                                                         </div>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.attachments && (
+                                                    <td className="py-4 px-4">
+                                                        {(() => {
+                                                            let atts = row?.attachments ?? row.raw?.attachments ?? [];
+                                                            try {
+                                                                if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                            } catch {
+                                                                atts = [];
+                                                            }
+                                                            const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                                            if (list.length === 0) return <span className="text-gray-400 text-sm">—</span>;
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+                                                                        const urls = list.map((x) => {
+                                                                            const isNumericId = /^\d+$/.test(String(x));
+                                                                            const u = isNumericId ? `/api/maintenance/attachments/${x}` : String(x);
+                                                                            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+                                                                        });
+                                                                        const safeTitle = `Maintenance Attachments (${urls.length})`;
+                                                                        const html = `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${safeTitle}</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0b1220;color:#e5e7eb}header{position:sticky;top:0;background:rgba(11,18,32,.92);backdrop-filter:blur(10px);padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.2)}.wrap{padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.card{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:12px;overflow:hidden}.card img{display:block;width:100%;height:auto;background:#111827}.meta{padding:10px 12px;font-size:12px;color:#94a3b8}</style></head><body><header><div style="font-weight:700">${safeTitle}</div><div style="font-size:12px;color:#94a3b8">Click an image to open it directly</div></header><div class="wrap">${urls.map((u,i)=>`<a class="card" href="${u}" target="_blank" rel="noopener noreferrer"><img src="${u}" alt="Attachment ${i+1}"/><div class="meta">Photo ${i+1}</div></a>`).join('')}</div></body></html>`;
+                                                                        const blob = new Blob([html], { type: 'text/html' });
+                                                                        const blobUrl = URL.createObjectURL(blob);
+                                                                        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+                                                                        setTimeout(() => {
+                                                                            try { URL.revokeObjectURL(blobUrl); } catch { }
+                                                                        }, 60_000);
+                                                                    }}
+                                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
+                                                                    title="View attachments"
+                                                                >
+                                                                    <span>{list.length}</span>
+                                                                    <span className="text-xs font-bold uppercase tracking-wide">Photos</span>
+                                                                </button>
+                                                            );
+                                                        })()}
                                                     </td>
                                                 )}
                                                 {visibleColumns.priority && (
@@ -1820,70 +1921,70 @@ export default function MaintenancePage({ user }) {
                                                             {statusItems.length}
                                                         </span>
                                                     </div>
-                                                </div>
 
-                                                <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
-                                                    {statusItems.length === 0 ? (
-                                                        <div className="text-center py-8 px-4">
-                                                            <Wrench className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                                                            <p className="text-gray-400 text-sm">No tasks</p>
-                                                        </div>
-                                                    ) : (
-                                                        statusItems.map((task) => {
-                                                            const priorityColor = getPriorityColor(task.priority || "Medium");
-                                                            const isDeleting = deletingIds.has(task.id);
+                                                    <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
+                                                        {statusItems.length === 0 ? (
+                                                            <div className="text-center py-8 px-4">
+                                                                <Wrench className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                                                                <p className="text-gray-400 text-sm">No tasks</p>
+                                                            </div>
+                                                        ) : (
+                                                            statusItems.map((task) => {
+                                                                const priorityColor = getPriorityColor(task.priority || "Medium");
+                                                                const isDeleting = deletingIds.has(task.id);
 
-                                                            return (
-                                                                <div
-                                                                    key={task.id}
-                                                                    className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 transition-all cursor-pointer ${isDeleting ? 'maintenance-card-deleting' : ''}`}
-                                                                    onClick={() => openView(task)}
-                                                                >
-                                                                    {/* ... Kanban Card Content ... */}
-                                                                    <div className="flex items-center justify-between mb-2">
-                                                                        <span className="text-xs font-mono text-gray-500">{task.ref || `WO-${task.id}`}</span>
-                                                                        <div className="flex items-center gap-1.5">
-                                                                            <span className={`w-2 h-2 rounded-full ${priorityColor.dot}`}></span>
-                                                                            <span className={`text-xs font-medium ${priorityColor.text}`}>
-                                                                                {task.priority || "Medium"}
-                                                                            </span>
+                                                                return (
+                                                                    <div
+                                                                        key={task.id}
+                                                                        className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 transition-all cursor-pointer ${isDeleting ? 'maintenance-card-deleting' : ''}`}
+                                                                        onClick={() => openView(task)}
+                                                                    >
+                                                                        {/* ... Kanban Card Content ... */}
+                                                                        <div className="flex items-center justify-between mb-2">
+                                                                            <span className="text-xs font-mono text-gray-500">{task.ref || `WO-${task.id}`}</span>
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <span className={`w-2 h-2 rounded-full ${priorityColor.dot}`}></span>
+                                                                                <span className={`text-xs font-medium ${priorityColor.text}`}>
+                                                                                    {task.priority || "Medium"}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
+                                                                            {task.title}
+                                                                        </h4>
+
+                                                                        {task.description && (
+                                                                            <p className="text-xs text-gray-500 mb-3 line-clamp-2">
+                                                                                {task.description}
+                                                                            </p>
+                                                                        )}
+
+                                                                        <div className="flex items-center gap-1 mb-2">
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    openView(task);
+                                                                                }}
+                                                                                className="flex-1 py-1 px-2 bg-gray-50 text-gray-600 rounded-xl text-xs border border-gray-100"
+                                                                            >
+                                                                                View
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    openEdit(task);
+                                                                                }}
+                                                                                className="flex-1 py-1 px-2 bg-gray-50 text-blue-600 rounded-xl text-xs border border-gray-100"
+                                                                            >
+                                                                                Edit
+                                                                            </button>
                                                                         </div>
                                                                     </div>
-
-                                                                    <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
-                                                                        {task.title}
-                                                                    </h4>
-
-                                                                    {task.description && (
-                                                                        <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-                                                                            {task.description}
-                                                                        </p>
-                                                                    )}
-
-                                                                    <div className="flex items-center gap-1 mb-2">
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                openView(task);
-                                                                            }}
-                                                                            className="flex-1 py-1 px-2 bg-gray-50 text-gray-600 rounded-xl text-xs border border-gray-100"
-                                                                        >
-                                                                            View
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                openEdit(task);
-                                                                            }}
-                                                                            className="flex-1 py-1 px-2 bg-gray-50 text-blue-600 rounded-xl text-xs border border-gray-100"
-                                                                        >
-                                                                            Edit
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })
-                                                    )}
+                                                                );
+                                                            })
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -2003,7 +2104,8 @@ export default function MaintenancePage({ user }) {
                                                                 ? "Select property first"
                                                                 : roomsLoading
                                                                     ? "Loading rooms..."
-                                                                    : "Select room"}
+                                                                    : "Select room"
+                                                            }
                                                         </option>
                                                         {!!form.room && !rooms.some((r) => String(r.room_number) === String(form.room)) && (
                                                             <option value={form.room}>{form.room}</option>
@@ -2169,7 +2271,8 @@ export default function MaintenancePage({ user }) {
                                                                 ? "Select property first"
                                                                 : staffLoading
                                                                     ? "Loading staff..."
-                                                                    : "Select staff"}
+                                                                    : "Select staff"
+                                                            }
                                                         </option>
                                                         {form.assignedTo && !staffUsers.some((u) => String(u.name) === String(form.assignedTo)) && (
                                                             <option value={form.assignedTo}>{form.assignedTo} (Current)</option>
@@ -2204,6 +2307,63 @@ export default function MaintenancePage({ user }) {
                                                     placeholder="Detailed description of the issue..."
                                                 />
                                             </div>
+
+                                            {/* Attach Photos */}
+                                            <div className="col-span-1 md:col-span-2">
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    onChange={(e) => {
+                                                        const files = Array.from(e.target.files || []);
+                                                        setPhotos(files);
+                                                    }}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                                                />
+                                                {photos.length > 0 && (
+                                                    <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>
+                                                )}
+                                            </div>
+
+                                            {(() => {
+                                                if (!showEdit) return null;
+                                                let atts = form?.attachments ?? form?.raw?.attachments ?? [];
+                                                try {
+                                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                } catch {
+                                                    atts = [];
+                                                }
+                                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                                if (list.length === 0) return null;
+                                                return (
+                                                    <div className="col-span-1 md:col-span-2">
+                                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {list.map((id) => (
+                                                                <div key={String(id)} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => window.open(`/api/maintenance/attachments/${id}`, '_blank', 'noopener,noreferrer')}
+                                                                        className="text-xs font-semibold text-teal-700"
+                                                                        title="View"
+                                                                    >
+                                                                        View
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleRemoveMaintenanceAttachment(id)}
+                                                                        className="text-xs font-semibold text-red-600"
+                                                                        title="Remove"
+                                                                    >
+                                                                        Remove
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
 
                                             {/* Custom Columns Section */}
                                             {customColumns.length > 0 && (

@@ -333,6 +333,8 @@ export default function Inspections({ user }) {
     ...customColumns.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
   });
 
+  const [photos, setPhotos] = useState([]);
+
   const INSPECTION_TYPE_STORAGE_KEY = 'inspections.customInspectionTypes';
   const BUILTIN_INSPECTION_TYPES = [
     'Fire Safety',
@@ -683,10 +685,11 @@ export default function Inspections({ user }) {
       try {
         const canonical = `/api/hotels/${hotelId}/service-users`;
         const rows = await tryPath(canonical);
-        const normalized = (Array.isArray(rows) ? rows : []).map((r) => ({
-          id: r.id,
-          first_name: r.first_name ?? r.firstName ?? r.first ?? `${r.id ?? ""}`
-        })).filter(Boolean);
+        const normalized = (Array.isArray(rows) ? rows : [])
+          .map((r) => ({
+            id: r.id,
+            first_name: r.first_name ?? r.firstName ?? r.first ?? `${r.id ?? ""}`
+          })).filter(Boolean);
         setServiceUsers(normalized);
         return;
       } catch (err) {
@@ -709,15 +712,17 @@ export default function Inspections({ user }) {
       for (const path of fallbacks) {
         try {
           const rows = await tryPath(path);
-          const normalized = (Array.isArray(rows) ? rows : []).map((r) => ({
-            id: r.id,
-            first_name: r.first_name ?? r.firstName ?? r.first ?? `${r.id ?? ""}`
-          })).filter(Boolean);
+          const normalized = (Array.isArray(rows) ? rows : [])
+            .map((r) => ({
+              id: r.id,
+              first_name: r.first_name ?? r.firstName ?? r.first ?? `${r.id ?? ""}`
+            })).filter(Boolean);
           if (normalized.length) {
             setServiceUsers(normalized);
             return;
           }
-        } catch (err) { }
+        } catch {
+        }
       }
       setServiceUsers([]);
     } catch (err) {
@@ -980,11 +985,37 @@ export default function Inspections({ user }) {
     });
     try {
       let res;
-      if (editingId) {
-        res = await api.put(`/api/inspections/${editingId}`, payload);
+
+      const hasPhotos = Array.isArray(photos) && photos.length > 0;
+      if (hasPhotos) {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => {
+          if (v === undefined) return;
+          if (v === null) {
+            fd.append(k, '');
+            return;
+          }
+          if (typeof v === 'object') {
+            fd.append(k, JSON.stringify(v));
+            return;
+          }
+          fd.append(k, String(v));
+        });
+        photos.forEach((f) => fd.append('photos', f));
+
+        if (editingId) {
+          res = await api.put(`/api/inspections/${editingId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        } else {
+          res = await api.post('/api/inspections', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
       } else {
-        res = await api.post("/api/inspections", payload);
+        if (editingId) {
+          res = await api.put(`/api/inspections/${editingId}`, payload);
+        } else {
+          res = await api.post("/api/inspections", payload);
+        }
       }
+
       const result = res?.data?.data ?? res?.data ?? null;
       if (result) {
         setInspections((prev) => {
@@ -995,6 +1026,7 @@ export default function Inspections({ user }) {
         });
         setShowModal(false);
         setEditingId(null);
+        setPhotos([]);
         setFormData({
           inspectionType: "",
           propertyId: "",
@@ -2330,7 +2362,6 @@ export default function Inspections({ user }) {
                     </div>
 
                     {/* Custom Columns from Forms Builder */}
-                    {/* Custom Columns from Forms Builder */}
                     {customColumns.map(col => {
                       const meta = customColumnMetadata[col] || {};
                       const inputType = meta.input_type || 'text';
@@ -2414,7 +2445,7 @@ export default function Inspections({ user }) {
                   {error && <div className="text-sm text-red-500 mr-auto font-medium">{error}</div>}
                   <button
                     type="button"
-                    onClick={() => { setShowModal(false); setError(null); }}
+                    onClick={() => { setShowModal(false); setError(null); setPhotos([]); }}
                     className="px-6 py-2.5 border border-gray-300 rounded-xl text-gray-700 font-medium transition-all text-sm shadow-sm"
                   >
                     Cancel
@@ -2477,6 +2508,42 @@ export default function Inspections({ user }) {
                   ))}
 
                   <DetailField label="Findings" value={viewingInspection.findings} fullWidth={true} />
+
+                  {(() => {
+                    let list = [];
+                    try {
+                      const raw = viewingInspection.attachments ?? viewingInspection.attachments_ids ?? viewingInspection.photos ?? [];
+                      if (Array.isArray(raw)) list = raw;
+                      else if (typeof raw === 'string' && raw.trim()) {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed)) list = parsed;
+                      }
+                    } catch {
+                      list = [];
+                    }
+                    if (!list.length) return null;
+                    return (
+                      <div className="md:col-span-2">
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Attachments</label>
+                        <div className="flex flex-wrap gap-2">
+                          {list.map((att, idx) => {
+                            const isNumericId = /^\d+$/.test(String(att));
+                            const href = isNumericId ? `/api/inspections/attachments/${att}` : String(att);
+                            return (
+                              <button
+                                key={`${att}-${idx}`}
+                                type="button"
+                                onClick={() => window.open(href, '_blank')}
+                                className="px-3 py-1.5 text-sm rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
+                              >
+                                Photo {idx + 1}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

@@ -1,9 +1,12 @@
 // routes/maintenance.js
 import express from "express";
+import multer from "multer";
 import {
   createTask,
   listTasks,
   getTaskById,
+  getAttachmentById,
+  deleteAttachmentById,
   updateTask,
   changeTaskStatus,
   deleteTask,
@@ -15,6 +18,11 @@ import { protect } from "../middleware/auth.js";
 import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
 
 const router = express.Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 
 // Apply CRUD logging to all operations
@@ -55,10 +63,13 @@ const safe = (fn) => async (req, res, next) => {
  */
 
 // protect all endpoints
-router.post("/", protect, safe(createTask));
+router.get("/attachments/:id", protect, safe(getAttachmentById));
+router.delete("/attachments/:id", protect, safe(deleteAttachmentById));
+
+router.post("/", protect, upload.array('photos', 10), safe(createTask));
 router.get("/", protect, safe(listTasks));
 router.get("/:id", protect, safe(getTaskById));
-router.put("/:id", protect, safe(updateTask));
+router.put("/:id", protect, upload.array('photos', 10), safe(updateTask));
 router.patch("/:id/status", protect, safe(changeTaskStatus));
 router.delete("/:id", protect, safe(deleteTask));
 

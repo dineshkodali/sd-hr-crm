@@ -194,6 +194,7 @@ export default function AIRETasks({ user }) {
         "type",
         "reference",
         "description",
+        "attachments",
         "priority",
         "status",
         "assigned",
@@ -206,17 +207,19 @@ export default function AIRETasks({ user }) {
 
     // Column visibility state - default columns visible, custom columns from localStorage or hidden
     const [visibleColumns, setVisibleColumns] = useState(() => {
+        const defaults = DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
         try {
-            const saved = localStorage.getItem('aireTasksVisibleColumns');
+            const saved = localStorage.getItem('aire_visible_columns');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                // Ensure all default columns are present
-                return { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), ...parsed };
+                const merged = { ...defaults, ...(parsed || {}) };
+                if (merged.attachments === undefined) merged.attachments = true;
+                return merged;
             }
         } catch (e) {
-            console.warn('Failed to load visible columns from localStorage:', e);
+            console.error('Error loading column visibility:', e);
         }
-        return DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
+        return defaults;
     });
 
     const [confirmDialog, setConfirmDialog] = useState({
@@ -344,7 +347,9 @@ export default function AIRETasks({ user }) {
                         rawDate: t.scheduled_date ?? t.scheduledDate,
 
                         // Preserve all custom columns from API response
-                        ...t
+                        ...t,
+                        raw: t,
+                        attachments: t?.attachments ?? t?.raw?.attachments ?? []
                     }));
                     setTasks(normalized);
                 } else {
@@ -492,7 +497,21 @@ export default function AIRETasks({ user }) {
                     // Include custom columns in payload
                     ...customPayload
                 };
-                const res = await api.post('/api/aire-tasks', payload);
+
+                const hasPhotos = Array.isArray(newTask?.photos) && newTask.photos.length > 0;
+                let res;
+                if (hasPhotos) {
+                    const fd = new FormData();
+                    Object.entries(payload).forEach(([k, v]) => {
+                        if (v === undefined) return;
+                        if (v === null) return;
+                        fd.append(k, String(v));
+                    });
+                    newTask.photos.forEach((f) => fd.append('photos', f));
+                    res = await api.post('/api/aire-tasks', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                } else {
+                    res = await api.post('/api/aire-tasks', payload);
+                }
                 const created = res?.data ?? null;
                 if (created) {
                     const normalized = {
@@ -513,7 +532,9 @@ export default function AIRETasks({ user }) {
                         serviceUserId: created.service_user_id,
                         rawDate: created.scheduled_date,
                         // Include all custom columns
-                        ...created
+                        ...created,
+                        raw: created,
+                        attachments: created?.attachments ?? created?.raw?.attachments ?? []
                     };
                     setTasks(prev => [normalized, ...prev]);
                     setShowModal(false);
@@ -526,6 +547,36 @@ export default function AIRETasks({ user }) {
                 const errMsg = err?.response?.data?.message || err?.message || 'Failed to create task';
                 setModalError(errMsg);
                 setModalSubmitting(false);
+            }
+        })();
+    };
+
+    const handleRemoveAttachment = (taskId, attachmentId) => {
+        (async () => {
+            if (!taskId || !attachmentId) return;
+            try {
+                await api.delete(`/api/aire-tasks/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+
+                setTasks((prev) => {
+                    const list = Array.isArray(prev) ? prev : [];
+                    return list.map((t) => {
+                        if (String(t.id) !== String(taskId)) return t;
+                        let atts = t?.attachments ?? t?.raw?.attachments ?? [];
+                        try {
+                            if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                        } catch {
+                            atts = [];
+                        }
+                        const next = (Array.isArray(atts) ? atts : []).filter((x) => String(x) !== String(attachmentId));
+                        return {
+                            ...t,
+                            attachments: next,
+                            raw: { ...(t.raw || {}), attachments: next }
+                        };
+                    });
+                });
+            } catch (err) {
+                console.warn('Failed to remove attachment:', err?.message || err);
             }
         })();
     };
@@ -725,8 +776,20 @@ export default function AIRETasks({ user }) {
                     ...customPayload
                 };
 
-
-                const res = await api.patch(`/api/aire-tasks/${encodeURIComponent(id)}`, payload);
+                const hasPhotos = Array.isArray(updatedTask?.photos) && updatedTask.photos.length > 0;
+                let res;
+                if (hasPhotos) {
+                    const fd = new FormData();
+                    Object.entries(payload).forEach(([k, v]) => {
+                        if (v === undefined) return;
+                        if (v === null) return;
+                        fd.append(k, String(v));
+                    });
+                    updatedTask.photos.forEach((f) => fd.append('photos', f));
+                    res = await api.patch(`/api/aire-tasks/${encodeURIComponent(id)}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                } else {
+                    res = await api.patch(`/api/aire-tasks/${encodeURIComponent(id)}`, payload);
+                }
                 const updated = res?.data ?? null;
                 if (updated) {
                     const normalized = {
@@ -747,7 +810,9 @@ export default function AIRETasks({ user }) {
                         serviceUserId: updated.service_user_id,
                         rawDate: updated.scheduled_date,
                         // Include all custom columns
-                        ...updated
+                        ...updated,
+                        raw: updated,
+                        attachments: updated?.attachments ?? updated?.raw?.attachments ?? []
                     };
                     setTasks(prev => prev.map(t => String(t.id) === String(id) ? normalized : t));
                     setShowModal(false);
@@ -775,9 +840,12 @@ export default function AIRETasks({ user }) {
                                 propertyId: t.property_id || t.propertyId,
                                 propertyName: t.property_name || t.propertyName,
                                 serviceUserId: t.service_user_id,
-                                rawDate: t.scheduled_date,
+                                rawDate: t.scheduled_date ?? t.scheduledDate,
+
                                 // Preserve all custom columns from API response
-                                ...t
+                                ...t,
+                                raw: t,
+                                attachments: t?.attachments ?? t?.raw?.attachments ?? []
                             }));
                             setTasks(refreshNormalized);
                         }
@@ -798,7 +866,7 @@ export default function AIRETasks({ user }) {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-            <div className="p-3 sm:p-4 md:p-6">
+            <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
                 {/* Page Header */}
                 <div className="mb-6 flex items-start justify-between">
                     <div>
@@ -816,7 +884,7 @@ export default function AIRETasks({ user }) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-white rounded-xl p-5 flex items-center gap-4 border border-gray-100 transition-all duration-200">
+                    <div className="bg-white rounded-xl p-5 flex items-center gap-4 border border-gray-100 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-gray-200">
                         <div className="bg-blue-50 text-blue-600 h-14 w-14 rounded-xl flex items-center justify-center shrink-0">
                             <CheckSquare size={28} />
                         </div>
@@ -825,7 +893,7 @@ export default function AIRETasks({ user }) {
                             <div className="text-2xl font-black text-slate-800 leading-none">{stats.total}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-5 flex items-center gap-4 border border-gray-100 transition-all duration-200">
+                    <div className="bg-white rounded-xl p-5 flex items-center gap-4 border border-gray-100 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-gray-200">
                         <div className="bg-red-50 text-red-600 h-14 w-14 rounded-xl flex items-center justify-center shrink-0">
                             <AlertCircle size={28} />
                         </div>
@@ -834,7 +902,7 @@ export default function AIRETasks({ user }) {
                             <div className="text-2xl font-black text-slate-800 leading-none">{stats.overdue}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-5 flex items-center gap-4 border border-gray-100 transition-all duration-200">
+                    <div className="bg-white rounded-xl p-5 flex items-center gap-4 border border-gray-100 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-gray-200">
                         <div className="bg-orange-50 text-orange-600 h-14 w-14 rounded-xl flex items-center justify-center shrink-0">
                             <Clock size={28} />
                         </div>
@@ -843,7 +911,7 @@ export default function AIRETasks({ user }) {
                             <div className="text-2xl font-black text-slate-800 leading-none">{stats.dueThisWeek}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-5 flex items-center gap-4 border border-gray-100 transition-all duration-200">
+                    <div className="bg-white rounded-xl p-5 flex items-center gap-4 border border-gray-100 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-gray-200">
                         <div className="bg-emerald-50 text-emerald-600 h-14 w-14 rounded-xl flex items-center justify-center shrink-0">
                             <CheckCircle size={28} />
                         </div>
@@ -855,7 +923,7 @@ export default function AIRETasks({ user }) {
                 </div>
 
                 {/* Main Content Area - AIRE Tasks Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-200">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-gray-200">
                     <div className="p-6 pb-0">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                             <div>
@@ -880,7 +948,7 @@ export default function AIRETasks({ user }) {
                                 <div className="relative" ref={viewRef}>
                                     <button
                                         onClick={() => setShowViewMenu(!showViewMenu)}
-                                        className="h-9 bg-white border border-gray-300 text-gray-700 rounded-xl px-3 text-xs font-medium transition-all flex items-center gap-2"
+                                        className="h-9 bg-white border border-gray-300 text-gray-700 rounded-xl px-3 text-xs font-medium hover:bg-gray-50 transition-all flex items-center gap-2"
                                     >
                                         <Eye className="w-4 h-4" />
                                         <span>{viewMode === 'table' ? 'Table' : 'Board'}</span>
@@ -888,7 +956,7 @@ export default function AIRETasks({ user }) {
                                     </button>
                                     {/* <button
  onClick={() => setShowExportModal(true)}
- className="h-9 bg-teal-500 text-white font-semibold rounded-xl px-4 text-xs flex items-center gap-2 transition-colors shadow-sm"
+ className="h-9 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl px-4 text-xs flex items-center gap-2 transition-colors shadow-sm"
  >
  <Download className="w-4 h-4" />
  <span>Download</span>
@@ -906,7 +974,7 @@ export default function AIRETasks({ user }) {
                                                             onClick={() => setViewMode('table')}
                                                             className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'table'
                                                                 ? 'bg-teal-500 text-white shadow-sm'
-                                                                : 'bg-gray-100 text-gray-700'
+                                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                                 }`}
                                                         >
                                                             <Columns className="w-4 h-4" />
@@ -916,7 +984,7 @@ export default function AIRETasks({ user }) {
                                                             onClick={() => setViewMode('board')}
                                                             className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === 'board'
                                                                 ? 'bg-teal-500 text-white shadow-sm'
-                                                                : 'bg-gray-100 text-gray-700'
+                                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                                 }`}
                                                         >
                                                             <CheckSquare className="w-4 h-4" />
@@ -929,7 +997,7 @@ export default function AIRETasks({ user }) {
                                                     <>
                                                         <button
                                                             onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
-                                                            className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 rounded-xl transition-colors"
+                                                            className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
                                                         >
                                                             <span>Property visibility</span>
                                                             <div className="flex items-center gap-2">
@@ -952,7 +1020,7 @@ export default function AIRETasks({ user }) {
                                                                                     DEFAULT_COLUMNS.forEach(c => updates[c] = true);
                                                                                     setVisibleColumns(prev => ({ ...prev, ...updates }));
                                                                                 }}
-                                                                                className="text-xs text-teal-600 font-medium rounded-xl"
+                                                                                className="text-xs text-teal-600 hover:text-teal-700 font-medium rounded-xl"
                                                                             >
                                                                                 Show all
                                                                             </button>
@@ -963,7 +1031,7 @@ export default function AIRETasks({ user }) {
                                                                                     DEFAULT_COLUMNS.forEach(c => updates[c] = false);
                                                                                     setVisibleColumns(prev => ({ ...prev, ...updates }));
                                                                                 }}
-                                                                                className="text-xs text-teal-600 font-medium rounded-xl"
+                                                                                className="text-xs text-teal-600 hover:text-teal-700 font-medium rounded-xl"
                                                                             >
                                                                                 Hide all
                                                                             </button>
@@ -976,8 +1044,8 @@ export default function AIRETasks({ user }) {
                                                                                 key={col}
                                                                                 onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
                                                                                 className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors border ${visibleColumns[col]
-                                                                                    ? 'text-gray-700 border-gray-200 bg-white'
-                                                                                    : 'text-gray-500 border-gray-100 bg-gray-50'
+                                                                                    ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                                                                    : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
                                                                                     }`}
                                                                             >
                                                                                 <span className="capitalize font-medium">{col.replace(/_/g, ' ')}</span>
@@ -1010,7 +1078,7 @@ export default function AIRETasks({ user }) {
                                                                                         customColumns.forEach(c => updates[c] = true);
                                                                                         setVisibleColumns(prev => ({ ...prev, ...updates }));
                                                                                     }}
-                                                                                    className="text-xs text-teal-600 font-medium rounded-xl"
+                                                                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium rounded-xl"
                                                                                 >
                                                                                     Show all
                                                                                 </button>
@@ -1021,7 +1089,7 @@ export default function AIRETasks({ user }) {
                                                                                         customColumns.forEach(c => updates[c] = false);
                                                                                         setVisibleColumns(prev => ({ ...prev, ...updates }));
                                                                                     }}
-                                                                                    className="text-xs text-teal-600 font-medium rounded-xl"
+                                                                                    className="text-xs text-teal-600 hover:text-teal-700 font-medium rounded-xl"
                                                                                 >
                                                                                     Hide all
                                                                                 </button>
@@ -1037,8 +1105,8 @@ export default function AIRETasks({ user }) {
                                                                                     key={col}
                                                                                     onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
                                                                                     className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors border ${visibleColumns[col]
-                                                                                        ? 'text-gray-700 border-gray-200 bg-white'
-                                                                                        : 'text-gray-500 border-gray-100 bg-gray-50'
+                                                                                        ? 'text-gray-700 hover:bg-gray-50 border-gray-200 bg-white'
+                                                                                        : 'text-gray-500 hover:bg-teal-50 hover:text-teal-700 border-gray-100 bg-gray-50'
                                                                                         }`}
                                                                                 >
                                                                                     <span className="capitalize">{col.replace(/_/g, ' ')}</span>
@@ -1065,7 +1133,7 @@ export default function AIRETasks({ user }) {
                                 {hasCreate && (
                                     <button
                                         onClick={() => { setEditingTask(null); setIsViewing(false); setShowModal(true); }}
-                                        className="h-9 bg-teal-500 text-white font-semibold rounded-xl px-4 text-xs flex items-center gap-2 transition-colors shadow-sm"
+                                        className="h-9 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl px-4 text-xs flex items-center gap-2 transition-colors shadow-sm"
                                     >
                                         <CheckSquare className="w-4 h-4" />
                                         <span>Create Task</span>
@@ -1084,7 +1152,7 @@ export default function AIRETasks({ user }) {
                                         </div>
                                         <button
                                             onClick={closeExport}
-                                            className="p-2 rounded-xl -xl text-gray-500"
+                                            className="p-2 rounded-xl -xl hover:bg-gray-50 text-gray-500"
                                             aria-label="Close"
                                         >
                                             <X className="w-5 h-5" />
@@ -1097,13 +1165,13 @@ export default function AIRETasks({ user }) {
                                             <div className="flex items-center gap-3 text-xs">
                                                 <button
                                                     onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
-                                                    className="text-teal-600 font-medium rounded-xl"
+                                                    className="text-teal-600 hover:text-teal-700 font-medium rounded-xl"
                                                 >
                                                     Select all
                                                 </button>
                                                 <button
                                                     onClick={() => setSelectedExportKeys([])}
-                                                    className="text-gray-600 font-medium rounded-xl"
+                                                    className="text-gray-600 hover:text-gray-700 font-medium rounded-xl"
                                                 >
                                                     Clear
                                                 </button>
@@ -1116,7 +1184,7 @@ export default function AIRETasks({ user }) {
                                                 return (
                                                     <label
                                                         key={col.key}
-                                                        className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer"
+                                                        className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer"
                                                     >
                                                         <input
                                                             type="checkbox"
@@ -1142,13 +1210,13 @@ export default function AIRETasks({ user }) {
                                     <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
                                         <button
                                             onClick={closeExport}
-                                            className="px-4 py-2 rounded-xl -xl text-sm font-medium text-gray-700 border border-gray-200"
+                                            className="px-4 py-2 rounded-xl -xl text-sm font-medium text-gray-700 hover:bg-white border border-gray-200"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             onClick={runExport}
-                                            className="px-4 py-2 rounded-xl -xl text-sm font-medium text-white bg-teal-600"
+                                            className="px-4 py-2 rounded-xl -xl text-sm font-medium text-white bg-teal-600 hover:bg-teal-700"
                                         >
                                             Download
                                         </button>
@@ -1227,7 +1295,7 @@ export default function AIRETasks({ user }) {
                                         setSelectedProperty('All Properties');
                                         setSortBy('');
                                     }}
-                                    className="h-9 bg-gray-100 text-gray-700 rounded-xl px-3 text-xs font-medium transition-colors flex items-center gap-2"
+                                    className="h-9 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl px-3 text-xs font-medium transition-colors flex items-center gap-2"
                                 >
                                     <X className="w-4 h-4" />
                                     <span>Clear</span>
@@ -1250,6 +1318,7 @@ export default function AIRETasks({ user }) {
                                         {visibleColumns.type && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>}
                                         {visibleColumns.reference && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>}
                                         {visibleColumns.description && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>}
+                                        {visibleColumns.attachments && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ATTACHMENTS</th>}
                                         {visibleColumns.priority && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>}
                                         {visibleColumns.status && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>}
                                         {visibleColumns.assigned && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>}
@@ -1273,12 +1342,13 @@ export default function AIRETasks({ user }) {
                                         const isDeleting = deletingIds.has(task.id);
 
                                         return (
-                                            <tr key={task.id} className={`group transition-colors ${isDeleting ? 'airetask-deleting' : ''}`}>
+                                            <tr key={task.id} className={`group hover:bg-slate-50/50 transition-colors ${isDeleting ? 'airetask-deleting' : ''}`}>
                                                 {visibleColumns.checkbox && (
                                                     <td className="py-4 px-4">
                                                         <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
                                                     </td>
                                                 )}
+
                                                 {visibleColumns.type && (
                                                     <td className="py-4 px-4">
                                                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-orange-700 bg-orange-50 border border-orange-100 uppercase">
@@ -1301,6 +1371,46 @@ export default function AIRETasks({ user }) {
                                                                 {task.description || "No description recorded."}
                                                             </div>
                                                         </div>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.attachments && (
+                                                    <td className="py-4 px-4">
+                                                        {(() => {
+                                                            let atts = task?.attachments ?? task?.raw?.attachments ?? [];
+                                                            try {
+                                                                if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                            } catch {
+                                                                atts = [];
+                                                            }
+                                                            const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                                            if (list.length === 0) return <span className="text-gray-400 text-xs">—</span>;
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+                                                                        const urls = list.map((x) => {
+                                                                            const isNumericId = /^\d+$/.test(String(x));
+                                                                            const u = isNumericId ? `/api/aire-tasks/attachments/${x}` : String(x);
+                                                                            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+                                                                        });
+                                                                        const safeTitle = `AIRE Task Attachments (${urls.length})`;
+                                                                        const html = `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${safeTitle}</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0b1220;color:#e5e7eb}header{position:sticky;top:0;background:rgba(11,18,32,.92);backdrop-filter:blur(10px);padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.2)}.wrap{padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.card{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:12px;overflow:hidden}.card img{display:block;width:100%;height:auto;background:#111827}.meta{padding:10px 12px;font-size:12px;color:#94a3b8}</style></head><body><header><div style="font-weight:700">${safeTitle}</div><div style="font-size:12px;color:#94a3b8">Click an image to open it directly</div></header><div class="wrap">${urls.map((u,i)=>`<a class="card" href="${u}" target="_blank" rel="noopener noreferrer"><img src="${u}" alt="Attachment ${i+1}"/><div class="meta">Photo ${i+1}</div></a>`).join('')}</div></body></html>`;
+                                                                        const blob = new Blob([html], { type: 'text/html' });
+                                                                        const blobUrl = URL.createObjectURL(blob);
+                                                                        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+                                                                        setTimeout(() => {
+                                                                            try { URL.revokeObjectURL(blobUrl); } catch { }
+                                                                        }, 60_000);
+                                                                    }}
+                                                                    className="inline-flex items-center gap-2 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
+                                                                    title="View attachments"
+                                                                >
+                                                                    <span>{list.length}</span>
+                                                                    <span className="text-[10px] font-bold uppercase tracking-wide">Photos</span>
+                                                                </button>
+                                                            );
+                                                        })()}
                                                     </td>
                                                 )}
                                                 {visibleColumns.priority && (
@@ -1347,7 +1457,7 @@ export default function AIRETasks({ user }) {
                                                     <div className="flex items-center justify-center gap-1.5 transition-opacity">
                                                         <button
                                                             onClick={() => handleView(task)}
-                                                            className="p-1.5 text-gray-600 rounded-xl transition-all"
+                                                            className="p-1.5 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
                                                             title="View"
                                                         >
                                                             <Eye className="w-4 h-4" />
@@ -1355,7 +1465,7 @@ export default function AIRETasks({ user }) {
                                                         {hasUpdate && (
                                                             <button
                                                                 onClick={() => handleEdit(task)}
-                                                                className="p-1.5 text-slate-400 rounded-xl transition-colors"
+                                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
                                                                 title="Edit"
                                                             >
                                                                 <Edit className="w-4 h-4" />
@@ -1364,7 +1474,7 @@ export default function AIRETasks({ user }) {
                                                         {hasDelete && (
                                                             <button
                                                                 onClick={() => handleDelete(task)}
-                                                                className="p-1.5 text-slate-400 rounded-xl transition-colors"
+                                                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                                                                 title="Delete"
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
@@ -1462,7 +1572,7 @@ export default function AIRETasks({ user }) {
                                                             return (
                                                                 <div
                                                                     key={task.id}
-                                                                    className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 transition-all cursor-pointer ${isDeleting ? 'airetask-card-deleting' : ''}`}
+                                                                    className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 hover:border-gray-300 transition-all cursor-pointer ${isDeleting ? 'airetask-card-deleting' : ''}`}
                                                                     onClick={() => { setEditingTask(task); setIsViewing(true); setShowModal(true); }}
                                                                 >
                                                                     <div className="flex items-center justify-between mb-2">
@@ -1520,7 +1630,7 @@ export default function AIRETasks({ user }) {
                                                                                 e.stopPropagation();
                                                                                 setEditingTask(task); setIsViewing(true); setShowModal(true);
                                                                             }}
-                                                                            className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"
+                                                                            className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 hover:bg-teal-50 hover:text-teal-600 rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"
                                                                             title="View"
                                                                         >
                                                                             <Eye className="w-3.5 h-3.5" />
@@ -1532,7 +1642,7 @@ export default function AIRETasks({ user }) {
                                                                                     e.stopPropagation();
                                                                                     setEditingTask(task); setIsViewing(false); setShowModal(true);
                                                                                 }}
-                                                                                className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"
+                                                                                className="p-1.5 bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors"
                                                                                 title="Edit"
                                                                             >
                                                                                 <Edit className="w-3.5 h-3.5" />
@@ -1544,7 +1654,7 @@ export default function AIRETasks({ user }) {
                                                                                     e.stopPropagation();
                                                                                     handleDelete(task);
                                                                                 }}
-                                                                                className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"
+                                                                                className="p-1.5 bg-gray-50 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
                                                                                 title="Delete"
                                                                             >
                                                                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1577,6 +1687,7 @@ export default function AIRETasks({ user }) {
                     customColumns={customColumns}
                     customColumnMetadata={customColumnMetadata}
                     currentUser={currentUser}
+                    onRemoveAttachment={handleRemoveAttachment}
                     onRequestEdit={() => setIsViewing(false)}
                     onClose={() => { setShowModal(false); setModalError(null); setEditingTask(null); setIsViewing(false); }}
                     onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
@@ -1606,7 +1717,7 @@ export default function AIRETasks({ user }) {
 }
 
 // Modal Component
-function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, onSubmit, onRequestEdit, customColumns = [], customColumnMetadata = {}, currentUser }) {
+function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, onSubmit, onRequestEdit, onRemoveAttachment, customColumns = [], customColumnMetadata = {}, currentUser }) {
     const [form, setForm] = useState({
         title: '',
         description: '',
@@ -1621,6 +1732,8 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
         scheduledDate: '',
         status: 'Pending'
     });
+
+    const [photos, setPhotos] = useState([]);
 
     const CATEGORY_STORAGE_KEY = 'aireTasks.customCategories';
     const [customCategories, setCustomCategories] = useState([]);
@@ -1733,13 +1846,17 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
             // Prefill custom columns
             ...customColumns.reduce((acc, col) => ({ ...acc, [col]: editingTask[col] ?? '' }), {})
         }));
+        setPhotos([]);
+    }, [editingTask]);
 
+    React.useEffect(() => {
+        if (!editingTask) return;
         if (editingTask.propertyId || editingTask.property_id) {
             const pid = editingTask.propertyId ?? editingTask.property_id;
             fetchServiceUsers(pid);
             fetchStaffForHotel(pid);
         }
-    }, [editingTask, customColumns.join(',')]); // Re-run when task or columns change
+    }, [editingTask]);
 
     async function fetchHotels(signal) {
         try {
@@ -1899,7 +2016,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
             alert(`Please fill required fields: ${missing.join(', ')}.`);
             return;
         }
-        onSubmit(form, editingTask ? editingTask.id : undefined);
+        onSubmit({ ...form, photos }, editingTask ? editingTask.id : undefined);
     };
 
     React.useEffect(() => {
@@ -2006,7 +2123,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                     </h3>
                     <button
                         onClick={onClose}
-                        className="rounded-xl text-gray-400 transition-colors"
+                        className="rounded-xl text-gray-400 hover:text-gray-600 transition-colors"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -2092,7 +2209,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                                             <button
                                                 type="button"
                                                 onClick={saveCustomCategory}
-                                                className="px-3 py-2.5 bg-teal-500 text-white rounded-xl -xl text-sm font-medium whitespace-nowrap transition-colors"
+                                                className="px-3 py-2.5 bg-teal-500 text-white rounded-xl -xl hover:bg-teal-600 text-sm font-medium whitespace-nowrap transition-colors"
                                             >
                                                 Add
                                             </button>
@@ -2102,7 +2219,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                                                     setShowCustomCategoryInput(false);
                                                     setCustomCategoryValue('');
                                                 }}
-                                                className="px-3 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium whitespace-nowrap transition-colors"
+                                                className="px-3 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 text-sm font-medium whitespace-nowrap transition-colors"
                                             >
                                                 Cancel
                                             </button>
@@ -2186,6 +2303,64 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                                 />
                             </div>
 
+                            <div className="col-span-1 md:col-span-2">
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(e) => {
+                                        const files = Array.from(e.target.files || []);
+                                        setPhotos(files);
+                                    }}
+                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                                />
+                                {photos.length > 0 && (
+                                    <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>
+                                )}
+                            </div>
+
+                            {(() => {
+                                if (!editingTask) return null;
+                                let atts = editingTask?.attachments ?? editingTask?.raw?.attachments ?? [];
+                                try {
+                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                } catch {
+                                    atts = [];
+                                }
+                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                if (list.length === 0) return null;
+                                return (
+                                    <div className="col-span-1 md:col-span-2">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {list.map((id) => (
+                                                <div key={String(id)} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => window.open(`/api/aire-tasks/attachments/${id}`, '_blank', 'noopener,noreferrer')}
+                                                        className="text-xs font-semibold text-teal-700"
+                                                        title="View"
+                                                    >
+                                                        View
+                                                    </button>
+                                                    {!readOnly && typeof onRemoveAttachment === 'function' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onRemoveAttachment(editingTask.id, id)}
+                                                            className="text-xs font-semibold text-red-600"
+                                                            title="Remove"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Custom columns from Forms Builder */}
                             {customColumns.map(col => {
                                 const meta = customColumnMetadata[col] || {};
@@ -2263,7 +2438,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                         <button
                             onClick={onClose}
                             disabled={submitting}
-                            className="px-4 py-2.5 border border-gray-300 rounded-xl -xl text-gray-700 font-medium transition-colors text-sm"
+                            className="px-4 py-2.5 border border-gray-300 rounded-xl -xl text-gray-700 hover:bg-gray-50 font-medium transition-colors text-sm"
                         >
                             Cancel
                         </button>
@@ -2271,7 +2446,7 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                             type="submit"
                             form="aire-form"
                             disabled={submitting}
-                            className="px-4 py-2.5 bg-teal-500 text-white rounded-xl -xl font-medium shadow-sm transition-colors text-sm"
+                            className="px-4 py-2.5 bg-teal-500 text-white rounded-xl -xl hover:bg-teal-600 font-medium shadow-sm transition-colors text-sm"
                         >
                             {submitting ? 'Saving...' : (editingTask ? 'Update Task' : 'Create Task')}
                         </button>

@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
@@ -224,6 +224,7 @@ export default function Litigation({ user }) {
         "type",
         "reference",
         "description",
+        "attachments",
         "priority",
         "status",
         "assigned",
@@ -233,15 +234,19 @@ export default function Litigation({ user }) {
 
     // Column visibility state - load from localStorage or default to all visible
     const [visibleColumns, setVisibleColumns] = useState(() => {
+        const defaults = DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
         try {
             const saved = localStorage.getItem('litigation_visible_columns');
             if (saved) {
-                return JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                const merged = { ...defaults, ...(parsed || {}) };
+                if (merged.attachments === undefined) merged.attachments = true;
+                return merged;
             }
         } catch (e) {
             console.error('Error loading column visibility:', e);
         }
-        return DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
+        return defaults;
     });
 
     // Modal states
@@ -262,6 +267,15 @@ export default function Litigation({ user }) {
     });
 
     const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true, timeout: 15000 }), []);
+
+    const normalizeTasks = useCallback((list) => {
+        const rows = Array.isArray(list) ? list : [];
+        return rows.map((t) => ({
+            ...t,
+            raw: t,
+            attachments: t?.attachments ?? t?.raw?.attachments ?? []
+        }));
+    }, []);
 
     // Fetch available columns from Forms Builder
     const fetchAvailableColumns = async () => {
@@ -296,6 +310,7 @@ export default function Litigation({ user }) {
                 const standardCols = ['id', 'reference', 'title', 'description', 'priority', 'status',
                     'assigned_to_id', 'assigned_to_name', 'service_user_id', 'property_id',
                     'property_name', 'scheduled_date', 'reported_by', 'category', 'notes',
+                    'attachments',
                     'created_at', 'updated_at'];
                 const custom = columnNames.filter(col => !standardCols.includes(col));
 
@@ -354,6 +369,7 @@ export default function Litigation({ user }) {
             const standardCols = ['id', 'reference', 'title', 'description', 'priority', 'status',
                 'assigned_to_id', 'assigned_to_name', 'service_user_id', 'property_id',
                 'property_name', 'scheduled_date', 'reported_by', 'category', 'notes',
+                'attachments',
                 'created_at', 'updated_at'];
             const custom = columnNames.filter(col => !standardCols.includes(col));
 
@@ -440,7 +456,8 @@ export default function Litigation({ user }) {
             try {
                 setTasksLoading(true);
                 const r = await api.get('/api/litigation?limit=500').catch(() => ({ data: [] }));
-                if (mounted) setTasks(Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? []));
+                const list = Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? []);
+                if (mounted) setTasks(normalizeTasks(list));
             } catch (err) {
                 console.warn('Failed to load tasks', err);
             } finally { if (mounted) setTasksLoading(false); }
@@ -453,7 +470,8 @@ export default function Litigation({ user }) {
         try {
             setTasksLoading(true);
             const r = await api.get('/api/litigation?limit=500').catch(() => ({ data: [] }));
-            setTasks(Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? []));
+            const list = Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? []);
+            setTasks(normalizeTasks(list));
         } catch (err) {
             console.warn('refreshTasks failed', err);
         } finally { setTasksLoading(false); }
@@ -966,6 +984,7 @@ export default function Litigation({ user }) {
                                             {visibleColumns.type && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">TYPE</th>}
                                             {visibleColumns.reference && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">REFERENCE</th>}
                                             {visibleColumns.description && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>}
+                                            {visibleColumns.attachments && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ATTACHMENTS</th>}
                                             {visibleColumns.priority && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>}
                                             {visibleColumns.status && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">STATUS</th>}
                                             {visibleColumns.assigned && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>}
@@ -1024,6 +1043,47 @@ export default function Litigation({ user }) {
                                                             </div>
                                                         </td>
                                                     )}
+                                                    {visibleColumns.attachments && (
+                                                        <td className="py-4 px-4">
+                                                            {(() => {
+                                                                let atts = task?.attachments ?? task?.raw?.attachments ?? [];
+
+                                                                try {
+                                                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                                } catch {
+                                                                    atts = [];
+                                                                }
+                                                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                                                if (list.length === 0) return <span className="text-gray-400 text-xs">—</span>;
+                                                                return (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+                                                                            const urls = list.map((x) => {
+                                                                                const isNumericId = /^\d+$/.test(String(x));
+                                                                                const u = isNumericId ? `/api/litigation/attachments/${x}` : String(x);
+                                                                                return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+                                                                            });
+                                                                            const safeTitle = `Litigation Attachments (${urls.length})`;
+                                                                            const html = `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${safeTitle}</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0b1220;color:#e5e7eb}header{position:sticky;top:0;background:rgba(11,18,32,.92);backdrop-filter:blur(10px);padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.2)}.wrap{padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.card{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:12px;overflow:hidden}.card img{display:block;width:100%;height:auto;background:#111827}.meta{padding:10px 12px;font-size:12px;color:#94a3b8}</style></head><body><header><div style="font-weight:700">${safeTitle}</div><div style="font-size:12px;color:#94a3b8">Click an image to open it directly</div></header><div class="wrap">${urls.map((u, i) => `<a class="card" href="${u}" target="_blank" rel="noopener noreferrer"><img src="${u}" alt="Attachment ${i + 1}"/><div class="meta">Photo ${i + 1}</div></a>`).join('')}</div></body></html>`;
+                                                                            const blob = new Blob([html], { type: 'text/html' });
+                                                                            const blobUrl = URL.createObjectURL(blob);
+                                                                            window.open(blobUrl, '_blank', 'noopener,noreferrer');
+                                                                            setTimeout(() => {
+                                                                                try { URL.revokeObjectURL(blobUrl); } catch { }
+                                                                            }, 60_000);
+                                                                        }}
+                                                                        className="inline-flex items-center gap-2 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
+                                                                        title="View attachments"
+                                                                    >
+                                                                        <span>{list.length}</span>
+                                                                        <span className="text-[10px] font-bold uppercase tracking-wide">Photos</span>
+                                                                    </button>
+                                                                );
+                                                            })()}
+                                                        </td>
+                                                    )}
                                                     {visibleColumns.priority && (
                                                         <td className="py-4 px-4">
                                                             <div className="flex items-center gap-2">
@@ -1042,15 +1102,15 @@ export default function Litigation({ user }) {
                                                     )}
                                                     {visibleColumns.assigned && (
                                                         <td className="py-4 px-4">
-                                                            {(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned || "").trim() === "" ? (
-                                                                <span className="text-gray-400 text-sm">Unassigned</span>
-                                                            ) : (
+                                                            {(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned) ? (
                                                                 <div className="flex items-center gap-2">
                                                                     <div className={`w-8 h-8 rounded-full ${getAvatarColor(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)} flex items-center justify-center text-xs font-semibold shadow-sm`}>
                                                                         {getInitials(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)}
                                                                     </div>
                                                                     <span className="text-gray-900 text-sm font-medium">{task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned}</span>
                                                                 </div>
+                                                            ) : (
+                                                                <span className="text-gray-400 text-sm">Unassigned</span>
                                                             )}
                                                         </td>
                                                     )}
@@ -1277,8 +1337,7 @@ export default function Litigation({ user }) {
                                                                         </div>
                                                                     </div>
                                                                 );
-                                                            })
-                                                        )}
+                                                            }))}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1290,7 +1349,6 @@ export default function Litigation({ user }) {
 
                     </div>
                 </div>
-
 
                 {
                     showModal && (
@@ -1326,15 +1384,88 @@ export default function Litigation({ user }) {
                     type={alertDialog.type}
                 />
             </div>
+        </div >
+    );
+}
+
+function getStatusStyle(status) {
+    if (status === 'pending') {
+        return {
+            bg: 'bg-orange-50',
+            border: 'border-orange-200',
+            header: 'bg-orange-100',
+            text: 'text-orange-700',
+            dot: 'bg-orange-500'
+        };
+    }
+    if (status === 'in court') {
+        return {
+            bg: 'bg-purple-50',
+            border: 'border-purple-200',
+            header: 'bg-purple-100',
+            text: 'text-purple-700',
+            dot: 'bg-purple-500'
+        };
+    }
+    if (status === 'closed') {
+        return {
+            bg: 'bg-emerald-50',
+            border: 'border-emerald-200',
+            header: 'bg-emerald-100',
+            text: 'text-emerald-700',
+            dot: 'bg-emerald-500'
+        };
+    }
+    return {
+        bg: 'bg-gray-50',
+        border: 'border-gray-200',
+        header: 'bg-gray-100',
+        text: 'text-gray-700',
+        dot: 'bg-gray-500'
+    };
+}
+
+function DetailField({ label, value }) {
+    return (
+        <div className="col-span-1">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+            <p className="text-gray-900 font-medium">{value || '-'}</p>
         </div>
     );
 }
 
+const CATEGORY_OPTIONS = [
+    'Property Damage',
+    'Personal Injury',
+    'Contract Dispute',
+    'Tenant Default',
+    'Compliance Issue',
+    'Insurance Claim',
+    'Employment Matter',
+    'General Liability',
+    'Other'
+];
 
 function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onRequestEdit, submitting, setSubmitting, error, setError, refreshTasks = () => { }, initialData = null, mode = 'create', customColumns = [], customColumnMetadata = {}, currentUser }) {
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
     const [form, setForm] = useState({ title: '', description: '', property: '', propertyName: '', category: '', priority: 'medium', reportedBy: currentUser?.name || '', assignedTo: '', assignedToId: '', serviceUserId: '', scheduledDate: '', status: 'Pending' });
+
+    const [photos, setPhotos] = useState([]);
+
+    const removeAttachment = async (attachmentId) => {
+        if (!attachmentId || submitting) return;
+        try {
+            setSubmitting(true);
+            await api.delete(`/api/litigation/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+            await refreshTasks();
+        } catch (err) {
+            console.warn('Failed to remove attachment', err);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const [serviceUsers, setServiceUsers] = useState([]);
     const [staffUsers, setStaffUsers] = useState([]);
     const [staffLoading, setStaffLoading] = useState(false);
@@ -1362,32 +1493,23 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
     }, [customColumns.join(',')]);
 
     useEffect(() => {
-        if (initialData) {
-            const baseData = {
-                ...form,
-                title: initialData.title ?? form.title,
-                description: initialData.description ?? form.description,
-                property: initialData.property_id ?? initialData.property ?? form.property,
-                propertyName: initialData.property_name ?? form.property_name ?? form.propertyName,
-                category: initialData.category ?? form.category,
-                priority: (initialData.priority ?? form.priority) || 'medium',
-                reportedBy: initialData.reported_by ?? form.reportedBy,
-                assignedTo: initialData.assigned_to_name ?? form.assignedTo,
-                serviceUserId: initialData.service_user_id ?? form.serviceUserId,
-                scheduledDate: initialData.scheduled_date ? String(initialData.scheduled_date).slice(0, 10) : form.scheduledDate,
-                status: initialData.status ?? form.status
-            };
-            // Add custom column values
-            customColumns.forEach(col => {
-                baseData[col] = initialData[col] ?? '';
-            });
-            setForm(baseData);
-            if (initialData.property_id) {
-                fetchServiceUsers(initialData.property_id);
-                fetchStaffForHotel(initialData.property_id);
-            }
-        }
-    }, [initialData, customColumns.join(',')]);
+        if (!initialData) return;
+        setForm((f) => ({
+            ...f,
+            title: initialData.title ?? form.title,
+            description: initialData.description ?? form.description,
+            property: initialData.property_id ?? initialData.property ?? form.property,
+            propertyName: initialData.property_name ?? form.property_name ?? form.propertyName,
+            category: initialData.category ?? form.category,
+            priority: (initialData.priority ?? form.priority) || 'medium',
+            reportedBy: initialData.reported_by ?? form.reportedBy,
+            assignedTo: initialData.assigned_to_name ?? form.assignedTo,
+            serviceUserId: initialData.service_user_id ?? form.serviceUserId,
+            scheduledDate: initialData.scheduled_date ? String(initialData.scheduled_date).slice(0, 10) : form.scheduledDate,
+            status: initialData.status ?? form.status
+        }));
+        setPhotos([]);
+    }, [initialData]);
 
     useEffect(() => {
         try {
@@ -1503,261 +1625,108 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                     email: u.email || null,
                 }))
                 .filter((u) => u.id && u.name);
-            setStaffUsers(normalized);
 
-            staffCacheRef.current = { ...staffCacheRef.current, [cacheKey]: normalized };
+            staffCacheRef.current[cacheKey] = normalized;
+            setStaffUsers(normalized);
         } catch (err) {
-            if (err?.name === 'CanceledError' || err?.name === 'AbortError') return;
+            if (axios.isCancel(err)) return;
             console.error('fetchStaffForHotel error:', err);
             setStaffUsers([]);
         } finally {
-            if (staffAbortRef.current === controller) {
-                setStaffLoading(false);
-            }
+            setStaffLoading(false);
         }
     }
 
-    function handlePropertyChange(e) {
+    const handlePropertyChange = (e) => {
         const hotelId = e.target.value;
-        const hotel = hotels.find((h) => String(h.id) === String(hotelId)) || null;
-        setForm((p) => ({
-            ...p,
+        const hotel = hotels.find(h => String(h.id) === String(hotelId));
+        setForm({
+            ...form,
             property: hotelId,
             propertyName: hotel ? hotel.name : '',
-            reportedBy: currentUser?.name || '',
             assignedTo: '',
             assignedToId: '',
-            serviceUserId: '',
-        }));
-        setServiceUsers([]);
-        setStaffUsers([]);
+            serviceUserId: ''
+        });
         if (hotelId) {
-            fetchServiceUsers(hotelId);
             fetchStaffForHotel(hotelId);
+            fetchServiceUsers(hotelId);
+        } else {
+            setStaffUsers([]);
+            setServiceUsers([]);
         }
-    }
+    };
 
-    function handleServiceUserChange(e) {
-        const suId = e.target.value;
-        const su = serviceUsers.find((s) => String(s.id) === String(suId)) || null;
-        setForm((p) => ({ ...p, assignedTo: su ? `${su.first_name}` : '', assignedToId: su ? String(su.id) : '', serviceUserId: su ? String(su.id) : '' }));
-    }
+    useEffect(() => {
+        if (form.property) {
+            fetchStaffForHotel(form.property);
+            fetchServiceUsers(form.property);
+        }
+    }, []);
 
     const submit = async (e) => {
         e.preventDefault();
         if (submitting) return;
         setSubmitting(true); setError(null);
+
         try {
-            const missing = [];
-            if (!String(form.title || '').trim()) missing.push('Title');
-            if (!String(form.description || '').trim()) missing.push('Description');
-            if (!form.property) missing.push('Property');
-            if (!form.category) missing.push('Category');
-            if (!form.priority) missing.push('Priority');
-            if (!String(form.reportedBy || '').trim()) missing.push('Reported By');
-            if (!form.assignedTo) missing.push('Assigned To');
-            if (!form.scheduledDate) missing.push('Date');
-            if (!form.status) missing.push('Status');
-
-            for (const col of customColumns || []) {
-                const meta = customColumnMetadata[col] || {};
-                const inputType = meta.input_type || 'text';
-                const v = form[col];
-                if (inputType === 'checkbox') {
-                    if (v !== 'true' && v !== 'false') missing.push(col.replace(/_/g, ' '));
-                } else if (v === undefined || v === null || String(v).trim() === '') {
-                    missing.push(col.replace(/_/g, ' '));
-                }
-            }
-
-            if (missing.length) {
-                setError(`Please fill required fields: ${missing.join(', ')}.`);
-                setSubmitting(false);
-                return;
-            }
-
             const payload = {
                 title: form.title,
-                description: form.description || null,
-                priority: form.priority || 'medium',
-                assigned_to_name: form.assignedTo || null,
-                service_user_id: form.serviceUserId || null,
+                description: form.description,
                 property_id: form.property || null,
                 property_name: form.propertyName || null,
-                scheduled_date: form.scheduledDate || null,
                 category: form.category || null,
-                reported_by: form.reportedBy || null,
-                status: form.status
+                priority: form.priority,
+                status: form.status,
+                reported_by: form.reportedBy,
+                assigned_to_name: form.assignedTo,
+                service_user_id: form.serviceUserId || null,
+                scheduled_date: form.scheduledDate || null,
             };
-            // Include custom columns
+
+            // Include custom columns in payload
             customColumns.forEach(col => {
                 if (form[col] !== undefined) {
-                    const meta = customColumnMetadata[col] || {};
-                    const inputType = meta.input_type || 'text';
-                    if (inputType === 'checkbox') {
-                        if (form[col] === true || String(form[col]).toLowerCase() === 'true' || String(form[col]) === 'true') payload[col] = true;
-                        else if (form[col] === false || String(form[col]).toLowerCase() === 'false' || String(form[col]) === 'false') payload[col] = false;
-                        else payload[col] = null;
-                    } else {
-                        payload[col] = form[col];
-                    }
+                    payload[col] = form[col];
                 }
             });
-            if (isEdit && initialData && initialData.id) {
-                await api.patch(`/api/litigation/${initialData.id}`, payload);
+
+            const hasPhotos = Array.isArray(photos) && photos.length > 0;
+            if (hasPhotos) {
+                const fd = new FormData();
+                Object.entries(payload).forEach(([k, v]) => {
+                    if (v !== undefined && v !== null) fd.append(k, String(v));
+                });
+                photos.forEach((f) => fd.append('photos', f));
+                if (isEdit && initialData && initialData.id) {
+                    await api.patch(`/api/litigation/${initialData.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                } else {
+                    await api.post('/api/litigation', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                }
             } else {
-                await api.post('/api/litigation', payload);
+                if (isEdit && initialData && initialData.id) {
+                    await api.patch(`/api/litigation/${initialData.id}`, payload);
+                } else {
+                    await api.post('/api/litigation', payload);
+                }
             }
             await refreshTasks();
             setSubmitting(false);
             onClose();
         } catch (err) {
-            setError(err?.response?.data?.message || err?.message || 'Failed to create task');
+            console.error('Failed to save litigation case:', err);
+            setError(err?.response?.data?.message || err?.message || 'Failed to save case');
             setSubmitting(false);
         }
     };
 
-    const CATEGORY_OPTIONS = ['Plumbing', 'Electrical', 'HVAC', 'Structural', 'Appliances', 'Doors & Windows', 'Flooring', 'Roofing', 'Pest Control', 'Other'];
-
-    // --- VIEW MODE UI ---
-    if (isView) {
-        return (
-            <div className="modal-overlay">
-                <div className="modal-container h-[70vh]">
-                    <div className="modal-header">
-                        <div>
-                            <h2 className="modal-title">Case Details</h2>
-                            <p className="modal-subtitle">View litigation case information</p>
-                        </div>
-                        <button onClick={onClose} className="rounded-xl modal-close-btn">
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <div className="modal-content">
-                        <div className="form-grid-2">
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Title</label>
-                                <p className="text-gray-900 font-medium">{form.title || 'N/A'}</p>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                    {form.status || 'N/A'}
-                                </span>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
-                                <p className="text-gray-900">{form.propertyName || 'N/A'}</p>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Category</label>
-                                <p className="text-gray-900">{form.category || 'N/A'}</p>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Scheduled Date</label>
-                                <p className="text-gray-900">{form.scheduledDate ? new Date(form.scheduledDate).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</p>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Priority</label>
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                    {form.priority || 'N/A'}
-                                </span>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reported By</label>
-                                <p className="text-gray-900">{form.reportedBy || 'N/A'}</p>
-                            </div>
-
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Assigned To</label>
-                                <p className="text-gray-900">{form.assignedTo || 'N/A'}</p>
-                            </div>
-
-                            {(customColumns || []).map((col) => {
-                                const meta = customColumnMetadata?.[col] || {};
-                                const label = String(meta.label || col)
-                                    .replace(/_/g, ' ')
-                                    .replace(/\b\w/g, (m) => m.toUpperCase());
-                                const rawVal = form?.[col];
-                                const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
-                                const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
-                                const isDateType = inputType === 'date';
-
-                                let valueText = rawVal;
-                                if (valueText === null || valueText === undefined || valueText === '') valueText = 'N/A';
-
-                                if (isDateType && rawVal) {
-                                    const d = new Date(rawVal);
-                                    if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
-                                }
-
-                                if (isBoolType) {
-                                    const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
-                                    return (
-                                        <div key={col}>
-                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                                {boolVal ? 'Yes' : 'No'}
-                                            </span>
-                                        </div>
-                                    );
-                                }
-
-                                return (
-                                    <div key={col}>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
-                                        <p className="text-gray-900 font-medium">{String(valueText)}</p>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
-                            <p className="text-gray-700">{form.description || 'No description provided.'}</p>
-                        </div>
-                    </div>
-
-                    <div className="modal-footer">
-                        <button
-                            onClick={onClose}
-                            className="rounded-xl btn-secondary"
-                        >
-                            Close
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (typeof onRequestEdit === 'function') {
-                                    onRequestEdit();
-                                }
-                            }}
-                            className="btn-primary rounded-xl"
-                        >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // --- EDIT/CREATE FORM UI ---
     return (
         <div className="modal-overlay">
             <div className="modal-container h-[70vh]">
                 {/* Modal Header */}
                 <div className="modal-header">
                     <h3 className="modal-title">
-                        {isEdit ? "Edit Case" : "New Case"}
+                        {isEdit ? "Edit Case" : (isView ? "Case Details" : "New Case")}
                     </h3>
                     <button
                         onClick={onClose}
@@ -1768,252 +1737,376 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                 </div>
 
                 {/* Modal Form Content */}
-                <form id="lit-form" onSubmit={submit} className="modal-content form-section">
-                    <div className="form-grid-2">
-                        {error && (
-                            <div className="col-span-1 md:col-span-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-                                {error}
+                <div className="modal-content form-section">
+                    {isView ? (
+                        <div className="form-grid-2">
+                            <DetailField label="Title" value={form.title} />
+                            <DetailField label="Status" value={form.status} />
+                            <DetailField label="Property" value={form.propertyName} />
+                            <DetailField label="Category" value={form.category} />
+                            <DetailField label="Priority" value={form.priority} />
+                            <DetailField label="Reported By" value={form.reportedBy} />
+                            <DetailField label="Assigned To" value={form.assignedTo} />
+                            <DetailField label="Scheduled Date" value={form.scheduledDate} />
+                            <div className="col-span-1 md:col-span-2">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
+                                <p className="text-gray-900 font-medium whitespace-pre-wrap">{form.description || '-'}</p>
                             </div>
-                        )}
 
-                        {/* Row 1: Title (Full Width) */}
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="form-label">Title <span className="text-red-500">*</span></label>
-                            <input
-                                required
-                                value={form.title}
-                                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                                className="form-input rounded-xl"
-                            />
+                            {(() => {
+                                let atts = initialData?.attachments ?? initialData?.raw?.attachments ?? [];
+                                try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
+                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                if (list.length === 0) return null;
+                                return (
+                                    <div className="col-span-1 md:col-span-2">
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Uploaded Photos</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {list.map((id) => (
+                                                <div key={String(id)} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+                                                            window.open(`${base}/api/litigation/attachments/${id}`, '_blank', 'noopener,noreferrer');
+                                                        }}
+                                                        className="text-xs font-semibold text-teal-700"
+                                                    >
+                                                        View
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
-
-                        {/* Row 2: Description (Full Width) */}
-                        <div className="col-span-1 md:col-span-2">
-                            <label className="form-label">Description <span className="text-red-500">*</span></label>
-                            <textarea
-                                required
-                                rows={3}
-                                value={form.description}
-                                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                                className="form-input resize-y rounded-xl"
-                            />
-                        </div>
-
-                        {/* Row 3: Property & Category */}
-                        <div className="col-span-1">
-                            <label className="form-label">Property <span className="text-red-500">*</span></label>
-                            <select
-                                required
-                                value={form.property}
-                                onChange={handlePropertyChange}
-                                className="rounded-xl form-select"
-                            >
-                                <option value="">Select property</option>
-                                {hotelsLoading ? <option>Loading...</option> : hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                            </select>
-                        </div>
-                        <div className="col-span-1">
-                            <label className="form-label">Category <span className="text-red-500">*</span></label>
-                            <select
-                                required
-                                value={form.category}
-                                onChange={handleCategoryChange}
-                                className="rounded-xl form-select"
-                            >
-                                <option value="">Select category</option>
-                                {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
-                                {!!form.category && ![...CATEGORY_OPTIONS, ...customCategories].some((c) => String(c) === String(form.category)) && (
-                                    <option value={form.category}>{form.category}</option>
+                    ) : (
+                        <form id="lit-form" onSubmit={submit}>
+                            <div className="form-grid-2">
+                                {error && (
+                                    <div className="col-span-1 md:col-span-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                                        {error}
+                                    </div>
                                 )}
-                                <option value="__add_new__">+ Add new...</option>
-                            </select>
-                            {showCustomCategoryInput && (
-                                <div className="mt-2 flex gap-2">
+
+                                {/* Row 1: Title (Full Width) */}
+                                <div className="col-span-1 md:col-span-2">
+                                    <label className="form-label">Title <span className="text-red-500">*</span></label>
                                     <input
-                                        type="text"
-                                        value={customCategoryValue}
-                                        onChange={(e) => setCustomCategoryValue(e.target.value)}
-                                        placeholder="Enter new category"
+                                        required
+                                        value={form.title}
+                                        onChange={(e) => setForm({ ...form, title: e.target.value })}
                                         className="form-input rounded-xl"
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={saveCustomCategory}
-                                        className="px-3 py-1.5 bg-teal-500 text-white rounded-xl text-sm font-medium"
-                                    >
-                                        Add
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setShowCustomCategoryInput(false);
-                                            setCustomCategoryValue('');
-                                        }}
-                                        className="px-3 py-1.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium"
-                                    >
-                                        Cancel
-                                    </button>
                                 </div>
-                            )}
-                        </div>
-                        {/* Row 4: Priority & Assigned To */}
-                        <div className="col-span-1">
-                            <label className="form-label">Priority <span className="text-red-500">*</span></label>
-                            <select
-                                required
-                                value={form.priority}
-                                onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                                className="form-select rounded-xl"
-                            >
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                                <option value="urgent">Urgent</option>
-                            </select>
-                        </div>
-                        <div className="col-span-1">
-                            <label className="form-label">Assigned To <span className="text-red-500">*</span></label>
-                            {form.property ? (
-                                <select
-                                    value={form.assignedTo || ''}
-                                    onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value, assignedToId: '' }))}
-                                    disabled={!form.property || staffLoading}
-                                    className="form-select disabled:bg-gray-100 disabled:cursor-not-allowed rounded-xl"
-                                    required
-                                >
-                                    <option value="">
-                                        {!form.property
-                                            ? "Select property first"
-                                            : staffLoading
-                                                ? "Loading staff..."
-                                                : "Select staff"}
-                                    </option>
-                                    {!!form.assignedTo && !staffUsers.some((u) => String(u.name) === String(form.assignedTo)) && (
-                                        <option value={form.assignedTo}>{form.assignedTo}</option>
+
+                                {/* Row 2: Description (Full Width) */}
+                                <div className="col-span-1 md:col-span-2">
+                                    <label className="form-label">Description <span className="text-red-500">*</span></label>
+                                    <textarea
+                                        required
+                                        rows={3}
+                                        value={form.description}
+                                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                                        className="form-input resize-y rounded-xl"
+                                    />
+                                </div>
+
+                                {/* Row 3: Property & Category */}
+                                <div className="col-span-1">
+                                    <label className="form-label">Property <span className="text-red-500">*</span></label>
+                                    <select
+                                        required
+                                        value={form.property}
+                                        onChange={handlePropertyChange}
+                                        className="rounded-xl form-select"
+                                    >
+                                        <option value="">Select property</option>
+                                        {hotelsLoading ? <option>Loading...</option> : hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="form-label">Category <span className="text-red-500">*</span></label>
+                                    <select
+                                        required
+                                        value={form.category}
+                                        onChange={handleCategoryChange}
+                                        className="rounded-xl form-select"
+                                    >
+                                        <option value="">Select category</option>
+                                        {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                        {!!form.category && ![...CATEGORY_OPTIONS, ...customCategories].some((c) => String(c) === String(form.category)) && (
+                                            <option value={form.category}>{form.category}</option>
+                                        )}
+                                        <option value="__add_new__">+ Add new...</option>
+                                    </select>
+                                    {showCustomCategoryInput && (
+                                        <div className="mt-2 flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={customCategoryValue}
+                                                onChange={(e) => setCustomCategoryValue(e.target.value)}
+                                                placeholder="Enter new category"
+                                                className="form-input rounded-xl"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={saveCustomCategory}
+                                                className="px-3 py-1.5 bg-teal-500 text-white rounded-xl text-sm font-medium"
+                                            >
+                                                Add
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setShowCustomCategoryInput(false);
+                                                    setCustomCategoryValue('');
+                                                }}
+                                                className="px-3 py-1.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
                                     )}
-                                    {staffUsers.map((u) => (
-                                        <option key={u.id} value={u.name}>{u.name}</option>
-                                    ))}
-                                </select>
-                            ) : (
-                                <input
-                                    value={form.assignedTo}
-                                    onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
-                                    disabled={!form.property}
-                                    placeholder={!form.property ? "Select property first" : "Name"}
-                                    className="form-input disabled:bg-gray-100 disabled:cursor-not-allowed rounded-xl"
-                                    required
-                                />
-                            )}
-                        </div>
-                        {/* Row 5: Reported By & Date */}
-                        <div className="col-span-1">
-                            <label className="form-label">Reported By <span className="text-red-500">*</span></label>
-                            <input
-                                value={form.reportedBy}
-                                readOnly
-                                required
-                                className="rounded-xl form-input bg-gray-100 cursor-not-allowed"
-                            />
-                        </div>
-                        <div className="col-span-1">
-                            <label className="form-label">Date <span className="text-red-500">*</span></label>
-                            <input
-                                type="date"
-                                value={form.scheduledDate}
-                                onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
-                                className="form-input rounded-xl"
-                                required
-                            />
-                        </div>
+                                </div>
 
-                        {/* Custom Columns from Forms Builder */}
-                        {customColumns.map(col => {
-                            const meta = customColumnMetadata[col] || {};
-                            const inputType = meta.input_type || 'text';
-                            const options = Array.isArray(meta.input_options) ? meta.input_options : [];
-
-                            return (
-                                <div key={col} className="col-span-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} <span className="text-red-500">*</span>
-                                    </label>
-                                    {inputType === 'checkbox' ? (
+                                {/* Row 4: Priority & Assigned To */}
+                                <div className="col-span-1">
+                                    <label className="form-label">Priority <span className="text-red-500">*</span></label>
+                                    <select
+                                        required
+                                        value={form.priority}
+                                        onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                                        className="form-select rounded-xl"
+                                    >
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="urgent">Urgent</option>
+                                    </select>
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="form-label">Assigned To <span className="text-red-500">*</span></label>
+                                    {form.property ? (
                                         <select
+                                            value={form.assignedTo || ''}
+                                            onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value, assignedToId: '' }))}
+                                            disabled={!form.property || staffLoading}
+                                            className="form-select disabled:bg-gray-100 disabled:cursor-not-allowed rounded-xl"
                                             required
-                                            value={form[col] === true ? 'true' : form[col] === false ? 'false' : (form[col] || '')}
-                                            onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
                                         >
-                                            <option value="">Select...</option>
-                                            <option value="true">Yes</option>
-                                            <option value="false">No</option>
-                                        </select>
-                                    ) : inputType === 'dropdown' || inputType === 'select' ? (
-                                        <select
-                                            required
-                                            value={form[col] || ''}
-                                            onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
-                                        >
-                                            <option value="">Select...</option>
-                                            {options.map((opt, idx) => (
-                                                <option key={idx} value={opt}>{opt}</option>
+                                            <option value="">
+                                                {!form.property
+                                                    ? "Select property first"
+                                                    : staffLoading
+                                                        ? "Loading staff..."
+                                                        : "Select staff"}
+                                            </option>
+                                            {!!form.assignedTo && !staffUsers.some((u) => String(u.name) === String(form.assignedTo)) && (
+                                                <option value={form.assignedTo}>{form.assignedTo}</option>
+                                            )}
+                                            {staffUsers.map((u) => (
+                                                <option key={u.id} value={u.name}>{u.name}</option>
                                             ))}
                                         </select>
-                                    ) : inputType === 'textarea' ? (
-                                        <textarea
-                                            required
-                                            rows={3}
-                                            value={form[col] || ''}
-                                            onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                                        />
-                                    ) : inputType === 'date' ? (
-                                        <input
-                                            type="date"
-                                            required
-                                            value={form[col] ? formatDateISO(form[col]) : ''}
-                                            onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                                        />
                                     ) : (
                                         <input
-                                            type={inputType}
+                                            value={form.assignedTo}
+                                            onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
+                                            disabled={!form.property}
+                                            placeholder={!form.property ? "Select property first" : "Name"}
+                                            className="form-input disabled:bg-gray-100 disabled:cursor-not-allowed rounded-xl"
                                             required
-                                            value={form[col] || ''}
-                                            onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
-                                            placeholder={`Enter ${col.replace(/_/g, ' ')}`}
                                         />
                                     )}
                                 </div>
-                            );
-                        })}
-                    </div>
-                </form>
+
+                                {/* Row 5: Reported By & Date */}
+                                <div className="col-span-1">
+                                    <label className="form-label">Reported By <span className="text-red-500">*</span></label>
+                                    <input
+                                        value={form.reportedBy}
+                                        readOnly
+                                        required
+                                        className="rounded-xl form-input bg-gray-100 cursor-not-allowed"
+                                    />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="form-label">Date <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="date"
+                                        value={form.scheduledDate}
+                                        onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
+                                        className="form-input rounded-xl"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="col-span-1 md:col-span-2">
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={(e) => {
+                                            const files = Array.from(e.target.files || []);
+                                            setPhotos(files);
+                                        }}
+                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                                    />
+                                    {photos.length > 0 && (
+                                        <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>
+                                    )}
+                                </div>
+
+                                {(() => {
+                                    if (!initialData) return null;
+                                    let atts = initialData?.attachments ?? initialData?.raw?.attachments ?? [];
+                                    try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
+                                    const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                    if (list.length === 0) return null;
+                                    return (
+                                        <div className="col-span-1 md:col-span-2">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {list.map((id) => (
+                                                    <div key={String(id)} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+                                                                window.open(`${base}/api/litigation/attachments/${id}`, '_blank', 'noopener,noreferrer');
+                                                            }}
+                                                            className="text-xs font-semibold text-teal-700"
+                                                            title="View"
+                                                        >
+                                                            View
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeAttachment(id)}
+                                                            className="text-xs font-semibold text-red-600"
+                                                            title="Remove"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Custom Columns from Forms Builder */}
+                                {customColumns.map(col => {
+                                    const meta = customColumnMetadata[col] || {};
+                                    const inputType = meta.input_type || 'text';
+                                    const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+
+                                    return (
+                                        <div key={col} className="col-span-1">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} <span className="text-red-500">*</span>
+                                            </label>
+                                            {inputType === 'checkbox' ? (
+                                                <select
+                                                    required
+                                                    value={form[col] === true ? 'true' : form[col] === false ? 'false' : (form[col] || '')}
+                                                    onChange={e => setForm({ ...form, [col]: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                                                >
+                                                    <option value="">Select...</option>
+                                                    <option value="true">Yes</option>
+                                                    <option value="false">No</option>
+                                                </select>
+                                            ) : inputType === 'dropdown' || inputType === 'select' ? (
+                                                <select
+                                                    required
+                                                    value={form[col] || ''}
+                                                    onChange={e => setForm({ ...form, [col]: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                                                >
+                                                    <option value="">Select...</option>
+                                                    {options.map((opt, idx) => (
+                                                        <option key={idx} value={opt}>{opt}</option>
+                                                    ))}
+                                                </select>
+                                            ) : inputType === 'textarea' ? (
+                                                <textarea
+                                                    required
+                                                    rows={3}
+                                                    value={form[col] || ''}
+                                                    onChange={e => setForm({ ...form, [col]: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                                                />
+                                            ) : inputType === 'date' ? (
+                                                <input
+                                                    type="date"
+                                                    required
+                                                    value={form[col] ? formatDateISO(form[col]) : ''}
+                                                    onChange={e => setForm({ ...form, [col]: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                                                />
+                                            ) : (
+                                                <input
+                                                    type={inputType}
+                                                    required
+                                                    value={form[col] || ''}
+                                                    onChange={e => setForm({ ...form, [col]: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                                                    placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                                                />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </form>
+                    )}
+                </div>
 
                 {/* Footer Buttons */}
-                <div className="modal-footer">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded-xl btn-secondary"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        form="lit-form"
-                        disabled={submitting}
-                        className="rounded-xl btn-primary"
-                    >
-                        {submitting ? 'Saving...' : 'Save Record'}
-                    </button>
-                </div>
+                {
+                    !isView && (
+                        <div className="modal-footer">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="rounded-xl btn-secondary"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                form="lit-form"
+                                disabled={submitting}
+                                className="rounded-xl btn-primary"
+                            >
+                                {submitting ? 'Saving...' : (isEdit ? 'Update Case' : 'Save Record')}
+                            </button>
+                        </div>
+                    )
+                }
+                {
+                    isView && hasUpdate && (
+                        <div className="modal-footer">
+                            <button
+                                type="button"
+                                onClick={onRequestEdit}
+                                className="rounded-xl btn-primary flex items-center gap-2"
+                            >
+                                <Edit className="w-4 h-4" />
+                                Edit Case
+                            </button>
+                        </div>
+                    )
+                }
             </div>
         </div>
     );
 }
+
+

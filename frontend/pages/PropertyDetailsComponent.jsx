@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Breadcrumbs from "../components/Breadcrumbs";
 
 export default function PropertyDetails({ property }) {
+
     const {
         name,
         address,
@@ -109,6 +110,7 @@ export default function PropertyDetails({ property }) {
         loadData();
         return () => { cancelled = true; };
     }, [hotelId, totalBedspaces]);
+
     // const [creating, setCreating] = useState(false);
 
     // Form State
@@ -134,7 +136,6 @@ export default function PropertyDetails({ property }) {
         (Number(statsBeds.total) || 0) === 0
             ? 0
             : Math.round(((Number(statsBeds.occupied) || 0) / (Number(statsBeds.total) || 0)) * 100);
-
 
     // --- CREATE PROPERTY ---
     const handleCreate = async (e) => {
@@ -258,13 +259,20 @@ export default function PropertyDetails({ property }) {
                         </div>
 
                         {/* RIGHT SIDE – Create Room */}
-                        <div className="pt-6">
+                        <div className="pt-6 flex flex-col items-end gap-2">
                             <button
                                 onClick={() => window.location.assign(`/hotels/${hotelId}/rooms`)}
-                                className="btn-primary rounded-xl"
+                                className="btn-primary rounded-xl w-[170px]"
                             >
                                 <Plus className="w-4 h-4" />
                                 Create Room
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab("history")}
+                                className="btn-primary rounded-xl w-[170px]"
+                            >
+                                History
                             </button>
                         </div>
                     </div>
@@ -290,7 +298,7 @@ export default function PropertyDetails({ property }) {
 
                 {/* Tabs */}
                 <div className="mb-6">
-                    <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
+                    <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm overflow-x-auto scrollbar-hide">
                         <div className="flex items-center gap-1 whitespace-nowrap min-w-max">
                             <button onClick={() => setActiveTab("overview")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "overview" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Overview</button>
                             <button onClick={() => setActiveTab("floors")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "floors" ? "bg-[#66f1dd] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Floors & Rooms</button>
@@ -313,7 +321,6 @@ export default function PropertyDetails({ property }) {
                             <button onClick={() => setActiveTab("vcs_organisations")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "vcs_organisations" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>VCS Organisations</button>
                             <button onClick={() => setActiveTab("case_management")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "case_management" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Case Management</button>
                             <button onClick={() => setActiveTab("emergency_protocols")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "emergency_protocols" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Emergency Protocols</button>
-                            <button onClick={() => setActiveTab("history")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "history" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>History</button>
                         </div>
                     </div>
                 </div>

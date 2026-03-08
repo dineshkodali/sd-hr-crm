@@ -3,12 +3,131 @@ import express from 'express';
 import pool from '../config/db.js';
 import { protect as authProtect } from '../middleware/auth.js';
 import { applyCrudLogging } from "../middleware/activityMiddleware.js"; // Enhanced logging
+import multer from 'multer';
 
 const router = express.Router();
 
 // Apply CRUD logging to all operations
 applyCrudLogging(router, 'litigation', 'litigation');
 const protect = typeof authProtect === 'function' ? authProtect : (req, res, next) => next();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+let litigationAttachmentsReady = false;
+async function ensureLitigationAttachments() {
+  if (litigationAttachmentsReady) return true;
+  try {
+    await pool.query("ALTER TABLE public.litigation_tasks ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb");
+  } catch {
+    // ignore
+  }
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.litigation_task_attachments (
+        id SERIAL PRIMARY KEY,
+        task_id INTEGER,
+        file_name TEXT,
+        mime_type TEXT,
+        file_data BYTEA NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    try {
+      await pool.query("ALTER TABLE public.litigation_task_attachments ADD COLUMN IF NOT EXISTS task_id INTEGER");
+    } catch {
+      // ignore
+    }
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_litigation_task_attachments_task_id ON public.litigation_task_attachments(task_id)`);
+  } catch {
+    // ignore
+  }
+  litigationAttachmentsReady = true;
+  return true;
+}
+
+async function insertLitigationAttachments(taskId, files = []) {
+  if (!Array.isArray(files) || files.length === 0) return [];
+  const ids = [];
+  for (const f of files) {
+    if (!f || !f.buffer) continue;
+    const r = await pool.query(
+      `INSERT INTO public.litigation_task_attachments (task_id, file_name, mime_type, file_data)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+      [taskId ?? null, f.originalname ?? null, f.mimetype ?? null, f.buffer]
+    );
+    if (r.rows?.[0]?.id != null) ids.push(r.rows[0].id);
+  }
+  return ids;
+}
+
+router.get('/attachments/:id', protect, async (req, res) => {
+  try {
+    await ensureLitigationAttachments();
+    const id = req.params.id;
+    if (!/^\d+$/.test(String(id))) return res.status(400).end();
+    const r = await pool.query(
+      `SELECT id, file_name, mime_type, file_data
+       FROM public.litigation_task_attachments
+       WHERE id = $1
+       LIMIT 1`,
+      [Number(id)]
+    );
+    if (!r.rows?.length) return res.status(404).end();
+    const row = r.rows[0];
+    const mime = row.mime_type || 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    if (row.file_name) {
+      res.setHeader('Content-Disposition', `inline; filename="${String(row.file_name).replace(/"/g, '')}"`);
+    }
+    return res.send(row.file_data);
+  } catch (err) {
+    console.error('GET /api/litigation/attachments/:id error:', err && (err.stack || err));
+    return res.status(500).end();
+  }
+});
+
+router.delete('/attachments/:id', protect, async (req, res) => {
+  try {
+    await ensureLitigationAttachments();
+    const id = req.params.id;
+    if (!/^\d+$/.test(String(id))) return res.status(400).json({ message: 'Invalid attachment id' });
+    const attId = Number(id);
+
+    const existing = await pool.query(
+      `SELECT id, task_id FROM public.litigation_task_attachments WHERE id = $1 LIMIT 1`,
+      [attId]
+    );
+    if (!existing.rows?.length) return res.status(404).json({ message: 'Attachment not found' });
+    const taskId = existing.rows[0]?.task_id ?? null;
+
+    await pool.query(`DELETE FROM public.litigation_task_attachments WHERE id = $1`, [attId]);
+
+    if (taskId) {
+      await pool.query(
+        `UPDATE public.litigation_tasks
+         SET attachments = COALESCE(
+           (SELECT jsonb_agg(value)
+            FROM jsonb_array_elements(COALESCE(attachments, '[]'::jsonb)) value
+            WHERE value::text <> to_jsonb($1::int)::text
+           ),
+           '[]'::jsonb
+         ),
+         updated_at = now()
+         WHERE id = $2`,
+        [attId, taskId]
+      );
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /api/litigation/attachments/:id error:', err && (err.stack || err));
+    return res.status(500).json({ message: 'Server error', detail: err?.message });
+  }
+});
 
 function toText(v) {
   if (v === undefined || v === null) return null;
@@ -114,8 +233,9 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // Create
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, upload.array('photos', 10), async (req, res) => {
   try {
+    await ensureLitigationAttachments();
     const {
       title,
       description = null,
@@ -262,7 +382,24 @@ router.post('/', protect, async (req, res) => {
 
     const q = `INSERT INTO public.litigation_tasks (${columnsToInsert.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
     const r = await pool.query(q, finalValues);
-    return res.status(201).json(r.rows[0]);
+    const created = r.rows[0];
+
+    if (created?.id && Array.isArray(req.files) && req.files.length) {
+      const newIds = await insertLitigationAttachments(created.id, req.files);
+      if (newIds.length) {
+        try {
+          const up = await pool.query(
+            `UPDATE public.litigation_tasks SET attachments = $1::jsonb, updated_at = now() WHERE id = $2 RETURNING *`,
+            [JSON.stringify(newIds), created.id]
+          );
+          return res.status(201).json(up.rows?.[0] || created);
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    return res.status(201).json(created);
   } catch (err) {
     console.error('POST /api/litigation error:', err && (err.stack || err));
     return res.status(500).json({ message: 'Server error', detail: err?.message });
@@ -270,8 +407,9 @@ router.post('/', protect, async (req, res) => {
 });
 
 // Patch
-router.patch('/:id', protect, async (req, res) => {
+router.patch('/:id', protect, upload.array('photos', 10), async (req, res) => {
   try {
+    await ensureLitigationAttachments();
     const { id } = req.params;
 
     const existing = await pool.query(`SELECT property_id FROM public.litigation_tasks WHERE id = $1 LIMIT 1`, [id]);
@@ -366,7 +504,34 @@ router.patch('/:id', protect, async (req, res) => {
     const sql = `UPDATE public.litigation_tasks SET ${fields.join(', ')}, updated_at = now() WHERE id = $${idx} RETURNING *`;
     const r = await pool.query(sql, params);
     if (!r.rows[0]) return res.status(404).json({ message: 'Litigation task not found' });
-    return res.json(r.rows[0]);
+
+    let updated = r.rows[0];
+    if (updated?.id && Array.isArray(req.files) && req.files.length) {
+      const newIds = await insertLitigationAttachments(updated.id, req.files);
+      if (newIds.length) {
+        let prev = [];
+        try {
+          const rawPrev = updated.attachments;
+          if (Array.isArray(rawPrev)) prev = rawPrev;
+          else if (typeof rawPrev === 'string' && rawPrev) prev = JSON.parse(rawPrev);
+          else if (rawPrev && typeof rawPrev === 'object') prev = rawPrev;
+        } catch {
+          prev = [];
+        }
+        const next = [...(Array.isArray(prev) ? prev : []), ...newIds];
+        try {
+          const up = await pool.query(
+            `UPDATE public.litigation_tasks SET attachments = $1::jsonb, updated_at = now() WHERE id = $2 RETURNING *`,
+            [JSON.stringify(next), updated.id]
+          );
+          updated = up.rows?.[0] || updated;
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    return res.json(updated);
   } catch (err) {
     console.error(`PATCH /api/litigation/${req.params.id} error:`, err && (err.stack || err));
     return res.status(500).json({ message: 'Server error', detail: err?.message });
