@@ -167,6 +167,105 @@ export default function Complaints({ user }) {
     const [photos, setPhotos] = useState([]);
     const [properties, setProperties] = useState([]);
 
+    const removeAttachment = async (attachmentId) => {
+        if (!attachmentId) return;
+        try {
+            await api.delete(`/api/complaints/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+            setFormData(prev => ({
+                ...prev,
+                attachments: (prev.attachments || []).filter(id => String(id) !== String(attachmentId))
+            }));
+            fetchComplaints();
+        } catch (err) {
+            console.warn('Failed to remove attachment', err);
+        }
+    };
+
+    const openAttachmentsGallery = (items = []) => {
+        if (!items.length) return;
+        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+        const urls = items.map((x) => {
+            // If x is a number or numeric string, it's an ID
+            const isNumericId = /^\d+$/.test(String(x));
+            const u = isNumericId ? `/api/complaints/attachments/${x}` : String(x);
+            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+        });
+        const safeTitle = `Complaint Photos (${urls.length})`;
+        const html = `
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>${safeTitle}</title>
+          <style>
+            :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #2dd4bf; }
+            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+            header { position: sticky; top: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+            .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; padding: 1.5rem; }
+            .card { background: var(--card); border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
+            .card:hover { transform: translateY(-4px); border-color: var(--accent); }
+            .card img { width: 100%; height: 250px; object-fit: cover; background: #000; display: block; cursor: pointer; }
+            .card-meta { padding: 1rem; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center; }
+            .btn { background: var(--accent); color: var(--bg); padding: 0.5rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.75rem; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <div style="font-weight: 700; font-size: 1.1rem; letter-spacing: -0.025em;">${safeTitle}</div>
+            <div style="font-size: 0.75rem; opacity: 0.6;">Premium Viewer</div>
+          </header>
+          <div class="gallery">
+            ${urls.map((u, i) => `
+              <div class="card">
+                <img src="${u}" alt="Photo ${i + 1}" onclick="window.open('${u}', '_blank')">
+                <div class="card-meta">
+                  <span>Photo ${i + 1}</span>
+                  <a href="${u}" target="_blank" class="btn">Full View</a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </body>
+      </html>
+    `;
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    };
+
+    const renderExistingAttachments = () => {
+        const items = formData?.attachments || [];
+        if (!items.length) return null;
+        return (
+            <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
+                <div className="flex flex-wrap gap-2">
+                    {items.map((id, idx) => (
+                        <div key={`${id}-${idx}`} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2 shadow-sm">
+                            <button
+                                type="button"
+                                onClick={() => openAttachmentsGallery([id])}
+                                className="text-xs font-semibold text-teal-700 hover:text-teal-800 transition-colors"
+                            >
+                                View
+                            </button>
+                            <span className="w-px h-3 bg-gray-200" />
+                            <button
+                                type="button"
+                                onClick={() => removeAttachment(id)}
+                                className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+                            >
+                                Remove
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     // Custom Category Options Adder (similar to Inspections.jsx)
     const CATEGORY_STORAGE_KEY = 'complaints.customCategories';
     const BUILTIN_CATEGORIES = [
@@ -590,6 +689,21 @@ export default function Complaints({ user }) {
     const handleEditClick = (complaint) => {
         setPhotos([]);
         setEditingId(complaint.id);
+
+        // Parse existing attachments
+        let existingAttachments = [];
+        try {
+            const rawAtts = complaint.attachments ?? complaint.raw?.attachments ?? [];
+            if (Array.isArray(rawAtts)) {
+                existingAttachments = rawAtts;
+            } else if (typeof rawAtts === 'string' && rawAtts.trim()) {
+                const parsed = JSON.parse(rawAtts);
+                if (Array.isArray(parsed)) existingAttachments = parsed;
+            }
+        } catch (err) {
+            console.warn('Failed to parse existing attachments', err);
+        }
+
         const baseFormData = {
             title: complaint.title || '',
             description: complaint.description || '',
@@ -600,6 +714,7 @@ export default function Complaints({ user }) {
             reported_date: (complaint.reported_date ?? complaint.reportedDate) ? formatDateISO(complaint.reported_date ?? complaint.reportedDate) : '',
             assigned_to: complaint.assigned_to ?? complaint.assignedTo ?? complaint.assigned_to_name ?? '',
             scheduled_date: (complaint.scheduled_date ?? complaint.scheduledDate) ? formatDateISO(complaint.scheduled_date ?? complaint.scheduledDate) : '',
+            attachments: existingAttachments.filter(Boolean),
         };
         // Add custom column values
         const customFieldData = {};
@@ -626,7 +741,9 @@ export default function Complaints({ user }) {
         e.preventDefault();
         try {
             const effectiveTitle = String(formData.title || '').trim() || String(formData.category || '').trim() || 'Complaint';
-            const effectiveFormData = { ...formData, title: effectiveTitle };
+            const { attachments: _, ...baseData } = formData;
+            const effectiveFormData = { ...baseData, title: effectiveTitle };
+
             const missing = [];
             if (!String(effectiveFormData.description || '').trim()) missing.push('Description');
             if (!effectiveFormData.property_id) missing.push('Property');
@@ -635,7 +752,8 @@ export default function Complaints({ user }) {
             if (!effectiveFormData.reported_by) missing.push('Reported By');
             if (!effectiveFormData.reported_date) missing.push('Reported Date');
             if (!effectiveFormData.assigned_to) missing.push('Assigned To');
-            if (!effectiveFormData.scheduled_date) missing.push('Scheduled Date');
+            const scheduled_date_val = effectiveFormData.scheduled_date || effectiveFormData.scheduledDate;
+            if (!scheduled_date_val) missing.push('Scheduled Date');
 
             for (const col of customColumns || []) {
                 const meta = customColumnMetadata[col] || {};
@@ -655,12 +773,9 @@ export default function Complaints({ user }) {
 
             // Create payload with base fields and custom columns
             const payload = { ...effectiveFormData };
-            // Include custom column values
-            customColumns.forEach(col => {
-                if (effectiveFormData[col] !== undefined) {
-                    payload[col] = effectiveFormData[col];
-                }
-            });
+            if (editingId) {
+                delete payload.attachments;
+            }
 
             const hasPhotos = Array.isArray(photos) && photos.length > 0;
             if (hasPhotos) {
@@ -1405,17 +1520,14 @@ export default function Complaints({ user }) {
                                                                 } catch {
                                                                     atts = [];
                                                                 }
-                                                                const list = Array.isArray(atts) ? atts : [];
+                                                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
                                                                 if (list.length === 0) return <span className="text-gray-400 text-sm">—</span>;
-                                                                const first = list[0];
-                                                                const isNumericId = /^\d+$/.test(String(first));
-                                                                const href = isNumericId ? `/api/complaints/attachments/${first}` : first;
                                                                 return (
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
-                                                                        className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
-                                                                        title="View first attachment"
+                                                                        onClick={() => openAttachmentsGallery(list)}
+                                                                        className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95"
+                                                                        title="View attachments"
                                                                     >
                                                                         <span>{list.length}</span>
                                                                         <span className="text-xs font-bold uppercase tracking-wide">Photos</span>
@@ -1877,6 +1989,8 @@ export default function Complaints({ user }) {
                                             )}
                                         </div>
 
+                                        {renderExistingAttachments()}
+
                                         {/* Row 5: Priority & Status/Scheduled Date */}
                                         <div className="col-span-1">
                                             <label className="block text-sm font-semibold text-slate-700 mb-2">Priority <span className="text-red-500">*</span></label>
@@ -2119,10 +2233,43 @@ export default function Complaints({ user }) {
                                         })}
                                     </div>
 
-                                    <div>
+                                    <div className="mt-6 border-t border-gray-100 pt-6">
                                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
-                                        <p className="text-gray-700">{viewingComplaint.description || 'No description provided.'}</p>
+                                        <p className="text-gray-700 whitespace-pre-wrap">{viewingComplaint.description || 'No description provided.'}</p>
                                     </div>
+
+                                    {(() => {
+                                        let atts = viewingComplaint.attachments ?? viewingComplaint.raw?.attachments ?? [];
+                                        try {
+                                            if (typeof atts === 'string' && atts.trim()) atts = JSON.parse(atts);
+                                        } catch { atts = []; }
+                                        const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                        if (list.length === 0) return null;
+
+                                        return (
+                                            <div className="mt-6 border-t border-gray-100 pt-6">
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-3">
+                                                    Attachments ({list.length})
+                                                </label>
+                                                <div className="flex flex-wrap gap-3">
+                                                    {list.map((id, idx) => (
+                                                        <button
+                                                            key={`${id}-${idx}`}
+                                                            type="button"
+                                                            onClick={() => openAttachmentsGallery(list)}
+                                                            className="group relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 hover:border-teal-500 transition-all shadow-sm hover:shadow-md"
+                                                        >
+                                                            <div className="absolute inset-0 bg-gray-900 group-hover:bg-gray-800 flex items-center justify-center">
+                                                                <span className="text-xs font-bold text-white opacity-60 group-hover:opacity-100 transition-opacity">
+                                                                    Photo {idx + 1}
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
 
                                 <div className="modal-footer">

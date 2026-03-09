@@ -1,8 +1,55 @@
 import express from 'express';
 import { protect } from '../../middleware/auth.js';
 import pool from '../../config/db.js';
+import multer from 'multer';
 
 const router = express.Router();
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+let hseTrainingAttachmentsReady = false;
+async function ensureHseTrainingAttachments() {
+    if (hseTrainingAttachmentsReady) return true;
+    try {
+        await pool.query("ALTER TABLE public.hse_training ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb");
+    } catch {
+    }
+    try {
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.hse_training_attachments (
+        id SERIAL PRIMARY KEY,
+        training_id INTEGER,
+        file_name TEXT,
+        mime_type TEXT,
+        file_data BYTEA NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_hse_training_attachments_training_id ON public.hse_training_attachments(training_id)`);
+    } catch {
+    }
+    hseTrainingAttachmentsReady = true;
+    return true;
+}
+
+async function insertHseTrainingAttachments(trainingId, files = []) {
+    if (!Array.isArray(files) || files.length === 0) return [];
+    const ids = [];
+    for (const f of files) {
+        if (!f || !f.buffer) continue;
+        const r = await pool.query(
+            `INSERT INTO public.hse_training_attachments (training_id, file_name, mime_type, file_data)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+            [trainingId ?? null, f.originalname ?? null, f.mimetype ?? null, f.buffer]
+        );
+        if (r.rows?.[0]?.id != null) ids.push(r.rows[0].id);
+    }
+    return ids;
+}
 
 function genRef() {
     const year = new Date().getFullYear();
@@ -40,6 +87,7 @@ async function getAllowedPropertyIds(user) {
 // GET list
 router.get('/', protect, async (req, res) => {
     try {
+        await ensureHseTrainingAttachments();
         const limit = req.query.limit || 500;
 
         const allowedIds = await getAllowedPropertyIds(req.user);
@@ -64,10 +112,76 @@ router.get('/', protect, async (req, res) => {
     }
 });
 
+router.get('/attachments/:id', protect, async (req, res) => {
+    try {
+        await ensureHseTrainingAttachments();
+        const id = req.params.id;
+        if (!/^\d+$/.test(String(id))) return res.status(400).end();
+        const r = await pool.query(
+            `SELECT id, file_name, mime_type, file_data
+       FROM public.hse_training_attachments
+       WHERE id = $1
+       LIMIT 1`,
+            [Number(id)]
+        );
+        if (!r.rows?.length) return res.status(404).end();
+        const row = r.rows[0];
+        const mime = row.mime_type || 'application/octet-stream';
+        res.setHeader('Content-Type', mime);
+        if (row.file_name) {
+            res.setHeader('Content-Disposition', `inline; filename="${String(row.file_name).replace(/"/g, '')}"`);
+        }
+        return res.send(row.file_data);
+    } catch (err) {
+        console.error('GET /api/hse/training/attachments/:id error:', err);
+        return res.status(500).end();
+    }
+});
+
+router.delete('/attachments/:id', protect, async (req, res) => {
+    try {
+        await ensureHseTrainingAttachments();
+        const id = req.params.id;
+        if (!/^[0-9]+$/.test(String(id))) return res.status(400).json({ success: false, message: 'Invalid attachment id' });
+
+        const find = await pool.query(
+            `SELECT id, training_id
+       FROM public.hse_training_attachments
+       WHERE id = $1
+       LIMIT 1`,
+            [Number(id)]
+        );
+        if (!find.rows?.length) return res.status(404).json({ success: false, message: 'Attachment not found' });
+        const trainingId = find.rows[0].training_id;
+
+        await pool.query(`DELETE FROM public.hse_training_attachments WHERE id = $1`, [Number(id)]);
+
+        if (trainingId) {
+            await pool.query(
+                `UPDATE public.hse_training
+         SET attachments = COALESCE((
+           SELECT jsonb_agg(elem)
+           FROM jsonb_array_elements(COALESCE(attachments, '[]'::jsonb)) elem
+           WHERE elem::text <> to_jsonb($2::int)::text
+         ), '[]'::jsonb)
+         WHERE id = $1`,
+                [Number(trainingId), Number(id)]
+            );
+        }
+
+        return res.json({ success: true });
+    } catch (err) {
+        console.error('DELETE /api/hse/training/attachments/:id error:', err);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
 // GET single
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, async (req, res, next) => {
     try {
         const { id } = req.params;
+        if (String(id) === 'attachments') return next();
+        if (!/^\d+$/.test(String(id))) return res.status(400).json({ message: 'Invalid id' });
         const result = await pool.query('SELECT * FROM public.hse_training WHERE id=$1', [id]);
         if (result.rows.length === 0) return res.status(404).json({ message: 'Not found' });
 
@@ -86,8 +200,9 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // POST create
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, upload.array('photos', 10), async (req, res) => {
     try {
+        await ensureHseTrainingAttachments();
         const reference = genRef();
 
         const allowedIds = await getAllowedPropertyIds(req.user);
@@ -108,11 +223,15 @@ router.post('/', protect, async (req, res) => {
 
         // Get all columns from the table
         const columnsResult = await pool.query(
-            `SELECT column_name FROM information_schema.columns 
+            `SELECT column_name, data_type, udt_name
+       FROM information_schema.columns
        WHERE table_schema = 'public' AND table_name = 'hse_training'`
         );
 
         const allColumns = columnsResult.rows.map(r => r.column_name);
+        const columnTypeByName = Object.fromEntries(
+            columnsResult.rows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
+        );
 
         // Standard columns
         const cols = ['reference', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'reported_by', 'assigned_to', 'scheduled_date', 'status', 'created_at', 'updated_at'];
@@ -181,7 +300,21 @@ router.post('/', protect, async (req, res) => {
         const query = `INSERT INTO public.hse_training (${cols.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
 
         const result = await pool.query(query, params);
-        res.status(201).json(result.rows[0]);
+        const created = result.rows[0];
+
+        const files = req.files || [];
+        const newIds = await insertHseTrainingAttachments(created?.id, files);
+        if (newIds.length) {
+            await pool.query(
+                `UPDATE public.hse_training
+         SET attachments = COALESCE(attachments, '[]'::jsonb) || to_jsonb($2::int[])
+         WHERE id = $1`,
+                [created.id, newIds]
+            );
+            created.attachments = [...newIds];
+        }
+
+        res.status(201).json(created);
     } catch (err) {
         console.error('POST /training error', err);
         res.status(500).json({ message: err.message });
@@ -189,9 +322,11 @@ router.post('/', protect, async (req, res) => {
 });
 
 // PATCH
-router.patch('/:id', protect, async (req, res) => {
+router.patch('/:id', protect, upload.array('photos', 10), async (req, res) => {
     try {
+        await ensureHseTrainingAttachments();
         const { id } = req.params;
+        if (!/^\d+$/.test(String(id))) return res.status(400).json({ message: 'Invalid id' });
 
         if (req.user?.role === 'staff') {
             const assignedHotelId = req.user.hotel_id || req.user.hotelId || req.user.hotel || null;
@@ -220,11 +355,15 @@ router.patch('/:id', protect, async (req, res) => {
 
         // Get all columns from the table
         const columnsResult = await pool.query(
-            `SELECT column_name FROM information_schema.columns 
+            `SELECT column_name, data_type, udt_name
+       FROM information_schema.columns 
        WHERE table_schema = 'public' AND table_name = 'hse_training'`
         );
 
-        const allColumns = columnsResult.rows.map(r => r.column_name);
+        const allColumns = columnsResult.rows.map((r) => r.column_name);
+        const columnTypeByName = Object.fromEntries(
+            columnsResult.rows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
+        );
 
         // Standard columns (excluding id, timestamps, and auto-generated fields)
         const standardColumns = [
@@ -241,19 +380,35 @@ router.patch('/:id', protect, async (req, res) => {
 
         // Standard fields
         const standardFields = ['title', 'description', 'property_id', 'property_name', 'category', 'priority', 'reported_by', 'assigned_to', 'scheduled_date', 'status'];
+
+        const normalizeUpdateValue = (col, val) => {
+            if (val === '') return null;
+            const t = columnTypeByName?.[col];
+            const isJson = t === 'json' || t === 'jsonb';
+            if (isJson && typeof val === 'string') {
+                try {
+                    JSON.parse(val);
+                    return val;
+                } catch {
+                    return null;
+                }
+            }
+            return val;
+        };
+
         standardFields.forEach(field => {
             if (req.body[field] !== undefined) {
                 setClauses.push(`${field}=$${paramIndex}`);
-                values.push(req.body[field]);
+                values.push(normalizeUpdateValue(field, req.body[field]));
                 paramIndex++;
             }
         });
 
         // Custom columns
         updatableColumns.forEach(col => {
-            if (!standardFields.includes(col) && req.body[col] !== undefined) {
+            if (col !== 'attachments' && !standardFields.includes(col) && req.body[col] !== undefined) {
                 setClauses.push(`${col}=$${paramIndex}`);
-                values.push(req.body[col]);
+                values.push(normalizeUpdateValue(col, req.body[col]));
                 paramIndex++;
             }
         });
@@ -268,7 +423,27 @@ router.patch('/:id', protect, async (req, res) => {
 
         const result = await pool.query(query, values);
         if (result.rows.length === 0) return res.status(404).json({ message: 'Not found' });
-        res.json(result.rows[0]);
+        const updated = result.rows[0];
+
+        const files = req.files || [];
+        const newIds = await insertHseTrainingAttachments(updated?.id, files);
+        if (newIds.length) {
+            await pool.query(
+                `UPDATE public.hse_training
+         SET attachments = COALESCE(attachments, '[]'::jsonb) || to_jsonb($2::int[])
+         WHERE id = $1`,
+                [updated.id, newIds]
+            );
+            let atts = updated.attachments ?? [];
+            try {
+                if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+            } catch {
+                atts = [];
+            }
+            updated.attachments = [...(Array.isArray(atts) ? atts : []), ...newIds];
+        }
+
+        res.json(updated);
     } catch (err) {
         console.error('PATCH /training/:id error', err);
         res.status(500).json({ message: err.message });
@@ -278,7 +453,9 @@ router.patch('/:id', protect, async (req, res) => {
 // DELETE
 router.delete('/:id', protect, async (req, res) => {
     try {
+        await ensureHseTrainingAttachments();
         const { id } = req.params;
+        if (!/^\d+$/.test(String(id))) return res.status(400).json({ message: 'Invalid id' });
 
         const allowedIds = await getAllowedPropertyIds(req.user);
         const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));

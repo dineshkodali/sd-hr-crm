@@ -357,7 +357,7 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
     const standardCols = ['id', 'reference', 'title', 'description', 'priority', 'status',
       'assigned_to_id', 'assigned_to_name', 'service_user_id', 'property_id',
       'property_name', 'scheduled_date', 'reported_by', 'category', 'notes',
-      'created_at', 'updated_at'];
+      'created_at', 'updated_at', 'attachments'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         columnsToInsert.push(col);
@@ -490,7 +490,7 @@ router.patch('/:id', protect, upload.array('photos', 10), async (req, res) => {
     const standardCols = ['id', 'reference', 'title', 'description', 'priority', 'status',
       'assigned_to_id', 'assigned_to_name', 'service_user_id', 'property_id',
       'property_name', 'scheduled_date', 'reported_by', 'category', 'notes',
-      'created_at', 'updated_at'];
+      'created_at', 'updated_at', 'attachments'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         fields.push(`${col} = $${idx++}`);

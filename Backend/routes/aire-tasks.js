@@ -379,7 +379,7 @@ router.post("/", protect, upload.array('photos', 10), async (req, res) => {
     }
 
     // Protected columns to skip
-    const protectedColumns = ['id', 'reference', 'created_at', 'updated_at'];
+    const protectedColumns = ['id', 'reference', 'created_at', 'updated_at', 'attachments'];
 
     for (const [key, value] of Object.entries(data)) {
       if (protectedColumns.includes(key)) continue;
@@ -501,7 +501,7 @@ router.patch("/:id", protect, upload.array('photos', 10), async (req, res) => {
     // Process all body fields, including custom columns
     for (const [key, value] of Object.entries(req.body || {})) {
       // Skip protected columns
-      if (['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by'].includes(key)) {
+      if (['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by', 'attachments'].includes(key)) {
         continue;
       }
 

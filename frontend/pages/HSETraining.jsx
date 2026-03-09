@@ -165,6 +165,9 @@ export default function HSETraining({ user }) {
     const [selected, setSelected] = useState(null);
     const [mode, setMode] = useState('create');
 
+    const [selectedPhotos, setSelectedPhotos] = useState([]);
+    const [existingAttachments, setExistingAttachments] = useState([]);
+
     const [showExportModal, setShowExportModal] = useState(false);
     const [exportFormat, setExportFormat] = useState(null);
     const [selectedExportKeys, setSelectedExportKeys] = useState([]);
@@ -218,6 +221,7 @@ export default function HSETraining({ user }) {
         "status",
         "assigned",
         "date",
+        "attachments",
         "actions",
     ]);
 
@@ -231,6 +235,7 @@ export default function HSETraining({ user }) {
         "status",
         "assigned",
         "date",
+        "attachments",
         "actions",
     ];
 
@@ -243,12 +248,12 @@ export default function HSETraining({ user }) {
             const saved = localStorage.getItem('hseTrainingVisibleColumns');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                return { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), ...parsed };
+                return { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), ...parsed, attachments: true };
             }
         } catch (e) {
             console.error('Error loading column visibility:', e);
         }
-        return DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
+        return { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), attachments: true };
     });
 
     const api = useMemo(() => axios.create({ baseURL: import.meta.env.VITE_API_URL || '', withCredentials: true, timeout: 15000 }), []);
@@ -372,13 +377,13 @@ export default function HSETraining({ user }) {
             const columns = res?.data?.columns || res?.data || [];
 
             // Default UI columns
-            const defaultColumns = ["checkbox", "type", "reference", "description", "priority", "status", "assigned", "date", "actions"];
+            const defaultColumns = ["checkbox", "type", "reference", "description", "priority", "status", "assigned", "date", "attachments", "actions"];
 
             // System and known HSE Training columns to exclude
             const systemColumns = [
                 'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
                 'title', 'description', 'property_id', 'property_name', 'category',
-                'priority', 'reported_by', 'assigned_to', 'scheduled_date', 'status'
+                'priority', 'reported_by', 'assigned_to', 'scheduled_date', 'status', 'attachments'
             ];
 
             // Extract column names (handle both string arrays and object arrays)
@@ -516,6 +521,16 @@ export default function HSETraining({ user }) {
                 ...customColumns.reduce((acc, col) => ({ ...acc, [col]: rec?.[col] ?? '' }), {})
             });
         }
+
+        setSelectedPhotos([]);
+        let atts = rec?.attachments ?? [];
+        try {
+            if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+        } catch {
+            atts = [];
+        }
+        setExistingAttachments(Array.isArray(atts) ? atts : []);
+
         setSelected(rec);
         setShowModal(true);
     };
@@ -529,7 +544,85 @@ export default function HSETraining({ user }) {
         fetchStaffForHotel(formData.property_id);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showModal, mode, formData?.property_id]);
-    const closeModal = () => { setShowModal(false); setSelected(null); setMode('create'); setError(null); };
+    const closeModal = () => {
+        setShowModal(false);
+        setSelected(null);
+        setMode('create');
+        setError(null);
+        setSelectedPhotos([]);
+        setExistingAttachments([]);
+    };
+
+    const openAttachmentsGallery = (items = []) => {
+        if (!items.length) return;
+        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+        const urls = items.map((x) => {
+            // If x is a number or numeric string, it's an ID
+            const isNumericId = /^\d+$/.test(String(x));
+            const u = isNumericId ? `/api/hse/training/attachments/${x}` : String(x);
+            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+        });
+        const safeTitle = `Training Photos (${urls.length})`;
+        const html = `
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>${safeTitle}</title>
+          <style>
+            :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #2dd4bf; }
+            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+            header { position: sticky; top: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+            .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; padding: 1.5rem; }
+            .card { background: var(--card); border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
+            .card:hover { transform: translateY(-4px); border-color: var(--accent); }
+            .card img { width: 100%; height: 250px; object-fit: cover; background: #000; display: block; cursor: pointer; }
+            .card-meta { padding: 1rem; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center; }
+            .btn { background: var(--accent); color: var(--bg); padding: 0.5rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.75rem; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <div style="font-weight: 700; font-size: 1.1rem; letter-spacing: -0.025em;">${safeTitle}</div>
+            <div style="font-size: 0.75rem; opacity: 0.6;">Premium Viewer</div>
+          </header>
+          <div class="gallery">
+            ${urls.map((u, i) => `
+              <div class="card">
+                <img src="${u}" alt="Photo ${i + 1}" onclick="window.open('${u}', '_blank')">
+                <div class="card-meta">
+                  <span>Photo ${i + 1}</span>
+                  <a href="${u}" target="_blank" class="btn">Full View</a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </body>
+      </html>
+    `;
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    };
+
+    const removeAttachment = async (attachmentId) => {
+        if (!attachmentId) return;
+        try {
+            await api.delete(`/api/hse/training/attachments/${attachmentId}`);
+            await refresh();
+            setExistingAttachments((prev) => (Array.isArray(prev) ? prev.filter((x) => String(x) !== String(attachmentId)) : []));
+        } catch (err) {
+            console.error('removeAttachment error', err);
+            setAlertDialog({
+                isOpen: true,
+                title: 'Remove Failed',
+                message: err?.response?.data?.message || err?.message || 'Failed to remove attachment',
+                type: 'error'
+            });
+        }
+    };
 
     const submit = async (e) => {
         e.preventDefault();
@@ -564,6 +657,8 @@ export default function HSETraining({ user }) {
             }
 
             const payload = { ...formData };
+            delete payload.attachments; // Prevent backend overwrite corruption
+
             for (const col of customColumns || []) {
                 const meta = customColumnMetadata[col] || {};
                 const inputType = meta.input_type || 'text';
@@ -574,8 +669,21 @@ export default function HSETraining({ user }) {
                 }
             }
 
-            if (mode === 'create') await api.post('/api/hse/training', payload);
-            else await api.patch(`/api/hse/training/${selected?.id}`, payload);
+            const fd = new FormData();
+            Object.entries(payload).forEach(([k, v]) => {
+                if (v === undefined) return;
+                if (v === null) {
+                    fd.append(k, '');
+                    return;
+                }
+                fd.append(k, String(v));
+            });
+            (selectedPhotos || []).forEach((f) => {
+                if (f) fd.append('photos', f);
+            });
+
+            if (mode === 'create') await api.post('/api/hse/training', fd);
+            else await api.patch(`/api/hse/training/${selected?.id}`, fd);
             await refresh();
             closeModal();
         } catch (err) {
@@ -1237,6 +1345,9 @@ export default function HSETraining({ user }) {
                                             {visibleColumns.date && (
                                                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>
                                             )}
+                                            {visibleColumns.attachments && (
+                                                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ATTACHMENTS</th>
+                                            )}
                                             {/* Custom columns */}
                                             {customColumns.filter(col => visibleColumns[col]).map(col => (
                                                 <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -1326,6 +1437,45 @@ export default function HSETraining({ user }) {
                                                     {visibleColumns.date && (
                                                         <td className="py-5 px-6 whitespace-nowrap">
                                                             <span className="text-gray-900 font-medium text-sm">{formatDate(r.scheduled_date)}</span>
+                                                        </td>
+                                                    )}
+                                                    {visibleColumns.attachments && (
+                                                        <td className="py-5 px-6">
+                                                            {(() => {
+                                                                let atts = r?.attachments ?? [];
+                                                                try {
+                                                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                                } catch {
+                                                                    atts = [];
+                                                                }
+                                                                const list = Array.isArray(atts) ? atts : [];
+                                                                if (!list.length) return <span className="text-gray-400 text-sm">-</span>;
+                                                                const base = import.meta.env.VITE_API_URL || '';
+                                                                const thumbs = list.slice(0, 3);
+                                                                return (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="flex items-center -space-x-2">
+                                                                            {thumbs.map((id) => (
+                                                                                <img
+                                                                                    key={String(id)}
+                                                                                    src={`${base}/api/hse/training/attachments/${id}`}
+                                                                                    alt={`Attachment ${id}`}
+                                                                                    className="w-9 h-9 rounded-xl border border-white object-cover shadow-sm"
+                                                                                    loading="lazy"
+                                                                                    onClick={() => openAttachmentsGallery(list)}
+                                                                                />
+                                                                            ))}
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => openAttachmentsGallery(list)}
+                                                                            className="text-sm font-semibold text-teal-700"
+                                                                        >
+                                                                            View ({list.length})
+                                                                        </button>
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </td>
                                                     )}
                                                     {/* Custom columns */}
@@ -1672,6 +1822,18 @@ export default function HSETraining({ user }) {
                                             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
                                             <p className="text-gray-700">{formData.description || 'No description provided.'}</p>
                                         </div>
+
+                                        {Array.isArray(existingAttachments) && existingAttachments.length > 0 && (
+                                            <div className="pt-4 border-t border-gray-100">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openAttachmentsGallery(existingAttachments)}
+                                                    className="inline-flex items-center px-4 py-2 rounded-xl bg-teal-50 text-teal-700 text-sm font-semibold hover:bg-teal-100 transition-colors"
+                                                >
+                                                    View {existingAttachments.length} Photos
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="modal-footer">
@@ -1848,6 +2010,32 @@ export default function HSETraining({ user }) {
                                                 />
                                             </div>
 
+                                            <div className="col-span-1 md:col-span-2">
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">Photos</label>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    multiple
+                                                    onChange={(e) => setSelectedPhotos(Array.from(e.target.files || []))}
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                                                />
+
+                                                {mode !== 'create' && Array.isArray(existingAttachments) && existingAttachments.length > 0 && (
+                                                    <div className="mt-3">
+                                                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Existing Photos</div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {existingAttachments.map((id) => (
+                                                                <div key={String(id)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50">
+                                                                    <span className="text-xs font-mono text-gray-700">#{id}</span>
+                                                                    <button type="button" onClick={() => openAttachmentsGallery([id])} className="text-xs font-semibold text-teal-700">View</button>
+                                                                    <button type="button" onClick={() => removeAttachment(id)} className="text-xs font-semibold text-rose-700">Remove</button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
                                             {/* Custom columns from Forms Builder */}
                                             {customColumns.map(col => {
                                                 const meta = customColumnMetadata[col] || {};
@@ -1857,7 +2045,7 @@ export default function HSETraining({ user }) {
                                                 return (
                                                     <div key={col} className="col-span-1">
                                                         <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                                            {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} <span className="text-red-500">*</span>
+                                                            {col.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())} <span className="text-red-500">*</span>
                                                         </label>
                                                         {inputType === 'checkbox' ? (
                                                             <select

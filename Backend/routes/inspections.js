@@ -143,6 +143,51 @@ router.get('/attachments/:id', protect, async (req, res) => {
   }
 });
 
+router.delete('/attachments/:id', protect, async (req, res) => {
+  try {
+    const ready = await ensureInspectionsTable();
+    if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
+
+    const id = req.params.id;
+    if (!/^[0-9]+$/.test(String(id))) return res.status(400).json({ success: false, message: 'Invalid attachment id' });
+
+    const find = await pool.query(
+      `SELECT id, inspection_id
+       FROM public.inspections_attachments
+       WHERE id = $1
+       LIMIT 1`,
+      [Number(id)]
+    );
+    if (!find.rows?.length) return res.status(404).json({ success: false, message: 'Attachment not found' });
+
+    const inspectionId = find.rows[0].inspection_id;
+
+    await pool.query(
+      `DELETE FROM public.inspections_attachments
+       WHERE id = $1`,
+      [Number(id)]
+    );
+
+    if (inspectionId) {
+      await pool.query(
+        `UPDATE public.inspections
+         SET attachments = COALESCE((
+           SELECT jsonb_agg(elem)
+           FROM jsonb_array_elements(COALESCE(attachments, '[]'::jsonb)) elem
+           WHERE elem::text <> to_jsonb($2::int)::text
+         ), '[]'::jsonb)
+         WHERE id = $1`,
+        [Number(inspectionId), Number(id)]
+      );
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /api/inspections/attachments/:id error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // Helper: generate unique reference if not provided
 function makeReference() {
   const rnd = Math.floor(1000 + Math.random() * 9000);

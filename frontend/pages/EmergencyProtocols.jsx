@@ -73,6 +73,7 @@ const DEFAULT_COLUMNS = [
     "type",
     "reference",
     "description",
+    "attachments",
     "priority",
     "status",
     "assigned",
@@ -350,6 +351,8 @@ export default function EmergencyProtocols() {
 
     const [form, setForm] = useState(initialForm);
 
+    const [photos, setPhotos] = useState([]);
+
     const CATEGORY_OPTIONS = ["Emergency Protocols", "Maintenance"];
     const CATEGORY_STORAGE_KEY = 'emergencyProtocols.customCategories';
     const [customCategories, setCustomCategories] = useState([]);
@@ -454,6 +457,7 @@ export default function EmergencyProtocols() {
             setCreating(false);
             setEditing(false);
             setEditingId(null);
+            setPhotos([]);
         }
     }, [showCreate, showEdit, initialForm]);
 
@@ -686,6 +690,95 @@ export default function EmergencyProtocols() {
         };
     }, [tasks]);
 
+    async function handleRemoveEmergencyAttachment(attachmentId) {
+        if (!attachmentId) return;
+        try {
+            await api.delete(`/api/emergency-protocols/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+            setForm((p) => {
+                let atts = p?.attachments ?? [];
+                try {
+                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                } catch {
+                    atts = [];
+                }
+                const next = (Array.isArray(atts) ? atts : []).filter((x) => String(x) !== String(attachmentId));
+                return { ...p, attachments: next };
+            });
+        } catch (err) {
+            console.warn('Failed to remove attachment', err);
+        }
+    }
+
+    function openAttachmentsGallery(attachments) {
+        let atts = attachments || [];
+        try {
+            if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+        } catch {
+            atts = [];
+        }
+        const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+        if (!list.length) return;
+
+        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+        const urls = list.map((x) => {
+            const isNumericId = /^\d+$/.test(String(x));
+            const u = isNumericId ? `/api/emergency-protocols/attachments/${x}` : String(x);
+            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+        });
+
+        const safeTitle = `Emergency Protocol Attachments (${urls.length})`;
+        const html = `
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>${safeTitle}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #0b1220; color: #e5e7eb; }
+        header { position: sticky; top: 0; background: rgba(11, 18, 32, 0.9); backdrop-filter: blur(12px); padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100; display: flex; justify-content: space-between; align-items: center; }
+        .title-area h1 { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
+        .title-area p { margin: 4px 0 0; font-size: 12px; color: #94a3b8; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 24px; }
+        .card { background: #161e2d; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-4px); border-color: rgba(20, 184, 166, 0.4); }
+        .img-wrap { width: 100%; aspect-ratio: 4/3; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .img-wrap img { width: 100%; height: 100%; object-fit: contain; }
+        .meta { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); }
+        .meta span { font-size: 13px; font-weight: 600; color: #ccfbf1; }
+        .btn { background: #14b8a6; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; transition: background 0.2s; }
+        .btn:hover { background: #0d9488; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="title-area">
+            <h1>${safeTitle}</h1>
+            <p>Premium Attachment Viewer</p>
+        </div>
+    </header>
+    <div class="grid">
+        ${urls.map((u, i) => `
+            <div class="card">
+                <div class="img-wrap">
+                    <img src="${u}" alt="Attachment ${i + 1}" loading="lazy"/>
+                </div>
+                <div class="meta">
+                    <span>Photo ${i + 1}</span>
+                    <a href="${u}" target="_blank" class="btn">Full Res</a>
+                </div>
+            </div>
+        `).join('')}
+    </div>
+</body>
+</html>`;
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    }
+
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -745,13 +838,22 @@ export default function EmergencyProtocols() {
                 return [col, cleanVal(form[col])];
             }))
         };
+        delete payload.attachments;
 
         try {
-            let response;
+            const multipart = new FormData();
+            Object.entries(payload || {}).forEach(([k, v]) => {
+                if (v === undefined) return;
+                if (k === 'attachments') return;
+                if (v === null) multipart.append(k, '');
+                else multipart.append(k, String(v));
+            });
+            (photos || []).forEach((f) => multipart.append('photos', f));
+
             if (isEdit) {
-                response = await api.put(`/api/emergency-protocols/${editingId}`, payload);
+                await api.put(`/api/emergency-protocols/${editingId}`, multipart, { headers: { 'Content-Type': 'multipart/form-data' } });
             } else {
-                response = await api.post("/api/emergency-protocols", payload);
+                await api.post("/api/emergency-protocols", multipart, { headers: { 'Content-Type': 'multipart/form-data' } });
             }
 
             await new Promise(resolve => setTimeout(resolve, 300));
@@ -759,6 +861,7 @@ export default function EmergencyProtocols() {
 
             setShowCreate(false);
             setShowEdit(false);
+            setPhotos([]);
         } catch (err) {
             console.error("Submit error:", err);
             showAlert("Error", `Failed to ${isEdit ? 'update' : 'create'} task: ${err.response?.data?.error || err.message}`, "error");
@@ -799,6 +902,12 @@ export default function EmergencyProtocols() {
     function openEdit(task) {
         setEditingId(task.id);
         const raw = task.raw || {};
+        let attachments = raw?.attachments ?? [];
+        try {
+            if (typeof attachments === 'string' && attachments) attachments = JSON.parse(attachments);
+        } catch {
+            attachments = [];
+        }
         setForm({
             title: task.title,
             description: raw.description || task.description,
@@ -811,8 +920,11 @@ export default function EmergencyProtocols() {
             assigned_to_name: task.assignedTo === "Unassigned" ? "" : task.assignedTo,
             scheduled_date: formatDateISO(task.date),
             reference: task.reference,
+            attachments: Array.isArray(attachments) ? attachments : [],
             ...customColumns.reduce((acc, col) => ({ ...acc, [col]: raw[col] || '' }), {})
         });
+
+        setPhotos([]);
 
         // Fetch staff members if property is already set
         if (raw.property_id) {
@@ -1308,6 +1420,7 @@ export default function EmergencyProtocols() {
                             <table className="w-full">
                                 <thead className="bg-gray-50 border-b border-gray-200">
                                     <tr>
+
                                         {visibleColumns.checkbox && (
                                             <th className="text-left py-4 px-4">
                                                 <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -1322,9 +1435,13 @@ export default function EmergencyProtocols() {
                                         {visibleColumns.description && (
                                             <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>
                                         )}
+                                        {visibleColumns.attachments && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ATTACHMENTS</th>
+                                        )}
                                         {visibleColumns.priority && (
                                             <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>
                                         )}
+
                                         {visibleColumns.status && (
                                             <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">STATUS</th>
                                         )}
@@ -1387,78 +1504,115 @@ export default function EmergencyProtocols() {
                                                         </div>
                                                     </td>
                                                 )}
-                                                {visibleColumns.priority && (
+                                                {visibleColumns.attachments && (
                                                     <td className="py-5 px-6">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span>
-                                                            <span className={`text-sm font-semibold ${priorityStyle.text}`}>{row.priority}</span>
-                                                        </div>
+                                                        {(() => {
+                                                            let atts = row?.raw?.attachments ?? [];
+                                                            try {
+                                                                if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                            } catch {
+                                                                atts = [];
+                                                            }
+                                                            const count = Array.isArray(atts) ? atts.length : 0;
+                                                            if (!count) return <span className="text-gray-400 text-sm">-</span>;
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openAttachmentsGallery(row?.raw?.attachments)}
+                                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl transition-all hover:bg-teal-100 shadow-sm"
+                                                                    title="View attachments"
+                                                                >
+                                                                    <span>{count}</span>
+                                                                    <span className="text-xs font-bold uppercase tracking-wide">Photos</span>
+                                                                </button>
+                                                            );
+                                                        })()}
                                                     </td>
                                                 )}
-                                                {visibleColumns.status && (
-                                                    <td className="py-5 px-6">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span>
-                                                            <span className={`text-sm font-semibold ${statusStyle.text}`}>{row.status}</span>
-                                                        </div>
-                                                    </td>
-                                                )}
-                                                {visibleColumns.assigned && (
-                                                    <td className="py-5 px-6">
-                                                        {row.assignedTo === "Unassigned" ? (
-                                                            <span className="text-gray-400 text-sm">Unassigned</span>
-                                                        ) : (
+                                                {
+                                                    visibleColumns.priority && (
+                                                        <td className="py-5 px-6">
                                                             <div className="flex items-center gap-2">
-                                                                <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assignedTo)} flex items-center justify-center text-xs font-semibold shadow-sm`}>
-                                                                    {getInitials(row.assignedTo)}
-                                                                </div>
-                                                                <span className="text-gray-900 text-sm font-medium">{row.assignedTo}</span>
+                                                                <span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span>
+                                                                <span className={`text-sm font-semibold ${priorityStyle.text}`}>{row.priority}</span>
                                                             </div>
-                                                        )}
-                                                    </td>
-                                                )}
-                                                {visibleColumns.date && (
-                                                    <td className="py-5 px-6 whitespace-nowrap">
-                                                        <span className="text-gray-900 font-medium">{formatDate(row.date)}</span>
-                                                    </td>
-                                                )}
+                                                        </td>
+                                                    )
+                                                }
+                                                {
+                                                    visibleColumns.status && (
+                                                        <td className="py-5 px-6">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span>
+                                                                <span className={`text-sm font-semibold ${statusStyle.text}`}>{row.status}</span>
+                                                            </div>
+                                                        </td>
+                                                    )
+                                                }
+                                                {
+                                                    visibleColumns.assigned && (
+                                                        <td className="py-5 px-6">
+                                                            {row.assignedTo === "Unassigned" ? (
+                                                                <span className="text-gray-400 text-sm">Unassigned</span>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assignedTo)} flex items-center justify-center text-xs font-semibold shadow-sm`}>
+                                                                        {getInitials(row.assignedTo)}
+                                                                    </div>
+                                                                    <span className="text-gray-900 text-sm font-medium">{row.assignedTo}</span>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                    )
+                                                }
+                                                {
+                                                    visibleColumns.date && (
+                                                        <td className="py-5 px-6 whitespace-nowrap">
+                                                            <span className="text-gray-900 font-medium">{formatDate(row.date)}</span>
+                                                        </td>
+                                                    )
+                                                }
                                                 {/* Custom columns in table rows - POSITIONED BEFORE ACTIONS with STANDARD UI */}
-                                                {customColumns.filter(col => visibleColumns[col]).map(col => (
-                                                    <td key={col} className="py-4 px-4">
-                                                        <span className="text-gray-900 font-medium">{row.raw?.[col] ?? '-'}</span>
-                                                    </td>
-                                                ))}
-                                                {visibleColumns.actions && (
-                                                    <td className="py-5 px-6 text-center sticky right-0 z-10 bg-white" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            <button
-                                                                onClick={() => handleView(row)}
-                                                                className="p-1.5 text-gray-600 rounded-xl transition-all"
-                                                                title="View"
-                                                            >
-                                                                <Eye className="w-4 h-4" />
-                                                            </button>
-                                                            {hasUpdate && (
+                                                {
+                                                    customColumns.filter(col => visibleColumns[col]).map(col => (
+                                                        <td key={col} className="py-4 px-4">
+                                                            <span className="text-gray-900 font-medium">{row.raw?.[col] ?? '-'}</span>
+                                                        </td>
+                                                    ))
+                                                }
+                                                {
+                                                    visibleColumns.actions && (
+                                                        <td className="py-5 px-6 text-center sticky right-0 z-10 bg-white" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>
+                                                            <div className="flex items-center justify-center gap-1">
                                                                 <button
-                                                                    onClick={() => openEdit(row)}
+                                                                    onClick={() => handleView(row)}
                                                                     className="p-1.5 text-gray-600 rounded-xl transition-all"
-                                                                    title="Edit"
+                                                                    title="View"
                                                                 >
-                                                                    <Edit className="w-4 h-4" />
+                                                                    <Eye className="w-4 h-4" />
                                                                 </button>
-                                                            )}
-                                                            {hasDelete && (
-                                                                <button
-                                                                    onClick={() => handleDelete(row.id)}
-                                                                    className="p-1.5 text-gray-600 rounded-xl transition-all"
-                                                                    title="Delete"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                )}
+                                                                {hasUpdate && (
+                                                                    <button
+                                                                        onClick={() => openEdit(row)}
+                                                                        className="p-1.5 text-gray-600 rounded-xl transition-all"
+                                                                        title="Edit"
+                                                                    >
+                                                                        <Edit className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                                {hasDelete && (
+                                                                    <button
+                                                                        onClick={() => handleDelete(row.id)}
+                                                                        className="p-1.5 text-gray-600 rounded-xl transition-all"
+                                                                        title="Delete"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    )
+                                                }
                                             </tr>
                                         );
                                     }) : (
@@ -1555,7 +1709,7 @@ export default function EmergencyProtocols() {
                                                                     <div className="flex items-center justify-between mb-2">
                                                                         <span className="text-xs font-mono text-gray-500">{protocol.reference || `EP-${protocol.id}`}</span>
                                                                         <div className="flex items-center gap-1.5">
-                                                                            <span className={`w-2 h-2 rounded-full ${priorityColor.dot}`}></span>
+                                                                            <span className={`w-2 h-2 rounded-full ${priorityColor.dot} shadow-sm`}></span>
                                                                             <span className={`text-xs font-medium ${priorityColor.text}`}>
                                                                                 {protocol.priority || "Medium"}
                                                                             </span>
@@ -1654,408 +1808,462 @@ export default function EmergencyProtocols() {
             </div>
 
             {/* --- VIEW MODAL --- */}
-            {showView && viewing && (
-                <div className="modal-overlay">
-                    <div className="modal-container h-[70vh]">
-                        <div className="modal-header">
-                            <div>
-                                <h2 className="modal-title">Task Details</h2>
-                                <p className="modal-subtitle">View protocol information</p>
+            {
+                showView && viewing && (
+                    <div className="modal-overlay">
+                        <div className="modal-container h-[70vh]">
+                            <div className="modal-header">
+                                <div>
+                                    <h2 className="modal-title">Task Details</h2>
+                                    <p className="modal-subtitle">View protocol information</p>
+                                </div>
+                                <button onClick={() => { setViewing(null); setShowView(false); }} className="modal-close-btn rounded-xl">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <button onClick={() => { setViewing(null); setShowView(false); }} className="modal-close-btn rounded-xl">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
 
-                        <>
-                            <div className="modal-content space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reference</label>
-                                        <p className="text-gray-900 font-medium">{viewing.reference || 'N/A'}</p>
-                                    </div>
+                            <>
+                                <div className="modal-content space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Reference</label>
+                                            <p className="text-gray-900 font-medium">{viewing.reference || 'N/A'}</p>
+                                        </div>
 
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                            {viewing.status || 'N/A'}
-                                        </span>
-                                    </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                {viewing.status || 'N/A'}
+                                            </span>
+                                        </div>
 
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Title</label>
-                                        <p className="text-gray-900 font-medium">{viewing.title || 'N/A'}</p>
-                                    </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Title</label>
+                                            <p className="text-gray-900 font-medium">{viewing.title || 'N/A'}</p>
+                                        </div>
 
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Category</label>
-                                        <p className="text-gray-900">{viewing.raw?.category || viewing.type || 'N/A'}</p>
-                                    </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Category</label>
+                                            <p className="text-gray-900">{viewing.raw?.category || viewing.type || 'N/A'}</p>
+                                        </div>
 
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
-                                        <p className="text-gray-900">{hotels.find(h => h.id == viewing.raw?.property_id)?.name || viewing.raw?.property_name || 'N/A'}</p>
-                                    </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Property</label>
+                                            <p className="text-gray-900">{hotels.find(h => h.id == viewing.raw?.property_id)?.name || viewing.raw?.property_name || 'N/A'}</p>
+                                        </div>
 
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Due Date</label>
-                                        <p className="text-gray-900">{formatDate(viewing.date) || 'N/A'}</p>
-                                    </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Due Date</label>
+                                            <p className="text-gray-900">{formatDate(viewing.date) || 'N/A'}</p>
+                                        </div>
 
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Priority</label>
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                            {viewing.priority || 'N/A'}
-                                        </span>
-                                    </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Priority</label>
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                {viewing.priority || 'N/A'}
+                                            </span>
+                                        </div>
 
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Assigned To</label>
-                                        <p className="text-gray-900">{viewing.assignedTo || 'N/A'}</p>
-                                    </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Assigned To</label>
+                                            <p className="text-gray-900">{viewing.assignedTo || 'N/A'}</p>
+                                        </div>
 
-                                    {(customColumns || []).map((col) => {
-                                        const meta = customColumnMetadata?.[col] || {};
-                                        const label = String(meta.label || col)
-                                            .replace(/_/g, ' ')
-                                            .replace(/\b\w/g, (m) => m.toUpperCase());
-                                        const rawVal = viewing?.raw?.[col];
-                                        const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
-                                        const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
-                                        const isDateType = inputType === 'date';
+                                        {(customColumns || []).map((col) => {
+                                            const meta = customColumnMetadata?.[col] || {};
+                                            const label = String(meta.label || col)
+                                                .replace(/_/g, ' ')
+                                                .replace(/\b\w/g, (m) => m.toUpperCase());
+                                            const rawVal = viewing?.raw?.[col];
+                                            const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
+                                            const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
+                                            const isDateType = inputType === 'date';
 
-                                        let valueText = rawVal;
-                                        if (valueText === null || valueText === undefined || valueText === '') valueText = 'N/A';
+                                            let valueText = rawVal;
+                                            if (valueText === null || valueText === undefined || valueText === '') valueText = 'N/A';
 
-                                        if (isDateType && rawVal) {
-                                            const d = new Date(rawVal);
-                                            if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
-                                        }
+                                            if (isDateType && rawVal) {
+                                                const d = new Date(rawVal);
+                                                if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
+                                            }
 
-                                        if (isBoolType) {
-                                            const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
+                                            if (isBoolType) {
+                                                const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
+                                                return (
+                                                    <div key={col}>
+                                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                            {boolVal ? 'Yes' : 'No'}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            }
+
                                             return (
                                                 <div key={col}>
                                                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                                        {boolVal ? 'Yes' : 'No'}
-                                                    </span>
+                                                    <p className="text-gray-900 font-medium">{String(valueText)}</p>
                                                 </div>
                                             );
-                                        }
+                                        })}
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
+                                        <p className="text-gray-700">{viewing.description || 'No description provided.'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="modal-footer">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setViewing(null); setShowView(false); }}
+                                        className="btn-secondary rounded-xl"
+                                    >
+                                        Close
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setViewing(null);
+                                            setShowView(false);
+                                            openEdit(viewing);
+                                        }}
+                                        className="btn-primary rounded-xl"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                        Edit
+                                    </button>
+                                </div>
+                            </>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* --- FORM MODAL --- */}
+            {
+                (showCreate || showEdit) && (
+                    <div className="modal-overlay">
+                        <div className="modal-container h-[70vh]">
+
+                            {/* Modal Header */}
+                            <div className="modal-header">
+                                <div>
+                                    <h3 className="modal-title">
+                                        {showEdit ? "Edit Task" : "Create New Task"}
+                                    </h3>
+                                </div>
+                                <button
+                                    onClick={() => { setShowCreate(false); setShowEdit(false); }}
+                                    className="modal-close-btn rounded-xl"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Modal Form Content */}
+                            <form id="emergency-protocol-form" onSubmit={handleSubmit} className="modal-content form-section">
+                                <div className="form-grid-2">
+
+                                    {showEdit && (
+                                        <div className="col-span-1 md:col-span-2">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Reference ID</label>
+                                            <input
+                                                disabled
+                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
+                                                value={form.reference}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="col-span-1 md:col-span-2">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Title <span className="text-red-500">*</span></label>
+                                        <input
+                                            required
+                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                            value={form.title}
+                                            onChange={e => setForm({ ...form, title: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Property <span className="text-red-500">*</span></label>
+                                        <select
+                                            required
+                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                            value={form.property_id}
+                                            onChange={handleHotelChange}
+                                        >
+                                            <option value="">Select Property</option>
+                                            {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Category <span className="text-red-500">*</span></label>
+                                        <select
+                                            required
+                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                            value={form.category}
+                                            onChange={handleCategoryChange}
+                                        >
+                                            <option value="">Select category</option>
+                                            {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                            {!!form.category && ![...CATEGORY_OPTIONS, ...customCategories].some((c) => String(c) === String(form.category)) && (
+                                                <option value={form.category}>{form.category}</option>
+                                            )}
+                                            <option value="__add_new__">+ Add new...</option>
+                                        </select>
+                                        {showCustomCategoryInput && (
+                                            <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={customCategoryValue}
+                                                    onChange={(e) => setCustomCategoryValue(e.target.value)}
+                                                    placeholder="Enter new category"
+                                                    className="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                />
+                                                <div className="flex items-center gap-2 sm:shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={saveCustomCategory}
+                                                        className="px-3 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium transition-colors whitespace-nowrap"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setShowCustomCategoryInput(false);
+                                                            setCustomCategoryValue('');
+                                                        }}
+                                                        className="px-3 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium transition-colors whitespace-nowrap"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Priority <span className="text-red-500">*</span></label>
+                                        <select
+                                            required
+                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                            value={form.priority}
+                                            onChange={e => setForm({ ...form, priority: e.target.value })}
+                                        >
+                                            <option value="Low">Low</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="High">High</option>
+                                            <option value="Urgent">Urgent</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
+                                        <select
+                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                            value={form.status}
+                                            onChange={e => setForm({ ...form, status: e.target.value })}
+                                        >
+                                            <option value="Pending">Pending</option>
+                                            <option value="In Progress">In Progress</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Assigned To <span className="text-red-500">*</span></label>
+                                        {form.property_id && staffMembers.length > 0 ? (
+                                            <select
+                                                required
+                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                value={form.assigned_to_name}
+                                                onChange={e => setForm({ ...form, assigned_to_name: e.target.value })}
+                                            >
+                                                <option value="">Select staff member</option>
+                                                {staffMembers.map(staff => (
+                                                    <option key={staff.id} value={staff.name}>{staff.name}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                required
+                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
+                                                value={form.assigned_to_name}
+                                                onChange={e => setForm({ ...form, assigned_to_name: e.target.value })}
+                                                placeholder={form.property_id ? "Loading staff..." : "Select property first"}
+                                                disabled={!form.property_id}
+                                            />
+                                        )}
+                                    </div>
+
+                                    <div className="col-span-1">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Reported By <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={form.reported_by}
+                                            readOnly
+                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="col-span-1 md:col-span-2">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Scheduled Date <span className="text-red-500">*</span></label>
+                                        <input
+                                            required
+                                            type="date"
+                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                            value={formatDateISO(form.scheduled_date)}
+                                            onChange={e => setForm({ ...form, scheduled_date: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="col-span-1 md:col-span-2">
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                                            onChange={(e) => {
+                                                const next = Array.from(e.target.files || []);
+                                                setPhotos(next);
+                                            }}
+                                        />
+
+                                        {(() => {
+                                            let atts = form?.attachments ?? form?.raw?.attachments ?? [];
+                                            try {
+                                                if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                            } catch {
+                                                atts = [];
+                                            }
+                                            const list = Array.isArray(atts) ? atts : [];
+                                            if (!list.length) return null;
+                                            return (
+                                                <div className="mt-3 space-y-2">
+                                                    {list.map((attId) => (
+                                                        <div key={String(attId)} className="flex items-center justify-between gap-2 border border-gray-200 rounded-xl px-3 py-2">
+                                                            <div className="text-xs font-semibold text-gray-700 truncate">Attachment #{String(attId)}</div>
+                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                <button
+                                                                    type="button"
+                                                                    className="px-2 py-1 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold"
+                                                                    onClick={() => openAttachmentsGallery([attId])}
+                                                                >
+                                                                    View
+                                                                </button>
+                                                                {hasUpdate && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="px-2 py-1 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold"
+                                                                        onClick={() => handleRemoveEmergencyAttachment(attId)}
+                                                                    >
+                                                                        Remove
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    {/* Render custom columns in form - Standardized UI */}
+                                    {customColumns.map(col => {
+                                        const meta = customColumnMetadata[col] || {};
+                                        const inputType = meta.input_type || 'text';
+                                        const options = Array.isArray(meta.input_options) ? meta.input_options : [];
 
                                         return (
-                                            <div key={col}>
-                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
-                                                <p className="text-gray-900 font-medium">{String(valueText)}</p>
+                                            <div key={col} className="col-span-1 md:col-span-2">
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                    {col.replace(/_/g, ' ').toUpperCase()} <span className="text-red-500">*</span>
+                                                </label>
+                                                {inputType === 'checkbox' ? (
+                                                    <select
+                                                        required
+                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                        value={form[col] === 'true' || form[col] === 'false' ? form[col] : form[col] === true ? 'true' : form[col] === false ? 'false' : ''}
+                                                        onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                                                    >
+                                                        <option value="">Select...</option>
+                                                        <option value="true">Yes</option>
+                                                        <option value="false">No</option>
+                                                    </select>
+                                                ) : inputType === 'dropdown' || inputType === 'select' ? (
+                                                    <select
+                                                        required
+                                                        value={form[col] || ''}
+                                                        onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                    >
+                                                        <option value="">Select...</option>
+                                                        {options.map((opt, idx) => (
+                                                            <option key={idx} value={opt}>{opt}</option>
+                                                        ))}
+                                                    </select>
+                                                ) : inputType === 'textarea' ? (
+                                                    <textarea
+                                                        rows={3}
+                                                        required
+                                                        value={form[col] || ''}
+                                                        onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                                                    />
+                                                ) : inputType === 'date' ? (
+                                                    <input
+                                                        type="date"
+                                                        required
+                                                        value={form[col] ? formatDateISO(form[col]) : ''}
+                                                        onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                    />
+                                                ) : (
+                                                    <input
+                                                        type={inputType}
+                                                        required
+                                                        value={form[col] || ''}
+                                                        onChange={(e) => setForm({ ...form, [col]: e.target.value })}
+                                                        placeholder={`Enter ${col.replace(/_/g, ' ')}`}
+                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                    />
+                                                )}
                                             </div>
                                         );
                                     })}
                                 </div>
-
-                                <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
-                                    <p className="text-gray-700">{viewing.description || 'No description provided.'}</p>
-                                </div>
-                            </div>
+                            </form>
 
                             <div className="modal-footer">
                                 <button
                                     type="button"
-                                    onClick={() => { setViewing(null); setShowView(false); }}
+                                    onClick={() => { setShowCreate(false); setShowEdit(false); }}
                                     className="btn-secondary rounded-xl"
                                 >
-                                    Close
+                                    Cancel
                                 </button>
                                 <button
-                                    type="button"
-                                    onClick={() => {
-                                        setViewing(null);
-                                        setShowView(false);
-                                        openEdit(viewing);
-                                    }}
-                                    className="btn-primary rounded-xl"
+                                    type="submit"
+                                    form="emergency-protocol-form"
+                                    disabled={creating || editing}
+                                    className="rounded-xl btn-primary"
                                 >
-                                    <Edit className="w-4 h-4" />
-                                    Edit
+                                    {creating ? "Creating..." : "Save Task"}
                                 </button>
                             </div>
-                        </>
-                    </div>
-                </div>
-            )}
-
-            {/* --- FORM MODAL --- */}
-            {(showCreate || showEdit) && (
-                <div className="modal-overlay">
-                    <div className="modal-container h-[70vh]">
-
-                        {/* Modal Header */}
-                        <div className="modal-header">
-                            <div>
-                                <h3 className="modal-title">
-                                    {showEdit ? "Edit Task" : "Create New Task"}
-                                </h3>
-                            </div>
-                            <button
-                                onClick={() => { setShowCreate(false); setShowEdit(false); }}
-                                className="modal-close-btn rounded-xl"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        {/* Modal Form Content */}
-                        <form id="emergency-protocol-form" onSubmit={handleSubmit} className="modal-content form-section">
-                            <div className="form-grid-2">
-
-                                {showEdit && (
-                                    <div className="col-span-1 md:col-span-2">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Reference ID</label>
-                                        <input
-                                            disabled
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
-                                            value={form.reference}
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="col-span-1 md:col-span-2">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Title <span className="text-red-500">*</span></label>
-                                    <input
-                                        required
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                        value={form.title}
-                                        onChange={e => setForm({ ...form, title: e.target.value })}
-                                    />
-                                </div>
-
-
-
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Property <span className="text-red-500">*</span></label>
-                                    <select
-                                        required
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                        value={form.property_id}
-                                        onChange={handleHotelChange}
-                                    >
-                                        <option value="">Select Property</option>
-                                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                                    </select>
-                                </div>
-
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Category <span className="text-red-500">*</span></label>
-                                    <select
-                                        required
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                        value={form.category}
-                                        onChange={handleCategoryChange}
-                                    >
-                                        <option value="">Select category</option>
-                                        {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
-                                            <option key={c} value={c}>{c}</option>
-                                        ))}
-                                        {!!form.category && ![...CATEGORY_OPTIONS, ...customCategories].some((c) => String(c) === String(form.category)) && (
-                                            <option value={form.category}>{form.category}</option>
-                                        )}
-                                        <option value="__add_new__">+ Add new...</option>
-                                    </select>
-                                    {showCustomCategoryInput && (
-                                        <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={customCategoryValue}
-                                                onChange={(e) => setCustomCategoryValue(e.target.value)}
-                                                placeholder="Enter new category"
-                                                className="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                            />
-                                            <div className="flex items-center gap-2 sm:shrink-0">
-                                                <button
-                                                    type="button"
-                                                    onClick={saveCustomCategory}
-                                                    className="px-3 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium transition-colors whitespace-nowrap"
-                                                >
-                                                    Add
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setShowCustomCategoryInput(false);
-                                                        setCustomCategoryValue('');
-                                                    }}
-                                                    className="px-3 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium transition-colors whitespace-nowrap"
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Priority <span className="text-red-500">*</span></label>
-                                    <select
-                                        required
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                        value={form.priority}
-                                        onChange={e => setForm({ ...form, priority: e.target.value })}
-                                    >
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
-                                        <option value="Urgent">Urgent</option>
-                                    </select>
-                                </div>
-
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
-                                    <select
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                        value={form.status}
-                                        onChange={e => setForm({ ...form, status: e.target.value })}
-                                    >
-                                        <option value="Pending">Pending</option>
-                                        <option value="In Progress">In Progress</option>
-                                        <option value="Completed">Completed</option>
-                                    </select>
-                                </div>
-
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Assigned To <span className="text-red-500">*</span></label>
-                                    {form.property_id && staffMembers.length > 0 ? (
-                                        <select
-                                            required
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                            value={form.assigned_to_name}
-                                            onChange={e => setForm({ ...form, assigned_to_name: e.target.value })}
-                                        >
-                                            <option value="">Select staff member</option>
-                                            {staffMembers.map(staff => (
-                                                <option key={staff.id} value={staff.name}>{staff.name}</option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <input
-                                            required
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
-                                            value={form.assigned_to_name}
-                                            onChange={e => setForm({ ...form, assigned_to_name: e.target.value })}
-                                            placeholder={form.property_id ? "Loading staff..." : "Select property first"}
-                                            disabled={!form.property_id}
-                                        />
-                                    )}
-                                </div>
-
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Reported By <span className="text-red-500">*</span></label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={form.reported_by}
-                                        readOnly
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
-                                    />
-                                </div>
-
-                                <div className="col-span-1 md:col-span-2">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Scheduled Date <span className="text-red-500">*</span></label>
-                                    <input
-                                        required
-                                        type="date"
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                        value={formatDateISO(form.scheduled_date)}
-                                        onChange={e => setForm({ ...form, scheduled_date: e.target.value })}
-                                    />
-                                </div>
-
-                                {/* Render custom columns in form - Standardized UI */}
-                                {customColumns.map(col => {
-                                    const meta = customColumnMetadata[col] || {};
-                                    const inputType = meta.input_type || 'text';
-                                    const options = Array.isArray(meta.input_options) ? meta.input_options : [];
-
-                                    return (
-                                        <div key={col} className="col-span-1 md:col-span-2">
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                                {col.replace(/_/g, ' ').toUpperCase()} <span className="text-red-500">*</span>
-                                            </label>
-                                            {inputType === 'checkbox' ? (
-                                                <select
-                                                    required
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                                    value={form[col] === 'true' || form[col] === 'false' ? form[col] : form[col] === true ? 'true' : form[col] === false ? 'false' : ''}
-                                                    onChange={(e) => setForm({ ...form, [col]: e.target.value })}
-                                                >
-                                                    <option value="">Select...</option>
-                                                    <option value="true">Yes</option>
-                                                    <option value="false">No</option>
-                                                </select>
-                                            ) : inputType === 'dropdown' || inputType === 'select' ? (
-                                                <select
-                                                    required
-                                                    value={form[col] || ''}
-                                                    onChange={(e) => setForm({ ...form, [col]: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                                >
-                                                    <option value="">Select...</option>
-                                                    {options.map((opt, idx) => (
-                                                        <option key={idx} value={opt}>{opt}</option>
-                                                    ))}
-                                                </select>
-                                            ) : inputType === 'textarea' ? (
-                                                <textarea
-                                                    rows={3}
-                                                    required
-                                                    value={form[col] || ''}
-                                                    onChange={(e) => setForm({ ...form, [col]: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
-                                                />
-                                            ) : inputType === 'date' ? (
-                                                <input
-                                                    type="date"
-                                                    required
-                                                    value={form[col] ? formatDateISO(form[col]) : ''}
-                                                    onChange={(e) => setForm({ ...form, [col]: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                                />
-                                            ) : (
-                                                <input
-                                                    type={inputType}
-                                                    required
-                                                    value={form[col] || ''}
-                                                    onChange={(e) => setForm({ ...form, [col]: e.target.value })}
-                                                    placeholder={`Enter ${col.replace(/_/g, ' ')}`}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                                />
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </form>
-
-                        <div className="modal-footer">
-                            <button
-                                type="button"
-                                onClick={() => { setShowCreate(false); setShowEdit(false); }}
-                                className="btn-secondary rounded-xl"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                form="emergency-protocol-form"
-                                disabled={creating || editing}
-                                className="rounded-xl btn-primary"
-                            >
-                                {creating ? "Creating..." : "Save Task"}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Modal Dialogs */}
             <AlertDialog
@@ -2073,6 +2281,6 @@ export default function EmergencyProtocols() {
                 message={confirmDialog.message}
                 type={confirmDialog.type}
             />
-        </div>
+        </div >
     );
 }

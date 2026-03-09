@@ -139,6 +139,62 @@ function getAvatarColor(name) {
     return "bg-teal-100 text-teal-700";
 }
 
+const openAttachmentsGallery = (items = []) => {
+    if (!items.length) return;
+    const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+    const urls = items.map((x) => {
+        // If x is a number or numeric string, it's an ID
+        const isNumericId = /^\d+$/.test(String(x));
+        const u = isNumericId ? `/api/maintenance/attachments/${x}` : String(x);
+        return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+    });
+
+    const safeTitle = `Maintenance Photos (${urls.length})`;
+    const html = `
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>${safeTitle}</title>
+          <style>
+            :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #2dd4bf; }
+            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+            header { position: sticky; top: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+            .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; padding: 1.5rem; }
+            .card { background: var(--card); border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
+            .card:hover { transform: translateY(-4px); border-color: var(--accent); }
+            .card img { width: 100%; height: 250px; object-fit: cover; background: #000; display: block; cursor: pointer; }
+            .card-meta { padding: 1rem; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center; }
+            .btn { background: var(--accent); color: var(--bg); padding: 0.5rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.75rem; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <div style="font-weight: 700; font-size: 1.1rem; letter-spacing: -0.025em;">${safeTitle}</div>
+            <div style="font-size: 0.75rem; opacity: 0.6;">Premium Viewer</div>
+          </header>
+          <div class="gallery">
+            ${urls.map((u, i) => `
+              <div class="card">
+                <img src="${u}" alt="Photo ${i + 1}" onclick="window.open('${u}', '_blank')">
+                <div class="card-meta">
+                  <span>Photo ${i + 1}</span>
+                  <a href="${u}" target="_blank" class="btn">Full View</a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+};
+
 const DetailField = ({ label, value, fullWidth = false }) => (
     <div className={fullWidth ? "md:col-span-2" : ""}>
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
@@ -1050,12 +1106,18 @@ export default function MaintenancePage({ user }) {
                 }
             });
 
+            // CRITICAL: Exclude attachments column from dynamic update to prevent corruption
+            delete updateData.attachments;
+
             const hasPhotos = Array.isArray(photos) && photos.length > 0;
             if (hasPhotos) {
                 const fd = new FormData();
                 Object.entries(updateData).forEach(([k, v]) => {
                     if (v === undefined) return;
-                    if (v === null) return;
+                    if (v === null) {
+                        fd.append(k, '');
+                        return;
+                    }
                     fd.append(k, String(v));
                 });
                 photos.forEach((f) => fd.append('photos', f));
@@ -1085,29 +1147,36 @@ export default function MaintenancePage({ user }) {
         }
     }
 
-    async function handleRemoveMaintenanceAttachment(attachmentId) {
-        if (!attachmentId) return;
-        try {
-            await api.delete(`/api/maintenance/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
-            setForm((p) => {
-                let atts = p?.attachments ?? p?.raw?.attachments ?? [];
-                try {
-                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
-                } catch {
-                    atts = [];
-                }
-                const next = (Array.isArray(atts) ? atts : []).filter((x) => String(x) !== String(attachmentId));
-                return {
-                    ...p,
-                    attachments: next,
-                    raw: { ...(p.raw || {}), attachments: next }
-                };
-            });
-            await loadTasks();
-        } catch (err) {
-            console.warn('Failed to remove maintenance attachment:', err?.message || err);
-        }
-    }
+    const renderExistingAttachments = () => {
+        const items = form?.attachments || [];
+        if (!items.length) return null;
+        return (
+            <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
+                <div className="flex flex-wrap gap-2">
+                    {items.map((id, idx) => (
+                        <div key={`${id}-${idx}`} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2 shadow-sm">
+                            <button
+                                type="button"
+                                onClick={() => openAttachmentsGallery([id])}
+                                className="text-xs font-semibold text-teal-700 hover:text-teal-800 transition-colors"
+                            >
+                                View
+                            </button>
+                            <span className="w-px h-3 bg-gray-200" />
+                            <button
+                                type="button"
+                                onClick={() => handleRemoveMaintenanceAttachment(id)}
+                                className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+                            >
+                                Remove
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
 
     function openEdit(task) {
         // Prefer the raw DB id when available to avoid using non-numeric reference keys
@@ -1117,10 +1186,25 @@ export default function MaintenancePage({ user }) {
         const hotelId = hotelRecord?.id ?? (typeof task.hotel === 'number' ? task.hotel : '');
         const hotelName = hotelRecord?.name ?? task.hotel ?? '';
 
+        // Parse existing attachments
+        let existingAttachments = [];
+        try {
+            const rawAtts = task.attachments ?? task.raw?.attachments ?? [];
+            if (Array.isArray(rawAtts)) {
+                existingAttachments = rawAtts;
+            } else if (typeof rawAtts === 'string' && rawAtts.trim()) {
+                const parsed = JSON.parse(rawAtts);
+                if (Array.isArray(parsed)) existingAttachments = parsed;
+            }
+        } catch (err) {
+            console.warn('Failed to parse existing attachments', err);
+        }
+
         const formData = {
             ...task,
             hotelId: hotelId,
-            hotelName: hotelName
+            hotelName: hotelName,
+            attachments: existingAttachments.filter(Boolean),
         };
 
         customColumns.forEach(col => {
@@ -1145,17 +1229,29 @@ export default function MaintenancePage({ user }) {
         const hotelId = hotelRecord?.id ?? (typeof task.hotel === 'number' ? task.hotel : '');
         const hotelName = hotelRecord?.name ?? task.hotel ?? '';
 
-        setViewingTask({
-            ...task,
-            hotelId: hotelId,
-            hotelName: hotelName
-        });
+        // Parse existing attachments
+        let existingAttachments = [];
+        try {
+            const rawAtts = task.attachments ?? task.raw?.attachments ?? [];
+            if (Array.isArray(rawAtts)) {
+                existingAttachments = rawAtts;
+            } else if (typeof rawAtts === 'string' && rawAtts.trim()) {
+                const parsed = JSON.parse(rawAtts);
+                if (Array.isArray(parsed)) existingAttachments = parsed;
+            }
+        } catch (err) {
+            console.warn('Failed to parse existing attachments', err);
+        }
 
-        setForm({
+        const viewData = {
             ...task,
             hotelId: hotelId,
-            hotelName: hotelName
-        });
+            hotelName: hotelName,
+            attachments: existingAttachments.filter(Boolean),
+        };
+
+        setViewingTask(viewData);
+        setForm(viewData);
 
         if (hotelId) {
             fetchStaffForHotel(hotelId);
@@ -1745,23 +1841,8 @@ export default function MaintenancePage({ user }) {
                                                             return (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => {
-                                                                        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
-                                                                        const urls = list.map((x) => {
-                                                                            const isNumericId = /^\d+$/.test(String(x));
-                                                                            const u = isNumericId ? `/api/maintenance/attachments/${x}` : String(x);
-                                                                            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
-                                                                        });
-                                                                        const safeTitle = `Maintenance Attachments (${urls.length})`;
-                                                                        const html = `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${safeTitle}</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0b1220;color:#e5e7eb}header{position:sticky;top:0;background:rgba(11,18,32,.92);backdrop-filter:blur(10px);padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.2)}.wrap{padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.card{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:12px;overflow:hidden}.card img{display:block;width:100%;height:auto;background:#111827}.meta{padding:10px 12px;font-size:12px;color:#94a3b8}</style></head><body><header><div style="font-weight:700">${safeTitle}</div><div style="font-size:12px;color:#94a3b8">Click an image to open it directly</div></header><div class="wrap">${urls.map((u,i)=>`<a class="card" href="${u}" target="_blank" rel="noopener noreferrer"><img src="${u}" alt="Attachment ${i+1}"/><div class="meta">Photo ${i+1}</div></a>`).join('')}</div></body></html>`;
-                                                                        const blob = new Blob([html], { type: 'text/html' });
-                                                                        const blobUrl = URL.createObjectURL(blob);
-                                                                        window.open(blobUrl, '_blank', 'noopener,noreferrer');
-                                                                        setTimeout(() => {
-                                                                            try { URL.revokeObjectURL(blobUrl); } catch { }
-                                                                        }, 60_000);
-                                                                    }}
-                                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
+                                                                    onClick={() => openAttachmentsGallery(list)}
+                                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl shadow-sm hover:bg-teal-100 transition-all duration-200"
                                                                     title="View attachments"
                                                                 >
                                                                     <span>{list.length}</span>
@@ -2077,6 +2158,19 @@ export default function MaintenancePage({ user }) {
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* Attachments Button in View */}
+                                        {Array.isArray(form.attachments) && form.attachments.length > 0 && (
+                                            <div className="pt-4 border-t border-gray-100 mt-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openAttachmentsGallery(form.attachments)}
+                                                    className="inline-flex items-center px-4 py-2 rounded-xl bg-teal-50 text-teal-700 text-sm font-semibold hover:bg-teal-100 transition-colors"
+                                                >
+                                                    View {form.attachments.length} Photos
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     /* Edit/Create Form Content */
@@ -2326,44 +2420,7 @@ export default function MaintenancePage({ user }) {
                                                 )}
                                             </div>
 
-                                            {(() => {
-                                                if (!showEdit) return null;
-                                                let atts = form?.attachments ?? form?.raw?.attachments ?? [];
-                                                try {
-                                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
-                                                } catch {
-                                                    atts = [];
-                                                }
-                                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
-                                                if (list.length === 0) return null;
-                                                return (
-                                                    <div className="col-span-1 md:col-span-2">
-                                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {list.map((id) => (
-                                                                <div key={String(id)} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => window.open(`/api/maintenance/attachments/${id}`, '_blank', 'noopener,noreferrer')}
-                                                                        className="text-xs font-semibold text-teal-700"
-                                                                        title="View"
-                                                                    >
-                                                                        View
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleRemoveMaintenanceAttachment(id)}
-                                                                        className="text-xs font-semibold text-red-600"
-                                                                        title="Remove"
-                                                                    >
-                                                                        Remove
-                                                                    </button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()}
+                                            {showEdit && renderExistingAttachments()}
 
                                             {/* Custom Columns Section */}
                                             {customColumns.length > 0 && (
@@ -2531,6 +2588,19 @@ export default function MaintenancePage({ user }) {
                                     })}
 
                                     <DetailField label="Description" value={viewingTask.description} fullWidth={true} />
+
+                                    {viewingTask.attachments && viewingTask.attachments.length > 0 && (
+                                        <div className="col-span-1 md:col-span-2 pt-2">
+                                            <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-2">ATTACHMENTS</div>
+                                            <button
+                                                type="button"
+                                                onClick={() => openAttachmentsGallery(viewingTask.attachments)}
+                                                className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-4 py-2 rounded-xl shadow-sm hover:bg-teal-100 transition-all"
+                                            >
+                                                <span>View {viewingTask.attachments.length} Photo(s)</span>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

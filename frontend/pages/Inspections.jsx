@@ -72,6 +72,7 @@ const DEFAULT_COLUMNS = [
   "type",
   "reference",
   "description",
+  "attachments",
   "priority",
   "status",
   "assigned",
@@ -282,7 +283,7 @@ export default function Inspections({ user }) {
   const [customColumnTypes, setCustomColumnTypes] = useState({});
   const [customColumnMetadata, setCustomColumnMetadata] = useState({});
   // ...existing code...
-  const [availableColumns, setAvailableColumns] = useState(["checkbox", "type", "reference", "description", "priority", "status", "assigned", "date", "actions"]);
+  const [availableColumns, setAvailableColumns] = useState(["checkbox", "type", "reference", "description", "attachments", "priority", "status", "assigned", "date", "actions"]);
 
   const BASE_EXPORT_COLUMNS = useMemo(
     () => [
@@ -1001,6 +1002,7 @@ export default function Inspections({ user }) {
           }
           fd.append(k, String(v));
         });
+        delete payload.attachments;
         photos.forEach((f) => fd.append('photos', f));
 
         if (editingId) {
@@ -1010,8 +1012,10 @@ export default function Inspections({ user }) {
         }
       } else {
         if (editingId) {
+          delete payload.attachments;
           res = await api.put(`/api/inspections/${editingId}`, payload);
         } else {
+          delete payload.attachments;
           res = await api.post("/api/inspections", payload);
         }
       }
@@ -1236,7 +1240,15 @@ export default function Inspections({ user }) {
     customColumns.forEach(col => {
       customFieldData[col] = item[col] ?? "";
     });
-    setFormData({ ...baseFormData, ...customFieldData });
+
+    let attachments = item.attachments ?? item.attachments_ids ?? item.photos ?? [];
+    try {
+      if (typeof attachments === 'string' && attachments) attachments = JSON.parse(attachments);
+    } catch {
+      attachments = [];
+    }
+
+    setFormData({ ...baseFormData, ...customFieldData, attachments: Array.isArray(attachments) ? attachments : [] });
     // fetch service users for property if present
     if (resolvedPropId) fetchServiceUsers(resolvedPropId);
     setEditingId(id);
@@ -1361,6 +1373,91 @@ export default function Inspections({ user }) {
     };
   }, [showModal, showViewModal, confirmDialog.isOpen]);
 
+  async function removeAttachment(attachmentId) {
+    if (!attachmentId || submitting) return;
+    try {
+      setSubmitting(true);
+      await api.delete(`/api/inspections/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+      setFormData((p) => {
+        let atts = p?.attachments ?? [];
+        try {
+          if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+        } catch {
+          atts = [];
+        }
+        const next = (Array.isArray(atts) ? atts : []).filter((x) => String(x) !== String(attachmentId));
+        return { ...p, attachments: next };
+      });
+      await fetchInspections();
+    } catch (err) {
+      console.warn('Failed to remove attachment', err);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function openAttachmentsGallery(attachments) {
+    let atts = attachments || [];
+    try {
+      if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+    } catch {
+      atts = [];
+    }
+    const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+    if (!list.length) return;
+
+    const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+    const urls = list.map((x) => {
+      // If x is a number or numeric string, it's an ID
+      const isNumericId = /^\d+$/.test(String(x));
+      const u = isNumericId ? `/api/inspections/attachments/${x}` : String(x);
+      return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+    });
+    const safeTitle = `Inspection Photos (${urls.length})`;
+    const html = `
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>${safeTitle}</title>
+          <style>
+            :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #2dd4bf; }
+            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+            header { position: sticky; top: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+            .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; padding: 1.5rem; }
+            .card { background: var(--card); border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
+            .card:hover { transform: translateY(-4px); border-color: var(--accent); }
+            .card img { width: 100%; height: 250px; object-fit: cover; background: #000; display: block; cursor: pointer; }
+            .card-meta { padding: 1rem; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center; }
+            .btn { background: var(--accent); color: var(--bg); padding: 0.5rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.75rem; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <div style="font-weight: 700; font-size: 1.1rem; letter-spacing: -0.025em;">${safeTitle}</div>
+            <div style="font-size: 0.75rem; opacity: 0.6;">Premium Viewer</div>
+          </header>
+          <div class="gallery">
+            ${urls.map((u, i) => `
+              <div class="card">
+                <img src="${u}" alt="Photo ${i + 1}" onclick="window.open('${u}', '_blank')">
+                <div class="card-meta">
+                  <span>Photo ${i + 1}</span>
+                  <a href="${u}" target="_blank" class="btn">Full View</a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </body>
+      </html>
+    `;
+    const blob = new Blob([html], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  }
+
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6">
@@ -1395,7 +1492,7 @@ export default function Inspections({ user }) {
               <Users size={28} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Open Inspections</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Open Inspections</div>
               <div className="text-2xl font-black text-slate-800 leading-none">{stats.pending}</div>
             </div>
           </div>
@@ -1405,7 +1502,7 @@ export default function Inspections({ user }) {
               <AlertCircle size={28} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">High Risk</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">High Risk</div>
               <div className="text-2xl font-black text-slate-800 leading-none">{stats.actionRequired}</div>
             </div>
           </div>
@@ -1415,7 +1512,7 @@ export default function Inspections({ user }) {
               <User size={28} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Assigned Tasks</div>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Assigned Tasks</div>
               <div className="text-2xl font-black text-slate-800 leading-none">{stats.completed}</div>
             </div>
           </div>
@@ -1824,6 +1921,9 @@ export default function Inspections({ user }) {
                     {visibleColumns.description && (
                       <th className="text-left py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
                     )}
+                    {visibleColumns.attachments && (
+                      <th className="text-left py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ATTACHMENTS</th>
+                    )}
                     {visibleColumns.priority && (
                       <th className="text-left py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
                     )}
@@ -1893,6 +1993,31 @@ export default function Inspections({ user }) {
                                   {row.findings || "No findings recorded."}
                                 </div>
                               </div>
+                            </td>
+                          )}
+                          {visibleColumns.attachments && (
+                            <td className="py-4 px-4">
+                              {(() => {
+                                let atts = row?.attachments ?? row?.raw?.attachments ?? [];
+                                try {
+                                  if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                } catch {
+                                  atts = [];
+                                }
+                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                if (list.length === 0) return <span className="text-gray-400 text-sm">—</span>;
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => openAttachmentsGallery(row?.attachments ?? row?.raw?.attachments)}
+                                    className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
+                                    title="View attachments"
+                                  >
+                                    <span>{list.length}</span>
+                                    <span className="text-xs font-bold uppercase tracking-wide">Photos</span>
+                                  </button>
+                                );
+                              })()}
                             </td>
                           )}
                           {visibleColumns.priority && (
@@ -2361,7 +2486,70 @@ export default function Inspections({ user }) {
                       </select>
                     </div>
 
-                    {/* Custom Columns from Forms Builder */}
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setPhotos(files);
+                        }}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                      />
+                      {photos.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>
+                      )}
+                    </div>
+
+                    {(() => {
+                      if (!editingId) return null;
+                      const inspection = inspections.find(i => String(i.id) === String(editingId));
+                      if (!inspection) return null;
+                      let list = [];
+                      try {
+                        const raw = inspection.attachments ?? inspection.attachments_ids ?? inspection.photos ?? [];
+                        if (Array.isArray(raw)) list = raw;
+                        else if (typeof raw === 'string' && raw.trim()) {
+                          const parsed = JSON.parse(raw);
+                          if (Array.isArray(parsed)) list = parsed;
+                        }
+                      } catch { list = []; }
+                      const items = list.filter(Boolean);
+                      if (items.length === 0) return null;
+                      return (
+                        <div className="col-span-1 md:col-span-2">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
+                          <div className="flex flex-wrap gap-2">
+                            {items.map((id, idx) => {
+                              const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+                              const href = String(id).startsWith('http') ? id : `${base}/api/inspections/attachments/${id}`;
+                              return (
+                                <div key={`${id}-${idx}`} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
+                                    className="text-xs font-semibold text-teal-700"
+                                    title="View"
+                                  >
+                                    View
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeAttachment(id)}
+                                    className="text-xs font-semibold text-red-600"
+                                    title="Remove"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {customColumns.map(col => {
                       const meta = customColumnMetadata[col] || {};
                       const inputType = meta.input_type || 'text';
@@ -2465,7 +2653,6 @@ export default function Inspections({ user }) {
       }
 
       {/* View Details Modal */}
-      {/* View Details Modal */}
       {
         showViewModal && viewingInspection && (
           <div className="modal-overlay">
@@ -2510,37 +2697,25 @@ export default function Inspections({ user }) {
                   <DetailField label="Findings" value={viewingInspection.findings} fullWidth={true} />
 
                   {(() => {
-                    let list = [];
+                    let list = viewingInspection.attachments ?? viewingInspection.attachments_ids ?? viewingInspection.photos ?? [];
                     try {
-                      const raw = viewingInspection.attachments ?? viewingInspection.attachments_ids ?? viewingInspection.photos ?? [];
-                      if (Array.isArray(raw)) list = raw;
-                      else if (typeof raw === 'string' && raw.trim()) {
-                        const parsed = JSON.parse(raw);
-                        if (Array.isArray(parsed)) list = parsed;
-                      }
+                      if (typeof list === 'string' && list) list = JSON.parse(list);
                     } catch {
                       list = [];
                     }
-                    if (!list.length) return null;
+                    const items = (Array.isArray(list) ? list : []).filter(Boolean);
+                    if (!items.length) return null;
                     return (
                       <div className="md:col-span-2">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Attachments</label>
-                        <div className="flex flex-wrap gap-2">
-                          {list.map((att, idx) => {
-                            const isNumericId = /^\d+$/.test(String(att));
-                            const href = isNumericId ? `/api/inspections/attachments/${att}` : String(att);
-                            return (
-                              <button
-                                key={`${att}-${idx}`}
-                                type="button"
-                                onClick={() => window.open(href, '_blank')}
-                                className="px-3 py-1.5 text-sm rounded-xl border border-slate-200 bg-white hover:bg-slate-50"
-                              >
-                                Photo {idx + 1}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Attachments</label>
+                        <button
+                          type="button"
+                          onClick={() => openAttachmentsGallery(items)}
+                          className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-4 py-2 rounded-xl"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>View {items.length} Photos</span>
+                        </button>
                       </div>
                     );
                   })()}

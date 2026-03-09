@@ -280,6 +280,62 @@ export default function AIRETasks({ user }) {
         return name.match(/(\b\S)?/g).join("").match(/(^\S|\S$)?/g).join("").toUpperCase().slice(0, 2);
     }
 
+    const openAttachmentsGallery = (items = []) => {
+        if (!items.length) return;
+        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+        const urls = items.map((x) => {
+            // If x is a number or numeric string, it's an ID
+            const isNumericId = /^\d+$/.test(String(x));
+            const u = isNumericId ? `/api/aire-tasks/attachments/${x}` : String(x);
+            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+        });
+
+        const safeTitle = `AIRE Photos (${urls.length})`;
+        const html = `
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>${safeTitle}</title>
+          <style>
+            :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #2dd4bf; }
+            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+            header { position: sticky; top: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+            .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; padding: 1.5rem; }
+            .card { background: var(--card); border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
+            .card:hover { transform: translateY(-4px); border-color: var(--accent); }
+            .card img { width: 100%; height: 250px; object-fit: cover; background: #000; display: block; cursor: pointer; }
+            .card-meta { padding: 1rem; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center; }
+            .btn { background: var(--accent); color: var(--bg); padding: 0.5rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.75rem; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <div style="font-weight: 700; font-size: 1.1rem; letter-spacing: -0.025em;">${safeTitle}</div>
+            <div style="font-size: 0.75rem; opacity: 0.6;">Premium Viewer</div>
+          </header>
+          <div class="gallery">
+            ${urls.map((u, i) => `
+              <div class="card">
+                <img src="${u}" alt="Photo ${i + 1}" onclick="window.open('${u}', '_blank')">
+                <div class="card-meta">
+                  <span>Photo ${i + 1}</span>
+                  <a href="${u}" target="_blank" class="btn">Full View</a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </body>
+      </html>
+    `;
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    };
+
     const api = useMemo(() => axios.create({
         baseURL: import.meta.env.VITE_API_URL || '',
         withCredentials: true,
@@ -1387,27 +1443,11 @@ export default function AIRETasks({ user }) {
                                                             return (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => {
-                                                                        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
-                                                                        const urls = list.map((x) => {
-                                                                            const isNumericId = /^\d+$/.test(String(x));
-                                                                            const u = isNumericId ? `/api/aire-tasks/attachments/${x}` : String(x);
-                                                                            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
-                                                                        });
-                                                                        const safeTitle = `AIRE Task Attachments (${urls.length})`;
-                                                                        const html = `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${safeTitle}</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0b1220;color:#e5e7eb}header{position:sticky;top:0;background:rgba(11,18,32,.92);backdrop-filter:blur(10px);padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.2)}.wrap{padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.card{background:#0f172a;border:1px solid rgba(148,163,184,.2);border-radius:12px;overflow:hidden}.card img{display:block;width:100%;height:auto;background:#111827}.meta{padding:10px 12px;font-size:12px;color:#94a3b8}</style></head><body><header><div style="font-weight:700">${safeTitle}</div><div style="font-size:12px;color:#94a3b8">Click an image to open it directly</div></header><div class="wrap">${urls.map((u,i)=>`<a class="card" href="${u}" target="_blank" rel="noopener noreferrer"><img src="${u}" alt="Attachment ${i+1}"/><div class="meta">Photo ${i+1}</div></a>`).join('')}</div></body></html>`;
-                                                                        const blob = new Blob([html], { type: 'text/html' });
-                                                                        const blobUrl = URL.createObjectURL(blob);
-                                                                        window.open(blobUrl, '_blank', 'noopener,noreferrer');
-                                                                        setTimeout(() => {
-                                                                            try { URL.revokeObjectURL(blobUrl); } catch { }
-                                                                        }, 60_000);
-                                                                    }}
-                                                                    className="inline-flex items-center gap-2 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
-                                                                    title="View attachments"
+                                                                    onClick={() => openAttachmentsGallery(list)}
+                                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-4 py-2 rounded-xl shadow-sm hover:bg-teal-100 transition-all"
                                                                 >
-                                                                    <span>{list.length}</span>
-                                                                    <span className="text-[10px] font-bold uppercase tracking-wide">Photos</span>
+                                                                    <Eye className="w-4 h-4" />
+                                                                    <span>View {list.length} Photos</span>
                                                                 </button>
                                                             );
                                                         })()}
@@ -1589,19 +1629,23 @@ export default function AIRETasks({ user }) {
                                                                         {task.title}
                                                                     </h4>
 
-                                                                    {task.description && (
-                                                                        <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-                                                                            {task.description}
-                                                                        </p>
-                                                                    )}
+                                                                    {
+                                                                        task.description && (
+                                                                            <p className="text-xs text-gray-500 mb-3 line-clamp-2">
+                                                                                {task.description}
+                                                                            </p>
+                                                                        )
+                                                                    }
 
-                                                                    {task.task_type && (
-                                                                        <div className="mb-3">
-                                                                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">
-                                                                                {task.task_type}
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
+                                                                    {
+                                                                        task.task_type && (
+                                                                            <div className="mb-3">
+                                                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">
+                                                                                    {task.task_type}
+                                                                                </span>
+                                                                            </div>
+                                                                        )
+                                                                    }
 
                                                                     <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
                                                                         <div className="flex items-center gap-2">
@@ -1677,22 +1721,25 @@ export default function AIRETasks({ user }) {
             </div>
 
             {/* --- ADD/VIEW TASK MODAL --- */}
-            {showModal && (
-                <AddTaskModal
-                    api={api}
-                    editingTask={editingTask}
-                    readOnly={isViewing}
-                    error={modalError}
-                    submitting={modalSubmitting}
-                    customColumns={customColumns}
-                    customColumnMetadata={customColumnMetadata}
-                    currentUser={currentUser}
-                    onRemoveAttachment={handleRemoveAttachment}
-                    onRequestEdit={() => setIsViewing(false)}
-                    onClose={() => { setShowModal(false); setModalError(null); setEditingTask(null); setIsViewing(false); }}
-                    onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
-                />
-            )}
+            {
+                showModal && (
+                    <AddTaskModal
+                        api={api}
+                        editingTask={editingTask}
+                        readOnly={isViewing}
+                        error={modalError}
+                        submitting={modalSubmitting}
+                        customColumns={customColumns}
+                        openAttachmentsGallery={openAttachmentsGallery}
+                        customColumnMetadata={customColumnMetadata}
+                        currentUser={currentUser}
+                        onRemoveAttachment={handleRemoveAttachment}
+                        onRequestEdit={() => setIsViewing(false)}
+                        onClose={() => { setShowModal(false); setModalError(null); setEditingTask(null); setIsViewing(false); }}
+                        onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+                    />
+                )
+            }
 
             {/* Confirmation Dialog */}
             <ConfirmDialog
@@ -1712,12 +1759,12 @@ export default function AIRETasks({ user }) {
                 message={alertDialog.message}
                 type={alertDialog.type}
             />
-        </div>
+        </div >
     );
 }
 
 // Modal Component
-function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, onSubmit, onRequestEdit, onRemoveAttachment, customColumns = [], customColumnMetadata = {}, currentUser }) {
+function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, onSubmit, onRequestEdit, onRemoveAttachment, openAttachmentsGallery, customColumns = [], customColumnMetadata = {}, currentUser }) {
     const [form, setForm] = useState({
         title: '',
         description: '',
@@ -2084,6 +2131,30 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                             })}
 
                             <DetailField label="Description" value={form.description} fullWidth={true} />
+
+                            {(() => {
+                                let atts = editingTask?.attachments ?? editingTask?.raw?.attachments ?? [];
+                                try {
+                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                } catch {
+                                    atts = [];
+                                }
+                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                if (list.length === 0) return null;
+                                return (
+                                    <div className="col-span-1 md:col-span-2 pt-2">
+                                        <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-2">ATTACHMENTS</div>
+                                        <button
+                                            type="button"
+                                            onClick={() => openAttachmentsGallery(list)}
+                                            className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-4 py-2 rounded-xl shadow-sm hover:bg-teal-100 transition-all"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                            <span>View {list.length} Photos</span>
+                                        </button>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
 
@@ -2335,20 +2406,21 @@ function AddTaskModal({ api, editingTask, readOnly, error, submitting, onClose, 
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
                                         <div className="flex flex-wrap gap-2">
                                             {list.map((id) => (
-                                                <div key={String(id)} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2">
+                                                <div key={String(id)} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2 shadow-sm">
                                                     <button
                                                         type="button"
-                                                        onClick={() => window.open(`/api/aire-tasks/attachments/${id}`, '_blank', 'noopener,noreferrer')}
-                                                        className="text-xs font-semibold text-teal-700"
+                                                        onClick={() => openAttachmentsGallery([id])}
+                                                        className="text-xs font-semibold text-teal-700 hover:text-teal-800 transition-colors"
                                                         title="View"
                                                     >
                                                         View
                                                     </button>
+                                                    <span className="w-px h-3 bg-gray-200" />
                                                     {!readOnly && typeof onRemoveAttachment === 'function' && (
                                                         <button
                                                             type="button"
                                                             onClick={() => onRemoveAttachment(editingTask.id, id)}
-                                                            className="text-xs font-semibold text-red-600"
+                                                            className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
                                                             title="Remove"
                                                         >
                                                             Remove

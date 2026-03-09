@@ -112,6 +112,7 @@ const CaseManagement = () => {
         "type",
         "reference",
         "description",
+        "attachments",
         "priority",
         "status",
         "assigned",
@@ -155,7 +156,7 @@ const CaseManagement = () => {
         try {
             const res = await api.get('/api/case-management/columns');
             const columns = res?.data?.columns || res?.data || [];
-            const defaultColumns = ["checkbox", "type", "reference", "description", "priority", "status", "assigned", "date", "actions"];
+            const defaultColumns = ["checkbox", "type", "reference", "description", "attachments", "priority", "status", "assigned", "date", "actions"];
             const systemColumns = [
                 'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
                 'title', 'description', 'property_id', 'property_name', 'category',
@@ -310,8 +311,11 @@ const CaseManagement = () => {
         assigned_to: '',
         reported_by: currentUser?.name || '',
         scheduled_date: '',
+        attachments: [],
     };
     const [formData, setFormData] = useState(initialForm);
+
+    const [photos, setPhotos] = useState([]);
 
     const CATEGORY_STORAGE_KEY = 'caseManagement.customCategories';
     const [customCategories, setCustomCategories] = useState([]);
@@ -466,6 +470,7 @@ const CaseManagement = () => {
     const handleAdd = () => {
         setEditingId(null);
         setFormData(initialForm);
+        setPhotos([]);
         setStaffMembers([]); // Clear staff members for new record
         setShowForm(true);
     };
@@ -478,7 +483,10 @@ const CaseManagement = () => {
             scheduled_date: c.scheduled_date ? formatDateISO(c.scheduled_date) : '',
             type: c.type || c.category || '',
             property: String(c.property_id || c.property || c.propertyId || ''),
+            attachments: c?.attachments ?? c?.raw?.attachments ?? [],
         });
+
+        setPhotos([]);
 
         // Fetch staff members if property is already set
         const propId = c.property_id || c.property || c.propertyId;
@@ -502,6 +510,112 @@ const CaseManagement = () => {
         setViewing(c);
         setShowView(true);
     };
+
+    async function handleRemoveCaseAttachment(attachmentId) {
+        if (!attachmentId) return;
+        try {
+            await api.delete(`/api/case-management/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+            setFormData((p) => {
+                let atts = p?.attachments ?? [];
+                try {
+                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                } catch {
+                    atts = [];
+                }
+                const next = (Array.isArray(atts) ? atts : []).filter((x) => String(x) !== String(attachmentId));
+                return { ...p, attachments: next };
+            });
+        } catch (err) {
+            console.warn('Failed to remove attachment', err);
+        }
+    }
+
+    const openAttachmentsGallery = (items = []) => {
+        let atts = items || [];
+        try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
+        const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+        if (!list.length) return;
+
+        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+        const urls = list.map((x) => {
+            const isNumericId = /^\d+$/.test(String(x));
+            const u = isNumericId ? `/api/case-management/attachments/${x}` : String(x);
+            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+        });
+
+        const safeTitle = `Case Attachments (${urls.length})`;
+        const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${safeTitle}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .img-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .img-card:hover { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
+        .full-view-btn { opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
+        .img-card:hover .full-view-btn { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-500/20 p-2 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight">${safeTitle}</h1>
+                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Premium Attachment Viewer</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-semibold">
+            <span class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full border border-slate-700">${urls.length} Items</span>
+            <button onclick="window.close()" class="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-full border border-red-500/20 transition-all">Close</button>
+        </div>
+    </header>
+
+    <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-8">
+        ${urls.map((u, i) => `
+            <div class="img-card group relative bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
+                <div class="aspect-[4/3] overflow-hidden bg-slate-900 flex items-center justify-center relative">
+                    <img src="${u}" alt="Attachment ${i + 1}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x300/1e293b/64748b?text=File+Preview'"/>
+                    
+                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <a href="${u}" target="_blank" class="full-view-btn bg-white text-slate-900 px-5 py-2.5 rounded-xl font-bold text-sm shadow-xl hover:bg-blue-50 transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+                            Full View
+                        </a>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-slate-700 bg-slate-800/30 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Attachment ${i + 1}</p>
+                        <p class="text-xs text-slate-300 font-medium truncate max-w-[140px]">IMG_REF_${Math.floor(Math.random() * 10000)}</p>
+                    </div>
+                    <a href="${u}" download class="p-2 text-slate-400 hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </a>
+                </div>
+            </div>
+        `).join('')}
+    </main>
+
+    <footer class="p-12 text-center">
+        <p class="text-slate-500 text-sm font-medium">End of Gallery • Total ${urls.length} Photos</p>
+    </footer>
+</body>
+</html>`;
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    };
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -555,7 +669,7 @@ const CaseManagement = () => {
         // Add custom columns to payload
         if (customColumns && customColumns.length) {
             customColumns.forEach(col => {
-                if (formData.hasOwnProperty(col)) {
+                if (Object.prototype.hasOwnProperty.call(formData, col)) {
                     const meta = customColumnMetadata[col] || {};
                     const inputType = meta.input_type || 'text';
                     if (inputType === 'checkbox') {
@@ -568,15 +682,24 @@ const CaseManagement = () => {
         }
 
         try {
-            let response;
+            const multipart = new FormData();
+            Object.entries(payload || {}).forEach(([k, v]) => {
+                if (v === undefined) return;
+                if (k === 'attachments') return;
+                if (v === null) multipart.append(k, '');
+                else multipart.append(k, String(v));
+            });
+            (photos || []).forEach((f) => multipart.append('photos', f));
+
             if (editingId) {
-                response = await api.put(`/api/case-management/${editingId}`, payload);
+                await api.put(`/api/case-management/${editingId}`, multipart, { headers: { 'Content-Type': 'multipart/form-data' } });
             } else {
-                response = await api.post("/api/case-management", payload);
+                await api.post("/api/case-management", multipart, { headers: { 'Content-Type': 'multipart/form-data' } });
             }
             // Always refetch columns and table data after save
             await fetchAvailableColumns();
             const res = await api.get('/api/case-management?limit=2000');
+
             let data = res.data?.data || res.data || [];
             const normalizedData = data.map(item => ({
                 ...item,
@@ -585,6 +708,7 @@ const CaseManagement = () => {
             }));
             setCases(normalizedData);
             setShowForm(false);
+            setPhotos([]);
         } catch (err) {
             console.error('Error saving case:', err);
             showAlert('Error', `Failed to ${editingId ? 'update' : 'create'} case: ${err.response?.data?.error || err.message}`, 'error');
@@ -1248,6 +1372,9 @@ const CaseManagement = () => {
                                         {visibleColumns.description && (
                                             <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>
                                         )}
+                                        {visibleColumns.attachments && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ATTACHMENTS</th>
+                                        )}
                                         {visibleColumns.priority && (
                                             <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>
                                         )}
@@ -1312,6 +1439,31 @@ const CaseManagement = () => {
                                                                 {row.title}
                                                             </div>
                                                         </div>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.attachments && (
+                                                    <td className="py-5 px-6">
+                                                        {(() => {
+                                                            let atts = row?.attachments ?? row?.raw?.attachments ?? [];
+                                                            try {
+                                                                if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                            } catch {
+                                                                atts = [];
+                                                            }
+                                                            const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                                            if (!list.length) return <span className="text-gray-400 text-sm">-</span>;
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openAttachmentsGallery(row?.attachments ?? row?.raw?.attachments)}
+                                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl transition-all hover:bg-teal-100 shadow-sm"
+                                                                    title="View attachments"
+                                                                >
+                                                                    <span>{list.length}</span>
+                                                                    <span className="text-xs font-bold uppercase tracking-wide">Photos</span>
+                                                                </button>
+                                                            );
+                                                        })()}
                                                     </td>
                                                 )}
                                                 {visibleColumns.priority && (
@@ -1916,6 +2068,50 @@ const CaseManagement = () => {
                                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                                                 placeholder="Describe the case details..."
                                             />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                onChange={(e) => setPhotos(Array.from(e.target.files || []))}
+                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                            />
+
+                                            {(() => {
+                                                let atts = formData?.attachments ?? [];
+                                                try {
+                                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                } catch {
+                                                    atts = [];
+                                                }
+                                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                                if (!list.length) return null;
+                                                return (
+                                                    <div className="mt-3 flex flex-wrap gap-2">
+                                                        {list.map((id, idx) => (
+                                                            <div key={idx} className="relative group bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openAttachmentsGallery([id])}
+                                                                    className="text-xs font-semibold text-teal-700 hover:underline"
+                                                                >
+                                                                    Photo {idx + 1}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemoveCaseAttachment(id)}
+                                                                    className="text-gray-400 hover:text-red-500 transition-colors"
+                                                                >
+                                                                    <X className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
 
                                         {/* Custom columns */}

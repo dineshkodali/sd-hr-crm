@@ -164,6 +164,10 @@ export default function VulnerableUsers({ user }) {
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [modalMode, setModalMode] = useState('create');
 
+    // Attachments state
+    const [selectedPhotos, setSelectedPhotos] = useState([]);
+    const [existingAttachments, setExistingAttachments] = useState([]);
+
     const [staffUsers, setStaffUsers] = useState([]);
     const [staffLoading, setStaffLoading] = useState(false);
 
@@ -214,6 +218,11 @@ export default function VulnerableUsers({ user }) {
         type: 'info'
     });
 
+    // Export modal state
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportFormat, setExportFormat] = useState(null);
+    const [selectedExportKeys, setSelectedExportKeys] = useState([]);
+
     // Default visible columns for Vulnerable Users (must match other pages)
     const DEFAULT_COLUMNS = [
         "checkbox",
@@ -224,6 +233,7 @@ export default function VulnerableUsers({ user }) {
         "status",
         "assigned",
         "date",
+        "attachments",
         "actions",
     ];
 
@@ -536,6 +546,10 @@ export default function VulnerableUsers({ user }) {
         }
         setSelectedRecord(record);
         setShowModal(true);
+        // Initialize attachment state
+        setSelectedPhotos([]);
+        const att = record?.attachments;
+        setExistingAttachments(Array.isArray(att) ? att : (typeof att === 'string' && att ? JSON.parse(att) : []));
     };
 
     const handleCloseModal = () => {
@@ -543,6 +557,101 @@ export default function VulnerableUsers({ user }) {
         setModalMode('create');
         setSelectedRecord(null);
         setError(null);
+    };
+
+    const openAttachmentsGallery = (items = []) => {
+        if (!items.length) return;
+        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+        const urls = items.map((x) => {
+            const isNumericId = /^\d+$/.test(String(x));
+            const u = isNumericId ? `/api/safeguarding/vulnerable-users/attachments/${x}` : String(x);
+            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+        });
+        const safeTitle = `Vulnerable Users Attachments (${urls.length})`;
+        const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${safeTitle}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .img-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .img-card:hover { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
+        .full-view-btn { opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
+        .img-card:hover .full-view-btn { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-500/20 p-2 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight">${safeTitle}</h1>
+                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Premium Attachment Viewer</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-semibold">
+            <span class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full border border-slate-700">${urls.length} Items</span>
+            <button onclick="window.close()" class="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-full border border-red-500/20 transition-all">Close</button>
+        </div>
+    </header>
+
+    <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-8">
+        ${urls.map((u, i) => `
+            <div class="img-card group relative bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
+                <div class="aspect-[4/3] overflow-hidden bg-slate-900 flex items-center justify-center relative">
+                    <img src="${u}" alt="Attachment ${i + 1}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x300/1e293b/64748b?text=File+Preview'"/>
+                    
+                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <a href="${u}" target="_blank" class="full-view-btn bg-white text-slate-900 px-5 py-2.5 rounded-xl font-bold text-sm shadow-xl hover:bg-blue-50 transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+                            Full View
+                        </a>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-slate-700 bg-slate-800/30 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Attachment ${i + 1}</p>
+                        <p class="text-xs text-slate-300 font-medium truncate max-w-[140px]">IMG_REF_${Math.floor(Math.random() * 10000)}</p>
+                    </div>
+                    <a href="${u}" download class="p-2 text-slate-400 hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </a>
+                </div>
+            </div>
+        `).join('')}
+    </main>
+
+    <footer class="p-12 text-center">
+        <p class="text-slate-500 text-sm font-medium">End of Gallery • Total ${urls.length} Photos</p>
+    </footer>
+</body>
+</html>`;
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    };
+
+    const removeAttachment = async (attachmentId) => {
+        if (!attachmentId || submitting) return;
+        try {
+            setSubmitting(true);
+            await api.delete(`/api/safeguarding/vulnerable-users/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+            setExistingAttachments((prev) => (Array.isArray(prev) ? prev.filter((x) => String(x) !== String(attachmentId)) : []));
+            await refreshRecords();
+        } catch (err) {
+            console.warn('removeAttachment failed', err);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const submit = async (e) => {
@@ -578,8 +687,8 @@ export default function VulnerableUsers({ user }) {
                 return;
             }
 
-            // Sanitize fields: empty string -> null for integers/dates
             const payload = { ...formData };
+            delete payload.attachments; // Prevent backend sync of this field
             for (const col of customColumns || []) {
                 const meta = customColumnMetadata[col] || {};
                 const inputType = meta.input_type || 'text';
@@ -590,11 +699,23 @@ export default function VulnerableUsers({ user }) {
                 }
             }
 
-            if (modalMode === 'create') {
-                await api.post('/api/safeguarding/vulnerable-users', payload);
+            if (selectedPhotos.length > 0) {
+                const fd = new FormData();
+                Object.keys(payload).forEach((k) => fd.append(k, payload[k] ?? ''));
+                selectedPhotos.forEach((photo) => fd.append('photos', photo));
+                if (modalMode === 'create') {
+                    await api.post('/api/safeguarding/vulnerable-users', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                } else {
+                    await api.patch(`/api/safeguarding/vulnerable-users/${selectedRecord?.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                }
             } else {
-                await api.patch(`/api/safeguarding/vulnerable-users/${selectedRecord?.id}`, payload);
+                if (modalMode === 'create') {
+                    await api.post('/api/safeguarding/vulnerable-users', payload);
+                } else {
+                    await api.patch(`/api/safeguarding/vulnerable-users/${selectedRecord?.id}`, payload);
+                }
             }
+
             await refreshRecords();
             handleCloseModal();
         } catch (err) {
@@ -612,20 +733,20 @@ export default function VulnerableUsers({ user }) {
             type: 'danger',
             onConfirm: async () => {
                 try {
-                    setDeletingIds(prev => new Set(prev).add(id));
-                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                    setDeletingIds((prev) => new Set(prev).add(id));
+                    setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
 
                     const ANIM_DURATION = 460;
                     setTimeout(() => {
-                        setRecords(prev => (Array.isArray(prev) ? prev.filter(r => String(r.id) !== String(id)) : prev));
-                        setDeletingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+                        setRecords((prev) => (Array.isArray(prev) ? prev.filter((r) => String(r.id) !== String(id)) : prev));
+                        setDeletingIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
                     }, ANIM_DURATION);
 
                     await api.delete(`/api/safeguarding/vulnerable-users/${id}`).catch(() => null);
                     await refreshRecords();
                 } catch (err) {
-                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-                    setDeletingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+                    setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                    setDeletingIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
                     setAlertDialog({
                         isOpen: true,
                         title: 'Delete Failed',
@@ -659,7 +780,6 @@ export default function VulnerableUsers({ user }) {
             return matchSearch && matchPriority && matchStatus && matchProperty;
         });
 
-        // Apply sorting
         if (sortBy) {
             list = [...list].sort((a, b) => {
                 if (sortBy === 'date') {
@@ -685,11 +805,6 @@ export default function VulnerableUsers({ user }) {
 
         return list;
     }, [records, query, filterPriority, filterStatus, propertyFilter, sortBy]);
-
-    // Export modal state
-    const [showExportModal, setShowExportModal] = useState(false);
-    const [exportFormat, setExportFormat] = useState(null);
-    const [selectedExportKeys, setSelectedExportKeys] = useState([]);
 
     // Define BASE_EXPORT_COLUMNS and exportColumns
     const BASE_EXPORT_COLUMNS = useMemo(
@@ -1238,6 +1353,9 @@ export default function VulnerableUsers({ user }) {
                                         {visibleColumns.date && (
                                             <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">DATE</th>
                                         )}
+                                        {visibleColumns.attachments && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ATTACHMENTS</th>
+                                        )}
                                         {/* Custom column headers - UI Matched to other columns */}
                                         {customColumns.filter(col => visibleColumns[col]).map(col => (
                                             <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -1327,6 +1445,28 @@ export default function VulnerableUsers({ user }) {
                                                 {visibleColumns.date && (
                                                     <td className="py-5 px-6 whitespace-nowrap">
                                                         <span className="text-gray-900 font-medium">{formatDate(rec.scheduled_date)}</span>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.attachments && (
+                                                    <td className="py-5 px-6">
+                                                        {(() => {
+                                                            const att = rec?.attachments;
+                                                            const list = Array.isArray(att) ? att : (typeof att === 'string' && att ? JSON.parse(att) : []);
+                                                            if (!list || !list.length) {
+                                                                return <span className="text-gray-400 text-sm">—</span>;
+                                                            }
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openAttachmentsGallery(list)}
+                                                                    className="inline-flex items-center gap-2 text-xs font-bold text-teal-600 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl transition-all hover:bg-teal-100 shadow-sm"
+                                                                    title="View attachments"
+                                                                >
+                                                                    <Eye size={14} />
+                                                                    <span>VIEW PHOTOS ({list.length})</span>
+                                                                </button>
+                                                            );
+                                                        })()}
                                                     </td>
                                                 )}
                                                 {/* Custom column cells - UI Matched to other columns */}
@@ -1933,6 +2073,53 @@ export default function VulnerableUsers({ user }) {
                                                 </div>
                                             );
                                         })}
+
+                                        {/* Attachments */}
+                                        <div className="col-span-1 md:col-span-2">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const files = Array.from(e.target.files || []).filter(Boolean);
+                                                    setSelectedPhotos(files);
+                                                }}
+                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                                            />
+                                            {modalMode !== 'create' && Array.isArray(existingAttachments) && existingAttachments.length > 0 && (
+                                                <div className="mt-3 space-y-2">
+                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Existing Attachments</div>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {existingAttachments.map((id) => (
+                                                            <div key={String(id)} className="flex items-center justify-between gap-2 border border-gray-100 rounded-xl px-4 py-2 bg-gray-50/50">
+                                                                <div className="text-xs font-semibold text-slate-700">Attachment #{String(id)}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openAttachmentsGallery([id])}
+                                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-teal-600 text-[10px] font-bold uppercase tracking-wider hover:bg-teal-50 transition-all shadow-sm"
+                                                                    >
+                                                                        <Eye size={12} />
+                                                                        View
+                                                                    </button>
+                                                                    {hasUpdate && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeAttachment(id)}
+                                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-rose-100 text-rose-600 text-[10px] font-bold uppercase tracking-wider hover:bg-rose-50 transition-all shadow-sm"
+                                                                        >
+                                                                            <Trash2 size={12} />
+                                                                            Remove
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </form>
 

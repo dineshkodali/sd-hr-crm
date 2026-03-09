@@ -62,7 +62,7 @@ if (typeof document !== 'undefined' && !document.getElementById(DELETE_STYLE_ID)
     document.head.appendChild(style);
 }
 
-/* axios instance (matches your other pages) */
+/* axios instance */
 const API_BASE = import.meta.env.VITE_API_URL || axios.defaults.baseURL || "";
 const api = axios.create({
     baseURL: API_BASE,
@@ -104,7 +104,6 @@ function getAvatarColor(name) {
     return "bg-teal-100 text-teal-700";
 }
 
-/* helper for normalizing hotels responses */
 function normalizeHotelsResponse(data) {
     if (!data) return [];
     let items = [];
@@ -129,7 +128,6 @@ function normalizeHotelsResponse(data) {
         .filter((x) => x.id && x.name);
 }
 
-/* format date like "Feb 8, 2025" */
 function formatDate(isoString) {
     if (!isoString) return "";
     try {
@@ -141,7 +139,6 @@ function formatDate(isoString) {
     }
 }
 
-/* Helper for View Details */
 const DetailField = ({ label, value, fullWidth = false }) => (
     <div className={fullWidth ? "md:col-span-2" : ""}>
         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
@@ -150,7 +147,6 @@ const DetailField = ({ label, value, fullWidth = false }) => (
 );
 
 export default function Incidents({ user }) {
-    // Get user from localStorage if not passed as prop
     const currentUser = user || (() => {
         try {
             const raw = localStorage.getItem("user");
@@ -160,7 +156,6 @@ export default function Incidents({ user }) {
         }
     })();
 
-    // Get permissions for inspections module
     const { canRead, canCreate, canUpdate, canDelete } = usePermissions(currentUser);
     const hasRead = canRead("incidents");
     const hasCreate = canCreate("incidents");
@@ -168,7 +163,6 @@ export default function Incidents({ user }) {
     const hasDelete = canDelete("incidents");
 
     const [rows, setRows] = useState([]);
-    // Track rows/cards currently being deleted for animation
     const [deletingIds, setDeletingIds] = useState(new Set());
     const [hotels, setHotels] = useState([]);
     const [serviceUsers, setServiceUsers] = useState([]);
@@ -177,7 +171,6 @@ export default function Incidents({ user }) {
     const [hotelsLoading, setHotelsLoading] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // Modal States
     const [showModal, setShowModal] = useState(false);
     const [showViewModal, setShowViewModal] = useState(false);
     const [viewingIncident, setViewingIncident] = useState(null);
@@ -191,16 +184,14 @@ export default function Incidents({ user }) {
     const [error, setError] = useState(null);
     const [query, setQuery] = useState("");
 
-    // Filter and Sort State
     const [severityFilter, setSeverityFilter] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
     const [propertyFilter, setPropertyFilter] = useState("");
     const [sortBy, setSortBy] = useState("");
 
-    // View Dropdown States
     const [showViewMenu, setShowViewMenu] = useState(false);
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
-    const [viewMode, setViewMode] = useState('table'); // 'table' or 'board'
+    const [viewMode, setViewMode] = useState('table');
 
     const hotelsControllerRef = useRef(null);
     const viewRef = useRef(null);
@@ -269,9 +260,7 @@ export default function Incidents({ user }) {
     const persistCustomIncidentTypes = (list) => {
         try {
             localStorage.setItem(INCIDENT_TYPE_STORAGE_KEY, JSON.stringify(list));
-        } catch {
-            // ignore storage errors
-        }
+        } catch { }
     };
 
     const handleIncidentTypeChange = (e) => {
@@ -290,7 +279,6 @@ export default function Incidents({ user }) {
     const saveCustomIncidentType = () => {
         const next = String(customIncidentTypeValue || '').trim();
         if (!next) return;
-
         const builtinLower = new Set(BUILTIN_INCIDENT_TYPES.map((t) => String(t).toLowerCase()));
         const merged = [...customIncidentTypes];
         if (!builtinLower.has(next.toLowerCase()) && !merged.some((t) => String(t).toLowerCase() === next.toLowerCase())) {
@@ -298,28 +286,17 @@ export default function Incidents({ user }) {
             setCustomIncidentTypes(merged);
             persistCustomIncidentTypes(merged);
         }
-
         setFormData((p) => ({ ...p, incidentType: next }));
         setShowCustomIncidentTypeInput(false);
         setCustomIncidentTypeValue('');
     };
 
-    // Dynamic columns state
     const [availableColumns, setAvailableColumns] = useState([
-        "checkbox",
-        "type",
-        "reference",
-        "description",
-        "attachments",
-        "priority",
-        "status",
-        "assigned",
-        "date",
-        "actions",
+        "checkbox", "type", "reference", "description", "attachments",
+        "priority", "status", "assigned", "date", "actions",
     ]);
-    const [customColumns, setCustomColumns] = useState([]); // Columns from Forms Builder
+    const [customColumns, setCustomColumns] = useState([]);
     const [customColumnMetadata, setCustomColumnMetadata] = useState({});
-    const [lastColumnCheck, setLastColumnCheck] = useState(Date.now());
 
     const BASE_EXPORT_COLUMNS = useMemo(
         () => [
@@ -356,21 +333,12 @@ export default function Incidents({ user }) {
     }, [exportColumns]);
 
     const DEFAULT_COLUMNS = [
-        "checkbox",
-        "type",
-        "reference",
-        "description",
-        "attachments",
-        "priority",
-        "status",
-        "assigned",
-        "date",
-        "actions",
+        "checkbox", "type", "reference", "description", "attachments",
+        "priority", "status", "assigned", "date", "actions",
     ];
 
     const ALL_COLUMNS = availableColumns;
 
-    // Column visibility state - default columns visible, custom columns from localStorage or hidden
     const [visibleColumns, setVisibleColumns] = useState(() => {
         try {
             const saved = localStorage.getItem('incidentsVisibleColumns');
@@ -378,37 +346,23 @@ export default function Incidents({ user }) {
                 const parsed = JSON.parse(saved);
                 return { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), ...parsed };
             }
-        } catch (e) {
-            console.warn('Failed to load visible columns from localStorage:', e);
-        }
+        } catch (e) { }
         return DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {});
     });
 
-    // Save visible columns to localStorage whenever they change
     useEffect(() => {
         try {
             localStorage.setItem('incidentsVisibleColumns', JSON.stringify(visibleColumns));
-        } catch (e) {
-            console.warn('Failed to save visible columns to localStorage:', e);
-        }
+        } catch (e) { }
     }, [visibleColumns]);
 
-    // Fetch available columns from the database
     const fetchAvailableColumns = useCallback(async () => {
         try {
             const res = await api.get('/api/forms-builder/tables/incidents/columns');
             const columns = res?.data?.columns || res?.data || [];
             const defaultColumns = [
-                "checkbox",
-                "type",
-                "reference",
-                "description",
-                "attachments",
-                "priority",
-                "status",
-                "assigned",
-                "date",
-                "actions",
+                "checkbox", "type", "reference", "description", "attachments",
+                "priority", "status", "assigned", "date", "actions",
             ];
             const systemColumns = [
                 'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
@@ -432,7 +386,6 @@ export default function Incidents({ user }) {
                 }
             });
             setCustomColumnMetadata(nextMetadata);
-
             if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
                 setCustomColumns(customCols);
                 setAvailableColumns(newColumns);
@@ -455,13 +408,10 @@ export default function Incidents({ user }) {
                     });
                     return updated;
                 });
-                // Initialize custom columns in formData if they don't exist
                 setFormData(prev => {
                     const updated = { ...prev };
                     customCols.forEach(col => {
-                        if (!(col in updated)) {
-                            updated[col] = '';
-                        }
+                        if (!(col in updated)) updated[col] = '';
                     });
                     return updated;
                 });
@@ -471,13 +421,8 @@ export default function Incidents({ user }) {
         }
     }, [customColumns]);
 
-    // Auto-refresh columns every 5 seconds
     useEffect(() => {
-        let mounted = true;
         fetchAvailableColumns();
-        return () => {
-            mounted = false;
-        };
     }, [fetchAvailableColumns]);
 
     const stats = useMemo(() => {
@@ -491,8 +436,6 @@ export default function Incidents({ user }) {
     const filtered = useMemo(() => {
         const q = (query || "").trim().toLowerCase();
         let list = rows || [];
-
-        // Apply search filter - improved to search multiple fields
         if (q) {
             list = list.filter((r) => {
                 const title = (r.title || "").toLowerCase();
@@ -504,41 +447,20 @@ export default function Incidents({ user }) {
                 const reportedBy = (r.reportedBy || r.reported_by || "").toLowerCase();
                 const assignedTo = (r.assignedTo || r.assigned_to || r.assigned_to_name || "").toLowerCase();
                 const severity = (r.severity || "").toLowerCase();
-
-                return title.includes(q) ||
-                    description.includes(q) ||
-                    propertyName.includes(q) ||
-                    status.includes(q) ||
-                    incidentType.includes(q) ||
-                    reference.includes(q) ||
-                    reportedBy.includes(q) ||
-                    assignedTo.includes(q) ||
-                    severity.includes(q);
+                return title.includes(q) || description.includes(q) || propertyName.includes(q) ||
+                    status.includes(q) || incidentType.includes(q) || reference.includes(q) ||
+                    reportedBy.includes(q) || assignedTo.includes(q) || severity.includes(q);
             });
         }
-
-        // Apply severity filter
         if (severityFilter) {
-            list = list.filter((r) =>
-                (r.severity || "").toLowerCase() === severityFilter.toLowerCase()
-            );
+            list = list.filter((r) => (r.severity || "").toLowerCase() === severityFilter.toLowerCase());
         }
-
-        // Apply status filter
         if (statusFilter) {
-            list = list.filter((r) =>
-                (r.status || "").toLowerCase() === statusFilter.toLowerCase()
-            );
+            list = list.filter((r) => (r.status || "").toLowerCase() === statusFilter.toLowerCase());
         }
-
-        // Apply property filter
         if (propertyFilter) {
-            list = list.filter((r) =>
-                String(r.propertyId || r.property_id || "") === String(propertyFilter)
-            );
+            list = list.filter((r) => String(r.propertyId || r.property_id || "") === String(propertyFilter));
         }
-
-        // Apply sorting
         if (sortBy) {
             list = [...list].sort((a, b) => {
                 if (sortBy === 'date') {
@@ -553,9 +475,7 @@ export default function Incidents({ user }) {
                     return (severityOrder[sevA] || 2) - (severityOrder[sevB] || 2);
                 }
                 if (sortBy === 'status') {
-                    const statusA = (a.status || '').toLowerCase();
-                    const statusB = (b.status || '').toLowerCase();
-                    return statusA.localeCompare(statusB);
+                    return (a.status || '').toLowerCase().localeCompare((b.status || '').toLowerCase());
                 }
                 if (sortBy === 'type') {
                     const typeA = (a.incidentType || a.incident_type || '').toLowerCase();
@@ -565,7 +485,6 @@ export default function Incidents({ user }) {
                 return 0;
             });
         }
-
         return list;
     }, [rows, query, severityFilter, statusFilter, propertyFilter, sortBy]);
 
@@ -579,11 +498,9 @@ export default function Incidents({ user }) {
             reportedDate: incident.reportedDate || incident.reported_date || '-',
             reportedBy: incident.reportedBy || incident.reported_by || '-',
         };
-
         for (const col of customColumns || []) {
             base[col] = incident?.[col] ?? '';
         }
-
         return base;
     };
 
@@ -606,15 +523,12 @@ export default function Incidents({ user }) {
                 alert('Please select at least one column to download.');
                 return;
             }
-
             const data = (filtered || []).map(normalizeIncidentExportRow);
-
             if (exportFormat === 'pdf') {
                 generatePDF(data, columns, 'Incidents Report', 'incidents-report');
             } else if (exportFormat === 'csv') {
                 generateCSV(data, columns, 'incidents-report');
             }
-
             closeExport();
         } catch (error) {
             console.error('Error exporting incidents:', error);
@@ -634,20 +548,15 @@ export default function Incidents({ user }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Hide sidebar and navbar when modal is open
     useEffect(() => {
         if (showModal || showViewModal || confirmDialog.isOpen) {
             document.body.classList.add('form-modal-open');
         } else {
             document.body.classList.remove('form-modal-open');
         }
-        // Cleanup on unmount
-        return () => {
-            document.body.classList.remove('form-modal-open');
-        };
+        return () => { document.body.classList.remove('form-modal-open'); };
     }, [showModal, showViewModal, confirmDialog.isOpen]);
 
-    // Close view menu on outside click
     useEffect(() => {
         function handleClickOutside(e) {
             if (viewRef.current && !viewRef.current.contains(e.target)) {
@@ -666,7 +575,7 @@ export default function Incidents({ user }) {
             const data = res?.data?.data ?? res?.data ?? [];
             if (!Array.isArray(data)) return setRows([]);
             const mapped = data.map((created) => ({
-                ...created, // Spread all backend fields, including new columns
+                ...created,
                 ref: created.reference ?? created.ref ?? String(created.id ?? ''),
                 title: created.type ?? created.title ?? (created.reference ?? ''),
                 desc: created.description ?? created.desc ?? '',
@@ -709,26 +618,19 @@ export default function Incidents({ user }) {
     }
 
     async function fetchServiceUsers(hotelId) {
-        if (!hotelId) {
-            setServiceUsers([]);
-            return;
-        }
-
+        if (!hotelId) { setServiceUsers([]); return; }
         async function tryPath(path) {
             const r = await api.get(path);
             return r?.data?.data ?? r?.data ?? [];
         }
-
         try {
-            const canonical = `/api/hotels/${hotelId}/service-users`;
-            const rows = await tryPath(canonical);
-            const normalized = (Array.isArray(rows) ? rows : []).map((r) => ({ id: r.id, first_name: r.first_name ?? r.firstName ?? r.first ?? `${r.id ?? ''}` })).filter(Boolean);
+            const rows = await tryPath(`/api/hotels/${hotelId}/service-users`);
+            const normalized = (Array.isArray(rows) ? rows : [])
+                .map((r) => ({ id: r.id, first_name: r.first_name ?? r.firstName ?? r.first ?? `${r.id ?? ''}` }))
+                .filter(Boolean);
             setServiceUsers(normalized);
             return;
-        } catch (err) {
-            // ignore
-        }
-
+        } catch (err) { }
         const fallbacks = [
             `/api/su?hotel_id=${encodeURIComponent(hotelId)}`,
             `/api/su?hotelId=${encodeURIComponent(hotelId)}`,
@@ -737,62 +639,36 @@ export default function Incidents({ user }) {
             `/api/service_users?hotel_id=${encodeURIComponent(hotelId)}`,
             `/api/service_users/${encodeURIComponent(hotelId)}`,
         ];
-
         for (const path of fallbacks) {
             try {
                 const rows = await tryPath(path);
-                const normalized = (Array.isArray(rows) ? rows : []).map((r) => ({ id: r.id, first_name: r.first_name ?? r.firstName ?? r.first ?? `${r.id ?? ''}` })).filter(Boolean);
-                if (normalized.length) {
-                    setServiceUsers(normalized);
-                    return;
-                }
-            } catch (err) {
-                // ignore
-            }
+                const normalized = (Array.isArray(rows) ? rows : [])
+                    .map((r) => ({ id: r.id, first_name: r.first_name ?? r.firstName ?? r.first ?? `${r.id ?? ''}` }))
+                    .filter(Boolean);
+                if (normalized.length) { setServiceUsers(normalized); return; }
+            } catch (err) { }
         }
-
         setServiceUsers([]);
     }
 
     async function fetchStaffForHotel(hotelId) {
-        if (!hotelId) {
-            setStaffUsers([]);
-            return;
-        }
+        if (!hotelId) { setStaffUsers([]); return; }
         try {
             setStaffLoading(true);
-            const tryPath = async (path) => {
-                const r = await api.get(path);
-                return r?.data;
-            };
-
+            const tryPath = async (path) => { const r = await api.get(path); return r?.data; };
             const paths = [
                 `/api/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
                 `/staff/for-hotel/${encodeURIComponent(String(hotelId))}`,
             ];
-
             let data = null;
             let lastErr = null;
             for (const p of paths) {
-                try {
-                    data = await tryPath(p);
-                    if (data) break;
-                } catch (e) {
-                    lastErr = e;
-                }
+                try { data = await tryPath(p); if (data) break; } catch (e) { lastErr = e; }
             }
-
-            if (!data) {
-                throw lastErr || new Error('Unable to load staff');
-            }
-
+            if (!data) throw lastErr || new Error('Unable to load staff');
             const list = data?.staff ?? data?.users ?? data ?? [];
             const normalized = (Array.isArray(list) ? list : [])
-                .map((u) => ({
-                    id: u.id,
-                    name: u.name || u.email || `User ${u.id}`,
-                    email: u.email || null,
-                }))
+                .map((u) => ({ id: u.id, name: u.name || u.email || `User ${u.id}`, email: u.email || null }))
                 .filter((u) => u.id && u.name);
             setStaffUsers(normalized);
         } catch (err) {
@@ -803,20 +679,100 @@ export default function Incidents({ user }) {
         }
     }
 
-    /* View Handler */
+    // ── Single declaration of removeAttachment ──
+    async function removeAttachment(attachmentId) {
+        if (!attachmentId || submitting) return;
+        try {
+            setSubmitting(true);
+            await api.delete(`/api/incidents/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+            setFormData((p) => {
+                let atts = p?.attachments ?? [];
+                try {
+                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                } catch {
+                    atts = [];
+                }
+                const next = (Array.isArray(atts) ? atts : []).filter((x) => String(x) !== String(attachmentId));
+                return { ...p, attachments: next };
+            });
+            await fetchIncidents();
+        } catch (err) {
+            console.warn('Failed to remove attachment', err);
+        } finally {
+            setSubmitting(false);
+        }
+    }
+
+    function openAttachmentsGallery(attachments) {
+        let atts = attachments || [];
+        try {
+            if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+        } catch {
+            atts = [];
+        }
+        const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+        if (!list.length) return;
+
+        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+        const urls = list.map((x) => {
+            // If x is a number or numeric string, it's an ID
+            const isNumericId = /^\d+$/.test(String(x));
+            const u = isNumericId ? `/api/incidents/attachments/${x}` : String(x);
+            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+        });
+        const safeTitle = `Incident Photos (${urls.length})`;
+        const html = `
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>${safeTitle}</title>
+          <style>
+            :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #2dd4bf; }
+            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+            header { position: sticky; top: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+            .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; padding: 1.5rem; }
+            .card { background: var(--card); border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
+            .card:hover { transform: translateY(-4px); border-color: var(--accent); }
+            .card img { width: 100%; height: 250px; object-fit: cover; background: #000; display: block; cursor: pointer; }
+            .card-meta { padding: 1rem; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center; }
+            .btn { background: var(--accent); color: var(--bg); padding: 0.5rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.75rem; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <div style="font-weight: 700; font-size: 1.1rem; letter-spacing: -0.025em;">${safeTitle}</div>
+            <div style="font-size: 0.75rem; opacity: 0.6;">Premium Viewer</div>
+          </header>
+          <div class="gallery">
+            ${urls.map((u, i) => `
+              <div class="card">
+                <img src="${u}" alt="Photo ${i + 1}" onclick="window.open('${u}', '_blank')">
+                <div class="card-meta">
+                  <span>Photo ${i + 1}</span>
+                  <a href="${u}" target="_blank" class="btn">Full View</a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </body>
+      </html>
+    `;
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    }
+
     const handleView = (row) => {
         setViewingIncident(row);
         setShowViewModal(true);
     };
 
-    /* Edit/Delete handlers */
     const handleEdit = async (row) => {
-        if (!hasUpdate) {
-            alert("You don't have permission to edit inspections.");
-            return;
-        }
+        if (!hasUpdate) { alert("You don't have permission to edit incidents."); return; }
         let record = row.raw ?? null;
-        // Map record to formData including custom columns
         const baseFormData = {
             incidentType: record.type ?? record.incidentType ?? '',
             severity: record.severity ?? 'Medium',
@@ -829,10 +785,6 @@ export default function Incidents({ user }) {
             assignedTo: record.assigned_to ?? record.assignedTo ?? '',
             status: record.status ?? 'Open',
         };
-        // Add custom columns from record
-        const customFormData = customColumns && customColumns.length > 0
-            ? customColumns.reduce((acc, col) => ({ ...acc, [col]: record[col] ?? '' }), {})
-            : {};
         const normalizedCustomFormData = customColumns && customColumns.length > 0
             ? customColumns.reduce((acc, col) => {
                 const meta = customColumnMetadata[col] || {};
@@ -848,7 +800,15 @@ export default function Incidents({ user }) {
                 return acc;
             }, {})
             : {};
-        setFormData({ ...baseFormData, ...normalizedCustomFormData });
+
+        let attachments = record.attachments ?? record.attachments_ids ?? record.photos ?? [];
+        try {
+            if (typeof attachments === 'string' && attachments) attachments = JSON.parse(attachments);
+        } catch {
+            attachments = [];
+        }
+
+        setFormData({ ...baseFormData, ...normalizedCustomFormData, attachments: Array.isArray(attachments) ? attachments : [] });
         if (record.property_id || record.propertyId) {
             const pid = record.property_id ?? record.propertyId;
             fetchServiceUsers(pid);
@@ -870,13 +830,11 @@ export default function Incidents({ user }) {
                 try {
                     setDeletingIds(prev => new Set(prev).add(id));
                     setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-
                     const ANIM_DURATION = 460;
                     setTimeout(() => {
                         setRows((prev) => prev.filter((r) => String(r.raw?.id) !== String(id)));
                         setDeletingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
                     }, ANIM_DURATION);
-
                     await api.delete(`/api/incidents/${id}`);
                 } catch (err) {
                     console.error('delete incident error', err);
@@ -895,10 +853,7 @@ export default function Incidents({ user }) {
 
     function handleInputChange(e) {
         const { name, type, value, checked } = e.target;
-        if (type === 'checkbox') {
-            setFormData((p) => ({ ...p, [name]: checked }));
-            return;
-        }
+        if (type === 'checkbox') { setFormData((p) => ({ ...p, [name]: checked })); return; }
         setFormData((p) => ({ ...p, [name]: value }));
     }
 
@@ -936,27 +891,21 @@ export default function Incidents({ user }) {
             if (!formData.reportedDate) missing.push('Reported Date');
             if (!formData.assignedTo) missing.push('Assigned To');
             if (!formData.status) missing.push('Status');
-
             for (const col of customColumns || []) {
                 const meta = customColumnMetadata[col] || {};
                 const inputType = meta.input_type || 'text';
                 const v = formData[col];
                 if (inputType === 'checkbox') {
-                    if (v !== 'true' && v !== 'false') {
-                        missing.push(col.replace(/_/g, ' '));
-                    }
+                    if (v !== 'true' && v !== 'false') missing.push(col.replace(/_/g, ' '));
                 } else if (v === undefined || v === null || String(v).trim() === '') {
                     missing.push(col.replace(/_/g, ' '));
                 }
             }
-
             if (missing.length) {
                 setError(`Please fill required fields: ${missing.join(', ')}.`);
                 setSubmitting(false);
                 return;
             }
-
-            // Build payload with default and custom columns
             const basePayload = {
                 type: formData.incidentType,
                 severity: formData.severity,
@@ -969,18 +918,14 @@ export default function Incidents({ user }) {
                 assigned_to: formData.assignedTo,
                 status: formData.status,
             };
-            // Add custom columns to payload - use snake_case for database columns
             const customPayload = customColumns && customColumns.length > 0
                 ? customColumns.reduce((acc, col) => {
                     const value = formData[col];
-                    // Send both snake_case (for DB) and camelCase (for compatibility)
                     const meta = customColumnMetadata[col] || {};
                     const inputType = meta.input_type || 'text';
                     if (inputType === 'checkbox') {
                         if (value === true || String(value).toLowerCase() === 'true') acc[col] = true;
                         else if (value === false || String(value).toLowerCase() === 'false') acc[col] = false;
-                        else if (String(value) === 'true') acc[col] = true;
-                        else if (String(value) === 'false') acc[col] = false;
                         else acc[col] = null;
                     } else {
                         acc[col] = value;
@@ -989,25 +934,18 @@ export default function Incidents({ user }) {
                 }, {})
                 : {};
             const payload = { ...basePayload, ...customPayload };
-
             const hasPhotos = Array.isArray(photos) && photos.length > 0;
             let res;
             if (hasPhotos) {
                 const fd = new FormData();
                 Object.entries(payload).forEach(([k, v]) => {
                     if (v === undefined) return;
-                    if (v === null) {
-                        fd.append(k, '');
-                        return;
-                    }
-                    if (typeof v === 'object') {
-                        fd.append(k, JSON.stringify(v));
-                        return;
-                    }
+                    if (v === null) { fd.append(k, ''); return; }
+                    if (typeof v === 'object') { fd.append(k, JSON.stringify(v)); return; }
                     fd.append(k, String(v));
                 });
+                delete payload.attachments;
                 photos.forEach((f) => fd.append('photos', f));
-
                 if (editingId) {
                     res = await api.put(`/api/incidents/${editingId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
                 } else {
@@ -1015,31 +953,22 @@ export default function Incidents({ user }) {
                 }
             } else {
                 if (editingId) {
-                    // Update existing incident
+                    delete payload.attachments;
                     res = await api.put(`/api/incidents/${editingId}`, payload);
                 } else {
-                    // Create new incident
+                    delete payload.attachments;
                     res = await api.post('/api/incidents', payload);
                 }
             }
-
             if (!res?.data?.success) {
                 throw new Error(res?.data?.message || (editingId ? 'Failed to update incident' : 'Failed to create incident'));
             }
-
-            // Refresh the incidents list from server
             await fetchIncidents();
-
-            // Capture editingId before resetting for success message
             const wasEditing = !!editingId;
-
-            // Close modal and reset state
             setShowModal(false);
             setEditingId(null);
             setError(null);
             setPhotos([]);
-
-            // Show success message
             setAlertDialog({
                 isOpen: true,
                 title: 'Success',
@@ -1051,14 +980,7 @@ export default function Incidents({ user }) {
             const wasEditing = !!editingId;
             const errorMessage = err?.response?.data?.message || err?.message || (wasEditing ? 'Failed to update incident' : 'Failed to create incident');
             setError(errorMessage);
-            setAlertDialog({
-                isOpen: true,
-                title: 'Error',
-                message: errorMessage,
-                type: 'error'
-            });
-            // Don't close modal on error - let user fix and retry
-            // Don't create fallback row - this was causing new tasks to appear
+            setAlertDialog({ isOpen: true, title: 'Error', message: errorMessage, type: 'error' });
         } finally {
             setSubmitting(false);
         }
@@ -1079,14 +1001,45 @@ export default function Incidents({ user }) {
             assignedTo: '',
             status: 'Open',
         };
-
-        // Reset custom columns to empty strings
         const customFormData = customColumns && customColumns.length > 0
             ? customColumns.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
             : {};
         setFormData({ ...baseFormData, ...customFormData });
         setStaffUsers([]);
         setShowModal(true);
+    };
+
+    const renderExistingAttachments = () => {
+        const items = formData?.attachments || [];
+        if (!items.length) return null;
+        return (
+            <div className="col-span-1 md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
+                <div className="flex flex-wrap gap-2">
+                    {items.map((id, idx) => {
+                        return (
+                            <div key={`${id}-${idx}`} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2 shadow-sm">
+                                <button
+                                    type="button"
+                                    onClick={() => openAttachmentsGallery([id])}
+                                    className="text-xs font-semibold text-teal-700 hover:text-teal-800 transition-colors"
+                                >
+                                    View
+                                </button>
+                                <span className="w-px h-3 bg-gray-200" />
+                                <button
+                                    type="button"
+                                    onClick={() => removeAttachment(id)}
+                                    className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -1152,7 +1105,7 @@ export default function Incidents({ user }) {
                     </div>
                 </div>
 
-                {/* Main Content Area - Enhanced Table */}
+                {/* Main Content Area */}
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-200">
                     {/* Search & Filter Bar */}
                     <div className="p-6 pb-0">
@@ -1186,35 +1139,24 @@ export default function Incidents({ user }) {
                                             <ChevronDown className="w-4 h-4" />
                                         </button>
 
-                                        {/* View Settings Dropdown Panel */}
                                         {showViewMenu && (
-                                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 animate-in fade-in duration-200">
+                                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-50">
                                                 <div className="p-4">
                                                     <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
-
-                                                    {/* View Mode Selector */}
                                                     <div className="mb-3 pb-3 border-b border-gray-200">
                                                         <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
                                                         <div className="flex gap-1">
                                                             <button
                                                                 onClick={() => setViewMode('table')}
-                                                                className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-1 ${viewMode === 'table'
-                                                                    ? 'bg-teal-500 text-white shadow-sm'
-                                                                    : 'bg-gray-100 text-gray-700'
-                                                                    }`}
+                                                                className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-1 ${viewMode === 'table' ? 'bg-teal-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700'}`}
                                                             >
-                                                                <Columns className="w-4 h-4" />
-                                                                <span>Table</span>
+                                                                <Columns className="w-4 h-4" /><span>Table</span>
                                                             </button>
                                                             <button
                                                                 onClick={() => setViewMode('board')}
-                                                                className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-1 ${viewMode === 'board'
-                                                                    ? 'bg-teal-500 text-white shadow-sm'
-                                                                    : 'bg-gray-100 text-gray-700'
-                                                                    }`}
+                                                                className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-1 ${viewMode === 'board' ? 'bg-teal-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700'}`}
                                                             >
-                                                                <ClipboardList className="w-4 h-4" />
-                                                                <span>Board</span>
+                                                                <ClipboardList className="w-4 h-4" /><span>Board</span>
                                                             </button>
                                                         </div>
                                                     </div>
@@ -1227,42 +1169,20 @@ export default function Incidents({ user }) {
                                                             >
                                                                 <span>Column visibility</span>
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="text-xs text-gray-500">
-                                                                        {Object.values(visibleColumns).filter(Boolean).length} shown
-                                                                    </span>
+                                                                    <span className="text-xs text-gray-500">{Object.values(visibleColumns).filter(Boolean).length} shown</span>
                                                                     <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                                                                 </div>
                                                             </button>
 
-                                                            {/* Column Visibility Panel */}
                                                             {showPropertyVisibility && (
                                                                 <div className="mt-2 border-t border-gray-200 pt-3 max-h-96 overflow-y-auto">
-                                                                    {/* Default Columns Section */}
                                                                     <div className="mb-4">
                                                                         <div className="flex items-center justify-between mb-2">
                                                                             <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Default Columns</span>
                                                                             <div className="flex items-center gap-2">
-                                                                                <button
-                                                                                    onClick={() => {
-                                                                                        const updates = {};
-                                                                                        DEFAULT_COLUMNS.forEach(c => updates[c] = true);
-                                                                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                                                                    }}
-                                                                                    className="text-xs text-teal-600 font-medium rounded-xl"
-                                                                                >
-                                                                                    Show all
-                                                                                </button>
+                                                                                <button onClick={() => { const u = {}; DEFAULT_COLUMNS.forEach(c => u[c] = true); setVisibleColumns(p => ({ ...p, ...u })); }} className="text-xs text-teal-600 font-medium">Show all</button>
                                                                                 <span className="text-gray-300">|</span>
-                                                                                <button
-                                                                                    onClick={() => {
-                                                                                        const updates = {};
-                                                                                        DEFAULT_COLUMNS.forEach(c => updates[c] = false);
-                                                                                        setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                                                                    }}
-                                                                                    className="text-xs text-teal-600 font-medium rounded-xl"
-                                                                                >
-                                                                                    Hide all
-                                                                                </button>
+                                                                                <button onClick={() => { const u = {}; DEFAULT_COLUMNS.forEach(c => u[c] = false); setVisibleColumns(p => ({ ...p, ...u })); }} className="text-xs text-teal-600 font-medium">Hide all</button>
                                                                             </div>
                                                                         </div>
                                                                         <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
@@ -1271,80 +1191,38 @@ export default function Incidents({ user }) {
                                                                                 <button
                                                                                     key={col}
                                                                                     onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                                                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors border ${visibleColumns[col]
-                                                                                        ? 'text-gray-700 border-gray-200 bg-white'
-                                                                                        : 'text-gray-500 border-gray-100 bg-gray-50'
-                                                                                        }`}
+                                                                                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors border ${visibleColumns[col] ? 'text-gray-700 border-gray-200 bg-white' : 'text-gray-500 border-gray-100 bg-gray-50'}`}
                                                                                 >
                                                                                     <span className="capitalize font-medium">{col}</span>
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        {visibleColumns[col] ? (
-                                                                                            <Eye className="w-4 h-4 text-teal-600" />
-                                                                                        ) : (
-                                                                                            <EyeOff className="w-4 h-4 text-gray-400" />
-                                                                                        )}
-                                                                                    </div>
+                                                                                    {visibleColumns[col] ? <Eye className="w-4 h-4 text-teal-600" /> : <EyeOff className="w-4 h-4 text-gray-400" />}
                                                                                 </button>
                                                                             ))}
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* Custom Columns Section - All custom columns */}
                                                                     {customColumns.length > 0 && (
                                                                         <div className="pt-4 border-t border-gray-200">
                                                                             <div className="flex items-center justify-between mb-2">
                                                                                 <div className="flex items-center gap-2">
                                                                                     <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Custom Columns</span>
-                                                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                                                                                        {customColumns.length}
-                                                                                    </span>
+                                                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{customColumns.length}</span>
                                                                                 </div>
                                                                                 <div className="flex items-center gap-2">
-                                                                                    <button
-                                                                                        onClick={() => {
-                                                                                            const updates = {};
-                                                                                            customColumns.forEach(c => updates[c] = true);
-                                                                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                                                                        }}
-                                                                                        className="text-xs text-teal-600 font-medium rounded-xl"
-                                                                                    >
-                                                                                        Show all
-                                                                                    </button>
+                                                                                    <button onClick={() => { const u = {}; customColumns.forEach(c => u[c] = true); setVisibleColumns(p => ({ ...p, ...u })); }} className="text-xs text-teal-600 font-medium">Show all</button>
                                                                                     <span className="text-gray-300">|</span>
-                                                                                    <button
-                                                                                        onClick={() => {
-                                                                                            const updates = {};
-                                                                                            customColumns.forEach(c => updates[c] = false);
-                                                                                            setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                                                                        }}
-                                                                                        className="text-xs text-teal-600 font-medium rounded-xl"
-                                                                                    >
-                                                                                        Hide all
-                                                                                    </button>
+                                                                                    <button onClick={() => { const u = {}; customColumns.forEach(c => u[c] = false); setVisibleColumns(p => ({ ...p, ...u })); }} className="text-xs text-teal-600 font-medium">Hide all</button>
                                                                                 </div>
                                                                             </div>
-                                                                            <div className="text-xs text-gray-500 mb-2">
-                                                                                Custom columns from Forms Builder
-                                                                                <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span>
-                                                                            </div>
+                                                                            <div className="text-xs text-gray-500 mb-2">Custom columns from Forms Builder <span className="text-blue-600 ml-1">(Auto-refreshes every 5s)</span></div>
                                                                             <div className="space-y-1">
                                                                                 {customColumns.map(col => (
                                                                                     <button
                                                                                         key={col}
                                                                                         onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                                                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors border ${visibleColumns[col]
-                                                                                            ? 'text-gray-700 border-gray-200 bg-white'
-                                                                                            : 'text-gray-500 border-gray-100 bg-gray-50'
-                                                                                            }`}
+                                                                                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors border ${visibleColumns[col] ? 'text-gray-700 border-gray-200 bg-white' : 'text-gray-500 border-gray-100 bg-gray-50'}`}
                                                                                     >
                                                                                         <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                                                                        <div className="flex items-center gap-2">
-                                                                                            {visibleColumns[col] ? (
-                                                                                                <Eye className="w-4 h-4 text-teal-600" />
-                                                                                            ) : (
-                                                                                                <EyeOff className="w-4 h-4 text-gray-400" />
-                                                                                            )}
-                                                                                        </div>
+                                                                                        {visibleColumns[col] ? <Eye className="w-4 h-4 text-teal-600" /> : <EyeOff className="w-4 h-4 text-gray-400" />}
                                                                                     </button>
                                                                                 ))}
                                                                             </div>
@@ -1371,6 +1249,7 @@ export default function Incidents({ user }) {
                                 </div>
                             </div>
 
+                            {/* Export Modal */}
                             {showExportModal && (
                                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
                                     <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
@@ -1379,42 +1258,21 @@ export default function Incidents({ user }) {
                                                 <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
                                                 <div className="text-xs text-gray-500 mt-0.5">Select the columns you want to include</div>
                                             </div>
-                                            <button
-                                                onClick={closeExport}
-                                                className="p-2 rounded-xl text-gray-500"
-                                                aria-label="Close"
-                                            >
-                                                <X className="w-5 h-5" />
-                                            </button>
+                                            <button onClick={closeExport} className="p-2 rounded-xl text-gray-500" aria-label="Close"><X className="w-5 h-5" /></button>
                                         </div>
-
                                         <div className="px-5 py-4">
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="text-sm font-medium text-gray-700">Columns</div>
                                                 <div className="flex items-center gap-3 text-xs">
-                                                    <button
-                                                        onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
-                                                        className="text-teal-600 font-medium rounded-xl"
-                                                    >
-                                                        Select all
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setSelectedExportKeys([])}
-                                                        className="text-gray-600 font-medium rounded-xl"
-                                                    >
-                                                        Clear
-                                                    </button>
+                                                    <button onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))} className="text-teal-600 font-medium">Select all</button>
+                                                    <button onClick={() => setSelectedExportKeys([])} className="text-gray-600 font-medium">Clear</button>
                                                 </div>
                                             </div>
-
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
                                                 {exportColumns.map((col) => {
                                                     const checked = (selectedExportKeys || []).includes(col.key);
                                                     return (
-                                                        <label
-                                                            key={col.key}
-                                                            className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer"
-                                                        >
+                                                        <label key={col.key} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={checked}
@@ -1422,12 +1280,11 @@ export default function Incidents({ user }) {
                                                                     const isChecked = e.target.checked;
                                                                     setSelectedExportKeys((prev) => {
                                                                         const set = new Set(prev || []);
-                                                                        if (isChecked) set.add(col.key);
-                                                                        else set.delete(col.key);
+                                                                        if (isChecked) set.add(col.key); else set.delete(col.key);
                                                                         return Array.from(set);
                                                                     });
                                                                 }}
-                                                                className="h-4 w-4 accent-teal-600 rounded-xl"
+                                                                className="h-4 w-4 accent-teal-600 rounded"
                                                             />
                                                             <span className="text-sm text-gray-800">{col.header}</span>
                                                         </label>
@@ -1435,34 +1292,19 @@ export default function Incidents({ user }) {
                                                 })}
                                             </div>
                                         </div>
-
                                         <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
-                                            <button
-                                                onClick={closeExport}
-                                                className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                onClick={runExport}
-                                                className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-teal-600"
-                                            >
-                                                Download
-                                            </button>
+                                            <button onClick={closeExport} className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200">Cancel</button>
+                                            <button onClick={runExport} className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-teal-600">Download</button>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
                             {/* Filter Row */}
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 flex-wrap">
                                 <div className="relative">
                                     <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={severityFilter}
-                                        onChange={(e) => setSeverityFilter(e.target.value)}
-                                        className="h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]"
-                                    >
+                                    <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} className="h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]">
                                         <option value="">All Severity</option>
                                         <option value="urgent">Urgent</option>
                                         <option value="high">High</option>
@@ -1471,14 +1313,9 @@ export default function Incidents({ user }) {
                                     </select>
                                     <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 </div>
-
                                 <div className="relative">
                                     <CheckCircle className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]"
-                                    >
+                                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]">
                                         <option value="">All Status</option>
                                         <option value="open">Open</option>
                                         <option value="in progress">In Progress</option>
@@ -1486,27 +1323,17 @@ export default function Incidents({ user }) {
                                     </select>
                                     <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 </div>
-
                                 <div className="relative">
                                     <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={propertyFilter}
-                                        onChange={(e) => setPropertyFilter(e.target.value)}
-                                        className="h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]"
-                                    >
+                                    <select value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)} className="h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]">
                                         <option value="">All Properties</option>
                                         {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                                     </select>
                                     <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 </div>
-
                                 <div className="relative">
                                     <ListFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value)}
-                                        className="h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]"
-                                    >
+                                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]">
                                         <option value="">Sort By</option>
                                         <option value="date">Date (Newest)</option>
                                         <option value="severity">Severity</option>
@@ -1515,20 +1342,12 @@ export default function Incidents({ user }) {
                                     </select>
                                     <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 </div>
-
-                                {/* Clear Filters Button */}
                                 {(severityFilter || statusFilter || propertyFilter || sortBy) && (
                                     <button
-                                        onClick={() => {
-                                            setSeverityFilter('');
-                                            setStatusFilter('');
-                                            setPropertyFilter('');
-                                            setSortBy('');
-                                        }}
+                                        onClick={() => { setSeverityFilter(''); setStatusFilter(''); setPropertyFilter(''); setSortBy(''); }}
                                         className="bg-gray-100 text-gray-700 rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2"
                                     >
-                                        <X className="w-4 h-4" />
-                                        <span>Clear</span>
+                                        <X className="w-4 h-4" /><span>Clear</span>
                                     </button>
                                 )}
                             </div>
@@ -1541,7 +1360,6 @@ export default function Incidents({ user }) {
                             <table className="w-full">
                                 <thead className="bg-slate-50/50">
                                     <tr className="border-b border-gray-100">
-                                        {/* Removed duplicate manual checkbox block */}
                                         {ALL_COLUMNS.map(col => (
                                             visibleColumns[col] && (
                                                 <th
@@ -1550,7 +1368,7 @@ export default function Incidents({ user }) {
                                                     style={col === 'actions' ? { boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' } : undefined}
                                                 >
                                                     {col === 'checkbox' ? (
-                                                        <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
+                                                        <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />
                                                     ) : col === 'actions' ? 'ACTIONS' : col.replace(/_/g, ' ').toUpperCase()}
                                                 </th>
                                             )
@@ -1559,9 +1377,7 @@ export default function Incidents({ user }) {
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-100">
                                     {loading ? (
-                                        <tr>
-                                            <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
-                                        </tr>
+                                        <tr><td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td></tr>
                                     ) : filtered.length > 0 ? (
                                         filtered.map((row) => {
                                             const isDeleting = deletingIds.has(row.raw?.id);
@@ -1575,39 +1391,47 @@ export default function Incidents({ user }) {
                                                                 style={col === 'actions' ? { boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' } : undefined}
                                                             >
                                                                 {(() => {
-                                                                    if (col === 'checkbox') return <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />;
+                                                                    if (col === 'checkbox') return <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-500" />;
                                                                     if (col === 'type') return <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">{row.title || 'Incident'}</span>;
                                                                     if (col === 'reference') return <span className="text-slate-900 font-semibold text-sm whitespace-nowrap">{row.ref}</span>;
-                                                                    if (col === 'description') return <div><div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`} onClick={hasUpdate ? () => handleEdit(row) : undefined}><Home className="w-4 h-4 text-gray-400" /><span>{hotels.find(h => h.id == row.propertyId)?.name || row.propertyName || 'Unknown Property'}</span></div><div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">{row.desc || 'No description recorded.'}</div></div>;
+                                                                    if (col === 'description') return (
+                                                                        <div>
+                                                                            <div className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`} onClick={hasUpdate ? () => handleEdit(row) : undefined}>
+                                                                                <Home className="w-4 h-4 text-gray-400" />
+                                                                                <span>{hotels.find(h => h.id == row.propertyId)?.name || row.propertyName || 'Unknown Property'}</span>
+                                                                            </div>
+                                                                            <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">{row.desc || 'No description recorded.'}</div>
+                                                                        </div>
+                                                                    );
                                                                     if (col === 'attachments') {
                                                                         let atts = row.raw?.attachments ?? [];
-                                                                        try {
-                                                                            if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
-                                                                        } catch {
-                                                                            atts = [];
-                                                                        }
-                                                                        const list = Array.isArray(atts) ? atts : [];
+                                                                        try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
+                                                                        const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
                                                                         if (list.length === 0) return <span className="text-gray-400 text-sm">—</span>;
-                                                                        const first = list[0];
-                                                                        const isNumericId = /^\d+$/.test(String(first));
-                                                                        const href = isNumericId ? `/api/incidents/attachments/${first}` : first;
                                                                         return (
                                                                             <button
                                                                                 type="button"
-                                                                                onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
+                                                                                onClick={() => openAttachmentsGallery(row.raw?.attachments ?? row.attachments)}
                                                                                 className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl"
-                                                                                title="View first attachment"
+                                                                                title="View attachments"
                                                                             >
                                                                                 <span>{list.length}</span>
                                                                                 <span className="text-xs font-bold uppercase tracking-wide">Photos</span>
                                                                             </button>
                                                                         );
                                                                     }
-                                                                    if (col === 'priority') { const style = getPriorityColor(row.priority || 'Medium'); return <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${style.dot} shadow-sm`}></span><span className={`text-sm font-semibold ${style.text}`}>{row.priority || 'Medium'}</span></div>; }
+                                                                    if (col === 'priority') { const style = getPriorityColor(row.priority || "Medium"); return <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${style.dot} shadow-sm`}></span><span className={`text-sm font-semibold ${style.text}`}>{row.priority || 'Medium'}</span></div>; }
                                                                     if (col === 'status') { const style = getStatusColor(row.status || 'pending'); return <div className="flex items-center gap-2"><span className={`w-3 h-3 rounded-full ${style.dot} shadow-sm`}></span><span className={`text-sm font-semibold ${style.text}`}>{row.status || 'Pending'}</span></div>; }
-                                                                    if (col === 'assigned') return !row.assigned || row.assigned === 'Unassigned' ? <span className="text-gray-400 text-sm">Unassigned</span> : <div className="flex items-center gap-2"><div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned)} flex items-center justify-center text-xs font-semibold shadow-sm`}>{getInitials(row.assigned)}</div><span className="text-gray-900 text-sm font-medium">{row.assigned}</span></div>;
+                                                                    if (col === 'assigned') return !row.assigned || row.assigned === 'Unassigned' ? <span className="text-gray-400 text-sm">Unassigned</span> : <div className="flex items-center gap-2"><div className={`w-8 h-8 rounded-full ${getAvatarColor(row.assigned)} flex items-center justify-center text-xs font-semibold`}>{getInitials(row.assigned)}</div><span className="text-gray-900 text-sm font-medium">{row.assigned}</span></div>;
+
                                                                     if (col === 'date') return <span className="text-gray-900 font-medium text-sm">{formatDate(row.date)}</span>;
-                                                                    if (col === 'actions') return <div className="flex items-center justify-center gap-1"><button onClick={() => handleView(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="View"><Eye className="w-4 h-4" /></button>{hasUpdate && (<button onClick={() => handleEdit(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="Edit"><Edit className="w-4 h-4" /></button>)}{hasDelete && (<button onClick={() => handleDelete(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>)}</div>;
+                                                                    if (col === 'actions') return (
+                                                                        <div className="flex items-center justify-center gap-1">
+                                                                            <button onClick={() => handleView(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="View"><Eye className="w-4 h-4" /></button>
+                                                                            {hasUpdate && <button onClick={() => handleEdit(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="Edit"><Edit className="w-4 h-4" /></button>}
+                                                                            {hasDelete && <button onClick={() => handleDelete(row)} className="p-1.5 text-gray-600 rounded-xl transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>}
+                                                                        </div>
+                                                                    );
                                                                     if (customColumns.includes(col)) return <span className="text-gray-900 font-medium text-sm">{row.raw?.[col] ?? ''}</span>;
                                                                     return null;
                                                                 })()}
@@ -1618,70 +1442,37 @@ export default function Incidents({ user }) {
                                             );
                                         })
                                     ) : (
-                                        <tr>
-                                            <td colSpan="9" className="py-8 text-center text-gray-500">No incidents found.</td>
-                                        </tr>
+                                        <tr><td colSpan="9" className="py-8 text-center text-gray-500">No incidents found.</td></tr>
                                     )}
                                 </tbody>
                             </table>
                         </div>
                     ) : (
                         /* Board/Kanban View */
-                        <div className="overflow-x-auto -mx-6 px-6">
+                        <div className="overflow-x-auto p-6">
                             <div className="flex gap-4 min-w-max pb-4">
                                 {['Open', 'In Progress', 'Resolved'].map((status) => {
                                     const statusItems = filtered.filter(
                                         (row) => (row.status || '').toLowerCase() === status.toLowerCase()
                                     );
-
-                                    const getStatusStyle = (status) => {
-                                        if (status === 'Open') return {
-                                            bg: 'bg-orange-50',
-                                            border: 'border-orange-200',
-                                            header: 'bg-orange-100',
-                                            text: 'text-orange-700',
-                                            dot: 'bg-orange-500'
-                                        };
-                                        if (status === 'In Progress') return {
-                                            bg: 'bg-purple-50',
-                                            border: 'border-purple-200',
-                                            header: 'bg-purple-100',
-                                            text: 'text-purple-700',
-                                            dot: 'bg-purple-500'
-                                        };
-                                        if (status === 'Resolved') return {
-                                            bg: 'bg-emerald-50',
-                                            border: 'border-emerald-200',
-                                            header: 'bg-emerald-100',
-                                            text: 'text-emerald-700',
-                                            dot: 'bg-emerald-500'
-                                        };
-                                        return {
-                                            bg: 'bg-gray-50',
-                                            border: 'border-gray-200',
-                                            header: 'bg-gray-100',
-                                            text: 'text-gray-700',
-                                            dot: 'bg-gray-500'
-                                        };
+                                    const getStatusStyle = (s) => {
+                                        if (s === 'Open') return { bg: 'bg-orange-50', border: 'border-orange-200', header: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' };
+                                        if (s === 'In Progress') return { bg: 'bg-purple-50', border: 'border-purple-200', header: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' };
+                                        if (s === 'Resolved') return { bg: 'bg-emerald-50', border: 'border-emerald-200', header: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' };
+                                        return { bg: 'bg-gray-50', border: 'border-gray-200', header: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' };
                                     };
-
                                     const style = getStatusStyle(status);
-
                                     return (
                                         <div key={status} className="flex-shrink-0 w-80">
                                             <div className={`rounded-xl border ${style.border} ${style.bg}`}>
                                                 {/* Column Header */}
-                                                <div className={`${style.header} px-4 py-3 border-b ${style.border}`}>
+                                                <div className={`${style.header} px-4 py-3 rounded-t-xl border-b ${style.border}`}>
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-2">
                                                             <span className={`w-2 h-2 rounded-full ${style.dot}`}></span>
-                                                            <h3 className={`font-semibold ${style.text} text-sm uppercase tracking-wide`}>
-                                                                {status}
-                                                            </h3>
+                                                            <h3 className={`font-semibold ${style.text} text-sm uppercase tracking-wide`}>{status}</h3>
                                                         </div>
-                                                        <span className="bg-white px-2 py-0.5 rounded-xl text-xs font-semibold text-gray-600">
-                                                            {statusItems.length}
-                                                        </span>
+                                                        <span className="bg-white px-2 py-0.5 rounded-xl text-xs font-semibold text-gray-600">{statusItems.length}</span>
                                                     </div>
                                                 </div>
 
@@ -1696,104 +1487,47 @@ export default function Incidents({ user }) {
                                                         statusItems.map((row) => {
                                                             const priorityStyle = getPriorityColor(row.priority || "Medium");
                                                             const isDeleting = deletingIds.has(row.raw?.id);
-
                                                             return (
                                                                 <div
                                                                     key={row.ref}
                                                                     className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 transition-all cursor-pointer ${isDeleting ? 'incident-card-deleting' : ''}`}
                                                                     onClick={() => handleView(row)}
                                                                 >
-                                                                    {/* Card Header */}
                                                                     <div className="flex items-center justify-between mb-2">
                                                                         <span className="text-xs font-mono text-gray-500">{row.ref}</span>
                                                                         <div className="flex items-center gap-1.5">
                                                                             <span className={`w-2 h-2 rounded-full ${priorityStyle.dot}`}></span>
-                                                                            <span className={`text-xs font-medium ${priorityStyle.text}`}>
-                                                                                {row.priority}
-                                                                            </span>
+                                                                            <span className={`text-xs font-medium ${priorityStyle.text}`}>{row.priority}</span>
                                                                         </div>
                                                                     </div>
-
-                                                                    {/* Title */}
-                                                                    <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
-                                                                        {row.title || "Incident"}
-                                                                    </h4>
-
-                                                                    {/* Property */}
+                                                                    <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{row.title || "Incident"}</h4>
                                                                     <div className="flex items-center gap-1.5 text-gray-600 text-xs mb-2">
                                                                         <Home className="w-3 h-3" />
-                                                                        <span className="truncate">
-                                                                            {hotels.find(h => h.id == row.propertyId)?.name || row.propertyName || "Unknown Property"}
-                                                                        </span>
+                                                                        <span className="truncate">{hotels.find(h => h.id == row.propertyId)?.name || row.propertyName || "Unknown Property"}</span>
                                                                     </div>
-
-                                                                    {/* Description */}
-                                                                    {row.desc && (
-                                                                        <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-                                                                            {row.desc}
-                                                                        </p>
-                                                                    )}
-
-                                                                    {/* Card Footer */}
+                                                                    {row.desc && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{row.desc}</p>}
                                                                     <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
-                                                                        {/* Assigned */}
                                                                         <div className="flex items-center gap-2">
                                                                             {row.assigned && row.assigned !== 'Unassigned' ? (
                                                                                 <>
-                                                                                    <div className={`w-6 h-6 rounded-full ${getAvatarColor(row.assigned)} flex items-center justify-center text-xs font-semibold`}>
-                                                                                        {getInitials(row.assigned)}
-                                                                                    </div>
-                                                                                    <span className="text-xs text-gray-700 truncate max-w-[100px]">
-                                                                                        {row.assigned}
-                                                                                    </span>
+                                                                                    <div className={`w-6 h-6 rounded-full ${getAvatarColor(row.assigned)} flex items-center justify-center text-xs font-semibold`}>{getInitials(row.assigned)}</div>
+                                                                                    <span className="text-xs text-gray-700 truncate max-w-[100px]">{row.assigned}</span>
                                                                                 </>
                                                                             ) : (
                                                                                 <span className="text-xs text-gray-400">Unassigned</span>
                                                                             )}
                                                                         </div>
-
-                                                                        {/* Date */}
-                                                                        <span className="text-xs text-gray-500">
-                                                                            {formatDate(row.date)}
-                                                                        </span>
+                                                                        <span className="text-xs text-gray-500">{formatDate(row.date)}</span>
                                                                     </div>
-
-                                                                    {/* Action Buttons */}
                                                                     <div className="flex items-center gap-1">
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                handleView(row);
-                                                                            }}
-                                                                            className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"
-                                                                            title="View"
-                                                                        >
-                                                                            <Eye className="w-3.5 h-3.5" />
-                                                                            View
+                                                                        <button onClick={(e) => { e.stopPropagation(); handleView(row); }} className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 rounded-xl text-xs font-medium flex items-center justify-center gap-1" title="View">
+                                                                            <Eye className="w-3.5 h-3.5" />View
                                                                         </button>
                                                                         {hasUpdate && (
-                                                                            <button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    handleEdit(row);
-                                                                                }}
-                                                                                className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"
-                                                                                title="Edit"
-                                                                            >
-                                                                                <Edit className="w-3.5 h-3.5" />
-                                                                            </button>
+                                                                            <button onClick={(e) => { e.stopPropagation(); handleEdit(row); }} className="p-1.5 bg-gray-50 text-gray-700 rounded-xl" title="Edit"><Edit className="w-3.5 h-3.5" /></button>
                                                                         )}
                                                                         {hasDelete && (
-                                                                            <button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    handleDelete(row);
-                                                                                }}
-                                                                                className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"
-                                                                                title="Delete"
-                                                                            >
-                                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                                            </button>
+                                                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(row); }} className="p-1.5 bg-gray-50 text-gray-700 rounded-xl" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
                                                                         )}
                                                                     </div>
                                                                 </div>
@@ -1809,428 +1543,305 @@ export default function Incidents({ user }) {
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* ----------------- MODAL SECTION ----------------- */}
+                {/* ── Create / Edit Modal ── */}
+                {showModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-hidden">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative flex flex-col h-[70vh]">
+                            {/* Modal Header */}
+                            <div className="shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
+                                <h2 className="text-lg font-bold text-gray-900">{editingId ? "Edit Incident" : "Report Incident"}</h2>
+                                <button
+                                    onClick={() => { setShowModal(false); setError(null); setEditingId(null); setPhotos([]); }}
+                                    className="text-gray-400 transition-colors rounded-xl"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
 
-            {/* Create/Edit Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-hidden">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative flex flex-col h-[70vh]">
-
-                        {/* Modal Header */}
-                        <div className="shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
-                            <h3 className="text-lg font-bold text-gray-900">
-                                {editingId ? "Edit Incident" : "Report Incident"}
-                            </h3>
-                            <button
-                                onClick={() => {
-                                    setShowModal(false);
-                                    setError(null);
-                                    setEditingId(null);
-                                    setPhotos([]);
-                                }}
-                                className="text-gray-400 transition-colors rounded-xl"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        {/* Modal Form Content */}
-                        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
-                            {/* Error Message Display */}
-                            {error && (
-                                <div className="mb-4 mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-                                    <p className="text-sm text-red-700">{error}</p>
-                                </div>
-                            )}
-                            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Form fields same as original */}
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Incident Type <span className="text-red-500">*</span></label>
-                                        <select
-                                            name="incidentType"
-                                            required
-                                            value={formData.incidentType}
-                                            onChange={handleIncidentTypeChange}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                        >
-                                            <option value="">Select type</option>
-                                            {[...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].map((t) => (
-                                                <option key={t} value={t}>{t}</option>
-                                            ))}
-                                            {!!formData.incidentType &&
-                                                ![...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].some((t) => String(t) === String(formData.incidentType)) && (
+                            <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1">
+                                {error && (
+                                    <div className="mb-4 mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                                        <p className="text-sm text-red-700">{error}</p>
+                                    </div>
+                                )}
+                                <div className="flex-1 overflow-y-auto p-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Incident Type */}
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Incident Type <span className="text-red-500">*</span></label>
+                                            <select name="incidentType" required value={formData.incidentType} onChange={handleIncidentTypeChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white">
+                                                <option value="">Select type</option>
+                                                {[...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].map((t) => (
+                                                    <option key={t} value={t}>{t}</option>
+                                                ))}
+                                                {formData.incidentType && ![...BUILTIN_INCIDENT_TYPES, ...customIncidentTypes].some((t) => String(t) === String(formData.incidentType)) && (
                                                     <option value={formData.incidentType}>{formData.incidentType}</option>
                                                 )}
-                                            <option value="__add_new__">+ Add new...</option>
-                                        </select>
-                                        {showCustomIncidentTypeInput && (
-                                            <div className="mt-2 flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={customIncidentTypeValue}
-                                                    onChange={(e) => setCustomIncidentTypeValue(e.target.value)}
-                                                    placeholder="Enter new incident type"
-                                                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={saveCustomIncidentType}
-                                                    className="px-3 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium transition-colors"
-                                                >
-                                                    Add
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setShowCustomIncidentTypeInput(false);
-                                                        setCustomIncidentTypeValue('');
-                                                    }}
-                                                    className="px-3 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium transition-colors"
-                                                >
-                                                    Cancel
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Severity <span className="text-red-500">*</span></label>
-                                        <select
-                                            name="severity"
-                                            required
-                                            value={formData.severity}
-                                            onChange={handleInputChange}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                        >
-                                            <option value="Low">Low</option>
-                                            <option value="Medium">Medium</option>
-                                            <option value="High">High</option>
-                                            <option value="Urgent">Urgent</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Property <span className="text-red-500">*</span></label>
-                                        <select
-                                            name="propertyId"
-                                            required
-                                            value={formData.propertyId}
-                                            onChange={handlePropertyChange}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                        >
-                                            <option value="">Select property</option>
-                                            {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-                                        </select>
-                                        {hotelsLoading && <div className="text-xs text-gray-400 mt-0.5">Loading hotels...</div>}
-                                    </div>
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Service User <span className="text-red-500">*</span></label>
-                                        <select
-                                            name="serviceUserId"
-                                            required
-                                            value={formData.serviceUserId}
-                                            onChange={handleInputChange}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                        >
-                                            <option value="">Select service user</option>
-                                            {serviceUsers.map((s) => <option key={s.id} value={s.id}>{s.first_name}</option>)}
-                                        </select>
-                                    </div>
-
-                                    <div className="col-span-1 md:col-span-2">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Description <span className="text-red-500">*</span></label>
-                                        <textarea
-                                            name="description"
-                                            required
-                                            rows={3}
-                                            value={formData.description}
-                                            onChange={handleInputChange}
-                                            placeholder="Detailed description of the incident..."
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
-                                        />
-                                    </div>
-
-                                    <div className="col-span-1 md:col-span-2">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            multiple
-                                            onChange={(e) => {
-                                                const files = Array.from(e.target.files || []);
-                                                setPhotos(files);
-                                            }}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
-                                        />
-                                        {photos.length > 0 && (
-                                            <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>
-                                        )}
-                                    </div>
-
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Reported By <span className="text-red-500">*</span></label>
-                                        <input
-                                            type="text"
-                                            name="reportedBy"
-                                            readOnly
-                                            value={formData.reportedBy}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
-                                        />
-                                    </div>
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Reported Date <span className="text-red-500">*</span></label>
-                                        <input
-                                            type="date"
-                                            name="reportedDate"
-                                            required
-                                            value={formatDateISO(formData.reportedDate)}
-                                            onChange={handleInputChange}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                        />
-                                    </div>
-
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Assigned To <span className="text-red-500">*</span></label>
-                                        <select
-                                            name="assignedTo"
-                                            required
-                                            value={formData.assignedTo}
-                                            onChange={handleInputChange}
-                                            disabled={!formData.propertyId || staffLoading}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                        >
-                                            <option value="">
-                                                {!formData.propertyId
-                                                    ? "Select property first"
-                                                    : staffLoading
-                                                        ? "Loading staff..."
-                                                        : "Select staff"}
-                                            </option>
-                                            {!!formData.assignedTo && !staffUsers.some((u) => String(u.name) === String(formData.assignedTo)) && (
-                                                <option value={formData.assignedTo}>{formData.assignedTo}</option>
-                                            )}
-                                            {staffUsers.map((u) => (
-                                                <option key={u.id} value={u.name}>
-                                                    {u.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Status <span className="text-red-500">*</span></label>
-                                        <select
-                                            name="status"
-                                            required
-                                            value={formData.status}
-                                            onChange={handleInputChange}
-                                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                        >
-                                            <option value="Open">Open</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="Resolved">Resolved</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Custom Fields - Moved to bottom */}
-                                    {customColumns.map((col) => {
-                                        const meta = customColumnMetadata[col] || {};
-                                        const inputType = meta.input_type || 'text';
-                                        const options = Array.isArray(meta.input_options) ? meta.input_options : [];
-
-                                        return (
-                                            <div key={col} className="col-span-1 md:col-span-2">
-                                                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                                    {col.replace(/_/g, ' ').toUpperCase()} <span className="text-red-500">*</span>
-                                                </label>
-                                                {inputType === 'checkbox' ? (
-                                                    <select
-                                                        name={col}
-                                                        required
-                                                        value={formData[col] === true ? 'true' : formData[col] === false ? 'false' : (formData[col] || '')}
-                                                        onChange={handleInputChange}
-                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                                    >
-                                                        <option value="">Select...</option>
-                                                        <option value="true">Yes</option>
-                                                        <option value="false">No</option>
-                                                    </select>
-                                                ) : inputType === 'dropdown' || inputType === 'select' ? (
-                                                    <select
-                                                        name={col}
-                                                        required
-                                                        value={formData[col] || ''}
-                                                        onChange={handleInputChange}
-                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
-                                                    >
-                                                        <option value="">Select...</option>
-                                                        {options.map((opt, idx) => (
-                                                            <option key={idx} value={opt}>{opt}</option>
-                                                        ))}
-                                                    </select>
-                                                ) : inputType === 'textarea' ? (
-                                                    <textarea
-                                                        name={col}
-                                                        required
-                                                        rows={3}
-                                                        value={formData[col] || ''}
-                                                        onChange={handleInputChange}
-                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
-                                                    />
-                                                ) : (
+                                                <option value="__add_new__">+ Add new...</option>
+                                            </select>
+                                            {showCustomIncidentTypeInput && (
+                                                <div className="mt-2 flex gap-2">
                                                     <input
-                                                        name={col}
-                                                        type={inputType}
-                                                        required
-                                                        value={formData[col] || ''}
-                                                        onChange={handleInputChange}
-                                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                        type="text"
+                                                        value={customIncidentTypeValue}
+                                                        onChange={(e) => setCustomIncidentTypeValue(e.target.value)}
+                                                        placeholder="Enter new incident type"
+                                                        className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                                                     />
-                                                )}
+                                                    <button type="button" onClick={saveCustomIncidentType} className="px-3 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium">Save</button>
+                                                    <button type="button" onClick={() => { setShowCustomIncidentTypeInput(false); setCustomIncidentTypeValue(''); }} className="px-3 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium">Cancel</button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Severity */}
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Severity <span className="text-red-500">*</span></label>
+                                            <select name="severity" required value={formData.severity} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white">
+                                                <option value="Low">Low</option>
+                                                <option value="Medium">Medium</option>
+                                                <option value="High">High</option>
+                                                <option value="Urgent">Urgent</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Property */}
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Property <span className="text-red-500">*</span></label>
+                                            <select name="propertyId" required value={formData.propertyId} onChange={handlePropertyChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white">
+                                                <option value="">Select property</option>
+                                                {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                                            </select>
+                                            {hotelsLoading && <div className="text-xs text-gray-400 mt-0.5">Loading hotels...</div>}
+                                        </div>
+
+                                        {/* Service User */}
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Service User <span className="text-red-500">*</span></label>
+                                            <select name="serviceUserId" required value={formData.serviceUserId} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white">
+                                                <option value="">Select service user</option>
+                                                {serviceUsers.map((s) => <option key={s.id} value={s.id}>{s.first_name}</option>)}
+                                            </select>
+                                        </div>
+
+                                        {/* Description */}
+                                        <div className="col-span-1 md:col-span-2">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Description <span className="text-red-500">*</span></label>
+                                            <textarea name="description" required rows={3} value={formData.description} onChange={handleInputChange} placeholder="Detailed description of the incident..." className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" />
+                                        </div>
+
+                                        {/* Reported By */}
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Reported By <span className="text-red-500">*</span></label>
+                                            <input type="text" name="reportedBy" required value={formData.reportedBy} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                                        </div>
+
+                                        {/* Reported Date */}
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Reported Date <span className="text-red-500">*</span></label>
+                                            <input type="date" name="reportedDate" required value={formData.reportedDate} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                                        </div>
+
+                                        {/* Assigned To */}
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Assigned To <span className="text-red-500">*</span></label>
+                                            {staffUsers.length > 0 ? (
+                                                <select name="assignedTo" required value={formData.assignedTo} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white">
+                                                    <option value="">Select staff</option>
+                                                    {staffUsers.map((u) => <option key={u.id} value={u.name}>{u.name}</option>)}
+                                                </select>
+                                            ) : (
+                                                <input type="text" name="assignedTo" required value={formData.assignedTo} onChange={handleInputChange} placeholder={staffLoading ? "Loading staff..." : "Enter name"} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                                            )}
+                                        </div>
+
+                                        {/* Status */}
+                                        <div className="col-span-1">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Status <span className="text-red-500">*</span></label>
+                                            <select name="status" required value={formData.status} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white">
+                                                <option value="Open">Open</option>
+                                                <option value="In Progress">In Progress</option>
+                                                <option value="Resolved">Resolved</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Attach Photos */}
+                                        <div className="col-span-1 md:col-span-2">
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                onChange={(e) => { const files = Array.from(e.target.files || []); setPhotos(files); }}
+                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                                            />
+                                            {photos.length > 0 && <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>}
+                                        </div>
+
+                                        {/* Existing Attachments (edit mode) */}
+                                        {renderExistingAttachments()}
+
+                                        {/* Custom Columns from Forms Builder */}
+                                        {customColumns.map((col) => {
+                                            const meta = customColumnMetadata[col] || {};
+                                            const inputType = meta.input_type || 'text';
+                                            const options = Array.isArray(meta.input_options) ? meta.input_options : [];
+                                            return (
+                                                <div key={col} className="col-span-1 md:col-span-2">
+                                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                        {col.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase())} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    {inputType === 'checkbox' ? (
+                                                        <select name={col} required value={formData[col] === true ? 'true' : formData[col] === false ? 'false' : (formData[col] || '')} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+                                                            <option value="">Select...</option>
+                                                            <option value="true">Yes</option>
+                                                            <option value="false">No</option>
+                                                        </select>
+                                                    ) : inputType === 'dropdown' || inputType === 'select' ? (
+                                                        <select name={col} required value={formData[col] || ''} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+                                                            <option value="">Select...</option>
+                                                            {options.map((opt, idx) => <option key={idx} value={opt}>{opt}</option>)}
+                                                        </select>
+                                                    ) : inputType === 'textarea' ? (
+                                                        <textarea name={col} required rows={3} value={formData[col] || ''} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y" />
+                                                    ) : (
+                                                        <input name={col} type={inputType} required value={formData[col] || ''} onChange={handleInputChange} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Footer Buttons */}
+                                <div className="shrink-0 flex justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                                    <button type="button" onClick={() => { setShowModal(false); setError(null); setEditingId(null); setPhotos([]); }} className="px-4 py-1.5 border border-gray-300 rounded-xl text-gray-700 font-medium text-sm">Cancel</button>
+                                    <button type="submit" disabled={submitting} className="px-4 py-1.5 bg-teal-500 text-white rounded-xl font-medium shadow-sm text-sm">
+                                        {submitting ? "Saving..." : (editingId ? "Update Incident" : "Report Incident")}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── View Details Modal ── */}
+                {showViewModal && viewingIncident && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-3 sm:p-4 overflow-hidden">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative flex flex-col h-[70vh]">
+                            <div className="shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
+                                <div>
+                                    <h2 className="text-lg font-bold text-gray-900">Incident Details</h2>
+                                    <p className="text-sm text-gray-500">View incident information</p>
+                                </div>
+                                <button onClick={() => setShowViewModal(false)} className="text-gray-400 rounded-xl"><X className="w-5 h-5" /></button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <DetailField label="Reference" value={viewingIncident.ref} />
+                                    <DetailField label="Reported Date" value={formatDate(viewingIncident.date)} />
+                                    <DetailField label="Title" value={viewingIncident.title} />
+                                    <DetailField
+                                        label="Property"
+                                        value={
+                                            hotels.find(h => h.id == viewingIncident.propertyId)?.name ||
+                                            viewingIncident.propertyName ||
+                                            viewingIncident.property ||
+                                            'Unknown Property'
+                                        }
+                                    />
+                                    <DetailField label="Priority" value={viewingIncident.priority} />
+                                    <DetailField label="Status" value={viewingIncident.status} />
+                                    <DetailField label="Reported By" value={viewingIncident.reportedBy || viewingIncident.reported_by} />
+                                    <DetailField label="Assigned To" value={viewingIncident.assigned} />
+                                    <DetailField label="Service User" value={viewingIncident.serviceUserId} />
+
+                                    {/* Attachments */}
+                                    {(() => {
+                                        let list = viewingIncident.raw?.attachments ?? viewingIncident.attachments ?? viewingIncident.attachments_ids ?? viewingIncident.photos ?? [];
+                                        try {
+                                            if (typeof list === 'string' && list) list = JSON.parse(list);
+                                        } catch {
+                                            list = [];
+                                        }
+                                        const items = (Array.isArray(list) ? list : []).filter(Boolean);
+                                        if (!items.length) return null;
+                                        return (
+                                            <div className="md:col-span-2">
+                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Attachments</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openAttachmentsGallery(items)}
+                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-4 py-2 rounded-xl shadow-sm"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                    <span>View {items.length} Photos</span>
+                                                </button>
                                             </div>
                                         );
+                                    })()}
+
+                                    <DetailField label="Description" value={viewingIncident.desc} fullWidth={true} />
+
+                                    {/* Custom columns */}
+                                    {customColumns.map((col) => {
+                                        const meta = customColumnMetadata?.[col] || {};
+                                        const label = String(meta.label || col).replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+                                        const rawVal = viewingIncident?.raw?.[col] ?? viewingIncident?.[col];
+                                        const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
+                                        const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
+                                        const isDateType = inputType === 'date';
+                                        let valueText = rawVal;
+                                        if (valueText === null || valueText === undefined || valueText === '') valueText = '-';
+                                        if (isDateType && rawVal) {
+                                            const d = new Date(rawVal);
+                                            if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
+                                        }
+                                        if (isBoolType) {
+                                            const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
+                                            valueText = boolVal ? 'Yes' : 'No';
+                                        }
+                                        return <DetailField key={col} label={label} value={String(valueText)} />;
                                     })}
                                 </div>
                             </div>
 
-                            {/* Footer Buttons */}
                             <div className="shrink-0 flex justify-end gap-3 p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowModal(false);
-                                        setError(null);
-                                        setEditingId(null);
-                                    }}
-                                    className="px-4 py-1.5 border border-gray-300 rounded-xl text-gray-700 font-medium transition-colors text-sm"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="px-4 py-1.5 bg-teal-500 text-white rounded-xl font-medium shadow-sm transition-colors text-sm"
-                                >
-                                    {submitting ? "Saving..." : (editingId ? "Update Incident" : "Report Incident")}
-                                </button>
+                                <button onClick={() => setShowViewModal(false)} className="px-4 py-1.5 border border-gray-300 rounded-xl text-gray-700 font-medium text-sm">Close</button>
+                                {hasUpdate && (
+                                    <button
+                                        onClick={() => { setShowViewModal(false); handleEdit(viewingIncident); }}
+                                        className="px-4 py-1.5 bg-teal-500 text-white rounded-xl font-medium shadow-sm text-sm flex items-center gap-2"
+                                    >
+                                        <Edit className="w-4 h-4" />Edit
+                                    </button>
+                                )}
                             </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* View Details Modal */}
-            {showViewModal && viewingIncident && (
-                <div className="modal-overlay">
-                    <div className="modal-container h-[70vh]">
-                        <div className="modal-header">
-                            <div>
-                                <h2 className="modal-title">Incident Details</h2>
-                                <p className="modal-subtitle">View incident information</p>
-                            </div>
-                            <button
-                                onClick={() => setShowViewModal(false)}
-                                className="modal-close-btn rounded-xl"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="modal-content text-left">
-                            <div className="form-grid-2">
-                                <DetailField label="Reference" value={viewingIncident.ref} />
-                                <DetailField label="Reported Date" value={formatDate(viewingIncident.date)} />
-                                <DetailField label="Title" value={viewingIncident.title} />
-                                <DetailField
-                                    label="Property"
-                                    value={
-                                        hotels.find(h => h.id == viewingIncident.propertyId)?.name ||
-                                        viewingIncident.propertyName ||
-                                        viewingIncident.property ||
-                                        'Unknown Property'
-                                    }
-                                />
-
-                                <DetailField label="Priority" value={viewingIncident.priority} />
-                                <DetailField label="Status" value={viewingIncident.status} />
-                                <DetailField label="Reported By" value={(viewingIncident.raw?.reported_by || viewingIncident.raw?.reportedBy)} />
-                                <DetailField label="Assigned To" value={viewingIncident.assigned} />
-                                <DetailField label="Service User" value={viewingIncident.serviceUserId} />
-
-                                {customColumns.map((col) => {
-                                    const meta = customColumnMetadata?.[col] || {};
-                                    const label = String(meta.label || col)
-                                        .replace(/_/g, ' ')
-                                        .replace(/\b\w/g, (m) => m.toUpperCase());
-                                    const rawVal = viewingIncident?.raw?.[col] ?? viewingIncident?.[col];
-                                    const inputType = String(meta.input_type || meta.inputType || '').toLowerCase();
-                                    const isBoolType = inputType === 'checkbox' || inputType === 'boolean';
-                                    const isDateType = inputType === 'date';
-
-                                    let valueText = rawVal;
-                                    if (valueText === null || valueText === undefined || valueText === '') valueText = '-';
-
-                                    if (isDateType && rawVal) {
-                                        const d = new Date(rawVal);
-                                        if (!Number.isNaN(d.getTime())) valueText = d.toISOString().slice(0, 10);
-                                    }
-
-                                    if (isBoolType) {
-                                        const boolVal = rawVal === true || rawVal === 'true' || rawVal === 1 || rawVal === '1' || rawVal === 'yes';
-                                        valueText = boolVal ? 'Yes' : 'No';
-                                    }
-
-                                    return (
-                                        <DetailField key={col} label={label} value={String(valueText)} />
-                                    );
-                                })}
-
-                                <DetailField label="Description" value={viewingIncident.desc} fullWidth={true} />
-                            </div>
-                        </div>
-
-                        <div className="modal-footer">
-                            <button
-                                onClick={() => setShowViewModal(false)}
-                                className="btn-secondary btn-sm rounded-xl"
-                            >
-                                Close
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowViewModal(false);
-                                    handleEdit(viewingIncident);
-                                }}
-                                className="btn-primary btn-sm flex items-center gap-2 rounded-xl"
-                            >
-                                <Edit className="w-4 h-4" />
-                                Edit
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Confirmation Dialog */}
-            <ConfirmDialog
-                isOpen={confirmDialog.isOpen}
-                onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
-                onConfirm={confirmDialog.onConfirm}
-                title={confirmDialog.title}
-                message={confirmDialog.message}
-                type={confirmDialog.type}
-            />
+                {/* Confirmation Dialog */}
+                <ConfirmDialog
+                    isOpen={confirmDialog.isOpen}
+                    onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                    onConfirm={confirmDialog.onConfirm}
+                    title={confirmDialog.title}
+                    message={confirmDialog.message}
+                    type={confirmDialog.type}
+                />
 
-            {/* Alert Dialog */}
-            <AlertDialog
-                isOpen={alertDialog.isOpen}
-                onClose={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))}
-                title={alertDialog.title}
-                message={alertDialog.message}
-                type={alertDialog.type}
-            />
+                {/* Alert Dialog */}
+                <AlertDialog
+                    isOpen={alertDialog.isOpen}
+                    onClose={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))}
+                    title={alertDialog.title}
+                    message={alertDialog.message}
+                    type={alertDialog.type}
+                />
+            </div>
         </div>
     );
 }

@@ -170,8 +170,11 @@ const VCSOrganisations = () => {
         reported_date: '',
         assigned_to: '',
         scheduled_date: '',
-        status: 'new'
+        status: 'new',
+        attachments: []
     });
+
+    const [photos, setPhotos] = useState([]);
 
     const CATEGORY_STORAGE_KEY = 'vcsOrganisations.customCategories';
     const [customCategories, setCustomCategories] = useState([]);
@@ -205,6 +208,112 @@ const VCSOrganisations = () => {
         return 'Unknown Property';
     };
 
+    async function handleRemoveAttachment(attachmentId) {
+        if (!attachmentId) return;
+        try {
+            await api.delete(`/api/vcs-organisations/attachments/${encodeURIComponent(String(attachmentId))}`).catch(() => null);
+            setFormData((p) => {
+                let atts = p?.attachments ?? [];
+                try {
+                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                } catch {
+                    atts = [];
+                }
+                const next = (Array.isArray(atts) ? atts : []).filter((x) => String(x) !== String(attachmentId));
+                return { ...p, attachments: next };
+            });
+        } catch (err) {
+            console.warn('Failed to remove attachment', err);
+        }
+    }
+
+    const openAttachmentsGallery = (items = []) => {
+        let atts = items || [];
+        try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
+        const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+        if (!list.length) return;
+
+        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+        const urls = list.map((x) => {
+            const isNumericId = /^\d+$/.test(String(x));
+            const u = isNumericId ? `/api/vcs-organisations/attachments/${x}` : String(x);
+            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+        });
+
+        const safeTitle = `VCS Attachments (${urls.length})`;
+        const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${safeTitle}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .img-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .img-card:hover { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
+        .full-view-btn { opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
+        .img-card:hover .full-view-btn { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-500/20 p-2 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight">${safeTitle}</h1>
+                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Premium Attachment Viewer</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-semibold">
+            <span class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full border border-slate-700">${urls.length} Items</span>
+            <button onclick="window.close()" class="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-full border border-red-500/20 transition-all">Close</button>
+        </div>
+    </header>
+
+    <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-8">
+        ${urls.map((u, i) => `
+            <div class="img-card group relative bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
+                <div class="aspect-[4/3] overflow-hidden bg-slate-900 flex items-center justify-center relative">
+                    <img src="${u}" alt="Attachment ${i + 1}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x300/1e293b/64748b?text=File+Preview'"/>
+                    
+                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <a href="${u}" target="_blank" class="full-view-btn bg-white text-slate-900 px-5 py-2.5 rounded-xl font-bold text-sm shadow-xl hover:bg-blue-50 transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+                            Full View
+                        </a>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-slate-700 bg-slate-800/30 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Attachment ${i + 1}</p>
+                        <p class="text-xs text-slate-300 font-medium truncate max-w-[140px]">IMG_REF_${Math.floor(Math.random() * 10000)}</p>
+                    </div>
+                    <a href="${u}" download class="p-2 text-slate-400 hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </a>
+                </div>
+            </div>
+        `).join('')}
+    </main>
+
+    <footer class="p-12 text-center">
+        <p class="text-slate-500 text-sm font-medium">End of Gallery • Total ${urls.length} Photos</p>
+    </footer>
+</body>
+</html>`;
+        const blob = new Blob([html], { type: 'text/html' });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    };
+
+
     /* Dialog State */
     const [confirmDialog, setConfirmDialog] = useState({
         isOpen: false,
@@ -227,6 +336,7 @@ const VCSOrganisations = () => {
         "type",
         "reference",
         "description",
+        "attachments",
         "priority",
         "status",
         "assigned",
@@ -244,7 +354,9 @@ const VCSOrganisations = () => {
             const saved = localStorage.getItem('vcsOrganisationsVisibleColumns');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                return { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), ...parsed };
+                const merged = { ...DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}), ...parsed };
+                if (merged.attachments === undefined) merged.attachments = true;
+                return merged;
             }
         } catch (e) {
             console.error('Failed to parse saved columns:', e);
@@ -441,8 +553,10 @@ const VCSOrganisations = () => {
             reported_date: '',
             assigned_to: '',
             scheduled_date: '',
-            status: 'new'
+            status: 'new',
+            attachments: []
         });
+        setPhotos([]);
         setStaffMembers([]); // Clear staff members for new record
         setShowForm(true);
     };
@@ -467,8 +581,11 @@ const VCSOrganisations = () => {
             reported_date: organisation.reported_date ? organisation.reported_date.split('T')[0] : '',
             assigned_to: organisation.assigned_to || '',
             scheduled_date: organisation.scheduled_date ? organisation.scheduled_date.split('T')[0] : '',
-            status: organisation.status || 'new'
+            status: organisation.status || 'new',
+            attachments: organisation?.attachments ?? organisation?.raw?.attachments ?? []
         });
+
+        setPhotos([]);
 
         // Fetch staff members if property is already set
         if (organisation?.property_id) {
@@ -521,6 +638,7 @@ const VCSOrganisations = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+
             const missing = [];
             if (!String(formData.name || '').trim()) missing.push('Title');
             if (!String(formData.description || '').trim()) missing.push('Description');
@@ -569,12 +687,22 @@ const VCSOrganisations = () => {
                 }
             }
 
+            const multipart = new FormData();
+            Object.entries(payload || {}).forEach(([k, v]) => {
+                if (v === undefined) return;
+                if (k === 'attachments') return;
+                if (v === null) multipart.append(k, '');
+                else multipart.append(k, String(v));
+            });
+            (photos || []).forEach((f) => multipart.append('photos', f));
+
             if (editingId) {
-                await api.put(`/api/vcs-organisations/${editingId}`, payload);
+                await api.put(`/api/vcs-organisations/${editingId}`, multipart, { headers: { 'Content-Type': 'multipart/form-data' } });
             } else {
-                await api.post('/api/vcs-organisations', payload);
+                await api.post('/api/vcs-organisations', multipart, { headers: { 'Content-Type': 'multipart/form-data' } });
             }
             setShowForm(false);
+            setPhotos([]);
             fetchOrganisations();
         } catch (err) {
             console.error('Error submitting form:', err);
@@ -1128,12 +1256,12 @@ const VCSOrganisations = () => {
                         {/* Filter Row */}
                         <div className="flex items-center gap-4 py-4 border-t border-gray-100">
                             <div className="relative">
+                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={filterPriority}
                                     onChange={(e) => setFilterPriority(e.target.value)}
                                     className="form-select pl-10 rounded-xl"
                                 >
-                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     <option>All Priority</option>
                                     <option value="urgent">Urgent</option>
                                     <option value="high">High</option>
@@ -1143,12 +1271,12 @@ const VCSOrganisations = () => {
                             </div>
 
                             <div className="relative">
+                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value)}
                                     className="form-select pl-10 rounded-xl"
                                 >
-                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     <option>All Status</option>
                                     <option value="new">New</option>
                                     <option value="pending">Pending</option>
@@ -1158,24 +1286,24 @@ const VCSOrganisations = () => {
                             </div>
 
                             <div className="relative">
+                                <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={propertyFilter}
                                     onChange={(e) => setPropertyFilter(e.target.value)}
                                     className="form-select pl-10 rounded-xl"
                                 >
-                                    <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     <option value="">All Properties</option>
                                     {properties.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                                 </select>
                             </div>
 
                             <div className="relative">
+                                <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
                                     className="form-select pl-10 rounded-xl"
                                 >
-                                    <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     <option value="">Sort By</option>
                                     <option value="date">Date (Newest)</option>
                                     <option value="priority">Priority</option>
@@ -1220,6 +1348,9 @@ const VCSOrganisations = () => {
                                         )}
                                         {visibleColumns.description && (
                                             <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>
+                                        )}
+                                        {visibleColumns.attachments && (
+                                            <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ATTACHMENTS</th>
                                         )}
                                         {visibleColumns.priority && (
                                             <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>
@@ -1287,6 +1418,31 @@ const VCSOrganisations = () => {
                                                                 {organisation.description || "No description"}
                                                             </div>
                                                         </div>
+                                                    </td>
+                                                )}
+                                                {visibleColumns.attachments && (
+                                                    <td className="py-5 px-6">
+                                                        {(() => {
+                                                            let atts = organisation?.attachments ?? organisation?.raw?.attachments ?? [];
+                                                            try {
+                                                                if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                            } catch {
+                                                                atts = [];
+                                                            }
+                                                            const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                                            if (!list.length) return <span className="text-gray-400 text-sm">-</span>;
+                                                            return (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openAttachmentsGallery(organisation?.attachments ?? organisation?.raw?.attachments)}
+                                                                    className="inline-flex items-center gap-2 text-xs font-bold text-teal-600 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl transition-all hover:bg-teal-100 shadow-sm"
+                                                                    title="View attachments"
+                                                                >
+                                                                    <Eye size={14} />
+                                                                    <span>VIEW PHOTOS ({list.length})</span>
+                                                                </button>
+                                                            );
+                                                        })()}
                                                     </td>
                                                 )}
                                                 {visibleColumns.priority && (
@@ -1567,6 +1723,59 @@ const VCSOrganisations = () => {
                                                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                                                 />
                                             </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                onChange={(e) => {
+                                                    const next = Array.from(e.target.files || []);
+                                                    setPhotos(next);
+                                                }}
+                                            />
+                                            {(() => {
+                                                let atts = formData?.attachments ?? [];
+                                                try {
+                                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                } catch {
+                                                    atts = [];
+                                                }
+                                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                                if (!list.length) return null;
+                                                return (
+                                                    <div className="mt-3 flex flex-wrap gap-2">
+                                                        {list.map((id, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between gap-2 border border-gray-100 rounded-xl px-4 py-2 bg-gray-50/50">
+                                                                <div className="text-xs font-semibold text-slate-700">Attachment #{String(id)}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openAttachmentsGallery([id])}
+                                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-teal-600 text-[10px] font-bold uppercase tracking-wider hover:bg-teal-50 transition-all shadow-sm"
+                                                                    >
+                                                                        <Eye size={12} />
+                                                                        View
+                                                                    </button>
+                                                                    {hasUpdate && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRemoveAttachment(id)}
+                                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-rose-100 text-rose-600 text-[10px] font-bold uppercase tracking-wider hover:bg-rose-50 transition-all shadow-sm"
+                                                                        >
+                                                                            <Trash2 size={12} />
+                                                                            Remove
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
 
                                         {/* Custom Columns */}

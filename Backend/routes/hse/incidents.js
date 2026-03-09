@@ -2,8 +2,55 @@ import express from 'express';
 import { protect } from '../../middleware/auth.js';
 import { buildRoleWhere } from '../../middleware/roleFilter.js';
 import pool from '../../config/db.js';
+import multer from 'multer';
 
 const router = express.Router();
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+let hseIncidentsAttachmentsReady = false;
+async function ensureHseIncidentsAttachments() {
+    if (hseIncidentsAttachmentsReady) return true;
+    try {
+        await pool.query("ALTER TABLE public.hse_incidents ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb");
+    } catch {
+    }
+    try {
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.hse_incident_attachments (
+        id SERIAL PRIMARY KEY,
+        incident_id INTEGER,
+        file_name TEXT,
+        mime_type TEXT,
+        file_data BYTEA NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_hse_incident_attachments_incident_id ON public.hse_incident_attachments(incident_id)`);
+    } catch {
+    }
+    hseIncidentsAttachmentsReady = true;
+    return true;
+}
+
+async function insertHseIncidentAttachments(incidentId, files = []) {
+    if (!Array.isArray(files) || files.length === 0) return [];
+    const ids = [];
+    for (const f of files) {
+        if (!f || !f.buffer) continue;
+        const r = await pool.query(
+            `INSERT INTO public.hse_incident_attachments (incident_id, file_name, mime_type, file_data)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id`,
+            [incidentId ?? null, f.originalname ?? null, f.mimetype ?? null, f.buffer]
+        );
+        if (r.rows?.[0]?.id != null) ids.push(r.rows[0].id);
+    }
+    return ids;
+}
 
 function genRef() {
     const year = new Date().getFullYear();
@@ -41,6 +88,7 @@ async function getAllowedPropertyIds(user) {
 // GET list
 router.get('/', protect, async (req, res) => {
     try {
+        await ensureHseIncidentsAttachments();
         const limit = parseInt(req.query.limit) || 500;
         const allowedIds = await getAllowedPropertyIds(req.user);
         const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));
@@ -76,9 +124,12 @@ router.get('/', protect, async (req, res) => {
 });
 
 // GET single
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, async (req, res, next) => {
     try {
+        await ensureHseIncidentsAttachments();
         const { id } = req.params;
+        if (String(id) === 'attachments') return next();
+        if (!/^\d+$/.test(String(id))) return res.status(400).json({ message: 'Invalid id' });
         const result = await pool.query('SELECT * FROM public.hse_incidents WHERE id=$1', [id]);
         if (result.rows.length === 0) return res.status(404).json({ message: 'Not found' });
 
@@ -96,9 +147,74 @@ router.get('/:id', protect, async (req, res) => {
     }
 });
 
-// POST create
-router.post('/', protect, async (req, res) => {
+router.get('/attachments/:id', protect, async (req, res) => {
     try {
+        await ensureHseIncidentsAttachments();
+        const id = req.params.id;
+        if (!/^\d+$/.test(String(id))) return res.status(400).end();
+        const r = await pool.query(
+            `SELECT id, file_name, mime_type, file_data
+       FROM public.hse_incident_attachments
+       WHERE id = $1
+       LIMIT 1`,
+            [Number(id)]
+        );
+        if (!r.rows?.length) return res.status(404).end();
+        const row = r.rows[0];
+        const mime = row.mime_type || 'application/octet-stream';
+        res.setHeader('Content-Type', mime);
+        if (row.file_name) {
+            res.setHeader('Content-Disposition', `inline; filename="${String(row.file_name).replace(/"/g, '')}"`);
+        }
+        return res.send(row.file_data);
+    } catch (err) {
+        console.error('GET /api/hse/hse-incidents/attachments/:id error:', err);
+        return res.status(500).end();
+    }
+});
+
+router.delete('/attachments/:id', protect, async (req, res) => {
+    try {
+        await ensureHseIncidentsAttachments();
+        const id = req.params.id;
+        if (!/^[0-9]+$/.test(String(id))) return res.status(400).json({ success: false, message: 'Invalid attachment id' });
+
+        const find = await pool.query(
+            `SELECT id, incident_id
+       FROM public.hse_incident_attachments
+       WHERE id = $1
+       LIMIT 1`,
+            [Number(id)]
+        );
+        if (!find.rows?.length) return res.status(404).json({ success: false, message: 'Attachment not found' });
+        const incidentId = find.rows[0].incident_id;
+
+        await pool.query(`DELETE FROM public.hse_incident_attachments WHERE id = $1`, [Number(id)]);
+
+        if (incidentId) {
+            await pool.query(
+                `UPDATE public.hse_incidents
+         SET attachments = COALESCE((
+           SELECT jsonb_agg(elem)
+           FROM jsonb_array_elements(COALESCE(attachments, '[]'::jsonb)) elem
+           WHERE elem::text <> to_jsonb($2::int)::text
+         ), '[]'::jsonb)
+         WHERE id = $1`,
+                [Number(incidentId), Number(id)]
+            );
+        }
+
+        return res.json({ success: true });
+    } catch (err) {
+        console.error('DELETE /api/hse/hse-incidents/attachments/:id error:', err);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// POST create
+router.post('/', protect, upload.array('photos', 10), async (req, res) => {
+    try {
+        await ensureHseIncidentsAttachments();
         const { incident_type, severity, property_id, property_name, affected_person, reported_by, details, assigned_investigator, status, incident_date } = req.body;
         const reference = genRef();
 
@@ -131,17 +247,36 @@ router.post('/', protect, async (req, res) => {
 
         // Get existing columns
         let existingCols = [];
+        let columnTypeByName = {};
         try {
-            const { rows: colRows } = await pool.query(`
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_name = 'hse_incidents' AND table_schema = 'public'
-      `);
+            const { rows: colRows } = await pool.query(
+                `SELECT column_name, data_type, udt_name
+         FROM information_schema.columns
+         WHERE table_name = 'hse_incidents' AND table_schema = 'public'`
+            );
             existingCols = colRows.map(r => r.column_name);
+            columnTypeByName = Object.fromEntries(
+                colRows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
+            );
         } catch (schemaErr) {
             console.error('Error querying schema:', schemaErr);
             existingCols = ['id', 'reference', 'incident_type', 'severity', 'property_id', 'property_name', 'affected_person', 'reported_by', 'details', 'assigned_investigator', 'status', 'incident_date', 'created_at', 'updated_at'];
         }
+
+        const normalizeUpdateValue = (col, val) => {
+            if (val === '') return null;
+            const t = columnTypeByName?.[col];
+            const isJson = t === 'json' || t === 'jsonb';
+            if (isJson && typeof val === 'string') {
+                try {
+                    JSON.parse(val);
+                    return val;
+                } catch {
+                    return null;
+                }
+            }
+            return val;
+        };
 
         // Build dynamic INSERT
         const columnsToInsert = ['reference', 'incident_type', 'severity', 'property_id', 'property_name', 'affected_person', 'reported_by', 'details', 'assigned_investigator', 'status', 'incident_date', 'created_at', 'updated_at'];
@@ -175,7 +310,21 @@ router.post('/', protect, async (req, res) => {
         const query = `INSERT INTO public.hse_incidents (${columnsToInsert.join(', ')}) VALUES (${placeholders}) RETURNING *`;
 
         const result = await pool.query(query, valuesToInsert);
-        res.status(201).json(result.rows[0]);
+        const created = result.rows[0];
+
+        const files = req.files || [];
+        const newIds = await insertHseIncidentAttachments(created?.id, files);
+        if (newIds.length) {
+            await pool.query(
+                `UPDATE public.hse_incidents
+         SET attachments = COALESCE(attachments, '[]'::jsonb) || to_jsonb($2::int[])
+         WHERE id = $1`,
+                [created.id, newIds]
+            );
+            created.attachments = [...newIds];
+        }
+
+        res.status(201).json(created);
     } catch (err) {
         console.error('POST /hse-incidents error', err);
         res.status(500).json({ message: err.message });
@@ -183,9 +332,11 @@ router.post('/', protect, async (req, res) => {
 });
 
 // PATCH
-router.patch('/:id', protect, async (req, res) => {
+router.patch('/:id', protect, upload.array('photos', 10), async (req, res) => {
     try {
+        await ensureHseIncidentsAttachments();
         const { id } = req.params;
+        if (!/^\d+$/.test(String(id))) return res.status(400).json({ message: 'Invalid id' });
         const { incident_type, severity, property_id, property_name, affected_person, reported_by, details, assigned_investigator, status, incident_date } = req.body;
 
         if (req.user?.role === 'staff') {
@@ -215,40 +366,59 @@ router.patch('/:id', protect, async (req, res) => {
 
         // Get existing columns
         let existingCols = [];
+        let columnTypeByName = {};
         try {
             const { rows: colRows } = await pool.query(`
-        SELECT column_name
+        SELECT column_name, data_type, udt_name
         FROM information_schema.columns
         WHERE table_name = 'hse_incidents' AND table_schema = 'public'
       `);
-            existingCols = colRows.map(r => r.column_name);
+            existingCols = colRows.map((r) => r.column_name);
+            columnTypeByName = Object.fromEntries(
+                colRows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
+            );
         } catch (schemaErr) {
             console.error('Error querying schema:', schemaErr);
             existingCols = ['id', 'reference', 'incident_type', 'severity', 'property_id', 'property_name', 'affected_person', 'reported_by', 'details', 'assigned_investigator', 'status', 'incident_date', 'created_at', 'updated_at'];
         }
+
+        const normalizeUpdateValue = (col, val) => {
+            if (val === '') return null;
+            const t = columnTypeByName?.[col];
+            const isJson = t === 'json' || t === 'jsonb';
+            if (isJson && typeof val === 'string') {
+                try {
+                    JSON.parse(val);
+                    return val;
+                } catch {
+                    return null;
+                }
+            }
+            return val;
+        };
 
         // Build dynamic UPDATE
         const setParts = [];
         const values = [];
         let idx = 1;
 
-        if (incident_type !== undefined) { setParts.push(`incident_type = $${idx++}`); values.push(incident_type); }
-        if (severity !== undefined) { setParts.push(`severity = $${idx++}`); values.push(severity); }
-        if (property_id !== undefined) { setParts.push(`property_id = $${idx++}`); values.push(property_id); }
-        if (property_name !== undefined) { setParts.push(`property_name = $${idx++}`); values.push(property_name); }
-        if (affected_person !== undefined) { setParts.push(`affected_person = $${idx++}`); values.push(affected_person); }
-        if (reported_by !== undefined) { setParts.push(`reported_by = $${idx++}`); values.push(reported_by); }
-        if (details !== undefined) { setParts.push(`details = $${idx++}`); values.push(details); }
-        if (assigned_investigator !== undefined) { setParts.push(`assigned_investigator = $${idx++}`); values.push(assigned_investigator); }
-        if (status !== undefined) { setParts.push(`status = $${idx++}`); values.push(status); }
-        if (incident_date !== undefined) { setParts.push(`incident_date = $${idx++}`); values.push(incident_date); }
+        if (incident_type !== undefined) { setParts.push(`incident_type = $${idx++}`); values.push(normalizeUpdateValue('incident_type', incident_type)); }
+        if (severity !== undefined) { setParts.push(`severity = $${idx++}`); values.push(normalizeUpdateValue('severity', severity)); }
+        if (property_id !== undefined) { setParts.push(`property_id = $${idx++}`); values.push(normalizeUpdateValue('property_id', property_id)); }
+        if (property_name !== undefined) { setParts.push(`property_name = $${idx++}`); values.push(normalizeUpdateValue('property_name', property_name)); }
+        if (affected_person !== undefined) { setParts.push(`affected_person = $${idx++}`); values.push(normalizeUpdateValue('affected_person', affected_person)); }
+        if (reported_by !== undefined) { setParts.push(`reported_by = $${idx++}`); values.push(normalizeUpdateValue('reported_by', reported_by)); }
+        if (details !== undefined) { setParts.push(`details = $${idx++}`); values.push(normalizeUpdateValue('details', details)); }
+        if (assigned_investigator !== undefined) { setParts.push(`assigned_investigator = $${idx++}`); values.push(normalizeUpdateValue('assigned_investigator', assigned_investigator)); }
+        if (status !== undefined) { setParts.push(`status = $${idx++}`); values.push(normalizeUpdateValue('status', status)); }
+        if (incident_date !== undefined) { setParts.push(`incident_date = $${idx++}`); values.push(normalizeUpdateValue('incident_date', incident_date)); }
 
         // Handle custom columns
         const standardCols = ['id', 'reference', 'incident_type', 'severity', 'property_id', 'property_name', 'affected_person', 'reported_by', 'details', 'assigned_investigator', 'status', 'incident_date', 'created_at', 'updated_at'];
         for (const col of existingCols) {
-            if (!standardCols.includes(col) && req.body[col] !== undefined) {
+            if (col !== 'attachments' && !standardCols.includes(col) && req.body[col] !== undefined) {
                 setParts.push(`${col} = $${idx++}`);
-                values.push(req.body[col]);
+                values.push(normalizeUpdateValue(col, req.body[col]));
             }
         }
 
@@ -260,7 +430,27 @@ router.patch('/:id', protect, async (req, res) => {
         const result = await pool.query(query, values);
 
         if (result.rows.length === 0) return res.status(404).json({ message: 'Not found' });
-        res.json(result.rows[0]);
+
+        const updated = result.rows[0];
+        const files = req.files || [];
+        const newIds = await insertHseIncidentAttachments(updated?.id, files);
+        if (newIds.length) {
+            await pool.query(
+                `UPDATE public.hse_incidents
+         SET attachments = COALESCE(attachments, '[]'::jsonb) || to_jsonb($2::int[])
+         WHERE id = $1`,
+                [updated.id, newIds]
+            );
+            let atts = updated.attachments ?? [];
+            try {
+                if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+            } catch {
+                atts = [];
+            }
+            updated.attachments = [...(Array.isArray(atts) ? atts : []), ...newIds];
+        }
+
+        res.json(updated);
     } catch (err) {
         console.error('PATCH /hse-incidents/:id error', err);
         res.status(500).json({ message: err.message });
@@ -270,7 +460,9 @@ router.patch('/:id', protect, async (req, res) => {
 // DELETE
 router.delete('/:id', protect, async (req, res) => {
     try {
+        await ensureHseIncidentsAttachments();
         const { id } = req.params;
+        if (!/^\d+$/.test(String(id))) return res.status(400).json({ message: 'Invalid id' });
 
         const allowedIds = await getAllowedPropertyIds(req.user);
         const allowedIdsText = allowedIds === null ? null : (allowedIds || []).map((x) => String(x));

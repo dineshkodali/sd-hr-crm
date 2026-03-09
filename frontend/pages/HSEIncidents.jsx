@@ -160,6 +160,9 @@ export default function HSEIncidents({ user }) {
   const [selected, setSelected] = useState(null);
   const [mode, setMode] = useState('create'); // 'create' | 'edit' | 'view'
 
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const [existingAttachments, setExistingAttachments] = useState([]);
+
   /* Dialog State */
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
@@ -371,7 +374,7 @@ export default function HSEIncidents({ user }) {
     'property_id', 'property_name', 'hotel_id', 'hotel_name',
     'affected_person', 'reported_by',
     'details', 'assigned_investigator',
-    'status', 'incident_date'
+    'status', 'incident_date', 'attachments'
   ]), []);
 
   const displayCustomColumns = useMemo(
@@ -423,6 +426,7 @@ export default function HSEIncidents({ user }) {
     "status",
     "assigned",
     "date",
+    "attachments",
     "actions",
   ];
 
@@ -584,6 +588,16 @@ export default function HSEIncidents({ user }) {
       });
       setFormData(baseData);
     }
+
+    setSelectedPhotos([]);
+    let atts = rec?.attachments ?? [];
+    try {
+      if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+    } catch {
+      atts = [];
+    }
+    setExistingAttachments(Array.isArray(atts) ? atts : []);
+
     setSelected(rec);
     setShowModal(true);
   };
@@ -600,7 +614,77 @@ export default function HSEIncidents({ user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showModal, mode, formData?.property_id]);
 
-  const closeModal = () => { setShowModal(false); setSelected(null); setMode('create'); setError(null); };
+  const closeModal = () => { setShowModal(false); setSelected(null); setMode('create'); setError(null); setSelectedPhotos([]); setExistingAttachments([]); };
+
+  const openAttachmentsGallery = (items = []) => {
+    if (!items.length) return;
+    const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
+    const urls = items.map((x) => {
+      const isNumericId = /^\d+$/.test(String(x));
+      const u = isNumericId ? `/api/hse/hse-incidents/attachments/${x}` : String(x);
+      return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
+    });
+    const safeTitle = `HSE Attachments (${urls.length})`;
+    const html = `
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>${safeTitle}</title>
+          <style>
+            :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #2dd4bf; }
+            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+            header { position: sticky; top: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+            .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; padding: 1.5rem; }
+            .card { background: var(--card); border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
+            .card:hover { transform: translateY(-4px); border-color: var(--accent); }
+            .card img { width: 100%; height: 250px; object-fit: cover; background: #000; display: block; cursor: pointer; }
+            .card-meta { padding: 1rem; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center; }
+            .btn { background: var(--accent); color: var(--bg); padding: 0.5rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.75rem; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <div style="font-weight: 700; font-size: 1.1rem; letter-spacing: -0.025em;">${safeTitle}</div>
+            <div style="font-size: 0.75rem; opacity: 0.6;">Premium Viewer</div>
+          </header>
+          <div class="gallery">
+            ${urls.map((u, i) => `
+              <div class="card">
+                <img src="${u}" alt="Attachment ${i + 1}" onclick="window.open('${u}', '_blank')">
+                <div class="card-meta">
+                  <span>Photo ${i + 1}</span>
+                  <a href="${u}" target="_blank" class="btn">Full View</a>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </body>
+      </html>
+    `;
+    const blob = new Blob([html], { type: 'text/html' });
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  };
+
+  const removeAttachment = async (attachmentId) => {
+    if (!attachmentId) return;
+    try {
+      await api.delete(`/api/hse/hse-incidents/attachments/${attachmentId}`);
+      await refresh();
+      setExistingAttachments((prev) => (Array.isArray(prev) ? prev.filter((x) => String(x) !== String(attachmentId)) : []));
+    } catch (err) {
+      console.error('removeAttachment error', err);
+      setAlertDialog({
+        isOpen: true,
+        title: 'Remove Failed',
+        message: err?.response?.data?.message || err?.message || 'Failed to remove attachment',
+        type: 'error'
+      });
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -634,6 +718,7 @@ export default function HSEIncidents({ user }) {
       }
 
       const payload = { ...formData };
+      delete payload.attachments; // Prevent backend overwrite corruption
       // Include custom columns
       customColumns.forEach(col => {
         if (formData[col] !== undefined) {
@@ -647,8 +732,21 @@ export default function HSEIncidents({ user }) {
         }
       });
 
-      if (mode === 'create') await api.post('/api/hse/hse-incidents', payload);
-      else await api.patch(`/api/hse/hse-incidents/${selected?.id}`, payload);
+      const fd = new FormData();
+      Object.entries(payload).forEach(([k, v]) => {
+        if (v === undefined) return;
+        if (v === null) {
+          fd.append(k, '');
+          return;
+        }
+        fd.append(k, String(v));
+      });
+      (selectedPhotos || []).forEach((f) => {
+        if (f) fd.append('photos', f);
+      });
+
+      if (mode === 'create') await api.post('/api/hse/hse-incidents', fd);
+      else await api.patch(`/api/hse/hse-incidents/${selected?.id}`, fd);
       await refresh();
       closeModal();
     } catch (err) {
@@ -794,89 +892,6 @@ export default function HSEIncidents({ user }) {
             </div>
           )}
         </div>
-
-        {showExportModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <div>
-                  <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Select the columns you want to include</div>
-                </div>
-                <button
-                  onClick={closeExport}
-                  className="p-2 rounded-xl text-gray-500"
-                  aria-label="Close"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="px-5 py-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm font-medium text-gray-700">Columns</div>
-                  <div className="flex items-center gap-3 text-xs">
-                    <button
-                      onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
-                      className="text-teal-600 font-medium rounded-xl"
-                    >
-                      Select all
-                    </button>
-                    <button
-                      onClick={() => setSelectedExportKeys([])}
-                      className="text-gray-600 font-medium rounded-xl"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto pr-1">
-                  {exportColumns.map((col) => {
-                    const checked = (selectedExportKeys || []).includes(col.key);
-                    return (
-                      <label
-                        key={col.key}
-                        className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(e) => {
-                            const isChecked = e.target.checked;
-                            setSelectedExportKeys((prev) => {
-                              const set = new Set(prev || []);
-                              if (isChecked) set.add(col.key);
-                              else set.delete(col.key);
-                              return Array.from(set);
-                            });
-                          }}
-                          className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500"
-                        />
-                        <span className="text-sm text-gray-800">{col.header}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50">
-                <button
-                  onClick={closeExport}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-gray-700 border border-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={runExport}
-                  className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-teal-600"
-                >
-                  Download
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -1180,9 +1195,7 @@ export default function HSEIncidents({ user }) {
                   className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
                 >
                   <option value="">All Properties</option>
-                  {hotels.map(h => (
-                    <option key={h.id} value={h.id}>{h.name}</option>
-                  ))}
+                  {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
@@ -1277,6 +1290,9 @@ export default function HSEIncidents({ user }) {
                     {visibleColumns.date && (
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">DATE</th>
                     )}
+                    {visibleColumns.attachments && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ATTACHMENTS</th>
+                    )}
                     {/* Custom Columns */}
                     {customColumns.filter(col => visibleColumns[col]).map(col => (
                       <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -1366,6 +1382,31 @@ export default function HSEIncidents({ user }) {
                         {visibleColumns.date && (
                           <td className="py-5 px-6 whitespace-nowrap">
                             <span className="text-gray-900 font-medium text-sm">{formatDate(r.incident_date)}</span>
+                          </td>
+                        )}
+                        {visibleColumns.attachments && (
+                          <td className="py-5 px-6">
+                            {(() => {
+                              let atts = r?.attachments ?? [];
+                              try {
+                                if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                              } catch {
+                                atts = [];
+                              }
+                              const list = Array.isArray(atts) ? atts : [];
+                              if (!list.length) return <span className="text-gray-400 text-sm">-</span>;
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => openAttachmentsGallery(list)}
+                                  className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl shadow-sm hover:bg-teal-100 transition-all duration-200"
+                                  title="View attachments"
+                                >
+                                  <span>{list.length}</span>
+                                  <span className="text-[10px] font-bold uppercase tracking-wide">Photos</span>
+                                </button>
+                              );
+                            })()}
                           </td>
                         )}
                         {/* Custom Column Cells */}
@@ -1465,7 +1506,7 @@ export default function HSEIncidents({ user }) {
 
                   return (
                     <div key={status} className="flex-shrink-0 w-80">
-                      <div className={`rounded-xl border ${style.border} ${style.bg}`}>
+                      <div className="rounded-xl border ${style.border} ${style.bg}">
                         <div className={`${style.header} px-4 py-3 border-b ${style.border}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -1708,7 +1749,30 @@ export default function HSEIncidents({ user }) {
 
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Incident Details</label>
-                    <p className="text-gray-700">{formData.details || 'No details provided.'}</p>
+                    <p className="text-gray-700 mb-4">{formData.details || 'No details provided.'}</p>
+
+                    {(() => {
+                      let atts = formData?.attachments ?? [];
+                      try {
+                        if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                      } catch {
+                        atts = [];
+                      }
+                      const list = Array.isArray(atts) ? atts : [];
+                      if (!list.length) return null;
+                      return (
+                        <div className="pt-4 border-t border-gray-100">
+                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Attachments</label>
+                          <button
+                            type="button"
+                            onClick={() => openAttachmentsGallery(list)}
+                            className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-4 py-2 rounded-xl shadow-sm hover:bg-teal-100 transition-all font-medium"
+                          >
+                            <span>View {list.length} Photo(s)</span>
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -1898,6 +1962,44 @@ export default function HSEIncidents({ user }) {
                         placeholder="Describe exactly what happened..."
                         className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
                       />
+                    </div>
+
+                    <div className="col-span-1 md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Photos</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => setSelectedPhotos(Array.from(e.target.files || []))}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                      />
+
+                      {mode !== 'create' && Array.isArray(existingAttachments) && existingAttachments.length > 0 && (
+                        <div className="mt-3">
+                          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Existing Photos</div>
+                          <div className="flex flex-wrap gap-2">
+                            {existingAttachments.map((id) => (
+                              <div key={String(id)} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 bg-white shadow-sm">
+                                <button
+                                  type="button"
+                                  onClick={() => openAttachmentsGallery([id])}
+                                  className="text-xs font-semibold text-teal-700 hover:text-teal-800"
+                                >
+                                  View
+                                </button>
+                                <span className="w-px h-3 bg-gray-200" />
+                                <button
+                                  type="button"
+                                  onClick={() => removeAttachment(id)}
+                                  className="text-xs font-semibold text-rose-700 hover:text-rose-800"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Row 5: Status */}

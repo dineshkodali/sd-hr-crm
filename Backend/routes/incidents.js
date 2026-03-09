@@ -133,6 +133,52 @@ router.get('/attachments/:id', protect, async (req, res) => {
   }
 });
 
+router.delete('/attachments/:id', protect, async (req, res) => {
+  try {
+    const ready = await ensureIncidentsTable();
+    if (!ready) return res.status(500).json({ success: false, message: 'Database not initialized' });
+
+    const id = req.params.id;
+    if (!/^[0-9]+$/.test(String(id))) return res.status(400).json({ success: false, message: 'Invalid attachment id' });
+
+    const find = await pool.query(
+      `SELECT id, incident_id
+       FROM maintenance.incident_attachments
+       WHERE id = $1
+       LIMIT 1`,
+      [Number(id)]
+    );
+
+    if (!find.rows?.length) return res.status(404).json({ success: false, message: 'Attachment not found' });
+
+    const incidentId = find.rows[0].incident_id;
+
+    await pool.query(
+      `DELETE FROM maintenance.incident_attachments
+       WHERE id = $1`,
+      [Number(id)]
+    );
+
+    if (incidentId) {
+      await pool.query(
+        `UPDATE maintenance.incidents
+         SET attachments = COALESCE((
+           SELECT jsonb_agg(elem)
+           FROM jsonb_array_elements(COALESCE(attachments, '[]'::jsonb)) elem
+           WHERE elem::text <> to_jsonb($2::int)::text
+         ), '[]'::jsonb)
+         WHERE id = $1`,
+        [Number(incidentId), Number(id)]
+      );
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /api/incidents/attachments/:id error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 /* LIST */
 router.get('/', protect, async (req, res) => {
   try {
