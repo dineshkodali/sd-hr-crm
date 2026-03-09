@@ -2070,43 +2070,50 @@ const CaseManagement = () => {
                                             />
                                         </div>
 
-                                        <div>
+                                        <div className="mt-4">
                                             <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
                                             <input
                                                 type="file"
                                                 multiple
                                                 accept="image/*"
                                                 onChange={(e) => setPhotos(Array.from(e.target.files || []))}
-                                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
                                             />
 
                                             {(() => {
                                                 let atts = formData?.attachments ?? [];
-                                                try {
-                                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
-                                                } catch {
-                                                    atts = [];
-                                                }
+                                                try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
                                                 const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
                                                 if (!list.length) return null;
                                                 return (
-                                                    <div className="mt-3 flex flex-wrap gap-2">
+                                                    <div className="mt-8 space-y-4">
+                                                        <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-4 ml-1">Existing Attachments</h3>
                                                         {list.map((id, idx) => (
-                                                            <div key={idx} className="relative group bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 flex items-center gap-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => openAttachmentsGallery([id])}
-                                                                    className="text-xs font-semibold text-teal-700 hover:underline"
-                                                                >
-                                                                    Photo {idx + 1}
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleRemoveCaseAttachment(id)}
-                                                                    className="text-gray-400 hover:text-red-500 transition-colors"
-                                                                >
-                                                                    <X className="w-4 h-4" />
-                                                                </button>
+                                                            <div key={idx} className="flex items-center justify-between bg-white border border-gray-100/80 rounded-2xl p-4 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] transition-all duration-300">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                                                                        <Eye size={18} className="text-slate-400" />
+                                                                    </div>
+                                                                    <span className="text-sm font-bold text-slate-700">Attachment #{idx + 1}</span>
+                                                                </div>
+                                                                <div className="flex gap-3">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => openAttachmentsGallery([id])}
+                                                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold text-teal-700 shadow-sm hover:bg-gray-50 hover:border-teal-200 transition-all uppercase tracking-wider"
+                                                                    >
+                                                                        <Eye size={14} />
+                                                                        View
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleRemoveCaseAttachment(id)}
+                                                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-red-100 rounded-xl text-[11px] font-bold text-red-600 shadow-sm hover:bg-red-50 hover:border-red-200 transition-all uppercase tracking-wider"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                        Remove
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>

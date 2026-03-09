@@ -10,7 +10,10 @@ import {
     Calendar,
     ChevronDown,
     ChevronUp,
-    Briefcase
+    Briefcase,
+    Download,
+    Filter,
+    ArrowUpDown
 } from "lucide-react";
 
 const api = axios.create({
@@ -25,6 +28,9 @@ export default function ShiftHandovers({ user }) {
     const [showForm, setShowForm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [expandedId, setExpandedId] = useState(null);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [sortOrder, setSortOrder] = useState("desc");
 
     const [form, setForm] = useState({
         shift_date: new Date().toISOString().split("T")[0],
@@ -37,8 +43,21 @@ export default function ShiftHandovers({ user }) {
     const fetchHandovers = async () => {
         try {
             setLoading(true);
-            const res = await api.get("/api/shift-handovers");
-            setHandovers(res.data.handovers || []);
+            const params = {};
+            if (startDate) params.startDate = startDate;
+            if (endDate) params.endDate = endDate;
+
+            const res = await api.get("/api/shift-handovers", { params });
+            let data = res.data.handovers || [];
+
+            // Client side sorting if needed, but backend already handles initial sort
+            if (sortOrder === "asc") {
+                data = [...data].sort((a, b) => new Date(a.shift_date) - new Date(b.shift_date));
+            } else {
+                data = [...data].sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date));
+            }
+
+            setHandovers(data);
         } catch (err) {
             setError("Failed to load shift handovers");
             console.error(err);
@@ -49,7 +68,7 @@ export default function ShiftHandovers({ user }) {
 
     useEffect(() => {
         fetchHandovers();
-    }, []);
+    }, [startDate, endDate, sortOrder]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -78,6 +97,32 @@ export default function ShiftHandovers({ user }) {
         }
     };
 
+    const downloadCSV = () => {
+        if (handovers.length === 0) return;
+
+        const headers = ["Date", "Shift Type", "Employee", "Tasks Completed", "Issues Reported", "Handover Notes", "Submitted At"];
+        const rows = handovers.map(h => [
+            h.shift_date,
+            h.shift_type,
+            h.employee_name,
+            `"${h.tasks_completed.replace(/"/g, '""')}"`,
+            `"${(h.issues_reported || "").replace(/"/g, '""')}"`,
+            `"${h.handover_notes.replace(/"/g, '""')}"`,
+            new Date(h.created_at).toLocaleString()
+        ]);
+
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `shift_handovers_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const getShiftColor = (type) => {
         switch (type) {
             case "Morning": return "bg-blue-100 text-blue-700 border-blue-200";
@@ -99,14 +144,62 @@ export default function ShiftHandovers({ user }) {
                         Log your daily work and hand over to the next shift
                     </p>
                 </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={downloadCSV}
+                        disabled={handovers.length === 0}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                        <Download className="w-4 h-4" />
+                        Export CSV
+                    </button>
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm ${showForm
+                            ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            : "bg-teal-500 text-white hover:bg-teal-600"
+                            }`}
+                    >
+                        {showForm ? "Cancel" : <><Plus className="w-4 h-4" /> New Handover</>}
+                    </button>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-700">Filter Range:</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-teal-500 outline-none"
+                    />
+                    <span className="text-gray-400">to</span>
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-teal-500 outline-none"
+                    />
+                    {(startDate || endDate) && (
+                        <button
+                            onClick={() => { setStartDate(""); setEndDate(""); }}
+                            className="text-xs text-red-500 hover:underline ml-2"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+                <div className="flex-1"></div>
                 <button
-                    onClick={() => setShowForm(!showForm)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm ${showForm
-                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        : "bg-teal-500 text-white hover:bg-teal-600"
-                        }`}
+                    onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-100"
                 >
-                    {showForm ? "Cancel" : <><Plus className="w-4 h-4" /> New Handover</>}
+                    <ArrowUpDown className="w-4 h-4" />
+                    {sortOrder === "desc" ? "Newest First" : "Oldest First"}
                 </button>
             </div>
 

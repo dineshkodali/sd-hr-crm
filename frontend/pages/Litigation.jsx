@@ -267,9 +267,13 @@ export default function Litigation({ user }) {
     });
 
     const openAttachmentsGallery = (list) => {
-        if (!list || list.length === 0) return;
+        let atts = list || [];
+        try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
+        const finalItems = Array.isArray(atts) ? atts.filter(Boolean) : [];
+        if (!finalItems.length) return;
+
         const base = (import.meta.env.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
-        const urls = list.map(x => {
+        const urls = finalItems.map(x => {
             const isNumericId = /^\d+$/.test(String(x));
             const u = isNumericId ? `/api/litigation/attachments/${x}` : String(x);
             return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
@@ -1130,22 +1134,21 @@ export default function Litigation({ user }) {
                                                         <td className="py-4 px-4">
                                                             {(() => {
                                                                 let atts = task?.attachments ?? task?.raw?.attachments ?? [];
-
                                                                 try {
                                                                     if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
                                                                 } catch {
                                                                     atts = [];
                                                                 }
                                                                 const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
-                                                                if (list.length === 0) return <span className="text-gray-400 text-xs">—</span>;
+                                                                if (list.length === 0) return <span className="text-gray-400 text-sm font-medium">—</span>;
                                                                 return (
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => openAttachmentsGallery(list)}
-                                                                        className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-4 py-2 rounded-xl shadow-sm hover:bg-teal-100 transition-all"
+                                                                        className="inline-flex items-center gap-2 text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-2xl transition-all hover:bg-teal-100 shadow-sm uppercase tracking-wider"
                                                                     >
-                                                                        <Eye className="w-4 h-4" />
-                                                                        <span>View {list.length} Photos</span>
+                                                                        <span>{list.length}</span>
+                                                                        <span>Photos</span>
                                                                     </button>
                                                                 );
                                                             })()}
@@ -1430,6 +1433,8 @@ export default function Litigation({ user }) {
                             initialData={selectedTask} mode={modalMode}
                             customColumns={customColumns}
                             customColumnMetadata={customColumnMetadata}
+                            hasUpdate={hasUpdate}
+                            openAttachmentsGallery={openAttachmentsGallery}
                         />
                     )
                 }
@@ -1513,7 +1518,7 @@ const CATEGORY_OPTIONS = [
     'Other'
 ];
 
-function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onRequestEdit, submitting, setSubmitting, error, setError, refreshTasks = () => { }, initialData = null, mode = 'create', customColumns = [], customColumnMetadata = {}, currentUser }) {
+function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onRequestEdit, submitting, setSubmitting, error, setError, refreshTasks = () => { }, initialData = null, mode = 'create', customColumns = [], customColumnMetadata = {}, currentUser, hasUpdate, openAttachmentsGallery }) {
     const isView = mode === 'view';
     const isEdit = mode === 'edit';
     const [form, setForm] = useState({ title: '', description: '', property: '', propertyName: '', category: '', priority: 'medium', reportedBy: currentUser?.name || '', assignedTo: '', assignedToId: '', serviceUserId: '', scheduledDate: '', status: 'Pending' });
@@ -1561,22 +1566,28 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
 
     useEffect(() => {
         if (!initialData) return;
-        setForm((f) => ({
-            ...f,
-            title: initialData.title ?? form.title,
-            description: initialData.description ?? form.description,
-            property: initialData.property_id ?? initialData.property ?? form.property,
-            propertyName: initialData.property_name ?? form.property_name ?? form.propertyName,
-            category: initialData.category ?? form.category,
-            priority: (initialData.priority ?? form.priority) || 'medium',
-            reportedBy: initialData.reported_by ?? form.reportedBy,
-            assignedTo: initialData.assigned_to_name ?? form.assignedTo,
-            serviceUserId: initialData.service_user_id ?? form.serviceUserId,
-            scheduledDate: initialData.scheduled_date ? String(initialData.scheduled_date).slice(0, 10) : form.scheduledDate,
-            status: initialData.status ?? form.status
-        }));
+        setForm((f) => {
+            const next = {
+                ...f,
+                title: initialData.title ?? f.title,
+                description: initialData.description ?? f.description,
+                property: initialData.property_id ?? initialData.property ?? f.property,
+                propertyName: initialData.property_name ?? f.property_name ?? f.propertyName,
+                category: initialData.category ?? f.category,
+                priority: initialData.priority ?? f.priority ?? 'medium',
+                reportedBy: initialData.reported_by ?? f.reportedBy,
+                assignedTo: initialData.assigned_to_name ?? f.assignedTo,
+                serviceUserId: initialData.service_user_id ?? f.serviceUserId,
+                scheduledDate: initialData.scheduled_date ? String(initialData.scheduled_date).slice(0, 10) : f.scheduledDate,
+                status: initialData.status ?? f.status
+            };
+            customColumns.forEach(cc => {
+                if (cc in initialData) next[cc] = initialData[cc];
+            });
+            return next;
+        });
         setPhotos([]);
-    }, [initialData]);
+    }, [initialData, customColumns]);
 
     useEffect(() => {
         try {
@@ -1815,6 +1826,13 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                             <DetailField label="Reported By" value={form.reportedBy} />
                             <DetailField label="Assigned To" value={form.assignedTo} />
                             <DetailField label="Scheduled Date" value={form.scheduledDate} />
+                            {customColumns.map(col => (
+                                <DetailField
+                                    key={col}
+                                    label={col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                    value={form[col]}
+                                />
+                            ))}
                             <div className="col-span-1 md:col-span-2">
                                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
                                 <p className="text-gray-900 font-medium whitespace-pre-wrap">{form.description || '-'}</p>
@@ -2004,8 +2022,8 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                     />
                                 </div>
 
-                                <div className="col-span-1 md:col-span-2">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
+                                <div className="col-span-1 md:col-span-2 mt-4">
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -2014,11 +2032,8 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                             const files = Array.from(e.target.files || []);
                                             setPhotos(files);
                                         }}
-                                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                                        className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all shadow-sm"
                                     />
-                                    {photos.length > 0 && (
-                                        <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>
-                                    )}
                                 </div>
 
                                 {(() => {
@@ -2028,40 +2043,36 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                     const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
                                     if (list.length === 0) return null;
                                     return (
-                                        <div className="col-span-1 md:col-span-2 pt-2">
-                                            <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-2">ATTACHMENTS</div>
-                                            <div className="flex flex-wrap gap-3">
-                                                {list.map((id) => (
-                                                    <div key={String(id)} className="group relative">
-                                                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 shadow-sm group-hover:border-teal-300 transition-all">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[10px] font-bold text-gray-400">ID: {id}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-1 border-l border-gray-100 ml-2 pl-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const base = (import.meta.env.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
-                                                                        window.open(`${base}/api/litigation/attachments/${id}`, '_blank', 'noopener,noreferrer');
-                                                                    }}
-                                                                    className="p-1.5 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-                                                                    title="View"
-                                                                >
-                                                                    <Eye className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removeAttachment(id)}
-                                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                                    title="Remove"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
+                                        <div className="col-span-1 md:col-span-2 mt-8 space-y-4">
+                                            <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-4 ml-1">Existing Attachments</h3>
+                                            {list.map((id, idx) => (
+                                                <div key={idx} className="flex items-center justify-between bg-white border border-gray-100/80 rounded-2xl p-4 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] transition-all duration-300">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                                                            <Eye size={18} className="text-slate-400" />
                                                         </div>
+                                                        <span className="text-sm font-bold text-slate-700">Attachment #{idx + 1}</span>
                                                     </div>
-                                                ))}
-                                            </div>
+                                                    <div className="flex gap-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openAttachmentsGallery([id])}
+                                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold text-teal-700 shadow-sm hover:bg-gray-50 hover:border-teal-200 transition-all uppercase tracking-wider"
+                                                        >
+                                                            <Eye size={14} />
+                                                            View
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeAttachment(id)}
+                                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-red-100 rounded-xl text-[11px] font-bold text-red-600 shadow-sm hover:bg-red-50 hover:border-red-200 transition-all uppercase tracking-wider"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     );
                                 })()}

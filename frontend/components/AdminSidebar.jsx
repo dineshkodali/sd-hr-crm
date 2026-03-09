@@ -132,11 +132,21 @@ export default function AdminSidebar(props) {
   const cur = (location?.pathname || "") + (location?.search || "");
   const navigate = useNavigate();
   const [userPermissions, setUserPermissions] = useState({});
-  const [showAccessMenu, setShowAccessMenu] = useState(localStorage.getItem('showAccessMenu') === 'true');
+  const [sidebarSettings, setSidebarSettings] = useState(() => {
+    const saved = localStorage.getItem('sidebarSettings');
+    return saved ? JSON.parse(saved) : {
+      access: { admin: true, manager: false, staff: false },
+      operations: { admin: true, manager: true, staff: true },
+      hse: { admin: true, manager: true, staff: true },
+      safeguarding: { admin: true, manager: true, staff: true },
+      escalations: { admin: true, manager: true, staff: true }
+    };
+  });
 
   useEffect(() => {
     const handleStorageChange = () => {
-      setShowAccessMenu(localStorage.getItem('showAccessMenu') === 'true');
+      const saved = localStorage.getItem('sidebarSettings');
+      if (saved) setSidebarSettings(JSON.parse(saved));
     };
 
     // Listen for custom event from Settings page
@@ -340,7 +350,7 @@ export default function AdminSidebar(props) {
       ]
     },
     // Access Management (Admin Only)
-    ...(user?.role === 'admin' && showAccessMenu ? [{
+    ...(user?.role === 'admin' && (sidebarSettings.access?.admin ?? false) ? [{
       id: "access",
       icon: <Icons.ShieldCheck />,
       label: "Access",
@@ -410,7 +420,27 @@ export default function AdminSidebar(props) {
       {/* ICON RAIL */}
       <div className="w-[80px] border-r border-gray-200 flex flex-col items-center py-3 z-50 shrink-0 h-full" style={{ backgroundColor: '#ffffff' }}>
         <div className="flex flex-col gap-2 w-full items-center">
-          {menuStructure.map((cat) => {
+          {menuStructure.filter(cat => {
+            const role = user?.role || 'staff';
+            const categoryMap = {
+              'dashboard': 'dashboard',
+              'su_data': 'su_data',
+              'company': 'property',
+              'forms': 'forms',
+              'access': 'access',
+              'inspections': 'operations',
+              'hse': 'hse',
+              'safeguarding': 'safeguarding',
+              'escalations': 'escalations'
+            };
+            const catId = categoryMap[cat.id] || cat.id;
+
+            // If category is not in settings (e.g. 'system'), show it by default
+            if (!sidebarSettings[catId]) return true;
+
+            // Check if the current user's role is enabled for this category
+            return sidebarSettings[catId]?.[role] === true;
+          }).map((cat) => {
             const isOpen = activeCategory === cat.id;
             const isContextActive = isCategoryRouteActive(cat.items);
 

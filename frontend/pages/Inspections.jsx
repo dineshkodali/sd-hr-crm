@@ -2486,8 +2486,8 @@ export default function Inspections({ user }) {
                       </select>
                     </div>
 
-                    <div className="col-span-1 md:col-span-2">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Attach Photos</label>
+                    <div className="col-span-1 md:col-span-2 mt-4">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
                       <input
                         type="file"
                         accept="image/*"
@@ -2496,60 +2496,58 @@ export default function Inspections({ user }) {
                           const files = Array.from(e.target.files || []);
                           setPhotos(files);
                         }}
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white"
+                        className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
                       />
-                      {photos.length > 0 && (
-                        <div className="text-xs text-gray-500 mt-2">{photos.length} photo(s) selected</div>
-                      )}
-                    </div>
 
-                    {(() => {
-                      if (!editingId) return null;
-                      const inspection = inspections.find(i => String(i.id) === String(editingId));
-                      if (!inspection) return null;
-                      let list = [];
-                      try {
-                        const raw = inspection.attachments ?? inspection.attachments_ids ?? inspection.photos ?? [];
-                        if (Array.isArray(raw)) list = raw;
-                        else if (typeof raw === 'string' && raw.trim()) {
-                          const parsed = JSON.parse(raw);
-                          if (Array.isArray(parsed)) list = parsed;
-                        }
-                      } catch { list = []; }
-                      const items = list.filter(Boolean);
-                      if (items.length === 0) return null;
-                      return (
-                        <div className="col-span-1 md:col-span-2">
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">Uploaded Photos</label>
-                          <div className="flex flex-wrap gap-2">
-                            {items.map((id, idx) => {
-                              const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
-                              const href = String(id).startsWith('http') ? id : `${base}/api/inspections/attachments/${id}`;
-                              return (
-                                <div key={`${id}-${idx}`} className="inline-flex items-center gap-2 border border-gray-200 bg-white rounded-xl px-3 py-2">
+                      {editingId && (() => {
+                        const inspection = inspections.find(i => String(i.id) === String(editingId));
+                        if (!inspection) return null;
+                        let list = [];
+                        try {
+                          const raw = inspection.attachments ?? inspection.attachments_ids ?? inspection.photos ?? [];
+                          if (Array.isArray(raw)) list = raw;
+                          else if (typeof raw === 'string' && raw.trim()) {
+                            const parsed = JSON.parse(raw);
+                            if (Array.isArray(parsed)) list = parsed;
+                          }
+                        } catch { list = []; }
+                        const items = list.filter(Boolean);
+                        if (items.length === 0) return null;
+                        return (
+                          <div className="mt-8 space-y-4">
+                            <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-4 ml-1">Existing Attachments</h3>
+                            {items.map((id, idx) => (
+                              <div key={idx} className="flex items-center justify-between bg-white border border-gray-100/80 rounded-2xl p-4 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] transition-all duration-300">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                                    <Eye size={18} className="text-slate-400" />
+                                  </div>
+                                  <span className="text-sm font-bold text-slate-700">Attachment #{idx + 1}</span>
+                                </div>
+                                <div className="flex gap-3">
                                   <button
                                     type="button"
-                                    onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
-                                    className="text-xs font-semibold text-teal-700"
-                                    title="View"
+                                    onClick={() => openAttachmentsGallery([id])}
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold text-teal-700 shadow-sm hover:bg-gray-50 hover:border-teal-200 transition-all uppercase tracking-wider"
                                   >
+                                    <Eye size={14} />
                                     View
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => removeAttachment(id)}
-                                    className="text-xs font-semibold text-red-600"
-                                    title="Remove"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-red-100 rounded-xl text-[11px] font-bold text-red-600 shadow-sm hover:bg-red-50 hover:border-red-200 transition-all uppercase tracking-wider"
                                   >
+                                    <Trash2 size={14} />
                                     Remove
                                   </button>
                                 </div>
-                              );
-                            })}
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()}
+                    </div>
                     {customColumns.map(col => {
                       const meta = customColumnMetadata[col] || {};
                       const inputType = meta.input_type || 'text';

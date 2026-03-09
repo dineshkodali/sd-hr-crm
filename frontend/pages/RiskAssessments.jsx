@@ -625,7 +625,7 @@ export default function RiskAssessments({ user }) {
     </main>
 
     <footer class="p-12 text-center">
-        <p class="text-slate-500 text-sm font-medium">End of Gallery • Total ${urls.length} Photos</p>
+        <p class="text-slate-500 text-sm font-medium">End of Gallery • Total ${urls.length} Attachments</p>
     </footer>
 </body>
 </html>`;
@@ -1458,17 +1458,16 @@ export default function RiskAssessments({ user }) {
                                                             const att = assess?.attachments;
                                                             const list = Array.isArray(att) ? att : (typeof att === 'string' && att ? JSON.parse(att) : []);
                                                             if (!list || !list.length) {
-                                                                return <span className="text-gray-400 text-sm">—</span>;
+                                                                return <span className="text-gray-400 text-sm font-medium">—</span>;
                                                             }
                                                             return (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => openAttachmentsGallery(list)}
-                                                                    className="inline-flex items-center gap-2 text-xs font-bold text-teal-600 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl transition-all hover:bg-teal-100 shadow-sm"
-                                                                    title="View attachments"
+                                                                    className="inline-flex items-center gap-2 text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-2xl transition-all hover:bg-teal-100 shadow-sm uppercase tracking-wider"
                                                                 >
-                                                                    <Eye size={14} />
-                                                                    <span>VIEW PHOTOS ({list.length})</span>
+                                                                    <span>{list.length}</span>
+                                                                    <span>Photos</span>
                                                                 </button>
                                                             );
                                                         })()}
@@ -2102,40 +2101,51 @@ export default function RiskAssessments({ user }) {
                                             );
                                         })}
 
-                                        {/* Row 7: Attachments */}
                                         <div className="col-span-1 md:col-span-2">
                                             <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
-                                            <input type="file" multiple accept="image/*" onChange={(e) => { const files = Array.from(e.target.files || []).filter(Boolean); setSelectedPhotos(files); }} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white" />
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const files = Array.from(e.target.files || []).filter(Boolean);
+                                                    setSelectedPhotos(files);
+                                                }}
+                                                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
+                                            />
                                             {modalMode !== 'create' && Array.isArray(existingAttachments) && existingAttachments.length > 0 && (
-                                                <div className="mt-3 space-y-2">
-                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Existing Attachments</div>
-                                                    <div className="grid grid-cols-1 gap-2">
-                                                        {existingAttachments.map((id) => (
-                                                            <div key={String(id)} className="flex items-center justify-between gap-2 border border-gray-100 rounded-xl px-4 py-2 bg-gray-50/50">
-                                                                <div className="text-xs font-semibold text-slate-700">Attachment #{String(id)}</div>
-                                                                <div className="flex items-center gap-2">
+                                                <div className="mt-8 space-y-4">
+                                                    <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-4 ml-1">Existing Attachments</h3>
+                                                    {existingAttachments.filter(Boolean).map((id, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between bg-white border border-gray-100/80 rounded-2xl p-4 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] transition-all duration-300">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                                                                    <Eye size={18} className="text-slate-400" />
+                                                                </div>
+                                                                <span className="text-sm font-bold text-slate-700">Attachment #{idx + 1}</span>
+                                                            </div>
+                                                            <div className="flex gap-3">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openAttachmentsGallery([id])}
+                                                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold text-teal-700 shadow-sm hover:bg-gray-50 hover:border-teal-200 transition-all uppercase tracking-wider"
+                                                                >
+                                                                    <Eye size={14} />
+                                                                    View
+                                                                </button>
+                                                                {hasUpdate && (
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => openAttachmentsGallery([id])}
-                                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-teal-600 text-[10px] font-bold uppercase tracking-wider hover:bg-teal-50 transition-all shadow-sm"
+                                                                        onClick={() => removeAttachment(id)}
+                                                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-red-100 rounded-xl text-[11px] font-bold text-red-600 shadow-sm hover:bg-red-50 hover:border-red-200 transition-all uppercase tracking-wider"
                                                                     >
-                                                                        <Eye size={12} />
-                                                                        View
+                                                                        <Trash2 size={14} />
+                                                                        Remove
                                                                     </button>
-                                                                    {hasUpdate && (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => removeAttachment(id)}
-                                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-rose-100 text-rose-600 text-[10px] font-bold uppercase tracking-wider hover:bg-rose-50 transition-all shadow-sm"
-                                                                        >
-                                                                            <Trash2 size={12} />
-                                                                            Remove
-                                                                        </button>
-                                                                    )}
-                                                                </div>
+                                                                )}
                                                             </div>
-                                                        ))}
-                                                    </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>

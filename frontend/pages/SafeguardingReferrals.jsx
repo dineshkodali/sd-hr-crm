@@ -366,48 +366,69 @@ export default function SafeguardingReferrals({ user }) {
 
             const safeTitle = `Safeguarding Referral Attachments (${urls.length})`;
             const html = `
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${safeTitle}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #0b1220; color: #e5e7eb; }
-        header { position: sticky; top: 0; background: rgba(11, 18, 32, 0.9); backdrop-filter: blur(12px); padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100; display: flex; justify-content: space-between; align-items: center; }
-        .title-area h1 { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
-        .title-area p { margin: 4px 0 0; font-size: 12px; color: #94a3b8; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 24px; }
-        .card { background: #161e2d; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
-        .card:hover { transform: translateY(-4px); border-color: rgba(20, 184, 166, 0.4); }
-        .img-wrap { width: 100%; aspect-ratio: 4/3; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .img-wrap img { width: 100%; height: 100%; object-fit: contain; }
-        .meta { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); }
-        .meta span { font-size: 13px; font-weight: 600; color: #ccfbf1; }
-        .btn { background: #14b8a6; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; transition: background 0.2s; }
-        .btn:hover { background: #0d9488; }
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .img-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .img-card:hover { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
+        .full-view-btn { opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
+        .img-card:hover .full-view-btn { opacity: 1; transform: translateY(0); }
     </style>
 </head>
-<body>
-    <header>
-        <div class="title-area">
-            <h1>${safeTitle}</h1>
-            <p>Premium Attachment Viewer</p>
+<body class="min-h-screen">
+    <header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-500/20 p-2 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight">${safeTitle}</h1>
+                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Premium Attachment Viewer</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-semibold">
+            <span class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full border border-slate-700">${urls.length} Items</span>
+            <button onclick="window.close()" class="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-full border border-red-500/20 transition-all">Close</button>
         </div>
     </header>
-    <div class="grid">
+
+    <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-8">
         ${urls.map((u, i) => `
-            <div class="card">
-                <div class="img-wrap">
-                    <img src="${u}" alt="Attachment ${i + 1}" loading="lazy"/>
+            <div class="img-card group relative bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
+                <div class="aspect-[4/3] overflow-hidden bg-slate-900 flex items-center justify-center relative">
+                    <img src="${u}" alt="Attachment ${i + 1}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x300/1e293b/64748b?text=File+Preview'"/>
+                    
+                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <a href="${u}" target="_blank" class="full-view-btn bg-white text-slate-900 px-5 py-2.5 rounded-xl font-bold text-sm shadow-xl hover:bg-blue-50 transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
+                            Full View
+                        </a>
+                    </div>
                 </div>
-                <div class="meta">
-                    <span>Photo ${i + 1}</span>
-                    <a href="${u}" target="_blank" class="btn">Full Res</a>
+                <div class="p-4 border-t border-slate-700 bg-slate-800/30 flex items-center justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Attachment ${i + 1}</p>
+                        <p class="text-xs text-slate-300 font-medium truncate max-w-[140px]">IMG_REF_${Math.floor(Math.random() * 10000)}</p>
+                    </div>
+                    <a href="${u}" download class="p-2 text-slate-400 hover:text-white transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </a>
                 </div>
             </div>
         `).join('')}
-    </div>
+    </main>
+
+    <footer class="p-12 text-center">
+        <p class="text-slate-500 text-sm font-medium">End of Gallery • Total ${urls.length} Attachments</p>
+    </footer>
 </body>
 </html>`;
 
@@ -877,7 +898,7 @@ export default function SafeguardingReferrals({ user }) {
                                                     </td>
                                                 )}
                                                 {visibleColumns.attachments && (
-                                                    <td className="py-3 px-4 text-center">
+                                                    <td className="py-3 px-4">
                                                         {(() => {
                                                             let atts = ref?.attachments ?? [];
                                                             try {
@@ -886,16 +907,15 @@ export default function SafeguardingReferrals({ user }) {
                                                                 atts = [];
                                                             }
                                                             const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
-                                                            if (list.length === 0) return <span className="text-xs text-gray-400">-</span>;
+                                                            if (list.length === 0) return <span className="text-gray-400 text-sm font-medium">—</span>;
                                                             return (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => openAttachmentsGallery(list)}
-                                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-xl transition-all hover:bg-teal-100 shadow-sm"
-                                                                    title="View attachments"
+                                                                    className="inline-flex items-center gap-2 text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-2xl transition-all hover:bg-teal-100 shadow-sm uppercase tracking-wider"
                                                                 >
                                                                     <span>{list.length}</span>
-                                                                    <span className="text-[10px] font-bold uppercase tracking-wider">Photos</span>
+                                                                    <span>Photos</span>
                                                                 </button>
                                                             );
                                                         })()}
@@ -1179,35 +1199,46 @@ export default function SafeguardingReferrals({ user }) {
                                         )}
                                         <div className="col-span-1 md:col-span-2">
                                             <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
-                                            <input type="file" multiple accept="image/*" onChange={(e) => { const files = Array.from(e.target.files || []).filter(Boolean); setSelectedPhotos(files); }} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white" />
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                onChange={(e) => { const files = Array.from(e.target.files || []).filter(Boolean); setSelectedPhotos(files); }}
+                                                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all"
+                                            />
                                             {modalMode !== 'create' && Array.isArray(existingAttachments) && existingAttachments.length > 0 && (
-                                                <div className="mt-3 space-y-2">
-                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Existing Attachments</div>
-                                                    <div className="grid grid-cols-1 gap-2">
-                                                        {existingAttachments.map((id) => (
-                                                            <div key={String(id)} className="flex items-center justify-between gap-2 border border-gray-100 rounded-xl px-4 py-2 bg-gray-50/50">
-                                                                <div className="text-xs font-semibold text-slate-700">Attachment #{String(id)}</div>
-                                                                <div className="flex items-center gap-2">
+                                                <div className="mt-8 space-y-4">
+                                                    <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-4 ml-1">Existing Attachments</h3>
+                                                    {existingAttachments.filter(Boolean).map((id, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between bg-white border border-gray-100/80 rounded-2xl p-4 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] transition-all duration-300">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                                                                    <Eye size={18} className="text-slate-400" />
+                                                                </div>
+                                                                <span className="text-sm font-bold text-slate-700">Attachment #{idx + 1}</span>
+                                                            </div>
+                                                            <div className="flex gap-3">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openAttachmentsGallery([id])}
+                                                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold text-teal-700 shadow-sm hover:bg-gray-50 hover:border-teal-200 transition-all uppercase tracking-wider"
+                                                                >
+                                                                    <Eye size={14} />
+                                                                    View
+                                                                </button>
+                                                                {hasUpdate && (
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => openAttachmentsGallery([id])}
-                                                                        className="px-3 py-1 rounded-lg bg-white border border-gray-200 text-teal-600 text-xs font-bold hover:bg-teal-50 transition-colors"
+                                                                        onClick={() => removeAttachment(id)}
+                                                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-red-100 rounded-xl text-[11px] font-bold text-red-600 shadow-sm hover:bg-red-50 hover:border-red-200 transition-all uppercase tracking-wider"
                                                                     >
-                                                                        View
+                                                                        <Trash2 size={14} />
+                                                                        Remove
                                                                     </button>
-                                                                    {hasUpdate && (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => removeAttachment(id)}
-                                                                            className="px-3 py-1 rounded-lg bg-white border border-rose-100 text-rose-600 text-xs font-bold hover:bg-rose-50 transition-colors"
-                                                                        >
-                                                                            Remove
-                                                                        </button>
-                                                                    )}
-                                                                </div>
+                                                                )}
                                                             </div>
-                                                        ))}
-                                                    </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>

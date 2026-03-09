@@ -39,11 +39,11 @@ const ensureShiftHandoversTable = async () => {
     hasEnsuredShiftHandoversTable = true;
 };
 
- /**
- * @route   GET /api/shift-handovers
- * @desc    Get all shift handovers for the logged in user
- * @access  Private
- */
+/**
+* @route   GET /api/shift-handovers
+* @desc    Get all shift handovers for the logged in user
+* @access  Private
+*/
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -61,10 +61,22 @@ router.get("/", protect, async (req, res) => {
         } catch {
             // ignore debug logging failures
         }
-        const result = await pool.query(
-            "SELECT * FROM shift_handovers WHERE user_id = $1 ORDER BY created_at DESC",
-            [Number(userId)]
-        );
+        const { startDate, endDate } = req.query;
+        let query = "SELECT * FROM shift_handovers WHERE user_id = $1";
+        const params = [Number(userId)];
+
+        if (startDate) {
+            params.push(startDate);
+            query += ` AND shift_date >= $${params.length}`;
+        }
+        if (endDate) {
+            params.push(endDate);
+            query += ` AND shift_date <= $${params.length}`;
+        }
+
+        query += " ORDER BY shift_date DESC, created_at DESC";
+
+        const result = await pool.query(query, params);
         res.json({ success: true, handovers: result.rows });
     } catch (err) {
         const logFile = path.join(process.cwd(), "api_debug.log");
