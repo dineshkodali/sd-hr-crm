@@ -1,5 +1,0 @@
-Inspections columns:
-id, reference, inspection_type, property_name, service_user, inspector_name, inspection_date, findings, issues_found, action_required, status, priority, created_at, dtest, attachments, updated_at, gaggg
-
-Incidents columns:
-id, reference, type, severity, property_id, property_name, service_user_id, description, reported_by, reported_date, assigned_to, status, created_at, updated_at, new_idcsd, jhbfj, attachments, vyy
