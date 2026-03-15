@@ -40,20 +40,20 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-[360px] rounded-[20px] p-5 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-[var(--bg-surface)] w-full max-w-[360px] rounded-[20px] p-5 shadow-2xl overflow-hidden border border-[var(--border-color)] animate-in zoom-in-95 duration-200">
         <div className="flex items-start gap-4 mb-5">
           <div className={`${currentStyle.iconBg} rounded-full p-2.5 shrink-0`}>
             {React.cloneElement(currentStyle.icon, { className: "w-6 h-6" })}
           </div>
           <div className="pt-1">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
-            <p className="text-gray-500 text-sm leading-relaxed">{message}</p>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">{title}</h3>
+            <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{message}</p>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2.5">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-full border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 text-sm transition-colors"
+            className="px-5 py-2 rounded-full border border-[var(--border-color)] text-[var(--text-secondary)] font-medium hover:bg-[var(--bg-primary)] text-sm transition-colors"
           >
             {cancelText}
           </button>
@@ -85,22 +85,22 @@ export function AlertDialog({
   const typeStyles = {
     info: {
       icon: <Info className="w-12 h-12 text-blue-500" />,
-      iconBg: "bg-blue-50",
+      iconBg: "bg-blue-500/10",
       button: "bg-blue-500 hover:bg-blue-600 text-white"
     },
     success: {
       icon: <CheckCircle className="w-12 h-12 text-emerald-500" />,
-      iconBg: "bg-emerald-50",
+      iconBg: "bg-emerald-500/10",
       button: "bg-emerald-500 hover:bg-emerald-600 text-white"
     },
     warning: {
       icon: <AlertTriangle className="w-12 h-12 text-amber-500" />,
-      iconBg: "bg-amber-50",
+      iconBg: "bg-amber-500/10",
       button: "bg-amber-500 hover:bg-amber-600 text-white"
     },
     error: {
       icon: <AlertCircle className="w-12 h-12 text-rose-500" />,
-      iconBg: "bg-rose-50",
+      iconBg: "bg-rose-500/10",
       button: "bg-rose-500 hover:bg-rose-600 text-white"
     }
   };
@@ -109,14 +109,14 @@ export function AlertDialog({
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-[360px] rounded-[20px] p-5 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-[var(--bg-surface)] w-full max-w-[360px] rounded-[20px] p-5 shadow-2xl overflow-hidden border border-[var(--border-color)] animate-in zoom-in-95 duration-200">
         <div className="flex items-start gap-4 mb-5">
           <div className={`${currentStyle.iconBg} rounded-full p-2.5 shrink-0`}>
             {React.cloneElement(currentStyle.icon, { className: "w-6 h-6" })}
           </div>
           <div className="pt-1">
-            <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
-            <p className="text-gray-500 text-sm leading-relaxed">{message}</p>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-1">{title}</h3>
+            <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{message}</p>
           </div>
         </div>
         <div className="flex items-center justify-end">

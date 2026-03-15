@@ -377,9 +377,9 @@ export default function AdminDashboard() {
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{page.title}</span>
                     <span className="text-sm font-bold text-slate-800 bg-slate-50 px-2 py-0.5 rounded-xl border border-slate-100">{stats.count}</span>
                 </div>
-                <div style={{ width: '100%', height: 40, minWidth: 0, minHeight: 40 }} className="overflow-hidden relative z-10">
+                <div style={{ width: '100%', height: 40, minHeight: 40 }} className="overflow-hidden relative z-10">
                     {stats.breakdown.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={undefined}>
+                        <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={stats.breakdown}>
                                 <Tooltip cursor={{ fill: 'transparent' }} content={<CustomTooltip />} />
                                 <Bar dataKey="value" fill={COLORS.primary} radius={[2, 2, 2, 2]} animationDuration={1500} />
@@ -709,9 +709,9 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    <div className="h-[300px]" style={{ height: 300, width: '100%' }}>
+                    <div className="h-[300px]" style={{ height: 300, width: '100%', minHeight: 300 }}>
                         {trends.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={undefined}>
+                            <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={trends} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="colorIncidents" x1="0" y1="0" x2="0" y2="1">

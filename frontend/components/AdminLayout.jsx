@@ -5,8 +5,8 @@ import AdminSidebar from "./AdminSidebar";
 export default function AdminLayout({ user, children }) {
   return (
     // Changed to h-full to fit inside the App.jsx flex container
-    <div className="flex h-full bg-[#f8f9fa]">
-      
+    <div className="flex h-full bg-[var(--bg-primary)]">
+
       {/* Sidebar Container - Fixed width handled by Sidebar component */}
       <div className="shrink-0 h-full z-10 admin-sidebar">
         <AdminSidebar user={user} />
@@ -16,7 +16,7 @@ export default function AdminLayout({ user, children }) {
       <main className="flex-1 h-full overflow-y-auto p-6 custom-scrollbar relative z-0">
         {children ? children : <Outlet context={{ user }} />}
       </main>
-      
+
     </div>
   );
 }

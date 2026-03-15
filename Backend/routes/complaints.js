@@ -331,7 +331,7 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
     // Require all custom columns
     const standardColsRequired = ['id', 'reference', 'title', 'description', 'category', 'priority',
       'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
-      'assigned_to', 'scheduled_date', 'notes', 'attachments', 'created_at', 'updated_at'];
+      'assigned_to', 'scheduled_date', 'notes', 'attachments', 'service_user_id', 'service_id', 'created_at', 'updated_at'];
     for (const col of existingCols) {
       if (standardColsRequired.includes(col)) continue;
       const v = req.body[col];
@@ -386,7 +386,10 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
     const standardFields = {
       category, priority, property_id: propertyId, property_name: propertyName,
       status, reported_by: reportedBy, reported_date: reportedDate,
-      assigned_to: assignedTo, scheduled_date: scheduledDate, notes, attachments: JSON.stringify(attachments)
+      assigned_to: assignedTo, scheduled_date: scheduledDate, notes,
+      service_user_id: req.body.service_user_id ?? req.body.serviceUserId ?? req.body.service_id ?? req.body.serviceId ?? null,
+      service_id: req.body.service_id ?? req.body.serviceId ?? req.body.service_user_id ?? req.body.serviceUserId ?? null,
+      attachments: JSON.stringify(attachments)
     };
 
     for (const [key, value] of Object.entries(standardFields)) {
@@ -399,7 +402,8 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
     // Handle custom columns from Forms Builder
     const standardCols = ['id', 'reference', 'title', 'description', 'category', 'priority',
       'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
-      'assigned_to', 'scheduled_date', 'notes', 'attachments', 'created_at', 'updated_at'];
+      'assigned_to', 'scheduled_date', 'notes', 'attachments', 'created_at', 'updated_at',
+      'service_user_id', 'service_id'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         columnsToInsert.push(col);
@@ -486,7 +490,7 @@ router.put('/:id', protect, upload.array('photos', 10), async (req, res) => {
     const values = [];
     let idx = 1;
 
-    const fields = ['title', 'description', 'category', 'priority', 'property_id', 'property_name', 'status', 'reported_by', 'reported_date', 'assigned_to', 'scheduled_date', 'notes'];
+    const fields = ['title', 'description', 'category', 'priority', 'property_id', 'property_name', 'status', 'reported_by', 'reported_date', 'assigned_to', 'scheduled_date', 'notes', 'service_user_id', 'service_id'];
     for (const field of fields) {
       if (!existingCols.includes(field)) continue;
       const camelCase = field.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
@@ -530,7 +534,8 @@ router.put('/:id', protect, upload.array('photos', 10), async (req, res) => {
     // Handle custom columns from Forms Builder
     const standardCols = ['id', 'reference', 'title', 'description', 'category', 'priority',
       'property_id', 'property_name', 'status', 'reported_by', 'reported_date',
-      'assigned_to', 'scheduled_date', 'notes', 'attachments', 'created_at', 'updated_at'];
+      'assigned_to', 'scheduled_date', 'notes', 'attachments', 'created_at', 'updated_at',
+      'service_user_id', 'service_id'];
     for (const col of existingCols) {
       if (!standardCols.includes(col) && req.body[col] !== undefined) {
         updates.push(`${col} = $${idx}`);

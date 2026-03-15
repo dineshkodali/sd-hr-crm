@@ -92,6 +92,25 @@ function normalizeHotelsResponse(data) {
         .filter((x) => x.id && x.name);
 }
 
+function formatDateISO(v) {
+    if (v === undefined || v === null || v === '') return '';
+    if (typeof v === 'string') {
+        const s = v.trim();
+        if (!s) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        const d = new Date(s);
+        if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+        return '';
+    }
+    if (v instanceof Date) {
+        if (!Number.isNaN(v.getTime())) return v.toISOString().slice(0, 10);
+        return '';
+    }
+    const d = new Date(v);
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return '';
+}
+
 export default function AIRETasks({ user }) {
     // Get current user from props or localStorage
     const currentUser = user || (() => {
@@ -951,8 +970,8 @@ export default function AIRETasks({ user }) {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-            <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
+        <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+            <div className="p-3 sm:p-4 md:p-6">
                 {/* Page Header */}
                 <div className="mb-6 flex items-start justify-between">
                     <div>
@@ -1021,13 +1040,13 @@ export default function AIRETasks({ user }) {
 
                             <div className="flex flex-wrap items-center gap-3">
                                 <div className="relative min-w-[200px]">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                     <input
                                         type="text"
                                         value={query}
                                         onChange={(e) => setQuery(e.target.value)}
                                         placeholder="Search tasks..."
-                                        className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                        className="w-full h-9 bg-white border border-gray-300 rounded-xl !pl-14 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                                     />
                                 </div>
                                 {/* Action Buttons */}
@@ -1313,11 +1332,11 @@ export default function AIRETasks({ user }) {
 
                         <div className="flex flex-wrap items-center gap-3 mb-6">
                             <div className="relative flex-1 md:flex-none">
-                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={selectedPriority}
                                     onChange={e => setSelectedPriority(e.target.value)}
-                                    className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
+                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
                                 >
                                     <option>All Priority</option>
                                     <option>Low</option>
@@ -1329,11 +1348,11 @@ export default function AIRETasks({ user }) {
                             </div>
 
                             <div className="relative flex-1 md:flex-none">
-                                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Clock className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={selectedStatus}
                                     onChange={e => setSelectedStatus(e.target.value)}
-                                    className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
+                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
                                 >
                                     <option>All Status</option>
                                     <option>Pending</option>
@@ -1345,11 +1364,11 @@ export default function AIRETasks({ user }) {
                             </div>
 
                             <div className="relative flex-1 md:flex-none">
-                                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Building className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={selectedProperty}
                                     onChange={e => setSelectedProperty(e.target.value)}
-                                    className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[160px]"
+                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[160px]"
                                 >
                                     <option>All Properties</option>
                                     {filterProperties.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
@@ -1358,11 +1377,11 @@ export default function AIRETasks({ user }) {
                             </div>
 
                             <div className="relative flex-1 md:flex-none">
-                                <ChevronDown className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={sortBy}
                                     onChange={e => setSortBy(e.target.value)}
-                                    className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
+                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
                                 >
                                     <option value="">Sort By</option>
                                     <option value="date">Date</option>
@@ -1381,7 +1400,7 @@ export default function AIRETasks({ user }) {
                                         setSelectedProperty('All Properties');
                                         setSortBy('');
                                     }}
-                                    className="h-9 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl px-3 text-xs font-medium transition-colors flex items-center gap-2"
+                                    className="h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl px-3 py-0 text-sm font-semibold transition-colors flex items-center gap-2"
                                 >
                                     <X className="w-4 h-4" />
                                     <span>Clear</span>
@@ -1392,32 +1411,32 @@ export default function AIRETasks({ user }) {
 
                     {/* Data Display - Table or Board View */}
                     {viewMode === 'table' ? (
-                        <div className="overflow-x-auto border-t border-slate-100 relative">
+                        <div className="overflow-x-auto border-t border-[var(--border-color)] relative">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-50/50">
-                                    <tr className="border-b border-slate-200">
+                                <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
+                                    <tr>
                                         {visibleColumns.checkbox && (
                                             <th className="py-4 px-4">
                                                 <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
                                             </th>
                                         )}
-                                        {visibleColumns.type && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>}
-                                        {visibleColumns.reference && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>}
-                                        {visibleColumns.description && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>}
-                                        {visibleColumns.attachments && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ATTACHMENTS</th>}
-                                        {visibleColumns.priority && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>}
-                                        {visibleColumns.status && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>}
-                                        {visibleColumns.assigned && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>}
-                                        {visibleColumns.date && <th className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DATE</th>}
+                                        {visibleColumns.type && <th className="py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">TYPE</th>}
+                                        {visibleColumns.reference && <th className="py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">REFERENCE</th>}
+                                        {visibleColumns.description && <th className="py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">DESCRIPTION</th>}
+                                        {visibleColumns.attachments && <th className="py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">ATTACHMENTS</th>}
+                                        {visibleColumns.priority && <th className="py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">PRIORITY</th>}
+                                        {visibleColumns.status && <th className="py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">STATUS</th>}
+                                        {visibleColumns.assigned && <th className="py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">ASSIGNED TO</th>}
+                                        {visibleColumns.date && <th className="py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">DATE</th>}
                                         {customColumns.filter(col => visibleColumns[col]).map(col => (
-                                            <th key={col} className="py-4 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                            <th key={col} className="py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                                                 {col.replace(/_/g, ' ').toUpperCase()}
                                             </th>
                                         ))}
-                                        <th className="py-4 px-6 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
+                                        <th className="py-4 px-6 text-center text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider sticky right-0 z-10 bg-[var(--bg-primary)]" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-slate-100">
+                                <tbody className="bg-[var(--bg-surface)] divide-y divide-[var(--border-color)]">
                                     {loading ? (
                                         <tr>
                                             <td colSpan="12" className="py-12 text-center text-slate-500 font-medium">Loading tasks...</td>
@@ -1428,7 +1447,7 @@ export default function AIRETasks({ user }) {
                                         const isDeleting = deletingIds.has(task.id);
 
                                         return (
-                                            <tr key={task.id} className={`group hover:bg-slate-50/50 transition-colors ${isDeleting ? 'airetask-deleting' : ''}`}>
+                                            <tr key={task.id} className={`group hover:bg-[var(--bg-primary)] transition-colors ${isDeleting ? 'airetask-deleting' : ''}`}>
                                                 {visibleColumns.checkbox && (
                                                     <td className="py-4 px-4">
                                                         <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -1574,36 +1593,36 @@ export default function AIRETasks({ user }) {
                                     const getStatusStyle = (status) => {
                                         if (status === 'pending') {
                                             return {
-                                                bg: 'bg-orange-50',
-                                                border: 'border-orange-200',
-                                                header: 'bg-orange-100',
-                                                text: 'text-orange-700',
+                                                bg: 'bg-[var(--bg-primary)]',
+                                                border: 'border-[var(--border-color)]',
+                                                header: 'bg-[var(--bg-surface)]',
+                                                text: 'text-[var(--color-warning)]',
                                                 dot: 'bg-orange-500'
                                             };
                                         }
                                         if (status === 'in progress') {
                                             return {
-                                                bg: 'bg-purple-50',
-                                                border: 'border-purple-200',
-                                                header: 'bg-purple-100',
-                                                text: 'text-purple-700',
+                                                bg: 'bg-[var(--bg-primary)]',
+                                                border: 'border-[var(--border-color)]',
+                                                header: 'bg-[var(--bg-surface)]',
+                                                text: 'text-[var(--color-info)]',
                                                 dot: 'bg-purple-500'
                                             };
                                         }
                                         if (status === 'completed') {
                                             return {
-                                                bg: 'bg-emerald-50',
-                                                border: 'border-emerald-200',
-                                                header: 'bg-emerald-100',
-                                                text: 'text-emerald-700',
+                                                bg: 'bg-[var(--bg-primary)]',
+                                                border: 'border-[var(--border-color)]',
+                                                header: 'bg-[var(--bg-surface)]',
+                                                text: 'text-[var(--color-success)]',
                                                 dot: 'bg-emerald-500'
                                             };
                                         }
                                         return {
-                                            bg: 'bg-gray-50',
-                                            border: 'border-gray-200',
-                                            header: 'bg-gray-100',
-                                            text: 'text-gray-700',
+                                            bg: 'bg-[var(--bg-primary)]',
+                                            border: 'border-[var(--border-color)]',
+                                            header: 'bg-[var(--bg-surface)]',
+                                            text: 'text-[var(--text-primary)]',
                                             dot: 'bg-gray-500'
                                         };
                                     };
@@ -1622,7 +1641,7 @@ export default function AIRETasks({ user }) {
                                                                 {displayStatus}
                                                             </h3>
                                                         </div>
-                                                        <span className="bg-white px-2 py-0.5 rounded-xl text-xs font-semibold text-gray-600">
+                                                        <span className="bg-[var(--bg-surface)] px-2 py-0.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] border border-[var(--border-color)]">
                                                             {statusItems.length}
                                                         </span>
                                                     </div>
@@ -1631,8 +1650,8 @@ export default function AIRETasks({ user }) {
                                                 <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                                                     {statusItems.length === 0 ? (
                                                         <div className="text-center py-8 px-4">
-                                                            <CheckSquare className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                                                            <p className="text-gray-400 text-sm">No tasks</p>
+                                                            <CheckSquare className="w-10 h-10 mx-auto mb-2 text-[var(--text-secondary)]/40" />
+                                                            <p className="text-[var(--text-secondary)] text-sm">No tasks</p>
                                                         </div>
                                                     ) : (
                                                         statusItems.map((task) => {
@@ -1642,11 +1661,11 @@ export default function AIRETasks({ user }) {
                                                             return (
                                                                 <div
                                                                     key={task.id}
-                                                                    className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 hover:border-gray-300 transition-all cursor-pointer ${isDeleting ? 'airetask-card-deleting' : ''}`}
+                                                                    className={`bg-[var(--bg-surface)] rounded-xl p-4 shadow-sm border border-[var(--border-color)] hover:shadow-md transition-all cursor-pointer ${isDeleting ? 'airetask-card-deleting' : ''}`}
                                                                     onClick={() => { setEditingTask(task); setIsViewing(true); setShowModal(true); }}
                                                                 >
                                                                     <div className="flex items-center justify-between mb-2">
-                                                                        <span className="text-xs font-mono text-gray-500">{task.reference || `TASK-${task.id}`}</span>
+                                                                        <span className="text-xs font-mono text-[var(--text-secondary)]/60">{task.reference || `TASK-${task.id}`}</span>
                                                                         <div className="flex items-center gap-1.5">
                                                                             <span className={`w-2 h-2 rounded-full ${priorityColor.dot}`}></span>
                                                                             <span className={`text-xs font-medium ${priorityColor.text}`}>
@@ -1655,13 +1674,13 @@ export default function AIRETasks({ user }) {
                                                                         </div>
                                                                     </div>
 
-                                                                    <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
+                                                                    <h4 className="font-semibold text-[var(--text-primary)] text-sm mb-2 line-clamp-2">
                                                                         {task.title}
                                                                     </h4>
 
                                                                     {
                                                                         task.description && (
-                                                                            <p className="text-xs text-gray-500 mb-3 line-clamp-2">
+                                                                            <p className="text-xs text-[var(--text-secondary)]/60 mb-3 line-clamp-2">
                                                                                 {task.description}
                                                                             </p>
                                                                         )
@@ -1670,30 +1689,30 @@ export default function AIRETasks({ user }) {
                                                                     {
                                                                         task.task_type && (
                                                                             <div className="mb-3">
-                                                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">
+                                                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium border border-[var(--border-color)]" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--color-info)' }}>
                                                                                     {task.task_type}
                                                                                 </span>
                                                                             </div>
                                                                         )
                                                                     }
 
-                                                                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
+                                                                    <div className="flex items-center justify-between pt-3 border-t border-[var(--border-color)] mb-2">
                                                                         <div className="flex items-center gap-2">
                                                                             {task.assigned_to ? (
                                                                                 <>
-                                                                                    <div className={`w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xs font-semibold`}>
+                                                                                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--accent-primary)' }}>
                                                                                         {task.assigned_to.substring(0, 2).toUpperCase()}
                                                                                     </div>
-                                                                                    <span className="text-xs text-gray-700 truncate max-w-[100px]">
+                                                                                    <span className="text-xs text-[var(--text-primary)] truncate max-w-[100px]">
                                                                                         {task.assigned_to}
                                                                                     </span>
                                                                                 </>
                                                                             ) : (
-                                                                                <span className="text-xs text-gray-400">Unassigned</span>
+                                                                                <span className="text-xs text-[var(--text-secondary)]/60">Unassigned</span>
                                                                             )}
                                                                         </div>
 
-                                                                        <span className="text-xs text-gray-500">
+                                                                        <span className="text-xs text-[var(--text-secondary)]/60">
                                                                             {task.due_date ? formatDate(task.due_date) : '-'}
                                                                         </span>
                                                                     </div>
@@ -1704,7 +1723,7 @@ export default function AIRETasks({ user }) {
                                                                                 e.stopPropagation();
                                                                                 setEditingTask(task); setIsViewing(true); setShowModal(true);
                                                                             }}
-                                                                            className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 hover:bg-teal-50 hover:text-teal-600 rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"
+                                                                            className="flex-1 py-1.5 px-2 bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-primary)]/80 rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"
                                                                             title="View"
                                                                         >
                                                                             <Eye className="w-3.5 h-3.5" />
@@ -1716,7 +1735,7 @@ export default function AIRETasks({ user }) {
                                                                                     e.stopPropagation();
                                                                                     setEditingTask(task); setIsViewing(false); setShowModal(true);
                                                                                 }}
-                                                                                className="p-1.5 bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-colors"
+                                                                                className="p-1.5 bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-primary)]/80 rounded-xl transition-colors"
                                                                                 title="Edit"
                                                                             >
                                                                                 <Edit className="w-3.5 h-3.5" />
@@ -1728,7 +1747,7 @@ export default function AIRETasks({ user }) {
                                                                                     e.stopPropagation();
                                                                                     handleDelete(task);
                                                                                 }}
-                                                                                className="p-1.5 bg-gray-50 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
+                                                                                className="p-1.5 bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
                                                                                 title="Delete"
                                                                             >
                                                                                 <Trash2 className="w-3.5 h-3.5" />

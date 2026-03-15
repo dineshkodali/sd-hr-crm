@@ -10,6 +10,36 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+let cachedHseRiskSchema = null;
+let cachedHseRiskSchemaAt = 0;
+const HSE_RISK_SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getHseRiskSchema() {
+    const now = Date.now();
+    if (cachedHseRiskSchema && cachedHseRiskSchemaAt && now - cachedHseRiskSchemaAt < HSE_RISK_SCHEMA_CACHE_TTL_MS) {
+        return cachedHseRiskSchema;
+    }
+    try {
+        const columnsResult = await pool.query(
+            `SELECT column_name, data_type, udt_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'hse_risk_management'`
+        );
+        const allColumns = columnsResult.rows.map((r) => r.column_name);
+        const columnTypeByName = Object.fromEntries(
+            columnsResult.rows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
+        );
+        cachedHseRiskSchema = { allColumns, columnTypeByName };
+        cachedHseRiskSchemaAt = now;
+        return cachedHseRiskSchema;
+    } catch (err) {
+        console.error('Error querying hse_risk_management schema:', err);
+        cachedHseRiskSchema = { allColumns: [], columnTypeByName: {} };
+        cachedHseRiskSchemaAt = now;
+        return cachedHseRiskSchema;
+    }
+}
+
 let hseRiskAttachmentsReady = false;
 async function ensureHseRiskAttachments() {
     if (hseRiskAttachmentsReady) return true;
@@ -37,18 +67,22 @@ async function ensureHseRiskAttachments() {
 
 async function insertHseRiskAttachments(riskId, files = []) {
     if (!Array.isArray(files) || files.length === 0) return [];
-    const ids = [];
-    for (const f of files) {
-        if (!f || !f.buffer) continue;
-        const r = await pool.query(
-            `INSERT INTO public.hse_risk_management_attachments (risk_id, file_name, mime_type, file_data)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id`,
-            [riskId ?? null, f.originalname ?? null, f.mimetype ?? null, f.buffer]
-        );
-        if (r.rows?.[0]?.id != null) ids.push(r.rows[0].id);
+    const clean = files.filter((f) => f && f.buffer);
+    if (clean.length === 0) return [];
+
+    const values = [];
+    const placeholders = [];
+    let idx = 1;
+    for (const f of clean) {
+        placeholders.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++})`);
+        values.push(riskId ?? null, f.originalname ?? null, f.mimetype ?? null, f.buffer);
     }
-    return ids;
+
+    const q = `INSERT INTO public.hse_risk_management_attachments (risk_id, file_name, mime_type, file_data)
+       VALUES ${placeholders.join(', ')}
+       RETURNING id`;
+    const r = await pool.query(q, values);
+    return (r.rows || []).map((x) => x.id).filter((x) => x != null);
 }
 
 function genRef() {
@@ -221,17 +255,7 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
             }
         }
 
-        // Get all columns from the table
-        const columnsResult = await pool.query(
-            `SELECT column_name, data_type, udt_name
-       FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = 'hse_risk_management'`
-        );
-
-        const allColumns = columnsResult.rows.map(r => r.column_name);
-        const columnTypeByName = Object.fromEntries(
-            columnsResult.rows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
-        );
+        const { allColumns, columnTypeByName } = await getHseRiskSchema();
 
         // Build separate lists for columns, placeholder strings, and parameter values
         const cols = ['reference', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'reported_by', 'assigned_to', 'scheduled_date', 'status', 'created_at', 'updated_at'];
@@ -254,6 +278,9 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
         standardCols.add('id');
         standardCols.add('created_by');
         standardCols.add('updated_by');
+        standardCols.add('attachments');
+        standardCols.add('deleted');
+        standardCols.add('deleted_at');
 
         const customColumns = allColumns.filter(c => !standardCols.has(c));
 
@@ -306,19 +333,26 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
         const result = await pool.query(query, params);
         const created = result.rows[0];
 
+        res.status(201).json(created);
+
         const files = req.files || [];
-        const newIds = await insertHseRiskAttachments(created?.id, files);
-        if (newIds.length) {
-            await pool.query(
-                `UPDATE public.hse_risk_management
+        if (files.length) {
+            (async () => {
+                try {
+                    const newIds = await insertHseRiskAttachments(created?.id, files);
+                    if (newIds.length) {
+                        await pool.query(
+                            `UPDATE public.hse_risk_management
          SET attachments = COALESCE(attachments, '[]'::jsonb) || to_jsonb($2::int[])
          WHERE id = $1`,
-                [created.id, newIds]
-            );
-            created.attachments = [...newIds];
+                            [created.id, newIds]
+                        );
+                    }
+                } catch (e) {
+                    console.error('Async HSE risk attachment save failed:', e);
+                }
+            })();
         }
-
-        res.status(201).json(created);
     } catch (err) {
         console.error('POST /risk-management error', err);
         res.status(500).json({ message: err.message });
@@ -357,17 +391,7 @@ router.patch('/:id', protect, upload.array('photos', 10), async (req, res) => {
             }
         }
 
-        // Get all columns from the table
-        const columnsResult = await pool.query(
-            `SELECT column_name, data_type, udt_name
-       FROM information_schema.columns 
-       WHERE table_schema = 'public' AND table_name = 'hse_risk_management'`
-        );
-
-        const allColumns = columnsResult.rows.map((r) => r.column_name);
-        const columnTypeByName = Object.fromEntries(
-            columnsResult.rows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
-        );
+        const { allColumns, columnTypeByName } = await getHseRiskSchema();
 
         // Standard columns (excluding id, timestamps, and auto-generated fields)
         const standardColumns = [

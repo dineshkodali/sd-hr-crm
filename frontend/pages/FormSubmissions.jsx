@@ -66,7 +66,7 @@ export default function FormSubmissions(props) {
  ) : (
  <div className="overflow-x-auto border rounded-xl">
  <table className="w-full text-sm">
- <thead className="bg-gray-50 border-b">
+ <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
  <tr>
  {schema.fields?.map((field) => (
  <th key={field.name} className="px-6 py-3 text-left font-medium">

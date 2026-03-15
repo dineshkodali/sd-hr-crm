@@ -196,7 +196,7 @@ export default function PropertyDetails({ property }) {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6 w-[90%] max-w-[1800px] mx-auto">
 
                 {/* HEADER SECTION */}
@@ -242,11 +242,11 @@ export default function PropertyDetails({ property }) {
                                         "px-3 py-1 rounded-full text-xs font-medium capitalize";
 
                                     if (label === "hotel" || label === "hotel style") {
-                                        tagClass += " bg-[#e8fbf8] text-[#0b6b60] border border-[#baf1e9]";
+                                        tagClass += " bg-[var(--accent-shadow)] text-[var(--accent-primary)] border border-[var(--border-color)]";
                                     } else if (label === "active") {
-                                        tagClass += " bg-green-50 text-green-700 border border-green-200";
+                                        tagClass += " bg-green-500/10 text-green-500 border border-green-500/20";
                                     } else {
-                                        tagClass += " bg-gray-100 text-gray-700 border border-gray-200";
+                                        tagClass += " bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--border-color)]";
                                     }
 
                                     return (
@@ -300,27 +300,27 @@ export default function PropertyDetails({ property }) {
                 <div className="mb-6">
                     <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm overflow-x-auto scrollbar-hide">
                         <div className="flex items-center gap-1 whitespace-nowrap min-w-max">
-                            <button onClick={() => setActiveTab("overview")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "overview" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Overview</button>
-                            <button onClick={() => setActiveTab("floors")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "floors" ? "bg-[#66f1dd] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Floors & Rooms</button>
-                            <button onClick={() => setActiveTab("residents")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "residents" ? "bg-[#66f1dd] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Residents</button>
-                            <button onClick={() => setActiveTab("maintenance")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "maintenance" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Maintenance</button>
-                            <button onClick={() => setActiveTab("inspections")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "inspections" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Inspections</button>
-                            <button onClick={() => setActiveTab("incidents")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "incidents" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Incidents</button>
-                            <button onClick={() => setActiveTab("compliance")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "compliance" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Compliance</button>
-                            <button onClick={() => setActiveTab("complaints")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "complaints" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Complaints</button>
-                            <button onClick={() => setActiveTab("aire_tasks")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "aire_tasks" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>AIRE Tasks</button>
-                            <button onClick={() => setActiveTab("litigation")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "litigation" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Litigation</button>
-                            <button onClick={() => setActiveTab("hse_incidents")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_incidents" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>HSE Incidents</button>
-                            <button onClick={() => setActiveTab("hse_risk_management")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_risk_management" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>HSE Risk Management</button>
-                            <button onClick={() => setActiveTab("hse_audits")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_audits" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>HSE Audits</button>
-                            <button onClick={() => setActiveTab("hse_training")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_training" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>HSE Training</button>
-                            <button onClick={() => setActiveTab("safeguarding_referrals")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "safeguarding_referrals" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Safeguarding Referrals</button>
-                            <button onClick={() => setActiveTab("risk_assessments")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "risk_assessments" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Risk Assessments</button>
-                            <button onClick={() => setActiveTab("vulnerable_users")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "vulnerable_users" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Vulnerable Users</button>
-                            <button onClick={() => setActiveTab("multi_agency")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "multi_agency" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Multi Agency</button>
-                            <button onClick={() => setActiveTab("vcs_organisations")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "vcs_organisations" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>VCS Organisations</button>
-                            <button onClick={() => setActiveTab("case_management")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "case_management" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Case Management</button>
-                            <button onClick={() => setActiveTab("emergency_protocols")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "emergency_protocols" ? "bg-[#5cd9c7] text-white shadow-sm" : "text-gray-600 hover:bg-gray-50"}`}>Emergency Protocols</button>
+                            <button onClick={() => setActiveTab("overview")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "overview" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Overview</button>
+                            <button onClick={() => setActiveTab("floors")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "floors" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Floors & Rooms</button>
+                            <button onClick={() => setActiveTab("residents")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "residents" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Residents</button>
+                            <button onClick={() => setActiveTab("maintenance")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "maintenance" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Maintenance</button>
+                            <button onClick={() => setActiveTab("inspections")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "inspections" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Inspections</button>
+                            <button onClick={() => setActiveTab("incidents")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "incidents" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Incidents</button>
+                            <button onClick={() => setActiveTab("compliance")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "compliance" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Compliance</button>
+                            <button onClick={() => setActiveTab("complaints")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "complaints" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Complaints</button>
+                            <button onClick={() => setActiveTab("aire_tasks")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "aire_tasks" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>AIRE Tasks</button>
+                            <button onClick={() => setActiveTab("litigation")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "litigation" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Litigation</button>
+                            <button onClick={() => setActiveTab("hse_incidents")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_incidents" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>HSE Incidents</button>
+                            <button onClick={() => setActiveTab("hse_risk_management")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_risk_management" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>HSE Risk Management</button>
+                            <button onClick={() => setActiveTab("hse_audits")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_audits" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>HSE Audits</button>
+                            <button onClick={() => setActiveTab("hse_training")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_training" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>HSE Training</button>
+                            <button onClick={() => setActiveTab("safeguarding_referrals")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "safeguarding_referrals" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Safeguarding Referrals</button>
+                            <button onClick={() => setActiveTab("risk_assessments")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "risk_assessments" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Risk Assessments</button>
+                            <button onClick={() => setActiveTab("vulnerable_users")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "vulnerable_users" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Vulnerable Users</button>
+                            <button onClick={() => setActiveTab("multi_agency")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "multi_agency" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Multi Agency</button>
+                            <button onClick={() => setActiveTab("vcs_organisations")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "vcs_organisations" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>VCS Organisations</button>
+                            <button onClick={() => setActiveTab("case_management")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "case_management" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Case Management</button>
+                            <button onClick={() => setActiveTab("emergency_protocols")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "emergency_protocols" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Emergency Protocols</button>
                         </div>
                     </div>
                 </div>
@@ -523,7 +523,7 @@ function ModuleRecordsCard({ title, path, hotelId, hotelName }) {
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 border-y border-gray-200">
+                        <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Reference</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Type / Title</th>
@@ -860,7 +860,7 @@ function HistoryCard({ hotelId, hotelName }) {
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 border-y border-gray-200">
+                        <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Type</th>
@@ -1285,7 +1285,7 @@ function ResidentsCard({ hotelId }) {
 
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 border-y border-gray-200">
+                        <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Resident Name</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Room</th>
@@ -1420,7 +1420,7 @@ function IncidentsCard({ hotelId, hotelName }) {
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 border-y border-gray-200">
+                        <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Reference</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Type</th>
@@ -1589,7 +1589,7 @@ function InspectionsCard({ hotelId, hotelName }) {
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 border-y border-gray-200">
+                        <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Reference</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Type</th>
@@ -1690,7 +1690,7 @@ function MaintenanceCard({ hotelId, hotelName }) {
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 border-y border-gray-200">
+                        <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Reference</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Title</th>
@@ -1779,7 +1779,7 @@ function ComplianceCard({ hotelId, hotelName }) {
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead className="bg-gray-50 border-y border-gray-200">
+                        <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Type</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Issue Date</th>

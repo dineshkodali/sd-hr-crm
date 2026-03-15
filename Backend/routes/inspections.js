@@ -29,6 +29,11 @@ async function ensureInspectionsTable() {
     const check = await pool.query(`SELECT to_regclass('public.inspections') AS exists`);
     if (check.rows?.[0]?.exists) {
       try {
+        await pool.query("ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+      } catch (e) {
+        // ignore
+      }
+      try {
         await pool.query("ALTER TABLE public.inspections ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb");
       } catch (e) {
         // ignore
@@ -640,13 +645,20 @@ router.post("/", protect, upload.array('photos', 10), async (req, res) => {
       if (newAttachmentIds.length) {
         const next = [...(Array.isArray(created?.attachments) ? created.attachments : []), ...newAttachmentIds];
         const up = await pool.query(
-          `UPDATE inspections SET attachments = $1::jsonb, updated_at = now() WHERE id = $2 RETURNING *`,
+          `UPDATE inspections SET attachments = $1::jsonb WHERE id = $2 RETURNING *`,
           [JSON.stringify(next), created.id]
         );
         return res.status(201).json({ success: true, data: up.rows?.[0] || created });
       }
     } catch (e) {
-      // ignore
+      console.error("Error inserting inspection attachments:", e);
+      // We still return 201 because the main record was created, but attachments failed.
+      // Alternatively, we could update the response to indicate partial success.
+      return res.status(201).json({
+        success: true,
+        data: created,
+        warning: "Inspection created but photo attachments failed to save."
+      });
     }
 
     res.status(201).json({ success: true, data: created });
@@ -778,8 +790,16 @@ router.put("/:id", protect, upload.array('photos', 10), async (req, res) => {
       if (bodyValue !== undefined) {
         updates.push(`${key} = $${idx}`);
         let val = bodyValue;
+
+        // Coerce values based on column type or key
         if (key === "issues_found") val = Number(bodyValue) || 0;
-        if (key === "action_required") val = !!bodyValue;
+        if (key === "action_required") {
+          if (typeof bodyValue === "boolean") val = bodyValue;
+          else {
+            const s = String(bodyValue).toLowerCase().trim();
+            val = ["true", "1", "yes", "on"].includes(s);
+          }
+        }
 
         // Staff cannot change property; force to assigned
         if (req.user?.role === "staff" && key === "property") {

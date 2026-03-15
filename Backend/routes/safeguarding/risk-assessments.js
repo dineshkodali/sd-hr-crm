@@ -256,7 +256,7 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
             'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
             'title', 'description', 'property_id', 'property_name', 'category',
             'risk_level', 'assigned_to', 'reported_by', 'assessment_date', 'status',
-            'findings', 'recommendations'
+            'findings', 'recommendations', 'attachments'
         ];
 
         // Find custom columns

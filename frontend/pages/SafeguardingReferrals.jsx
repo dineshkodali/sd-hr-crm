@@ -254,7 +254,7 @@ export default function SafeguardingReferrals({ user }) {
                 });
                 const columnNames = cols.map(col => typeof col === 'string' ? col : col.column_name || col.name || String(col));
                 setAvailableColumns(columnNames);
-                const standardCols = ['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'assigned_to', 'reported_by', 'scheduled_date', 'status'];
+                const standardCols = ['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'assigned_to', 'reported_by', 'scheduled_date', 'status', 'attachments', 'deleted', 'deleted_at'];
                 const customCols = columnNames.filter(col => !standardCols.includes(col));
                 if (JSON.stringify(customCols) !== JSON.stringify(customColumns)) {
                     setCustomColumns(customCols);
@@ -472,6 +472,7 @@ export default function SafeguardingReferrals({ user }) {
             if (!String(formData.assigned_to || '').trim()) missing.push('Assigned To');
             if (!String(formData.scheduled_date || '').trim()) missing.push('Scheduled Date');
             for (const col of customColumns || []) {
+                if (col === 'attachments' || col === 'deleted' || col === 'deleted_at') continue;
                 const meta = customColumnMetadata[col] || {};
                 const v = formData[col];
                 if (meta.input_type === 'checkbox') { if (v !== 'true' && v !== 'false') missing.push(col.replace(/_/g, ' ')); }
@@ -480,6 +481,7 @@ export default function SafeguardingReferrals({ user }) {
             if (missing.length) { setError(`Please fill required fields: ${missing.join(', ')}.`); setSubmitting(false); return; }
             const payload = { ...formData };
             delete payload.attachments; // Remove attachments from payload to prevent backend corruption
+
             for (const col of customColumns || []) {
                 const meta = customColumnMetadata[col] || {};
                 if (meta.input_type === 'checkbox') payload[col] = formData[col] === 'true' ? true : formData[col] === 'false' ? false : null;
@@ -608,7 +610,7 @@ export default function SafeguardingReferrals({ user }) {
     }), [referrals, stats]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-[var(--bg-primary)]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
 
                 {/* Page Header */}
@@ -657,11 +659,11 @@ export default function SafeguardingReferrals({ user }) {
                             <div className="flex items-center gap-2">
                                 {/* Search */}
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     <input
                                         type="text" value={query} onChange={e => setQuery(e.target.value)}
                                         placeholder="Search..."
-                                        className="border border-gray-200 rounded-lg w-52 py-[7px] pl-9 pr-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white"
+                                        className="border border-gray-200 rounded-lg w-52 py-[7px] !pl-14 pr-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white"
                                     />
                                 </div>
 
@@ -761,7 +763,7 @@ export default function SafeguardingReferrals({ user }) {
                         <div className="flex items-center gap-2 flex-wrap">
                             <div className="relative">
                                 <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="border border-gray-200 rounded-lg pl-8 pr-7 py-[7px] text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
+                                <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="h-10 border border-gray-200 rounded-lg !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
                                     <option value="">All Priorities</option>
                                     <option>Urgent</option><option>High</option><option>Medium</option><option>Low</option>
                                 </select>
@@ -769,7 +771,7 @@ export default function SafeguardingReferrals({ user }) {
                             </div>
                             <div className="relative">
                                 <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border border-gray-200 rounded-lg pl-8 pr-7 py-[7px] text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
+                                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-10 border border-gray-200 rounded-lg !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
                                     <option value="">All Statuses</option>
                                     <option>New</option><option>Under Review</option><option>Escalated</option><option>Resolved</option>
                                 </select>
@@ -777,7 +779,7 @@ export default function SafeguardingReferrals({ user }) {
                             </div>
                             <div className="relative">
                                 <Home className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                <select value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)} className="border border-gray-200 rounded-lg pl-8 pr-7 py-[7px] text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
+                                <select value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)} className="h-10 border border-gray-200 rounded-lg !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
                                     <option value="">All Properties</option>
                                     {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                                 </select>
@@ -785,7 +787,7 @@ export default function SafeguardingReferrals({ user }) {
                             </div>
                             <div className="relative">
                                 <Columns className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="border border-gray-200 rounded-lg pl-8 pr-7 py-[7px] text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
+                                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-10 border border-gray-200 rounded-lg !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
                                     <option value="">Sort By</option>
                                     <option value="date">Date (Newest)</option><option value="priority">Priority</option>
                                     <option value="status">Status</option><option value="title">Title</option>
@@ -793,7 +795,7 @@ export default function SafeguardingReferrals({ user }) {
                                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                             </div>
                             {(filterPriority || filterStatus || propertyFilter || sortBy) && (
-                                <button onClick={() => { setFilterPriority(""); setFilterStatus(""); setPropertyFilter(""); setSortBy(""); }} className="text-sm text-teal-600 font-medium px-3 py-[7px] rounded-lg transition-colors">
+                                <button onClick={() => { setFilterPriority(""); setFilterStatus(""); setPropertyFilter(""); setSortBy(""); }} className="h-10 text-sm text-teal-600 font-semibold px-3 py-0 rounded-lg transition-colors">
                                     Clear Filters
                                 </button>
                             )}
@@ -805,29 +807,73 @@ export default function SafeguardingReferrals({ user }) {
                         <div className="overflow-x-auto scrollbar-hide relative">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="bg-gray-50/80 border-b border-gray-100">
+                                    <tr className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                                         {visibleColumns.checkbox && (
                                             <th className="py-3 px-4 w-10 text-left">
                                                 <input type="checkbox" className="rounded border-gray-300 text-teal-500 focus:ring-teal-400 w-[15px] h-[15px]" />
                                             </th>
                                         )}
-                                        {visibleColumns.type && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>}
-                                        {visibleColumns.reference && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reference</th>}
-                                        {visibleColumns.description && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>}
-                                        {visibleColumns.priority && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Priority</th>}
-                                        {visibleColumns.status && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>}
-                                        {visibleColumns.assigned && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned To</th>}
-                                        {visibleColumns.date && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>}
-                                        {visibleColumns.attachments && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Attachments</th>}
-                                        {customColumns.map(col => visibleColumns[col] && (
-                                            <th key={col} className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                                                {col.replace(/_/g, ' ')}
+                                        {visibleColumns.type && (
+                                            <th className="text-left py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                                                Category
                                             </th>
-                                        ))}
-                                        {visibleColumns.actions && <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>Actions</th>}
+                                        )}
+                                        {visibleColumns.reference && (
+                                            <th className="text-left py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                                                Reference
+                                            </th>
+                                        )}
+                                        {visibleColumns.description && (
+                                            <th className="text-left py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                                                Description
+                                            </th>
+                                        )}
+                                        {visibleColumns.priority && (
+                                            <th className="text-left py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                                                Priority
+                                            </th>
+                                        )}
+                                        {visibleColumns.status && (
+                                            <th className="text-left py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                                                Status
+                                            </th>
+                                        )}
+                                        {visibleColumns.assigned && (
+                                            <th className="text-left py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                                                Assigned To
+                                            </th>
+                                        )}
+                                        {visibleColumns.date && (
+                                            <th className="text-left py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider whitespace-nowrap">
+                                                Date
+                                            </th>
+                                        )}
+                                        {visibleColumns.attachments && (
+                                            <th className="text-left py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider whitespace-nowrap">
+                                                Attachments
+                                            </th>
+                                        )}
+                                        {customColumns.map((col) =>
+                                            visibleColumns[col] && (
+                                                <th
+                                                    key={col}
+                                                    className="text-left py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider whitespace-nowrap"
+                                                >
+                                                    {col.replace(/_/g, ' ')}
+                                                </th>
+                                            )
+                                        )}
+                                        {visibleColumns.actions && (
+                                            <th
+                                                className="text-center py-3 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider sticky right-0 z-10 bg-[var(--bg-primary)]"
+                                                style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}
+                                            >
+                                                Actions
+                                            </th>
+                                        )}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody>
                                     {referralsLoading ? (
                                         <tr><td colSpan="99" className="py-10 text-center text-sm text-gray-400">Loading...</td></tr>
                                     ) : filteredReferrals.length > 0 ? filteredReferrals.map((ref, idx) => {
@@ -949,10 +995,26 @@ export default function SafeguardingReferrals({ user }) {
                                 {['New', 'Under Review', 'Resolved'].map((status) => {
                                     const statusItems = filteredReferrals.filter((ref) => (ref.status || 'New').toLowerCase() === status.toLowerCase());
                                     const getStatusStyle = (s) => {
-                                        if (s === 'New') return { bg: 'bg-orange-50', border: 'border-orange-200', header: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' };
-                                        if (s === 'Under Review') return { bg: 'bg-purple-50', border: 'border-purple-200', header: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' };
-                                        if (s === 'Resolved') return { bg: 'bg-emerald-50', border: 'border-emerald-200', header: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' };
-                                        return { bg: 'bg-gray-50', border: 'border-gray-200', header: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' };
+                                        const low = String(s || '').toLowerCase();
+                                        const isCompleted = low === 'resolved' || low === 'completed' || low === 'closed';
+                                        const isError = low === 'action required' || low === 'overdue' || low === 'failed' || low === 'escalated';
+                                        const isWarning = !isCompleted && !isError;
+
+                                        return {
+                                            bg: 'bg-[var(--bg-primary)]',
+                                            border: 'border-[var(--border-color)]',
+                                            header: 'bg-[var(--bg-surface)]',
+                                            text: isCompleted
+                                                ? 'text-[var(--color-success)]'
+                                                : isError
+                                                    ? 'text-[var(--color-error)]'
+                                                    : 'text-[var(--color-warning)]',
+                                            dot: isCompleted
+                                                ? 'bg-emerald-500'
+                                                : isError
+                                                    ? 'bg-red-500'
+                                                    : 'bg-orange-500',
+                                        };
                                     };
                                     const style = getStatusStyle(status);
                                     return (
@@ -963,44 +1025,44 @@ export default function SafeguardingReferrals({ user }) {
                                                         <span className={`w-2 h-2 rounded-full ${style.dot}`}></span>
                                                         <h3 className={`font-semibold ${style.text} text-sm uppercase tracking-wide`}>{status}</h3>
                                                     </div>
-                                                    <span className="bg-white px-2 py-0.5 rounded-xl text-xs font-semibold text-gray-600">{statusItems.length}</span>
+                                                    <span className="bg-[var(--bg-surface)] px-2 py-0.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] border border-[var(--border-color)]">{statusItems.length}</span>
                                                 </div>
                                                 <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                                                     {statusItems.length === 0 ? (
                                                         <div className="text-center py-8 px-4">
-                                                            <AlertCircle className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                                                            <p className="text-gray-400 text-sm">No referrals</p>
+                                                            <AlertCircle className="w-10 h-10 mx-auto mb-2 text-[var(--text-secondary)]" />
+                                                            <p className="text-[var(--text-secondary)] text-sm">No referrals</p>
                                                         </div>
                                                     ) : statusItems.map((referral) => {
                                                         const priorityColor = getPriorityColor(referral.priority || "Medium");
                                                         const isDeleting = deletingIds.has(referral.id);
                                                         return (
-                                                            <div key={referral.id} className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 transition-all cursor-pointer ${isDeleting ? 'safeguarding-card-deleting' : ''}`} onClick={() => handleOpenModal('view', referral)}>
+                                                            <div key={referral.id} className={`bg-[var(--bg-surface)] rounded-xl p-4 shadow-sm border border-[var(--border-color)] transition-all cursor-pointer ${isDeleting ? 'safeguarding-card-deleting' : ''}`} onClick={() => handleOpenModal('view', referral)}>
                                                                 <div className="flex items-center justify-between mb-2">
-                                                                    <span className="text-xs font-mono text-gray-500">{referral.reference || `SG-${referral.id}`}</span>
+                                                                    <span className="text-xs font-mono text-[var(--text-secondary)]">{referral.reference || `SG-${referral.id}`}</span>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className={`w-2 h-2 rounded-full ${priorityColor.dot}`}></span>
                                                                         <span className={`text-xs font-medium ${priorityColor.text}`}>{referral.priority || "Medium"}</span>
                                                                     </div>
                                                                 </div>
-                                                                <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">{referral.concern || referral.title || "Safeguarding Concern"}</h4>
-                                                                {referral.description && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{referral.description}</p>}
+                                                                <h4 className="font-semibold text-[var(--text-primary)] text-sm mb-2 line-clamp-2">{referral.concern || referral.title || "Safeguarding Concern"}</h4>
+                                                                {referral.description && <p className="text-xs text-[var(--text-secondary)] mb-3 line-clamp-2">{referral.description}</p>}
                                                                 {referral.category && <div className="mb-3"><span className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-600 rounded-xl text-xs font-medium">{referral.category}</span></div>}
-                                                                <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
+                                                                <div className="flex items-center justify-between pt-3 border-t border-[var(--border-color)] mb-2">
                                                                     <div className="flex items-center gap-2">
                                                                         {referral.assigned_to && referral.assigned_to !== 'Unassigned' ? (
                                                                             <>
                                                                                 <div className={`w-6 h-6 rounded-full ${getAvatarColor(referral.assigned_to)} flex items-center justify-center text-xs font-semibold`}>{getInitials(referral.assigned_to)}</div>
-                                                                                <span className="text-xs text-gray-700 truncate max-w-[100px]">{referral.assigned_to}</span>
+                                                                                <span className="text-xs text-[var(--text-primary)] truncate max-w-[100px]">{referral.assigned_to}</span>
                                                                             </>
-                                                                        ) : <span className="text-xs text-gray-400">Unassigned</span>}
+                                                                        ) : <span className="text-xs text-[var(--text-secondary)]">Unassigned</span>}
                                                                     </div>
-                                                                    <span className="text-xs text-gray-500">{formatDate(referral.scheduled_date)}</span>
+                                                                    <span className="text-xs text-[var(--text-secondary)]">{formatDate(referral.scheduled_date)}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-1">
-                                                                    <button onClick={(e) => { e.stopPropagation(); handleOpenModal('view', referral); }} className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"><Eye className="w-3.5 h-3.5" />View</button>
-                                                                    {hasUpdate && <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', referral); }} className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"><Edit className="w-3.5 h-3.5" /></button>}
-                                                                    {hasDelete && <button onClick={(e) => { e.stopPropagation(); handleDelete(referral.id); }} className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
+                                                                    <button onClick={(e) => { e.stopPropagation(); handleOpenModal('view', referral); }} className="flex-1 py-1.5 px-2 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"><Eye className="w-3.5 h-3.5" />View</button>
+                                                                    {hasUpdate && <button onClick={(e) => { e.stopPropagation(); handleOpenModal('edit', referral); }} className="p-1.5 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl transition-colors"><Edit className="w-3.5 h-3.5" /></button>}
+                                                                    {hasDelete && <button onClick={(e) => { e.stopPropagation(); handleDelete(referral.id); }} className="p-1.5 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
                                                                 </div>
                                                             </div>
                                                         );

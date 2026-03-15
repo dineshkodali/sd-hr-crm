@@ -304,7 +304,11 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
       'id', 'reference', 'title', 'description', 'priority', 'status',
       'assigned_to_id', 'assigned_to_name', 'service_user_id', 'property_id',
       'property_name', 'scheduled_date', 'reported_by', 'category', 'notes',
-      'created_at', 'updated_at'
+      'created_at', 'updated_at',
+      'attachments',
+      'created_by',
+      'deleted',
+      'deleted_at'
     ]);
     for (const col of existingCols) {
       if (standardColsRequired.has(col)) continue;

@@ -251,7 +251,9 @@ export async function createTask(req, res) {
       'id', 'title', 'description', 'start_date', 'due_date', 'status',
       'category', 'site', 'hotel_name', 'hotel_id', 'property_id', 'room',
       'raised_by', 'assigned_to', 'action', 'priority', 'closed', 'closed_date',
-      'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at'
+      'created_by', 'created_at', 'updated_at', 'deleted', 'deleted_at',
+      'attachments',
+      'service_user_id'
     ]);
     for (const col of existingCols) {
       if (standardColsRequired.has(col)) continue;

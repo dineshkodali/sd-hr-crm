@@ -752,7 +752,7 @@ export default function Settings() {
     const userPermissions = selectedUser ? (localPermissions[selectedUser.id] || {}) : {};
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
 
                 {/* Page Header */}
@@ -879,7 +879,7 @@ export default function Settings() {
                                                                                     [user.id]: userPerms
                                                                                 });
                                                                             }}
-                                                                            className={`w-full text-left p-4 hover:bg-white transition-colors ${selectedUser?.id === user.id ? "bg-white border-l-4 border-teal-500" : ""
+                                                                            className={`w-full text-left p-4 hover:bg-[var(--bg-primary)] transition-colors ${selectedUser?.id === user.id ? "bg-[var(--bg-primary)] border-l-4 border-teal-500" : ""
                                                                                 }`}
                                                                         >
                                                                             <div className="flex items-center gap-3">

@@ -253,7 +253,7 @@ export default function ServiceUserAnalytics() {
     };
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="-m-6 p-6 flex items-center justify-center min-h-screen bg-[var(--bg-primary)]">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
                     <p className="mt-4 text-gray-600">Loading analytics...</p>
@@ -263,7 +263,7 @@ export default function ServiceUserAnalytics() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="-m-6 p-6 min-h-screen bg-[var(--bg-primary)]">
             <div>
                 {/* Header */}
                 <div className="mb-8">
@@ -474,17 +474,17 @@ export default function ServiceUserAnalytics() {
                     {activeTab === 'accommodation' && (
                         <div className="space-y-6">
                             {/* Property Occupancy */}
-                            <div className="bg-gray-50 rounded-xl p-6">
-                                <h3 className="text-xl font-semibold text-gray-900 mb-4">Property Occupancy Rates</h3>
+                            <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl p-6">
+                                <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4">Property Occupancy Rates</h3>
                                 <div className="space-y-4">
                                     {accommodation.propertyOccupancy.map((prop, idx) => (
-                                        <div key={idx} className="border-b border-gray-200 pb-4 last:border-0">
+                                        <div key={idx} className="border-b border-[var(--border-color)] pb-4 last:border-0">
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="font-medium text-gray-900">{prop.name}</span>
-                                                <span className="text-sm text-gray-600">{prop.occupied} / {prop.total} rooms</span>
+                                                <span className="font-semibold text-[var(--text-primary)]">{prop.name}</span>
+                                                <span className="text-sm font-medium text-[var(--text-secondary)]">{prop.occupied} / {prop.total} rooms</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <div className="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden relative" style={{ minHeight: '32px' }}>
+                                                <div className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-full h-8 overflow-hidden relative" style={{ minHeight: '32px' }}>
                                                     <div
                                                         className="bg-green-600 h-full flex items-center justify-center text-white text-xs font-medium"
                                                         style={{ width: `${prop.rate}%` }}
@@ -502,13 +502,13 @@ export default function ServiceUserAnalytics() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 {/* Room Types */}
                                 {accommodation.roomTypes.length > 0 && (
-                                    <div className="bg-gray-50 rounded-xl p-6">
-                                        <h3 className="text-xl font-semibold text-gray-900 mb-4">Room Types</h3>
+                                    <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl p-6">
+                                        <h3 className="text-xl font-bold text-[var(--text-primary)] mb-4">Room Types</h3>
                                         <div className="grid grid-cols-2 gap-3">
                                             {accommodation.roomTypes.map((type, idx) => (
-                                                <div key={idx} className="p-4 bg-white rounded-xl shadow-sm text-center ">
-                                                    <div className="text-2xl font-bold text-indigo-600 mb-1">{type.value}</div>
-                                                    <div className="text-sm text-gray-600">{type.name}</div>
+                                                <div key={idx} className="p-4 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl text-center">
+                                                    <div className="text-2xl font-black text-indigo-600 mb-1">{type.value}</div>
+                                                    <div className="text-sm font-medium text-[var(--text-secondary)]">{type.name}</div>
                                                 </div>
                                             ))}
                                         </div>
@@ -517,31 +517,31 @@ export default function ServiceUserAnalytics() {
 
                                 {/* Summary Stats */}
                                 <div className="space-y-3">
-                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
+                                    <div className="bg-[var(--bg-surface)] rounded-xl p-6 border border-[var(--border-color)]">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm text-gray-600 mb-1">Occupied Rooms</p>
-                                                <p className="text-2xl font-bold text-gray-900">{accommodation.occupiedRooms}</p>
+                                                <p className="text-sm font-medium text-[var(--text-secondary)] mb-1">Occupied Rooms</p>
+                                                <p className="text-2xl font-black text-[var(--text-primary)]">{accommodation.occupiedRooms}</p>
                                             </div>
                                             <Bed className="w-8 h-8 text-green-500" />
                                         </div>
                                     </div>
 
-                                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100">
+                                    <div className="bg-[var(--bg-surface)] rounded-xl p-6 border border-[var(--border-color)]">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm text-gray-600 mb-1">Available Rooms</p>
-                                                <p className="text-2xl font-bold text-gray-900">{accommodation.totalRooms - accommodation.occupiedRooms}</p>
+                                                <p className="text-sm font-medium text-[var(--text-secondary)] mb-1">Available Rooms</p>
+                                                <p className="text-2xl font-black text-[var(--text-primary)]">{accommodation.totalRooms - accommodation.occupiedRooms}</p>
                                             </div>
                                             <Home className="w-8 h-8 text-blue-500" />
                                         </div>
                                     </div>
 
-                                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
+                                    <div className="bg-[var(--bg-surface)] rounded-xl p-6 border border-[var(--border-color)]">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm text-gray-600 mb-1">Occupancy Rate</p>
-                                                <p className="text-2xl font-bold text-gray-900">{accommodation.occupancyRate}%</p>
+                                                <p className="text-sm font-medium text-[var(--text-secondary)] mb-1">Occupancy Rate</p>
+                                                <p className="text-2xl font-black text-[var(--text-primary)]">{accommodation.occupancyRate}%</p>
                                             </div>
                                             <TrendingUp className="w-8 h-8 text-purple-500" />
                                         </div>
@@ -627,8 +627,8 @@ export default function ServiceUserAnalytics() {
                                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Quick Statistics</h3>
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b-2 border-gray-300">
+                                        <thead className="bg-[var(--bg-primary)]">
+                                            <tr className="border-b-2 border-[var(--border-color)]">
                                                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Metric</th>
                                                 <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Value</th>
                                                 <th className="text-right py-3 px-4 text-sm font-semibold text-gray-700">Percentage</th>

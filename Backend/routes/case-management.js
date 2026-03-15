@@ -175,13 +175,36 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// Columns polling endpoint for frontend
+router.get('/columns', protect, async (req, res) => {
+  try {
+    await ensureCaseTable();
+    const columnsResult = await pool.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'case_management'`
+    );
+    const columns = (columnsResult.rows || []).map((r) => r.column_name);
+    return res.json({ success: true, columns });
+  } catch (err) {
+    console.error('GET /api/case-management/columns error:', err?.message || err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET single case
 router.get('/:id', protect, async (req, res) => {
   try {
     await ensureCaseTable();
+
+    const id = req.params.id;
+    if (!/^\d+$/.test(String(id))) {
+      return res.status(400).json({ error: 'Invalid case id' });
+    }
+
     const result = await pool.query(
       `SELECT * FROM case_management WHERE id = $1`,
-      [req.params.id]
+      [Number(id)]
     );
 
     if (!result.rows.length) return res.json(null);
@@ -200,23 +223,6 @@ router.get('/:id', protect, async (req, res) => {
   } catch (err) {
     console.error(`GET /api/case-management/:id error:`, err);
     res.status(500).json({ error: err.message });
-  }
-});
-
-// Columns polling endpoint for frontend
-router.get('/columns', protect, async (req, res) => {
-  try {
-    await ensureCaseTable();
-    const columnsResult = await pool.query(
-      `SELECT column_name
-       FROM information_schema.columns
-       WHERE table_schema = 'public' AND table_name = 'case_management'`
-    );
-    const columns = (columnsResult.rows || []).map((r) => r.column_name);
-    return res.json({ success: true, columns });
-  } catch (err) {
-    console.error('GET /api/case-management/columns error:', err?.message || err);
-    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -320,7 +326,7 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
     const standardColumns = [
       'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
       'title', 'description', 'category', 'priority', 'property_id', 'property_name', 'status',
-      'assigned_to', 'reported_by', 'reported_date', 'scheduled_date', 'notes'
+      'assigned_to', 'reported_by', 'reported_date', 'scheduled_date', 'notes', 'attachments'
     ];
 
     const allColsSet = new Set(allColumns);

@@ -35,7 +35,7 @@ if (typeof document !== 'undefined' && !document.getElementById(DELETE_STYLE_ID)
   style.textContent = `
     @keyframes adminUsersSlideOut {
       0%   { opacity: 1; transform: translateX(0) scaleY(1); max-height: 80px; }
-      40%  { opacity: 0.3; transform: translateX(40px) scaleY(0.85); background: #fee2e2; max-height: 80px; }
+      40%  { opacity: 0.3; transform: translateX(40px) scaleY(0.85); background: var(--bg-primary); max-height: 80px; }
       100% { opacity: 0; transform: translateX(80px) scaleY(0); max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; border: none; }
     }
     tr.admin-user-deleting {
@@ -319,17 +319,17 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-all">
       <div
         className="absolute inset-0"
         onClick={onClose}
       />
 
-      <div className="relative bg-white rounded-xl w-full max-w-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col h-[72vh]">
-        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100 shrink-0">
+      <div className="relative bg-[var(--bg-surface)] rounded-xl w-full max-w-3xl shadow-2xl border border-[var(--border-color)] overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col h-[72vh]">
+        <div className="flex items-start justify-between px-6 py-5 border-b border-[var(--border-color)] shrink-0">
           <div>
-            <h3 className="text-lg font-bold text-slate-800">Add Employee</h3>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h3 className="text-lg font-bold text-[var(--text-primary)]">Add Employee</h3>
+            <p className="text-sm text-[var(--text-secondary)] mt-0.5">
               Add a new employee to the system.
             </p>
           </div>
@@ -353,7 +353,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
           <div className="px-6 py-6 overflow-y-auto flex-1 custom-scrollbar">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -361,13 +361,13 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                   placeholder="John Smith"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   Email <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -376,13 +376,13 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                   placeholder="email@example.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   Phone <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -390,13 +390,13 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                   placeholder="Phone number"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   Role <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -404,7 +404,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   value={formData.role}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer"
                 >
                   <option value="staff">Staff</option>
                   <option value="manager">Manager</option>
@@ -413,12 +413,12 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Permission Role</label>
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">Permission Role</label>
                 <select
                   name="permission_role_id"
                   value={formData.permission_role_id}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer"
                 >
                   <option value="">None</option>
                   {permissionRoles.map((r) => (
@@ -430,7 +430,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   Branch <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -449,11 +449,11 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                         setShowBranchDropdown(false);
                       }, 200);
                     }}
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 pr-10 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                     placeholder="Select existing branch or type new one"
                   />
                   {showBranchDropdown && branches.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    <div className="absolute z-50 w-full mt-1 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl shadow-xl max-h-48 overflow-y-auto">
                       {branches
                         .filter(branch =>
                           branch.toLowerCase().includes(formData.branch.toLowerCase())
@@ -466,19 +466,19 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                               setFormData({ ...formData, branch });
                               setShowBranchDropdown(false);
                             }}
-                            className="w-full text-left px-4 py-2.5 transition-colors text-sm border-b border-gray-100 last:border-b-0 flex items-center gap-2 rounded-xl"
+                            className="w-full text-left px-4 py-2.5 transition-colors text-sm border-b border-[var(--border-color)] last:border-b-0 flex items-center gap-2 hover:bg-[var(--bg-primary)]"
                           >
-                            <Building className="w-4 h-4 text-gray-400" />
-                            <span>{branch}</span>
+                            <Building className="w-4 h-4 text-[var(--text-secondary)]" />
+                            <span className="text-[var(--text-primary)] font-medium">{branch}</span>
                           </button>
                         ))}
 
                       {formData.branch &&
                         !branches.some(b => b.toLowerCase() === formData.branch.toLowerCase()) && (
-                          <div className="px-4 py-2.5 text-sm text-gray-500 border-t border-gray-200 bg-gray-50">
+                          <div className="px-4 py-3 text-xs text-[var(--text-secondary)] border-t border-[var(--border-color)] bg-[var(--bg-primary)]/50">
                             <div className="flex items-center gap-2">
-                              <UserPlus className="w-4 h-4 text-teal-500" />
-                              <span>Create new branch: <strong className="text-teal-600">&quot;{formData.branch}&quot;</strong></span>
+                              <UserPlus className="w-4 h-4 text-[var(--accent-primary)]" />
+                              <span>Create new branch: <strong className="text-[var(--accent-primary)]">&quot;{formData.branch}&quot;</strong></span>
                             </div>
                           </div>
                         )}
@@ -488,7 +488,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   Property <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -503,7 +503,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                     });
                   }}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer"
                 >
                   <option value="">Select property</option>
                   {hotels.map((h) => (
@@ -515,7 +515,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   Status <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -523,7 +523,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   value={formData.status}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer"
                 >
                   <option value="active">Active</option>
                   <option value="pending">Pending</option>
@@ -532,7 +532,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   Address <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -540,13 +540,13 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   value={formData.address}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                   placeholder="Full address"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   City <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -554,13 +554,13 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   value={formData.city}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                   placeholder="City"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                   Password <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -570,7 +570,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                     value={formData.password}
                     onChange={handleChange}
                     required
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 pr-10 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                     placeholder="Enter password"
                   />
                   <button
@@ -610,15 +610,15 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                   )}
                 </div>
 
-                <div className="mt-3">
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Confirm Password <span className="text-red-500">*</span></label>
+                <div className="mt-4">
+                  <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">Confirm Password <span className="text-red-500">*</span></label>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     required
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                     placeholder="Confirm password"
                   />
                 </div>
@@ -626,12 +626,12 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
 
               {/* Dynamic Fields Section */}
               {dynamicColumns.length > 0 && (
-                <div className="md:col-span-2 pt-4 border-t border-gray-100">
-                  <h4 className="text-sm font-bold text-gray-800 mb-3">Additional Information</h4>
+                <div className="md:col-span-2 pt-6 border-t border-[var(--border-color)]">
+                  <h4 className="text-sm font-bold text-[var(--text-primary)] mb-4">Additional Information</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                     {dynamicColumns.map((col) => (
                       <div key={col.column_name} className={['textarea', 'text', 'varchar'].includes(col.input_type || 'text') && (col.max_length > 100 || col.data_type === 'TEXT') ? "md:col-span-2" : ""}>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        <label className="block text-sm font-bold text-[var(--text-primary)] mb-2">
                           {col.column_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           {!col.is_nullable && <span className="text-red-500">*</span>}
                         </label>
@@ -642,7 +642,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                             value={formData[col.column_name] || ''}
                             onChange={handleChange}
                             required
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                            className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer"
                           >
                             <option value="">Select {col.column_name.replace(/_/g, ' ')}</option>
                             {Array.isArray(col.input_options) && col.input_options.map((opt, i) => (
@@ -650,15 +650,15 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                             ))}
                           </select>
                         ) : col.input_type === 'checkbox' || col.data_type === 'BOOLEAN' ? (
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-2 mt-1">
                             <input
                               type="checkbox"
                               name={col.column_name}
                               checked={!!formData[col.column_name]}
                               onChange={(e) => setFormData(prev => ({ ...prev, [col.column_name]: e.target.checked }))}
-                              className="rounded-xl border-gray-300 text-teal-600 focus:ring-teal-500"
+                              className="w-4 h-4 text-[var(--accent-primary)] rounded-md border-[var(--border-color)] focus:ring-[var(--accent-shadow)]"
                             />
-                            <span className="text-sm text-gray-700">Yes</span>
+                            <span className="text-sm text-[var(--text-secondary)] font-medium">Yes</span>
                           </div>
                         ) : col.input_type === 'textarea' || col.data_type === 'TEXT' ? (
                           <textarea
@@ -666,7 +666,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                             value={formData[col.column_name] || ''}
                             onChange={handleChange}
                             required
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y min-h-[80px]"
+                            className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all resize-y min-h-[80px]"
                             placeholder={`Enter ${col.column_name.replace(/_/g, ' ')}`}
                           />
                         ) : (
@@ -677,7 +677,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
                             value={formData[col.column_name] || ''}
                             onChange={handleChange}
                             required
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                            className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                             placeholder={`Enter ${col.column_name.replace(/_/g, ' ')}`}
                           />
                         )}
@@ -689,7 +689,7 @@ function AddEmployeeModal({ open, onClose, onSuccess }) {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 px-6 py-5 border-t border-gray-100 bg-gray-50">
+          <div className="flex justify-end gap-3 px-6 py-5 border-t border-[var(--border-color)] bg-[var(--bg-primary)]">
             <button
               type="button"
               onClick={onClose}
@@ -1338,12 +1338,12 @@ export default function Users() {
   RENDER (ENHANCED UI MATCHING BOOKINGS)
   ------------------------- */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <div className="p-3 sm:p-4 md:p-6">
+    <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <div className="p-3 sm:p-4 md:px-8 py-6">
 
         {/* Page Header */}
         {/* HEADER SECTION - Unified Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8 mb-6">
+        <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-color)] p-6 sm:p-8 mb-6">
           <div className="flex items-start justify-between gap-6">
             <div>
               <div className="flex items-center gap-3 mb-4">
@@ -1354,8 +1354,8 @@ export default function Users() {
                   ]}
                 />
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 leading-tight mb-1">Users & Staff</h1>
-              <p className="text-sm text-gray-500">Manage staff members and their information</p>
+              <h1 className="text-3xl font-bold text-[var(--text-primary)] leading-tight mb-1">Users & Staff</h1>
+              <p className="text-sm text-[var(--text-secondary)]">Manage staff members and their information</p>
             </div>
             <button
               onClick={() => setShowAddModal(true)}
@@ -1369,74 +1369,74 @@ export default function Users() {
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all duration-200">
-            <div className="bg-teal-100 text-teal-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-6 shadow-sm border border-[var(--border-color)] flex items-center gap-5 transition-all duration-300 hover:shadow-md group">
+            <div className="bg-[var(--accent-shadow)] text-[var(--accent-primary)] h-14 w-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
               <UsersIcon className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Employees</div>
-              <div className="text-2xl font-black text-slate-800 leading-none">{stats.total}</div>
+              <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-1.5 font-mono">Total Employees</div>
+              <div className="text-3xl font-black text-[var(--text-primary)] leading-none tabular-nums">{stats.total}</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all duration-200">
-            <div className="bg-green-100 text-green-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-6 shadow-sm border border-[var(--border-color)] flex items-center gap-5 transition-all duration-300 hover:shadow-md group">
+            <div className="bg-emerald-50 text-emerald-600 h-14 w-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
               <UserCheck className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Active</div>
-              <div className="text-2xl font-black text-slate-800 leading-none">{stats.active}</div>
+              <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-1.5 font-mono">Active</div>
+              <div className="text-3xl font-black text-[var(--text-primary)] leading-none tabular-nums">{stats.active}</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all duration-200">
-            <div className="bg-red-100 text-red-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-6 shadow-sm border border-[var(--border-color)] flex items-center gap-5 transition-all duration-300 hover:shadow-md group">
+            <div className="bg-red-50 text-red-600 h-14 w-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
               <UserX className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Inactive</div>
-              <div className="text-2xl font-black text-slate-800 leading-none">{stats.inactive}</div>
+              <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-1.5 font-mono">Inactive</div>
+              <div className="text-3xl font-black text-[var(--text-primary)] leading-none tabular-nums">{stats.inactive}</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all duration-200">
-            <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-6 shadow-sm border border-[var(--border-color)] flex items-center gap-5 transition-all duration-300 hover:shadow-md group">
+            <div className="bg-amber-50 text-amber-600 h-14 w-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
               <Calendar className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">New Joiners (30d)</div>
-              <div className="text-2xl font-black text-slate-800 leading-none">{stats.newJoiners}</div>
+              <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-1.5 font-mono">New Joiners</div>
+              <div className="text-3xl font-black text-[var(--text-primary)] leading-none tabular-nums">{stats.newJoiners}</div>
             </div>
           </div>
         </div>
 
         {/* Main Content Area */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-200">
+        <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-color)] p-6 transition-all duration-200">
           {/* Tab Switcher */}
-          <div className="mb-6 flex items-center gap-3 border-b border-gray-200">
+          <div className="mb-6 flex items-center gap-3 border-b border-[var(--border-color)]">
             <button
               onClick={() => setActiveTab('all')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'all'
-                ? 'border-teal-500 text-teal-600'
-                : 'border-transparent text-gray-500'
+              className={`pb-3 px-1 text-sm font-bold border-b-2 transition-colors ${activeTab === 'all'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)]'
                 }`}
             >
               All Employees
             </button>
             <button
               onClick={() => setActiveTab('active')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'active'
-                ? 'border-teal-500 text-teal-600'
-                : 'border-transparent text-gray-500'
+              className={`pb-3 px-1 text-sm font-bold border-b-2 transition-colors ${activeTab === 'active'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)]'
                 }`}
             >
               Active
             </button>
             <button
               onClick={() => setActiveTab('inactive')}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'inactive'
-                ? 'border-teal-500 text-teal-600'
-                : 'border-transparent text-gray-500'
+              className={`pb-3 px-1 text-sm font-bold border-b-2 transition-colors ${activeTab === 'inactive'
+                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
+                : 'border-transparent text-[var(--text-secondary)]'
                 }`}
             >
               Inactive
@@ -1445,14 +1445,14 @@ export default function Users() {
 
           {/* Search & Filter Controls */}
           <div className="mb-6 flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[300px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <div className="flex-1 min-w-[300px] relative group">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] group-focus-within:text-[var(--accent-primary)] transition-colors" />
               <input
                 type="text"
                 placeholder="Search by name, email, staff ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                className="w-full !pl-14 pr-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-2xl text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -1462,12 +1462,12 @@ export default function Users() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-white">
-                <Filter className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 border border-[var(--border-color)] rounded-2xl px-4 py-2.5 bg-[var(--bg-primary)] hover:border-[var(--accent-primary)]/30 transition-all cursor-pointer">
+                <Filter className="w-4 h-4 text-[var(--accent-primary)]" />
                 <select
                   value={filterDesignation}
                   onChange={(e) => setFilterDesignation(e.target.value)}
-                  className="text-sm focus:outline-none bg-transparent"
+                  className="text-xs font-bold text-[var(--text-primary)] focus:outline-none bg-transparent cursor-pointer"
                 >
                   <option value="">All Roles</option>
                   {uniqueRoles.map(role => (
@@ -1476,11 +1476,11 @@ export default function Users() {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-white">
+              <div className="flex items-center gap-2 border border-[var(--border-color)] rounded-2xl px-4 py-2.5 bg-[var(--bg-primary)] hover:border-[var(--accent-primary)]/30 transition-all cursor-pointer">
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="text-sm focus:outline-none bg-transparent"
+                  className="text-xs font-bold text-[var(--text-primary)] focus:outline-none bg-transparent cursor-pointer"
                 >
                   <option value="">All Status</option>
                   <option value="active">Active</option>
@@ -1488,12 +1488,12 @@ export default function Users() {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 bg-white">
-                <Building className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 border border-[var(--border-color)] rounded-2xl px-4 py-2.5 bg-[var(--bg-primary)] hover:border-[var(--accent-primary)]/30 transition-all cursor-pointer">
+                <Building className="w-4 h-4 text-[var(--accent-primary)]" />
                 <select
                   value={filterBranch}
                   onChange={(e) => setFilterBranch(e.target.value)}
-                  className="text-sm focus:outline-none bg-transparent"
+                  className="text-xs font-bold text-[var(--text-primary)] focus:outline-none bg-transparent cursor-pointer"
                 >
                   <option value="">All Branches</option>
                   {uniqueBranches.map(branch => (
@@ -1509,7 +1509,7 @@ export default function Users() {
                   setFilterStatus('');
                   setFilterBranch('');
                 }}
-                className="p-2.5 text-gray-500 border border-gray-200 rounded-xl transition-colors"
+                className="p-3 text-[var(--text-secondary)] border border-[var(--border-color)] rounded-2xl bg-[var(--bg-primary)] hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all shadow-sm"
                 title="Clear Filters"
               >
                 <X className="w-4 h-4" />
@@ -1521,119 +1521,109 @@ export default function Users() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b-2 border-gray-200 text-xs font-bold text-gray-700 uppercase tracking-wide bg-gray-50">
-                  <th className="p-4 w-10">
-                    <input type="checkbox" className="rounded-xl border-gray-300 cursor-pointer" />
+                <tr className="border-b border-[var(--border-color)] text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest bg-[var(--bg-primary)] font-mono">
+                  <th className="p-4 w-10 text-center">
+                    <input type="checkbox" className="w-4 h-4 text-[var(--accent-primary)] rounded-md border-[var(--border-color)] focus:ring-[var(--accent-shadow)]" />
                   </th>
                   <th className="p-4">Staff ID</th>
                   <th className="p-4">Name</th>
-                  <th className="p-4">Email</th>
-                  <th className="p-4">Phone</th>
+                  <th className="p-4">Contact Info</th>
                   <th className="p-4">Designation</th>
-                  <th className="p-4">Joining Date</th>
+                  <th className="p-4">Joined At</th>
                   <th className="p-4">Status</th>
-                  <th className="p-4 text-center sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>Actions</th>
+                  <th className="p-4 text-center sticky right-0 z-10 bg-[var(--bg-primary)]" style={{ boxShadow: '-5px 0 10px -5px rgba(0,0,0,0.05)' }}>Actions</th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="9" className="p-8 text-center text-gray-500">
-                    <div className="flex justify-center">
-                      <svg className="w-8 h-8 animate-spin text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
+                  <tr><td colSpan="8" className="p-12 text-center text-[var(--text-secondary)]">
+                    <div className="flex flex-col items-center justify-center gap-4">
+                      <div className="w-12 h-12 border-4 border-[var(--accent-primary)]/20 border-t-[var(--accent-primary)] rounded-full animate-spin"></div>
+                      <p className="font-bold text-sm tracking-wide">Loading employees...</p>
                     </div>
-                    <p className="mt-2">Loading employees...</p>
                   </td></tr>
                 ) : filteredUsers.length === 0 ? (
-                  <tr><td colSpan="9" className="p-8 text-center text-gray-500">
-                    <UsersIcon className="mx-auto mb-3 opacity-50 w-12 h-12" />
-                    <p>{searchQuery ? "No employees found matching your search" : "No employees found"}</p>
+                  <tr><td colSpan="8" className="p-12 text-center text-[var(--text-secondary)]">
+                    <div className="flex flex-col items-center justify-center gap-4 bg-[var(--bg-primary)]/30 rounded-2xl py-12 border border-dashed border-[var(--border-color)]">
+                      <div className="w-16 h-16 rounded-full bg-[var(--bg-surface)] flex items-center justify-center shadow-sm">
+                        <UsersIcon className="opacity-20 w-8 h-8" />
+                      </div>
+                      <div className="max-w-xs mx-auto">
+                        <p className="font-bold text-[var(--text-primary)] text-lg mb-1">{searchQuery ? "No matches found" : "No employees added"}</p>
+                        <p className="text-sm">{searchQuery ? "Try adjusting your search terms or filters" : "Start by adding your first employee to the system"}</p>
+                      </div>
+                    </div>
                   </td></tr>
                 ) : filteredUsers.map((u, index) => {
                   const isDeleting = deletingIds.has(u.id);
                   return (
-                    <tr key={u.id || index} className={`border-b border-gray-100 transition-colors ${isDeleting ? 'admin-user-deleting' : ''}`}>
-                      <td className="p-4"><input type="checkbox" className="rounded-xl border-gray-300 cursor-pointer" /></td>
-                      <td className="p-4 text-sm font-semibold text-slate-800">{getStaffId(u)}</td>
+                    <tr key={u.id || index} className={`border-b border-[var(--border-color)] last:border-b-0 transition-all hover:bg-[var(--bg-primary)]/30 group ${isDeleting ? 'admin-user-deleting' : ''}`}>
+                      <td className="p-4 text-center">
+                        <input type="checkbox" className="w-4 h-4 text-[var(--accent-primary)] rounded-md border-[var(--border-color)] focus:ring-[var(--accent-shadow)]" />
+                      </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-white border border-gray-200 overflow-hidden flex-shrink-0">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-[var(--text-primary)] tracking-wide font-mono">{getStaffId(u)}</span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] overflow-hidden flex-shrink-0 shadow-sm">
                             {u.avatar || u.photo ? (
                               <img src={u.avatar || u.photo} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs font-bold bg-gradient-to-br from-teal-100 to-cyan-100">
+                              <div className="w-full h-full flex items-center justify-center text-[var(--accent-primary)] text-xs font-black bg-[var(--accent-shadow)]">
                                 {(u.name || "U").substring(0, 2).toUpperCase()}
                               </div>
                             )}
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-slate-900">{u.name || "Unknown"}</div>
-                            <div className="text-xs text-gray-500 flex items-center gap-1">
-                              <Building className="w-3 h-3" />
-                              {u.branch || u.role || "—"}
+                            <div className="text-sm font-bold text-[var(--text-primary)] mb-0.5">{u.name || "Unknown"}</div>
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--text-secondary)]/70 uppercase">
+                              <Building className="w-3 h-3 text-[var(--accent-primary)]" />
+                              <span className="truncate max-w-[120px]">{u.branch || "Global"}</span>
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Mail className="w-4 h-4 text-gray-400" />
-                          {u.email || "—"}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
+                            <Mail className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                            {u.email || "—"}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--text-secondary)]/60">
+                            <Phone className="w-3.5 h-3.5" />
+                            {getPhone(u)}
+                          </div>
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          {getPhone(u)}
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] shadow-sm">
+                          {u.role ? u.role : "Staff"}
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="inline-flex items-center gap-2 border border-teal-200 rounded-full px-3 py-1.5 text-xs font-semibold text-teal-700 bg-teal-50">
-                          {u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : "Staff"}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Calendar className="w-4 h-4 text-gray-400" />
+                        <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--text-secondary)]">
+                          <Calendar className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                           {formatJoinDate(u)}
                         </div>
                       </td>
                       <td className="p-4">
-                        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold ${getStatus(u).toLowerCase() === 'active'
-                          ? 'bg-green-100 text-green-700 border border-green-200'
-                          : 'bg-red-100 text-red-700 border border-red-200'
+                        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${getStatus(u).toLowerCase() === 'active'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100 shadow-sm shadow-emerald-100/30'
+                          : 'bg-red-50 text-red-700 border-red-100 shadow-sm shadow-red-100/30'
                           }`}>
-                          <span className={`w-2 h-2 rounded-full ${getStatus(u).toLowerCase() === 'active' ? 'bg-green-500' : 'bg-red-500'
-                            }`}> </span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${getStatus(u).toLowerCase() === 'active' ? 'bg-emerald-500' : 'bg-red-500'}`}> </span>
                           {getStatus(u)}
                         </span>
                       </td>
-                      <td className="p-4 sticky right-0 z-10 bg-white" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => openMoveRoom(u.id)}
-                            title="Move to another room"
-                            className="btn-secondary btn-sm w-10 !px-0 rounded-xl"
-                          >
-                            <MapPin className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => openEdit(u.id)}
-                            title="Edit details"
-                            className="btn-secondary btn-sm w-10 !px-0 rounded-xl"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(u.id)}
-                            title="Delete user"
-                            className="btn-secondary btn-sm w-10 !px-0 rounded-xl"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      <td className="p-4 sticky right-0 z-10 bg-[var(--bg-surface)] group-hover:bg-[var(--bg-primary)] transition-colors" style={{ boxShadow: '-10px 0 15px -10px rgba(0,0,0,0.05)' }}>
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => openMoveRoom(u.id)} title="Move Room" className="p-2.5 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-surface)] hover:text-[var(--accent-primary)] border border-transparent hover:border-[var(--border-color)] transition-all shadow-none hover:shadow-sm"><MapPin size={16} /></button>
+                          <button onClick={() => openEdit(u.id)} title="Edit Employee" className="p-2.5 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-surface)] hover:text-[var(--accent-primary)] border border-transparent hover:border-[var(--border-color)] transition-all shadow-none hover:shadow-sm"><Edit size={16} /></button>
+                          <button onClick={() => handleDelete(u.id)} title="Delete Employee" className="p-2.5 rounded-xl text-[var(--text-secondary)] hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100 transition-all shadow-none hover:shadow-sm"><Trash2 size={16} /></button>
                         </div>
                       </td>
                     </tr>
@@ -1645,18 +1635,18 @@ export default function Users() {
 
           {/* Pagination */}
           {filteredUsers.length > 0 && (
-            <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
-              <div className="text-sm text-gray-600">
-                Showing <span className="font-semibold">{filteredUsers.length}</span> of <span className="font-semibold">{users.length}</span> employees
+            <div className="mt-8 flex items-center justify-between border-t border-[var(--border-color)] pt-6">
+              <div className="text-sm font-medium text-[var(--text-secondary)]">
+                Showing <span className="text-[var(--text-primary)] font-bold">{filteredUsers.length}</span> of <span className="text-[var(--text-primary)] font-bold">{users.length}</span> employees
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-2 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button className="px-5 py-2.5 border border-[var(--border-color)] rounded-2xl text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-primary)] transition-all">
                   Previous
                 </button>
-                <button className="px-3 py-2 bg-teal-500 text-white rounded-xl text-sm font-medium">
+                <button className="px-5 py-2.5 bg-[var(--accent-primary)] text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-md shadow-[var(--accent-primary)]/20">
                   1
                 </button>
-                <button className="px-3 py-2 border border-gray-300 rounded-xl text-sm font-medium text-gray-700">
+                <button className="px-5 py-2.5 border border-[var(--border-color)] rounded-2xl text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest hover:bg-[var(--bg-primary)] transition-all">
                   Next
                 </button>
               </div>
@@ -1679,65 +1669,71 @@ export default function Users() {
  ------------------------- */}
       {
         isEditOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-              <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50">
-                <h3 className="text-lg font-bold text-slate-800">Edit Employee Details</h3>
-                <button onClick={closeEdit} className="rounded-xl text-gray-400 transition-colors">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+            <div className="modal-container bg-[var(--bg-surface)] w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-[var(--border-color)]">
+              <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)] bg-[var(--bg-surface)]">
+                <div>
+                  <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">Edit Employee Profile</h3>
+                  <p className="text-xs font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mt-1">Update staff information and system access</p>
+                </div>
+                <button onClick={closeEdit} className="p-2 hover:bg-[var(--bg-primary)] rounded-xl text-[var(--text-secondary)] transition-all">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="p-6 overflow-y-auto">
                 <form onSubmit={saveEdit} className="space-y-6">
                   {/* Avatar Section */}
-                  <div className="flex items-center gap-6 p-4 bg-slate-50 rounded-xl border border-dashed border-gray-300">
-                    <div className="w-24 h-24 rounded-full bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-8 p-6 bg-[var(--bg-primary)]/50 rounded-2xl border border-[var(--border-color)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                      <UsersIcon size={80} />
+                    </div>
+                    <div className="w-24 h-24 rounded-2xl bg-[var(--bg-surface)] border-2 border-[var(--border-color)] overflow-hidden flex items-center justify-center shrink-0 shadow-inner group-hover:border-[var(--accent-primary)] transition-all">
                       {avatarPreview ? (
                         <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-3xl text-gray-300 font-bold">{(editUser?.first_name || "U").charAt(0)}</span>
+                        <span className="text-3xl text-[var(--accent-primary)] font-black">{(editUser?.first_name || "U").charAt(0)}</span>
                       )}
                     </div>
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Profile Photo</label>
+                      <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Profile Photograph</label>
                       <input
                         type="file"
                         accept="image/*"
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700"
+                        className="block w-full text-xs text-[var(--text-secondary)] file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-[var(--accent-primary)] file:text-white hover:file:bg-[var(--accent-primary)]/90 file:cursor-pointer transition-all"
                         onChange={(ev) => {
                           const f = ev.target.files?.[0];
                           if (f) onAvatarChange(f);
                         }}
                       />
-                      <p className="mt-1 text-xs text-gray-400">Recommended: Square JPG/PNG, max 4MB.</p>
+                      <p className="mt-2 text-[10px] font-bold text-[var(--text-secondary)]/50 uppercase tracking-wide">JPG/PNG format, Recommended size 512x512px</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">First Name</label>
-                      <input required value={editUser?.first_name || ""} onChange={(e) => onEditChange("first_name", e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">First Name</label>
+                      <input required value={editUser?.first_name || ""} onChange={(e) => onEditChange("first_name", e.target.value)} className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-medium focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all" />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Last Name</label>
-                      <input required value={editUser?.last_name || ""} onChange={(e) => onEditChange("last_name", e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Last Name</label>
+                      <input required value={editUser?.last_name || ""} onChange={(e) => onEditChange("last_name", e.target.value)} className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-medium focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all" />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Staff ID</label>
-                      <input required value={editUser?.staff_id || ""} onChange={(e) => onEditChange("staff_id", e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Staff ID / Employee Code</label>
+                      <input required value={editUser?.staff_id || ""} onChange={(e) => onEditChange("staff_id", e.target.value)} className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-bold focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all tracking-wider" />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
-                      <input required value={editUser?.email || ""} onChange={(e) => onEditChange("email", e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Email Address</label>
+                      <input required value={editUser?.email || ""} onChange={(e) => onEditChange("email", e.target.value)} className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-medium focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all" />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Phone</label>
-                      <input required value={editUser?.phone || ""} onChange={(e) => onEditChange("phone", e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Contact Number</label>
+                      <input required value={editUser?.phone || ""} onChange={(e) => onEditChange("phone", e.target.value)} className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-medium focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all" />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Designation / Role</label>
-                      <select required value={editUser?.role || ""} onChange={(e) => onEditChange("role", e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Designation / Role</label>
+                      <select required value={editUser?.role || ""} onChange={(e) => onEditChange("role", e.target.value)} className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-bold focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer">
                         <option value="">Select Role</option>
                         <option value="staff">Staff / Developer</option>
                         <option value="manager">Manager</option>
@@ -1747,13 +1743,13 @@ export default function Users() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Permission Role</label>
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">System Permission Group</label>
                       <select
                         value={editUser?.permission_role_id || ''}
                         onChange={(e) => onEditChange('permission_role_id', e.target.value)}
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-bold focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer"
                       >
-                        <option value="">None</option>
+                        <option value="">No Special Permissions</option>
                         {permissionRoles.map((r) => (
                           <option key={r.id} value={r.id}>
                             {r.name}
@@ -1762,41 +1758,42 @@ export default function Users() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
-                      <select required value={editUser?.status || ""} onChange={(e) => onEditChange("status", e.target.value)} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Account Status</label>
+                      <select required value={editUser?.status || ""} onChange={(e) => onEditChange("status", e.target.value)} className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-black focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer">
+                        <option value="Active">Operational / Active</option>
+                        <option value="Inactive">Suspended / Inactive</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl border border-[var(--color-error)]/30 bg-[var(--bg-primary)] shadow-inner">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+                      <label className="block text-[11px] font-bold text-[var(--color-error)] uppercase tracking-widest mb-2 font-mono">Reset System Password</label>
                       <input
                         type="password"
                         value={editUser?.password || ""}
                         onChange={(e) => onEditChange("password", e.target.value)}
-                        placeholder="Leave blank to keep current"
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        placeholder="••••••••"
+                        className="w-full bg-[var(--bg-surface)] border border-[var(--color-error)]/20 rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] focus:ring-4 focus:ring-[var(--color-error)]/10 focus:border-[var(--color-error)] outline-none transition-all font-mono"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Confirm Password</label>
+                      <label className="block text-[11px] font-bold text-[var(--color-error)] uppercase tracking-widest mb-2 font-mono">Confirm New Password</label>
                       <input
                         type="password"
                         value={editUser?.confirmPassword || ""}
                         onChange={(e) => onEditChange("confirmPassword", e.target.value)}
-                        placeholder="Leave blank to keep current"
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        placeholder="••••••••"
+                        className="w-full bg-[var(--bg-surface)] border border-[var(--color-error)]/20 rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] focus:ring-4 focus:ring-[var(--color-error)]/10 focus:border-[var(--color-error)] outline-none transition-all font-mono"
                       />
                     </div>
+                    <p className="col-span-full text-[10px] font-bold text-[var(--color-error)] opacity-80 uppercase tracking-wide">Leave fields blank if you do not wish to update the system password</p>
                   </div>
 
-                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                    <button type="button" onClick={closeEdit} className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium transition-colors">Cancel</button>
-                    <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-xl bg-teal-400 active:bg-teal-600 text-white text-sm font-medium transition-all disabled:opacity-50">
-                      {saving ? "Saving Changes..." : "Save Changes"}
+                  <div className="flex justify-end gap-3 pt-6 border-t border-[var(--border-color)]">
+                    <button type="button" onClick={closeEdit} className="px-8 py-3 rounded-2xl border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-black uppercase tracking-widest hover:bg-[var(--bg-primary)] transition-all">Dismiss</button>
+                    <button type="submit" disabled={saving} className="px-8 py-3 rounded-2xl bg-[var(--accent-primary)] text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-[var(--accent-primary)]/25 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
+                      {saving ? "Updating Profile..." : "Apply Changes"}
                     </button>
                   </div>
                 </form>
@@ -1808,15 +1805,18 @@ export default function Users() {
       {/* MOVE ROOM MODAL */}
       {
         showMoveRoomModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-              <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-blue-50">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
+            <div className="modal-container bg-[var(--bg-surface)] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-[var(--border-color)]">
+              <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)] bg-[var(--bg-surface)]">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800">Move to Another Room</h3>
-                  <p className="text-sm text-gray-500 mt-1">{moveRoomUser?.name} ({moveRoomUser?.email})</p>
+                  <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">Relocate Employee</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-black bg-[var(--accent-shadow)] text-[var(--accent-primary)] px-2 py-0.5 rounded uppercase tracking-widest leading-none">{moveRoomUser?.name}</span>
+                    <span className="text-[10px] font-bold text-[var(--text-secondary)]/50 uppercase tracking-tighter">{moveRoomUser?.email}</span>
+                  </div>
                 </div>
-                <button onClick={closeMoveRoom} className="rounded-xl text-gray-400 transition-colors">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <button onClick={closeMoveRoom} className="p-2 hover:bg-[var(--bg-primary)] rounded-xl text-[var(--text-secondary)] transition-all">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -1824,12 +1824,12 @@ export default function Users() {
                 <form onSubmit={handleMoveRoomSubmit} className="space-y-5">
                   {/* Property Selection */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Select Property *</label>
+                    <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Select Destination Property *</label>
                     <select
                       value={moveRoomFormData.property_id}
                       onChange={handlePropertyChange}
                       required
-                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-bold focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer"
                     >
                       <option value="">-- Choose a property --</option>
                       {properties.map((prop) => (
@@ -1843,12 +1843,12 @@ export default function Users() {
                   {/* Floor Selection */}
                   {moveRoomFormData.property_id && (
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Select Floor *</label>
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Select Floor Level *</label>
                       <select
                         value={moveRoomFormData.floor}
                         onChange={handleFloorChange}
                         required
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-bold focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer"
                       >
                         <option value="">-- Choose a floor --</option>
                         {floors.map((floor) => (
@@ -1863,12 +1863,12 @@ export default function Users() {
                   {/* Room Selection */}
                   {selectedFloor && (
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Select Room *</label>
+                      <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Assign Room *</label>
                       <select
                         value={moveRoomFormData.room_id}
                         onChange={handleRoomChange}
                         required
-                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-bold focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all cursor-pointer"
                       >
                         <option value="">-- Choose a room --</option>
                         {(availableRooms[selectedFloor] || []).map((room) => (
@@ -1882,68 +1882,78 @@ export default function Users() {
 
                   {/* Move-in Date */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Move-in Date</label>
+                    <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Effective Relocation Date</label>
                     <input
                       type="date"
                       value={moveRoomFormData.move_in_date}
                       onChange={(e) => setMoveRoomFormData((prev) => ({ ...prev, move_in_date: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-bold focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                     />
                   </div>
 
                   {/* Notes */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Additional Notes</label>
+                    <label className="block text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 font-mono">Additional Notes / Remarks</label>
                     <textarea
                       value={moveRoomFormData.notes}
                       onChange={(e) => setMoveRoomFormData((prev) => ({ ...prev, notes: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] font-medium focus:border-[var(--accent-primary)] focus:ring-4 focus:ring-[var(--accent-shadow)] outline-none transition-all"
                       rows="3"
-                      placeholder="Add any additional details about the room move..."
+                      placeholder="Enter any additional details about the relocation..."
                     />
                   </div>
 
                   {/* Room Info Card */}
                   {moveRoomFormData.room_id && (
-                    <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
-                      <h4 className="text-sm font-semibold text-gray-800 mb-2">Move Summary</h4>
-                      <div className="space-y-1 text-sm">
-                        <p><span className="text-gray-600">Property:</span> <span className="font-medium">{moveRoomFormData.property_name}</span></p>
-                        <p><span className="text-gray-600">Floor:</span> <span className="font-medium">{moveRoomFormData.floor}</span></p>
-                        <p><span className="text-gray-600">Room:</span> <span className="font-medium">{moveRoomFormData.room_name}</span></p>
-                        <p><span className="text-gray-600">Move-in Date:</span> <span className="font-medium">{new Date(moveRoomFormData.move_in_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></p>
+                    <div className="p-6 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-2xl relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                        <MapPin size={60} />
+                      </div>
+                      <h4 className="text-[10px] font-black text-[var(--accent-primary)] uppercase tracking-widest mb-4 font-mono">Relocation Summary</h4>
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold text-[var(--text-secondary)]/60 uppercase tracking-tighter">Property</span>
+                          <span className="font-black text-[var(--text-primary)]">{moveRoomFormData.property_name}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold text-[var(--text-secondary)]/60 uppercase tracking-tighter">Floor Level</span>
+                          <span className="font-black text-[var(--text-primary)]">{moveRoomFormData.floor}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold text-[var(--text-secondary)]/60 uppercase tracking-tighter">Room Identifier</span>
+                          <span className="font-black text-[var(--text-primary)]">{moveRoomFormData.room_name}</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold text-[var(--text-secondary)]/60 uppercase tracking-tighter">Effective Date</span>
+                          <span className="font-black text-[var(--text-primary)]">{new Date(moveRoomFormData.move_in_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {/* Form Actions */}
-                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                  <div className="flex justify-end gap-3 pt-6 border-t border-[var(--border-color)]">
                     <button
                       type="button"
                       onClick={closeMoveRoom}
-                      className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-medium transition-colors"
+                      className="px-8 py-3 rounded-2xl border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-black uppercase tracking-widest hover:bg-[var(--bg-primary)] transition-all"
                     >
-                      Cancel
+                      Dismiss
                     </button>
                     <button
                       type="submit"
                       disabled={movingRoom || !moveRoomFormData.room_id}
-                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-8 py-3 rounded-2xl bg-[var(--accent-primary)] text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-[var(--accent-primary)]/25 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-3"
                     >
                       {movingRoom ? (
                         <>
-                          <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Moving...
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          Processing...
                         </>
                       ) : (
                         <>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 5v14M5 12l7 7 7-7" />
-                          </svg>
-                          Move User to Room
+                          <ArrowRight className="w-4 h-4" />
+                          Execute Move
                         </>
                       )}
                     </button>

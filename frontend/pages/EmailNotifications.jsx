@@ -269,7 +269,7 @@ export default function EmailNotifications({ user }) {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
                 {/* Page Header */}
                 <div className="mb-6 flex items-start justify-between">
@@ -519,8 +519,8 @@ export default function EmailNotifications({ user }) {
                                 {activeTab === 'logs' && (
                                     <div className="overflow-x-auto">
                                         <table className="w-full">
-                                            <thead>
-                                                <tr className="border-b border-gray-200">
+                                            <thead className="bg-[var(--bg-primary)]">
+                                                <tr className="border-b border-[var(--border-color)]">
                                                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Date</th>
                                                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Recipient</th>
                                                     <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Subject</th>

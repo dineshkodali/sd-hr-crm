@@ -9,7 +9,7 @@ import StaffSidebar from "../components/StaffSidebar";
 
 axios.defaults.withCredentials = true;
 
-const DONUT_COLORS = ["#0f172a", "#ef6c37", "#f59e0b", "#10b981", "#ef4444"];
+const DONUT_COLORS = ["var(--accent-primary)", "var(--accent-hover)", "var(--text-secondary)", "var(--text-primary)", "#ef4444"];
 
 /* -------------------------
  Small helper components
@@ -25,12 +25,12 @@ function LargeCircle({ valueStr, percent }) {
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="mx-auto block">
             <defs>
                 <linearGradient id="g1" x1="0%" x2="100%">
-                    <stop offset="0%" stopColor="#6ee7b7" />
-                    <stop offset="100%" stopColor="#10b981" />
+                    <stop offset="0%" stopColor="var(--accent-primary)" />
+                    <stop offset="100%" stopColor="var(--accent-hover)" />
                 </linearGradient>
             </defs>
             <g transform={`translate(${size / 2}, ${size / 2})`}>
-                <circle r={r} stroke="#f3f4f6" strokeWidth={stroke} fill="none" />
+                <circle r={r} stroke="var(--bg-primary)" strokeWidth={stroke} fill="none" />
                 <circle
                     r={r}
                     stroke="url(#g1)"
@@ -40,10 +40,10 @@ function LargeCircle({ valueStr, percent }) {
                     strokeDasharray={`${dash} ${c - dash}`}
                     transform="rotate(-90)"
                 />
-                <text x="0" y="-6" textAnchor="middle" fontSize="12" fill="#6b7280">
+                <text x="0" y="-6" textAnchor="middle" fontSize="12" fill="var(--text-secondary)">
                     Total Hours
                 </text>
-                <text x="0" y="18" textAnchor="middle" fontSize="16" fontWeight="700" fill="#111827">
+                <text x="0" y="18" textAnchor="middle" fontSize="16" fontWeight="700" fill="var(--text-primary)">
                     {valueStr}
                 </text>
             </g>
@@ -369,33 +369,33 @@ export default function StaffDashboard() {
                         punched: b.punched === undefined ? true : b.punched,
                     });
                     setKpis(b.kpis || [
-                        { title: "Total Hours Today", big: "8.36 / 9", meta: "5% This Week", color: "#fb923c" },
-                        { title: "Total Hours Week", big: "10 / 40", meta: "7% Last Week", color: "#111827" },
-                        { title: "Total Hours Month", big: "75 / 98", meta: "8% Last Month", color: "#60a5fa" },
+                        { title: "Total Hours Today", big: "8.36 / 9", meta: "5% This Week", color: "var(--accent-primary)" },
+                        { title: "Total Hours Week", big: "10 / 40", meta: "7% Last Week", color: "var(--text-primary)" },
+                        { title: "Total Hours Month", big: "75 / 98", meta: "8% Last Month", color: "var(--accent-hover)" },
                         { title: "Overtime this Month", big: "16 / 28", meta: "6% Last Month", color: "#ec4899" },
                     ]);
                     setSegments(b.timelineSegments || [
-                        { left: 8, width: 18, color: "#10b981" },
-                        { left: 28, width: 5, color: "#f59e0b" },
-                        { left: 34, width: 32, color: "#10b981" },
-                        { left: 69, width: 8, color: "#f59e0b" },
-                        { left: 78, width: 18, color: "#10b981" },
-                        { left: 97, width: 3, color: "#60a5fa" },
+                        { left: 8, width: 18, color: "var(--accent-primary)" },
+                        { left: 28, width: 5, color: "var(--text-secondary)" },
+                        { left: 34, width: 32, color: "var(--accent-primary)" },
+                        { left: 69, width: 8, color: "var(--text-secondary)" },
+                        { left: 78, width: 18, color: "var(--accent-primary)" },
+                        { left: 97, width: 3, color: "var(--accent-hover)" },
                     ]);
                 } else {
                     setKpis([
-                        { title: "Total Hours Today", big: "8.36 / 9", meta: "5% This Week", color: "#fb923c" },
-                        { title: "Total Hours Week", big: "10 / 40", meta: "7% Last Week", color: "#111827" },
-                        { title: "Total Hours Month", big: "75 / 98", meta: "8% Last Month", color: "#60a5fa" },
+                        { title: "Total Hours Today", big: "8.36 / 9", meta: "5% This Week", color: "var(--accent-primary)" },
+                        { title: "Total Hours Week", big: "10 / 40", meta: "7% Last Week", color: "var(--text-primary)" },
+                        { title: "Total Hours Month", big: "75 / 98", meta: "8% Last Month", color: "var(--accent-hover)" },
                         { title: "Overtime this Month", big: "16 / 28", meta: "6% Last Month", color: "#ec4899" },
                     ]);
                     setSegments([
-                        { left: 8, width: 18, color: "#10b981" },
-                        { left: 28, width: 5, color: "#f59e0b" },
-                        { left: 34, width: 32, color: "#10b981" },
-                        { left: 69, width: 8, color: "#f59e0b" },
-                        { left: 78, width: 18, color: "#10b981" },
-                        { left: 97, width: 3, color: "#60a5fa" },
+                        { left: 8, width: 18, color: "var(--accent-primary)" },
+                        { left: 28, width: 5, color: "var(--text-secondary)" },
+                        { left: 34, width: 32, color: "var(--accent-primary)" },
+                        { left: 69, width: 8, color: "var(--text-secondary)" },
+                        { left: 78, width: 18, color: "var(--accent-primary)" },
+                        { left: 97, width: 3, color: "var(--accent-hover)" },
                     ]);
                 }
 
@@ -466,7 +466,7 @@ export default function StaffDashboard() {
                     {/* Main row: Attendance (left) / KPIs + timeline (right) */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                         <div className="lg:col-span-5">
-                            <div className="bg-white rounded-xl shadow-sm border-2 border-orange-300 p-6 h-full flex flex-col justify-between">
+                            <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border-2 border-[var(--accent-shadow)] p-6 h-full flex flex-col justify-between">
                                 <div>
                                     <div className="text-center mb-6">
                                         <div className="text-xs text-slate-500">Attendance</div>

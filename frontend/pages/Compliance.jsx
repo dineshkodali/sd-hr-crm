@@ -271,6 +271,7 @@ export default function Compliance() {
     const [isEditing, setIsEditing] = useState(false);
     const [viewMode, setViewMode] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [activeCertificate, setActiveCertificate] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState("");
 
@@ -306,10 +307,9 @@ export default function Compliance() {
     const [form, setForm] = useState({
         certificate_type: "",
         property_id: "",
-        certificate_number: "",
         issue_date: getTodayYMD(),
         expiry_date: getTodayYMD(1),
-        issued_by: "",
+        issued_by: currentUser?.name || "",
         status: "valid",
         notes: "",
     });
@@ -332,15 +332,41 @@ export default function Compliance() {
         });
     }, [customColumns]);
 
+    // If custom columns arrive after opening edit/view, hydrate them from the selected record
+    useEffect(() => {
+        if (!modalOpen) return;
+        if (!activeCertificate) return;
+        if (!customColumns.length) return;
+        if (!isEditing && !viewMode) return;
+
+        setForm((prev) => {
+            let changed = false;
+            const next = { ...prev };
+
+            for (const col of customColumns) {
+                if (!(col in next) || next[col] === '' || next[col] === null || next[col] === undefined) {
+                    if (activeCertificate[col] !== undefined && activeCertificate[col] !== null) {
+                        next[col] = activeCertificate[col];
+                    } else if (!(col in next)) {
+                        next[col] = '';
+                    }
+                    changed = true;
+                }
+            }
+
+            return changed ? next : prev;
+        });
+    }, [customColumns, modalOpen, activeCertificate, isEditing, viewMode]);
+
     const fetchAvailableColumns = async () => {
         try {
             const res = await api.get('/api/forms-builder/tables/certificates/columns');
             const columns = res?.data?.columns || res?.data || [];
-
             const systemColumns = [
                 'id', 'certificate_type', 'property_id', 'hotel_id', 'certificate_number',
                 'issue_date', 'expiry_date', 'issued_by', 'status', 'notes',
-                'created_at', 'updated_at', 'document_data', 'document_name', 'file_path', 'hotel_name', 'property_name'
+                'created_at', 'updated_at', 'document_data', 'document_name', 'document_mime',
+                'file_path', 'hotel_name', 'property_name', 'is_active', 'created_by', 'attachments'
             ];
 
             const columnNames = columns.map(col => {
@@ -556,11 +582,12 @@ export default function Compliance() {
     function resetForm() {
         setForm({
             certificate_type: "", property_id: hotels.length === 1 ? hotels[0].id : "",
-            certificate_number: "", issue_date: getTodayYMD(), expiry_date: getTodayYMD(1),
-            issued_by: "", status: "valid", notes: "",
+            issue_date: getTodayYMD(), expiry_date: getTodayYMD(1),
+            issued_by: currentUser?.name || "",
+            status: "valid", notes: "",
             ...customColumns.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
         });
-        setStaffUsers([]); setDocumentFile(null); setFormError(""); setIsEditing(false); setViewMode(false); setEditId(null);
+        setStaffUsers([]); setDocumentFile(null); setFormError(""); setIsEditing(false); setViewMode(false); setEditId(null); setActiveCertificate(null);
     }
 
     const persistCustomCertificateTypes = (list) => {
@@ -601,13 +628,16 @@ export default function Compliance() {
         setCustomCertificateTypeValue('');
     };
 
-    function openModal(mode, cert = null) {
-        resetForm();
-        if (cert) {
+    const openModal = (mode, cert = null) => {
+        if (mode === 'create') {
+            resetForm();
+            setForm(prev => ({ ...prev, issued_by: currentUser?.name || "" }));
+            setIsEditing(false); setViewMode(false); setActiveCertificate(null);
+        } else if (mode === 'edit') {
+            setActiveCertificate(cert);
             setForm({
                 certificate_type: cert.certificate_type ?? "",
                 property_id: cert.property_id ?? cert.hotel_id ?? "",
-                certificate_number: cert.certificate_number ?? "",
                 issue_date: toInputYMD(cert.issue_date) || "",
                 expiry_date: toInputYMD(cert.expiry_date) || "",
                 issued_by: cert.issued_by ?? "",
@@ -615,13 +645,25 @@ export default function Compliance() {
                 notes: cert.notes ?? "",
                 ...customColumns.reduce((acc, col) => ({ ...acc, [col]: cert[col] || '' }), {})
             });
-            setEditId(cert.id);
+            setEditId(cert.id); setIsEditing(true); setViewMode(false);
+            if (cert.property_id ?? cert.hotel_id) fetchStaffForHotel(cert.property_id ?? cert.hotel_id);
+        } else { // mode === 'view'
+            setActiveCertificate(cert);
+            setForm({
+                certificate_type: cert.certificate_type ?? "",
+                property_id: cert.property_id ?? cert.hotel_id ?? "",
+                issue_date: toInputYMD(cert.issue_date) || "",
+                expiry_date: toInputYMD(cert.expiry_date) || "",
+                issued_by: cert.issued_by ?? "",
+                status: cert.status ?? "valid",
+                notes: cert.notes ?? "",
+                ...customColumns.reduce((acc, col) => ({ ...acc, [col]: cert[col] || '' }), {})
+            });
+            setEditId(cert.id); setIsEditing(false); setViewMode(true);
             if (cert.property_id ?? cert.hotel_id) fetchStaffForHotel(cert.property_id ?? cert.hotel_id);
         }
-        if (mode === 'edit') setIsEditing(true);
-        if (mode === 'view') setViewMode(true);
         setModalOpen(true);
-    }
+    };
 
     function openTaskModalForCertificate(cert) {
         if (!cert) return;
@@ -688,7 +730,6 @@ export default function Compliance() {
         if (!String(form.status || '').trim()) missing.push('Status');
         if (!String(form.issue_date || '').trim()) missing.push('Issue Date');
         if (!String(form.expiry_date || '').trim()) missing.push('Expiry Date');
-        if (!String(form.certificate_number || '').trim()) missing.push('Certificate Number');
         if (!String(form.issued_by || '').trim()) missing.push('Issued By');
         if (!String(form.notes || '').trim()) missing.push('Notes');
 
@@ -712,9 +753,9 @@ export default function Compliance() {
         const payload = {
             ...form,
             [PROPERTY_FIELD]: selectedHotelId,
+            hotel_id: selectedHotelId,
             hotel_name: hotelName,
             certificate_type: clean(form.certificate_type),
-            certificate_number: clean(form.certificate_number),
             ...Object.fromEntries(customColumns.map(col => {
                 const meta = customColumnMetadata[col] || {};
                 const inputType = meta.input_type || 'text';
@@ -774,7 +815,6 @@ export default function Compliance() {
         const base = [
             { header: 'Certificate Type', key: 'certificate_type' },
             { header: 'Property', key: 'hotel_name' },
-            { header: 'Certificate Number', key: 'certificate_number' },
             { header: 'Issue Date', key: 'issue_date' },
             { header: 'Expiry Date', key: 'expiry_date' },
             { header: 'Status', key: 'status' },
@@ -793,7 +833,6 @@ export default function Compliance() {
         const row = {
             certificate_type: c?.certificate_type || 'N/A',
             hotel_name: c?.hotel_name || c?.property_name || 'N/A',
-            certificate_number: c?.certificate_number || 'N/A',
             issue_date: c?.issue_date || 'N/A',
             expiry_date: c?.expiry_date || 'N/A',
             status: computedStatus || 'N/A',
@@ -817,7 +856,7 @@ export default function Compliance() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
 
                 {/* Header Section */}
@@ -859,23 +898,23 @@ export default function Compliance() {
                 {/* Filter Toolbar Section */}
                 <div className="flex flex-col md:flex-row items-center gap-3 mb-6">
                     <div className="flex-1 w-full relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Search certificates..."
-                            className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                            className="w-full h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-4 py-0 leading-none text-sm font-semibold text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                         />
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="relative flex-1 md:flex-none">
-                            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
+                                className="w-full h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
                             >
                                 <option value="all">All Status</option>
                                 <option value="valid">Valid</option>
@@ -886,11 +925,11 @@ export default function Compliance() {
                         </div>
 
                         <div className="relative flex-1 md:flex-none">
-                            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <Building className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             <select
                                 value={propertyFilter}
                                 onChange={(e) => setPropertyFilter(e.target.value)}
-                                className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[160px]"
+                                className="w-full h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[160px]"
                             >
                                 <option value="all">All Properties</option>
                                 {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -910,12 +949,13 @@ export default function Compliance() {
 
                 {/* Content Area */}
 
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-200">
+                <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-color)] overflow-hidden transition-all duration-200">
                     <div className="min-h-[400px]">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-64 text-slate-400 gap-3">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
                                 <p className="text-sm font-medium">Loading certificates...</p>
+
                             </div>
                         ) : filteredCertificates.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-64 text-center px-4">
@@ -932,17 +972,17 @@ export default function Compliance() {
                         ) : (
                             <div className="overflow-x-auto relative">
                                 <table className="w-full">
-                                    <thead className="bg-slate-50/50">
-                                        <tr className="border-b border-slate-200">
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Property</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Issued</th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Expires</th>
-                                            <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>Actions</th>
+                                    <thead className="bg-[var(--bg-primary)]">
+                                        <tr className="border-b border-[var(--border-color)]">
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Type</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Property</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Issued</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Expires</th>
+                                            <th className="px-6 py-4 text-right text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider sticky right-0 z-10 bg-[var(--bg-primary)]" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
+                                    <tbody className="bg-[var(--bg-surface)] divide-y divide-[var(--border-color)]">
                                         {filteredCertificates.map((c) => {
                                             const status = c.status || computeStatusFromExpiry(c.expiry_date);
                                             const hasDocument = !!(c.document_data || c.document_name || c.file_path);
@@ -950,27 +990,28 @@ export default function Compliance() {
                                             return (
                                                 <tr key={c.id} className={`transition-colors group ${isDeleting ? 'compliance-deleting' : ''}`}>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className="text-sm font-semibold text-slate-900">{c.certificate_type}</span>
+                                                        <span className="text-sm font-semibold text-[var(--text-primary)]">{c.certificate_type}</span>
                                                     </td>
 
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="p-1.5 bg-slate-50 text-slate-400 rounded-xl">
+                                                            <div className="p-1.5 bg-[var(--bg-primary)] text-[var(--text-secondary)] rounded-xl border border-[var(--border-color)]">
                                                                 <Building size={14} />
                                                             </div>
-                                                            <span className="text-sm text-slate-600 font-medium">{c.hotel_name || "Unknown Property"}</span>
+                                                            <span className="text-sm text-[var(--text-secondary)] font-medium">{c.hotel_name || "Unknown Property"}</span>
                                                         </div>
                                                     </td>
+
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <StatusBadge status={status} />
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)] font-medium">
                                                         {formatLongDate(c.issue_date)}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-secondary)] font-medium">
                                                         {formatLongDate(c.expiry_date)}
                                                     </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right sticky right-0 z-10 bg-white" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right sticky right-0 z-10 bg-[var(--bg-surface)]" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>
                                                         <div className="flex items-center justify-end gap-1 transition-opacity">
                                                             {hasDocument && (
                                                                 <button
@@ -981,6 +1022,7 @@ export default function Compliance() {
                                                                     <Eye className="w-4 h-4" />
                                                                 </button>
                                                             )}
+
                                                             <button
                                                                 onClick={() => openModal('view', c)}
                                                                 className="p-1.5 text-slate-400 rounded-xl transition-colors"
@@ -1165,7 +1207,6 @@ export default function Compliance() {
                                             <DetailField label="Status" value={form.status} />
                                             <DetailField label="Issue Date" value={formatLongDate(form.issue_date)} />
                                             <DetailField label="Expiry Date" value={formatLongDate(form.expiry_date)} />
-                                            <DetailField label="Certificate Number" value={form.certificate_number} />
                                             <DetailField label="Issued By" value={form.issued_by} />
 
                                             {customColumns.map(col => {
@@ -1260,7 +1301,7 @@ export default function Compliance() {
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-semibold text-slate-700 mb-2">Property <span className="text-red-500">*</span></label>
-                                                <select required value={form.property_id} onChange={(e) => { const pid = e.target.value; setForm({ ...form, property_id: pid, issued_by: '' }); if (pid) fetchStaffForHotel(pid); }} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white">
+                                                <select required value={form.property_id} onChange={(e) => { const pid = e.target.value; setForm({ ...form, property_id: pid }); if (pid) fetchStaffForHotel(pid); }} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white">
                                                     <option value="">Select property...</option>
                                                     {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
                                                 </select>
@@ -1282,23 +1323,12 @@ export default function Compliance() {
                                                 <input required type="date" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-semibold text-slate-700 mb-2">Certificate Number <span className="text-red-500">*</span></label>
-                                                <input
-                                                    required
-                                                    type="text"
-                                                    value={form.certificate_number}
-                                                    onChange={(e) => setForm({ ...form, certificate_number: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                                                />
-                                            </div>
-                                            <div>
                                                 <label className="block text-sm font-semibold text-slate-700 mb-2">Issued By <span className="text-red-500">*</span></label>
                                                 <input
-                                                    required
+                                                    readOnly
                                                     type="text"
                                                     value={form.issued_by}
-                                                    onChange={(e) => setForm({ ...form, issued_by: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none bg-slate-50 cursor-not-allowed text-slate-500"
                                                 />
                                             </div>
                                             <div className="md:col-span-2">

@@ -466,6 +466,7 @@ export default function MaintenancePage({ user }) {
                     'room',
                     'category',
                     'site',
+                    'service_user_id',
                     'raised_by',
                     'action',
                     'closed',
@@ -997,6 +998,8 @@ export default function MaintenancePage({ user }) {
                 }
             });
 
+            delete createData.service_user_id;
+
             const hasPhotos = Array.isArray(photos) && photos.length > 0;
             if (hasPhotos) {
                 const fd = new FormData();
@@ -1105,6 +1108,8 @@ export default function MaintenancePage({ user }) {
                     }
                 }
             });
+
+            delete updateData.service_user_id;
 
             // CRITICAL: Exclude attachments column from dynamic update to prevent corruption
             delete updateData.attachments;
@@ -1297,7 +1302,7 @@ export default function MaintenancePage({ user }) {
 
     /* ------------------------- UI RENDERER ------------------------- */
     return (
-        <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
 
                 {/* Page Header */}
@@ -1307,6 +1312,7 @@ export default function MaintenancePage({ user }) {
                         <h1 className="text-3xl font-black text-slate-900 mt-1">Maintenance Dashboard</h1>
                         <p className="text-sm text-gray-500">{stats.total} total records</p>
                     </div>
+
                     {hasCreate && (
                         <div className="flex items-center gap-3">
                             <DownloadDropdown
@@ -1453,13 +1459,13 @@ export default function MaintenancePage({ user }) {
                                 <div className="flex items-center gap-3">
                                     {/* Search Input */}
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                         <input
                                             type="text"
                                             value={query}
                                             onChange={e => setQuery(e.target.value)}
                                             placeholder="Search work orders..."
-                                            className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                            className="w-full h-9 bg-white border border-gray-300 rounded-xl !pl-14 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                                         />
                                     </div>
 
@@ -1663,11 +1669,11 @@ export default function MaintenancePage({ user }) {
                         {/* Filter Row */}
                         <div className="flex flex-wrap items-center gap-3 mb-6">
                             <div className="relative flex-1 md:flex-none">
-                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={priorityFilter}
                                     onChange={(e) => setPriorityFilter(e.target.value)}
-                                    className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
+                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
                                 >
                                     <option value="">All Priority</option>
                                     <option value="urgent">Urgent</option>
@@ -1679,11 +1685,11 @@ export default function MaintenancePage({ user }) {
                             </div>
 
                             <div className="relative flex-1 md:flex-none">
-                                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Clock className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
+                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
                                 >
                                     <option value="">All Status</option>
                                     <option value="open">Open</option>
@@ -1695,11 +1701,11 @@ export default function MaintenancePage({ user }) {
                             </div>
 
                             <div className="relative flex-1 md:flex-none">
-                                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Building className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={propertyFilter}
                                     onChange={(e) => setPropertyFilter(e.target.value)}
-                                    className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[160px]"
+                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[160px]"
                                 >
                                     <option value="">All Properties</option>
                                     {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -1708,11 +1714,11 @@ export default function MaintenancePage({ user }) {
                             </div>
 
                             <div className="relative flex-1 md:flex-none">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="w-full h-9 bg-white border border-gray-300 rounded-xl pl-10 pr-8 text-xs text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
+                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
                                 >
                                     <option value="">Sort By</option>
                                     <option value="date">Date (Newest)</option>
@@ -1732,7 +1738,7 @@ export default function MaintenancePage({ user }) {
                                         setPropertyFilter('');
                                         setSortBy('');
                                     }}
-                                    className="h-9 bg-gray-100 text-gray-700 rounded-xl px-3 text-xs font-medium transition-all flex items-center gap-2"
+                                    className="h-10 bg-gray-100 text-gray-700 rounded-xl px-3 py-0 text-sm font-semibold transition-all flex items-center gap-2"
                                 >
                                     <X className="w-4 h-4" />
                                     <span>Clear</span>
@@ -1745,50 +1751,51 @@ export default function MaintenancePage({ user }) {
                     {viewMode === 'table' ? (
                         <div className="overflow-x-auto border-t border-slate-100 relative">
                             <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-50/50">
-                                    <tr className="border-b border-slate-200">
+                                <thead className="bg-[var(--bg-primary)]">
+                                    <tr className="border-b border-[var(--border-color)]">
                                         {visibleColumns.checkbox && (
                                             <th className="text-left py-4 px-4">
                                                 <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
                                             </th>
                                         )}
                                         {visibleColumns.type && (
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">TYPE</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">TYPE</th>
                                         )}
                                         {visibleColumns.reference && (
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">REFERENCE</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">REFERENCE</th>
                                         )}
                                         {visibleColumns.description && (
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">DESCRIPTION</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">DESCRIPTION</th>
                                         )}
                                         {visibleColumns.attachments && (
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ATTACHMENTS</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">ATTACHMENTS</th>
                                         )}
                                         {visibleColumns.priority && (
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">PRIORITY</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">PRIORITY</th>
                                         )}
                                         {visibleColumns.status && (
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">STATUS</th>
                                         )}
 
                                         {visibleColumns.assigned_to && (
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ASSIGNED TO</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">ASSIGNED TO</th>
                                         )}
                                         {visibleColumns.start_date && (
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">START DATE</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider whitespace-nowrap">START DATE</th>
                                         )}
                                         {visibleColumns.due_date && (
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">DUE DATE</th>
+                                            <th className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider whitespace-nowrap">DUE DATE</th>
                                         )}
                                         {/* Custom Columns (Inserted Before Actions) */}
                                         {customColumns.filter(col => visibleColumns[col]).map(col => (
-                                            <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                            <th key={col} className="px-4 py-3 text-left text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                                                 {col.replace(/_/g, ' ')}
                                             </th>
                                         ))}
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
+                                        <th className="px-4 py-3 text-center text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider sticky right-0 z-10 bg-[var(--bg-primary)]" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
                                     </tr>
                                 </thead>
+
                                 <tbody className="bg-white divide-y divide-gray-100">
                                     {loading ? (
                                         <tr>
@@ -1954,42 +1961,17 @@ export default function MaintenancePage({ user }) {
                                         return (task.status || 'Open').toLowerCase() === status.toLowerCase();
                                     });
 
-                                    // ... (Kanban card rendering remains the same, omitted for brevity but part of full file) ...
-                                    const getStatusStyle = (status) => {
-                                        if (status === 'Open') {
-                                            return {
-                                                bg: 'bg-orange-50',
-                                                border: 'border-orange-200',
-                                                header: 'bg-orange-100',
-                                                text: 'text-orange-700',
-                                                dot: 'bg-orange-500'
-                                            };
+                                    const getStatusStyle = (s) => {
+                                        if (s === 'Open') {
+                                            return { bg: 'bg-[var(--bg-primary)]', border: 'border-[var(--border-color)]', header: 'bg-[var(--bg-surface)]', text: 'text-[var(--color-warning)]', dot: 'bg-orange-500' };
                                         }
-                                        if (status === 'Pending') {
-                                            return {
-                                                bg: 'bg-purple-50',
-                                                border: 'border-purple-200',
-                                                header: 'bg-purple-100',
-                                                text: 'text-purple-700',
-                                                dot: 'bg-purple-500'
-                                            };
+                                        if (s === 'Pending') {
+                                            return { bg: 'bg-[var(--bg-primary)]', border: 'border-[var(--border-color)]', header: 'bg-[var(--bg-surface)]', text: 'text-[var(--color-info)]', dot: 'bg-purple-500' };
                                         }
-                                        if (status === 'Completed') {
-                                            return {
-                                                bg: 'bg-emerald-50',
-                                                border: 'border-emerald-200',
-                                                header: 'bg-emerald-100',
-                                                text: 'text-emerald-700',
-                                                dot: 'bg-emerald-500'
-                                            };
+                                        if (s === 'Completed') {
+                                            return { bg: 'bg-[var(--bg-primary)]', border: 'border-[var(--border-color)]', header: 'bg-[var(--bg-surface)]', text: 'text-[var(--color-success)]', dot: 'bg-emerald-500' };
                                         }
-                                        return {
-                                            bg: 'bg-gray-50',
-                                            border: 'border-gray-200',
-                                            header: 'bg-gray-100',
-                                            text: 'text-gray-700',
-                                            dot: 'bg-gray-500'
-                                        };
+                                        return { bg: 'bg-[var(--bg-primary)]', border: 'border-[var(--border-color)]', header: 'bg-[var(--bg-surface)]', text: 'text-[var(--text-primary)]', dot: 'bg-gray-500' };
                                     };
 
                                     const style = getStatusStyle(status);
@@ -2005,74 +1987,67 @@ export default function MaintenancePage({ user }) {
                                                                 {status}
                                                             </h3>
                                                         </div>
-                                                        <span className="bg-white px-2 py-0.5 rounded-xl text-xs font-semibold text-gray-600">
+                                                        <span className="bg-[var(--bg-surface)] px-2 py-0.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] border border-[var(--border-color)]">
                                                             {statusItems.length}
                                                         </span>
                                                     </div>
+                                                </div>
 
-                                                    <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
-                                                        {statusItems.length === 0 ? (
-                                                            <div className="text-center py-8 px-4">
-                                                                <Wrench className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                                                                <p className="text-gray-400 text-sm">No tasks</p>
-                                                            </div>
-                                                        ) : (
-                                                            statusItems.map((task) => {
-                                                                const priorityColor = getPriorityColor(task.priority || "Medium");
-                                                                const isDeleting = deletingIds.has(task.id);
+                                                <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
+                                                    {statusItems.length === 0 ? (
+                                                        <div className="text-center py-8 px-4">
+                                                            <Wrench className="w-10 h-10 mx-auto mb-2 text-[var(--text-secondary)]/40" />
+                                                            <p className="text-[var(--text-secondary)] text-sm">No tasks</p>
+                                                        </div>
+                                                    ) : (
+                                                        statusItems.map((task) => {
+                                                            const priorityColor = getPriorityColor(task.priority || "Medium");
+                                                            const isDeleting = deletingIds.has(task.id);
 
-                                                                return (
-                                                                    <div
-                                                                        key={task.id}
-                                                                        className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 transition-all cursor-pointer ${isDeleting ? 'maintenance-card-deleting' : ''}`}
-                                                                        onClick={() => openView(task)}
-                                                                    >
-                                                                        {/* ... Kanban Card Content ... */}
-                                                                        <div className="flex items-center justify-between mb-2">
-                                                                            <span className="text-xs font-mono text-gray-500">{task.ref || `WO-${task.id}`}</span>
-                                                                            <div className="flex items-center gap-1.5">
-                                                                                <span className={`w-2 h-2 rounded-full ${priorityColor.dot}`}></span>
-                                                                                <span className={`text-xs font-medium ${priorityColor.text}`}>
-                                                                                    {task.priority || "Medium"}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
-                                                                            {task.title}
-                                                                        </h4>
-
-                                                                        {task.description && (
-                                                                            <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-                                                                                {task.description}
-                                                                            </p>
-                                                                        )}
-
-                                                                        <div className="flex items-center gap-1 mb-2">
-                                                                            <button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    openView(task);
-                                                                                }}
-                                                                                className="flex-1 py-1 px-2 bg-gray-50 text-gray-600 rounded-xl text-xs border border-gray-100"
-                                                                            >
-                                                                                View
-                                                                            </button>
-                                                                            <button
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    openEdit(task);
-                                                                                }}
-                                                                                className="flex-1 py-1 px-2 bg-gray-50 text-blue-600 rounded-xl text-xs border border-gray-100"
-                                                                            >
-                                                                                Edit
-                                                                            </button>
+                                                            return (
+                                                                <div
+                                                                    key={task.id}
+                                                                    className={`bg-[var(--bg-surface)] rounded-xl p-4 shadow-sm border border-[var(--border-color)] transition-all cursor-pointer ${isDeleting ? 'maintenance-card-deleting' : ''}`}
+                                                                    onClick={() => openView(task)}
+                                                                >
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <span className="text-xs font-mono text-[var(--text-secondary)]/60">{task.ref || `WO-${task.id}`}</span>
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <span className={`w-2 h-2 rounded-full ${priorityColor.dot}`}></span>
+                                                                            <span className={`text-xs font-medium ${priorityColor.text}`}>{task.priority || "Medium"}</span>
                                                                         </div>
                                                                     </div>
-                                                                );
-                                                            })
-                                                        )}
-                                                    </div>
+
+                                                                    <h4 className="font-semibold text-[var(--text-primary)] text-sm mb-2 line-clamp-2">{task.title}</h4>
+
+                                                                    {task.description && (
+                                                                        <p className="text-xs text-[var(--text-secondary)]/60 mb-3 line-clamp-2">{task.description}</p>
+                                                                    )}
+
+                                                                    <div className="flex items-center gap-1 mb-2">
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                openView(task);
+                                                                            }}
+                                                                            className="flex-1 py-1 px-2 bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-xl text-xs border border-[var(--border-color)] hover:bg-[var(--bg-primary)]/80"
+                                                                        >
+                                                                            View
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                openEdit(task);
+                                                                            }}
+                                                                            className="flex-1 py-1 px-2 bg-[var(--bg-primary)] text-[var(--accent-primary)] rounded-xl text-xs border border-[var(--border-color)] hover:bg-[var(--bg-primary)]/80"
+                                                                        >
+                                                                            Edit
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

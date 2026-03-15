@@ -19,7 +19,9 @@ import {
     AlertCircle,
     CheckCircle,
     Clock,
-    Check
+    Check,
+    Scale,
+    CheckCircle2
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -290,17 +292,21 @@ export default function Litigation({ user }) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-        .img-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .img-card:hover { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .img-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .img-card:hover { transform: translateY(-4px); border-color: #14b8a6; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4); }
         .full-view-btn { opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
         .img-card:hover .full-view-btn { opacity: 1; transform: translateY(0); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
     </style>
 </head>
 <body class="min-h-screen">
     <header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <div class="bg-blue-500/20 p-2 rounded-xl">
+            <div class="bg-teal-500/10 p-2 rounded-xl border border-teal-500/20">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             </div>
             <div>
@@ -309,8 +315,8 @@ export default function Litigation({ user }) {
             </div>
         </div>
         <div class="flex items-center gap-4 text-xs font-semibold">
-            <span class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full border border-slate-700">${urls.length} Items</span>
-            <button onclick="window.close()" class="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-full border border-red-500/20 transition-all">Close</button>
+            <span class="bg-slate-800/50 text-slate-400 px-3 py-1.5 rounded-full border border-slate-700/50">${urls.length} Items</span>
+            <button onclick="window.close()" class="bg-teal-500 text-white hover:bg-teal-600 px-4 py-1.5 rounded-full transition-all shadow-lg shadow-teal-500/20">Close</button>
         </div>
     </header>
 
@@ -327,10 +333,10 @@ export default function Litigation({ user }) {
                         </a>
                     </div>
                 </div>
-                <div class="p-4 border-t border-slate-700 bg-slate-800/30 flex items-center justify-between">
+                <div class="p-4 border-t border-slate-700/50 bg-slate-800/30 flex items-center justify-between">
                     <div>
-                        <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Attachment ${i + 1}</p>
-                        <p class="text-xs text-slate-300 font-medium truncate max-w-[140px]">IMG_REF_${Math.floor(Math.random() * 10000)}</p>
+                        <p class="text-[10px] font-bold text-teal-400 uppercase tracking-widest mb-1">Attachment ${i + 1}</p>
+                        <p class="text-xs text-slate-400 font-medium truncate max-w-[140px]">IMG_REF_${Math.floor(Math.random() * 10000)}</p>
                     </div>
                     <a href="${u}" download class="p-2 text-slate-400 hover:text-white transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -703,13 +709,13 @@ export default function Litigation({ user }) {
 
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
                 {/* Page Header */}
                 <div className="mb-6 flex items-start justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 mb-2">Litigation</h1>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex flex-col">
+                        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Litigation</h1>
+                        <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                             <Home className="w-4 h-4" />
                             <span>&gt;</span>
                             <span>Property</span>
@@ -746,7 +752,7 @@ export default function Litigation({ user }) {
 
                             <div className="px-5 py-4">
                                 <div className="flex items-center justify-between mb-3">
-                                    <div className="text-sm font-medium text-gray-700">Columns</div>
+                                    <div className="text-sm font-medium text-[var(--text-primary)]">Columns</div>
                                     <div className="flex items-center gap-3 text-xs">
                                         <button
                                             onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
@@ -756,7 +762,7 @@ export default function Litigation({ user }) {
                                         </button>
                                         <button
                                             onClick={() => setSelectedExportKeys([])}
-                                            className="text-gray-600 font-medium rounded-xl"
+                                            className="text-[var(--text-secondary)] font-medium rounded-xl"
                                         >
                                             Clear
                                         </button>
@@ -769,7 +775,8 @@ export default function Litigation({ user }) {
                                         return (
                                             <label
                                                 key={col.key}
-                                                className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer"
+                                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${checked ? 'border-teal-200 bg-teal-50/10' : 'border-[var(--border-color)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)]'
+                                                    }`}
                                             >
                                                 <input
                                                     type="checkbox"
@@ -810,65 +817,76 @@ export default function Litigation({ user }) {
                     </div>
                 )}
 
-                {/* Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-blue-50 text-blue-500 h-12 w-12 rounded-xl-[14px] flex items-center justify-center shrink-0">
-                            <Gavel size={24} strokeWidth={2} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Cases</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{stats.total}</div>
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-red-50 text-red-500 h-12 w-12 rounded-xl-[14px] flex items-center justify-center shrink-0">
-                            <AlertCircle size={24} strokeWidth={2} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">High Priority</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{stats.highPriority}</div>
+                {/* Stats Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm flex items-center gap-4 transition-all duration-200">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-12 h-12 bg-teal-500/10 rounded-xl flex items-center justify-center text-teal-600 border border-teal-500/20">
+                                <Scale className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">Total Cases</p>
+                                <h3 className="text-2xl font-black text-[var(--text-primary)]">{tasks.length}</h3>
+                            </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-yellow-50 text-yellow-500 h-12 w-12 rounded-xl-[14px] flex items-center justify-center shrink-0">
-                            <Clock size={24} strokeWidth={2} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">In Court</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{stats.inCourt}</div>
+
+                    <div className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm flex items-center gap-4 transition-all duration-200">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-600 border border-orange-500/20">
+                                <Clock className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">Pending</p>
+                                <h3 className="text-2xl font-black text-[var(--text-primary)]">{tasks.filter(t => t.status === "Pending").length}</h3>
+                            </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-emerald-50 text-emerald-500 h-12 w-12 rounded-xl-[14px] flex items-center justify-center shrink-0">
-                            <CheckCircle size={24} strokeWidth={2} />
+
+                    <div className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm flex items-center gap-4 transition-all duration-200">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-600 border border-purple-500/20">
+                                <Gavel className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">In Court</p>
+                                <h3 className="text-2xl font-black text-[var(--text-primary)]">{tasks.filter(t => t.status === "In Court").length}</h3>
+                            </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Closed</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{stats.closed}</div>
+                    </div>
+
+                    <div className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-color)] shadow-sm flex items-center gap-4 transition-all duration-200">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-600 border border-emerald-500/20">
+                                <CheckCircle2 className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">Resolved</p>
+                                <h3 className="text-2xl font-black text-[var(--text-primary)]">{tasks.filter(t => (t.status || "").toLowerCase() === "resolved" || (t.status || "").toLowerCase() === "completed").length}</h3>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Main Content Area - Litigation Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-200">
+                <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-color)] p-6 transition-all duration-200">
                     {/* Table Header Section */}
                     <div className="mb-6">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                             <div>
-                                <h2 className="text-lg font-semibold text-gray-900">All Work Orders</h2>
-                                <p className="text-sm text-gray-500">{filteredTasks.length} total records</p>
+                                <h2 className="text-lg font-bold text-[var(--text-primary)]">All Work Orders</h2>
+                                <p className="text-sm font-medium text-[var(--text-secondary)]">{filteredTasks.length} total records</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-3 justify-start sm:justify-end">
                                 {/* Search Input */}
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
                                     <input
                                         type="text"
                                         value={query}
                                         onChange={e => setQuery(e.target.value)}
                                         placeholder="Search work orders..."
-                                        className="bg-white border-2 border-gray-200 rounded-xl pl-10 pr-4 py-2 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 w-full sm:w-72 transition-all shadow-sm "
+                                        className="bg-[var(--bg-surface)] border-2 border-[var(--border-color)] rounded-xl !pl-14 pr-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 w-full sm:w-72 transition-all shadow-sm "
                                     />
                                 </div>
 
@@ -876,89 +894,64 @@ export default function Litigation({ user }) {
                                 <div className="relative" ref={viewRef}>
                                     <button
                                         onClick={() => setShowViewMenu(!showViewMenu)}
-                                        className="bg-white border border-gray-300 text-gray-700 rounded-xl px-4 py-2 text-sm font-medium transition-all flex items-center gap-2"
+                                        className="bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl px-4 py-2 text-sm font-medium transition-all flex items-center gap-2"
                                     >
                                         <Eye className="w-4 h-4" />
                                         <span>{viewMode === 'table' ? 'Table' : 'Board'}</span>
-                                        <ChevronDown className="w-4 h-4" />
+                                        <ChevronDown className="w-4 h-4 text-[var(--text-secondary)]" />
                                     </button>
                                     {showViewMenu && (
-                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-                                            <div className="p-4 bg-gray-50 border-b border-gray-100">
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <h3 className="text-sm font-bold text-gray-800">View Settings</h3>
-                                                    <button onClick={() => setShowViewMenu(false)} className="text-gray-400 rounded-xl">
-                                                        <X className="w-4 h-4" />
-                                                    </button>
+                                        <div className="absolute right-0 mt-2 w-80 bg-[var(--bg-surface)] rounded-xl shadow-xl border border-[var(--border-color)] z-50 overflow-hidden">
+                                            <div className="p-4 border-b border-[var(--border-color)]">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <span className="text-sm font-bold text-[var(--text-primary)]">Layout View</span>
+                                                    <div className="flex items-center gap-1 bg-[var(--bg-primary)] p-1 rounded-xl">
+                                                        <button
+                                                            onClick={() => setViewMode('table')}
+                                                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-teal-500 text-white shadow-md' : 'text-[var(--text-secondary)] border border-[var(--border-color)]'}`}
+                                                        >
+                                                            <Columns className="w-3.5 h-3.5" />
+                                                            Table
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setViewMode('board')}
+                                                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all ${viewMode === 'board' ? 'bg-teal-500 text-white shadow-md' : 'text-[var(--text-secondary)] border border-[var(--border-color)]'}`}
+                                                        >
+                                                            <Home className="w-3.5 h-3.5" />
+                                                            Board
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => setViewMode('table')}
-                                                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-teal-500 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200'}`}
-                                                    >
-                                                        <Columns className="w-3.5 h-3.5" /> Table
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setViewMode('board')}
-                                                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all ${viewMode === 'board' ? 'bg-teal-500 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200'}`}
-                                                    >
-                                                        <Gavel className="w-3.5 h-3.5" /> Board
-                                                    </button>
+
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm font-bold text-[var(--text-primary)]">Column Visibility</span>
+                                                    <button onClick={() => setVisibleColumns(DEFAULT_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))} className="text-[10px] text-teal-600 font-bold uppercase tracking-wider">Reset</button>
                                                 </div>
                                             </div>
 
-                                            {viewMode === 'table' && (
-                                                <div className="p-4 bg-white max-h-[400px] overflow-y-auto">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <span className="text-xs font-bold text-gray-500 uppercase">Columns</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => {
-                                                                    const updates = {};
-                                                                    DEFAULT_COLUMNS.forEach(c => updates[c] = true);
-                                                                    setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                                                }}
-                                                                className="text-xs text-teal-600 font-medium rounded-xl"
-                                                            >
-                                                                Show all
-                                                            </button>
-                                                            <span className="text-gray-300">|</span>
-                                                            <button
-                                                                onClick={() => {
-                                                                    const updates = {};
-                                                                    DEFAULT_COLUMNS.forEach(c => updates[c] = false);
-                                                                    setVisibleColumns(prev => ({ ...prev, ...updates }));
-                                                                }}
-                                                                className="text-xs text-teal-600 font-medium rounded-xl"
-                                                            >
-                                                                Hide all
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mb-2">Toggle column visibility by clicking</div>
-                                                    <div className="space-y-1">
-                                                        {DEFAULT_COLUMNS.map(col => (
-                                                            <button
-                                                                key={col}
-                                                                onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
-                                                                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-colors border ${visibleColumns[col]
-                                                                    ? 'text-gray-700 border-gray-200 bg-white'
-                                                                    : 'text-gray-500 border-gray-100 bg-gray-50'
-                                                                    }`}
-                                                            >
-                                                                <span className="capitalize font-medium">{col}</span>
-                                                                <div className="flex items-center gap-2">
-                                                                    {visibleColumns[col] ? (
-                                                                        <Eye className="w-4 h-4 text-teal-600" />
-                                                                    ) : (
-                                                                        <EyeOff className="w-4 h-4 text-gray-400" />
-                                                                    )}
-                                                                </div>
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                            <div className="p-4 bg-[var(--bg-surface)] max-h-[400px] overflow-y-auto">
+                                                <div className="space-y-1">
+                                                    {DEFAULT_COLUMNS.filter(c => c !== 'checkbox' && c !== 'actions').map(col => (
+                                                        <button
+                                                            key={col}
+                                                            onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })}
+                                                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${visibleColumns[col]
+                                                                ? 'text-teal-700 bg-teal-50/10 border border-teal-200/50'
+                                                                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] border border-transparent'
+                                                                }`}
+                                                        >
+                                                            <span className="capitalize">{col.replace('_', ' ')}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                {visibleColumns[col] ? (
+                                                                    <Eye className="w-4 h-4 text-teal-600" />
+                                                                ) : (
+                                                                    <EyeOff className="w-4 h-4 text-[var(--text-secondary)]" />
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    ))}
                                                 </div>
-                                            )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -976,13 +969,13 @@ export default function Litigation({ user }) {
                         </div>
 
                         {/* Filter and Sorting Row */}
-                        <div className="flex items-center gap-4 py-4 px-6 bg-gray-50/50 border-y border-gray-100">
+                        <div className="w-full flex flex-wrap items-center gap-3 p-4 bg-[var(--bg-surface)] rounded-2xl">
                             <div className="relative">
-                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
                                 <select
                                     value={filterPriority}
                                     onChange={e => setFilterPriority(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+                                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
                                 >
                                     <option>All Priority</option>
                                     <option value="low">Low</option>
@@ -990,15 +983,15 @@ export default function Litigation({ user }) {
                                     <option value="high">High</option>
                                     <option value="urgent">Urgent</option>
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
                             </div>
 
                             <div className="relative">
-                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
                                 <select
                                     value={filterStatus}
                                     onChange={e => setFilterStatus(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+                                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
                                 >
                                     <option>All Status</option>
                                     <option value="pending">Pending</option>
@@ -1007,28 +1000,28 @@ export default function Litigation({ user }) {
                                     <option value="completed">Completed</option>
                                     <option value="closed">Closed</option>
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
                             </div>
 
                             <div className="relative">
-                                <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Home className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
                                 <select
                                     value={filterProperty}
                                     onChange={e => setFilterProperty(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+                                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
                                 >
                                     <option>All Properties</option>
                                     {hotels.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
                             </div>
 
                             <div className="relative">
-                                <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
                                 <select
                                     value={sortBy}
                                     onChange={e => setSortBy(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+                                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
                                 >
                                     <option value="">Sort By</option>
                                     <option value="date">Date (Newest)</option>
@@ -1036,7 +1029,7 @@ export default function Litigation({ user }) {
                                     <option value="status">Status</option>
                                     <option value="title">Title</option>
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
                             </div>
 
                             {(filterPriority !== 'All Priority' || filterStatus !== 'All Status' || filterProperty !== 'All Properties' || sortBy) && (
@@ -1047,7 +1040,7 @@ export default function Litigation({ user }) {
                                         setFilterProperty('All Properties');
                                         setSortBy('');
                                     }}
-                                    className="text-sm text-red-600 font-medium whitespace-nowrap px-2 flex items-center gap-1 rounded-xl"
+                                    className="text-sm text-red-600 font-semibold whitespace-nowrap px-2 flex items-center gap-1 rounded-xl"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                     Clear Filters
@@ -1059,179 +1052,194 @@ export default function Litigation({ user }) {
                     {/* Data Display - Table or Board View */}
                     <div className="p-6">
                         {viewMode === 'table' ? (
-                            <div className="overflow-x-auto scrollbar-hide rounded-xl border border-gray-200 shadow-sm transition-all duration-200 relative">
+                            <div className="overflow-x-auto scrollbar-hide rounded-xl border border-[var(--border-color)] shadow-sm transition-all duration-200 relative">
                                 <table className="w-full">
-                                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                                        <tr className="border-b border-gray-200">
+                                    <thead className="bg-[var(--bg-primary)]">
+                                        <tr className="border-b border-[var(--border-color)]">
                                             {visibleColumns.checkbox && (
                                                 <th className="text-left py-4 px-4">
-                                                    <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
+                                                    <input type="checkbox" className="rounded-xl border-[var(--border-color)] text-teal-500 focus:ring-teal-500 bg-[var(--bg-surface)]" />
                                                 </th>
                                             )}
-                                            {visibleColumns.type && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">TYPE</th>}
-                                            {visibleColumns.reference && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">REFERENCE</th>}
-                                            {visibleColumns.description && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DESCRIPTION</th>}
-                                            {visibleColumns.attachments && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ATTACHMENTS</th>}
-                                            {visibleColumns.priority && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">PRIORITY</th>}
-                                            {visibleColumns.status && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">STATUS</th>}
-                                            {visibleColumns.assigned && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">ASSIGNED TO</th>}
-                                            {visibleColumns.date && <th className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">DATE</th>}
+                                            {visibleColumns.type && <th className="text-left py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">TYPE</th>}
+                                            {visibleColumns.reference && <th className="text-left py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">REFERENCE</th>}
+                                            {visibleColumns.description && <th className="text-left py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">DESCRIPTION</th>}
+                                            {visibleColumns.attachments && <th className="text-left py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">ATTACHMENTS</th>}
+                                            {visibleColumns.priority && <th className="text-left py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">PRIORITY</th>}
+                                            {visibleColumns.status && <th className="text-left py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">STATUS</th>}
+                                            {visibleColumns.assigned && <th className="text-left py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">ASSIGNED TO</th>}
+                                            {visibleColumns.date && <th className="text-left py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">DATE</th>}
                                             {/* Custom Columns */}
                                             {customColumns.filter(col => visibleColumns[col]).map(col => (
-                                                <th key={col} className="text-left py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                                <th key={col} className="text-left py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                                                     {col.replace(/_/g, ' ')}
                                                 </th>
                                             ))}
-                                            {visibleColumns.actions && <th className="text-center py-4 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>}
+                                            {visibleColumns.actions && <th className="text-center py-4 px-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider sticky right-0 z-10 bg-[var(--bg-primary)]" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>}
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-100">
+                                    <tbody className="bg-[var(--bg-surface)] divide-y divide-[var(--border-color)]">
                                         {tasksLoading ? (
                                             <tr>
-                                                <td colSpan="9" className="py-8 text-center text-gray-500">Loading...</td>
+                                                <td colSpan="20" className="py-12 text-center">
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <div className="w-8 h-8 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin"></div>
+                                                        <span className="text-sm font-medium text-[var(--text-secondary)]">Loading cases...</span>
+                                                    </div>
+                                                </td>
                                             </tr>
-                                        ) : filteredTasks.length > 0 ? filteredTasks.map((task, idx) => {
-                                            const priorityStyle = getPriorityColor(task.priority || "Medium");
-                                            const statusStyle = getStatusColor(task.status || "Pending");
-                                            const isDeleting = deletingIds.has(task.id);
-
-                                            return (
-                                                <tr key={idx} className={`transition-colors ${isDeleting ? 'litigation-deleting' : ''}`}>
-                                                    {visibleColumns.checkbox && (
-                                                        <td className="py-4 px-4">
-                                                            <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.type && (
-                                                        <td className="py-4 px-4">
-                                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200">
-                                                                {task.category || "Litigation"}
-                                                            </span>
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.reference && (
-                                                        <td className="py-4 px-4">
-                                                            <span className="text-slate-900 font-semibold text-sm whitespace-nowrap">{task.reference}</span>
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.description && (
-                                                        <td className="py-4 px-4">
-                                                            <div>
-                                                                <div
-                                                                    className={`text-gray-900 font-medium ${hasUpdate ? 'cursor-pointer' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`}
-                                                                    onClick={() => { setSelectedTask(task); setModalMode('edit'); setShowModal(true); }}
-                                                                >
-                                                                    <Home className="w-4 h-4 text-gray-400" />
-                                                                    <span>{task.property_name || task.propertyName || 'Unknown Property'}</span>
-                                                                </div>
-                                                                <div className="text-gray-500 text-xs mt-1 truncate max-w-[200px]">
-                                                                    {task.title || "Litigation Case"}
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.attachments && (
-                                                        <td className="py-4 px-4">
-                                                            {(() => {
-                                                                let atts = task?.attachments ?? task?.raw?.attachments ?? [];
-                                                                try {
-                                                                    if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
-                                                                } catch {
-                                                                    atts = [];
-                                                                }
-                                                                const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
-                                                                if (list.length === 0) return <span className="text-gray-400 text-sm font-medium">—</span>;
-                                                                return (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => openAttachmentsGallery(list)}
-                                                                        className="inline-flex items-center gap-2 text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-2xl transition-all hover:bg-teal-100 shadow-sm uppercase tracking-wider"
-                                                                    >
-                                                                        <span>{list.length}</span>
-                                                                        <span>Photos</span>
-                                                                    </button>
-                                                                );
-                                                            })()}
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.priority && (
-                                                        <td className="py-4 px-4">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`w-3 h-3 rounded-full ${priorityStyle.dot} shadow-sm`}></span>
-                                                                <span className={`text-sm font-semibold ${priorityStyle.text}`}>{task.priority || "Medium"}</span>
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.status && (
-                                                        <td className="py-4 px-4">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`w-3 h-3 rounded-full ${statusStyle.dot} shadow-sm`}></span>
-                                                                <span className={`text-sm font-semibold ${statusStyle.text}`}>{task.status || "Pending"}</span>
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.assigned && (
-                                                        <td className="py-4 px-4">
-                                                            {(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned) ? (
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={`w-8 h-8 rounded-full ${getAvatarColor(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)} flex items-center justify-center text-xs font-semibold shadow-sm`}>
-                                                                        {getInitials(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)}
-                                                                    </div>
-                                                                    <span className="text-gray-900 text-sm font-medium">{task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned}</span>
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-gray-400 text-sm">Unassigned</span>
-                                                            )}
-                                                        </td>
-                                                    )}
-                                                    {visibleColumns.date && (
-                                                        <td className="py-4 px-4 whitespace-nowrap">
-                                                            <span className="text-gray-900 font-medium text-sm">{formatDate(task.scheduled_date || task.date)}</span>
-                                                        </td>
-                                                    )}
-                                                    {/* Custom Column Cells */}
-                                                    {customColumns.filter(col => visibleColumns[col]).map(col => (
-                                                        <td key={col} className="py-4 px-4">
-                                                            <span className="text-gray-900 font-medium text-sm">{task[col] || '-'}</span>
-                                                        </td>
-                                                    ))}
-                                                    {visibleColumns.actions && (
-                                                        <td className="py-4 px-4 text-center sticky right-0 z-10 bg-white" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>
-                                                            <div className="flex items-center justify-center gap-1">
-                                                                <button
-                                                                    onClick={() => { setSelectedTask(task); setModalMode('view'); setShowModal(true); }}
-                                                                    className="p-1.5 text-gray-600 rounded-xl transition-all"
-                                                                    title="View"
-                                                                >
-                                                                    <Eye className="w-4 h-4" />
-                                                                </button>
-                                                                {hasUpdate && (
-                                                                    <button
-                                                                        onClick={() => { setSelectedTask(task); setModalMode('edit'); setShowModal(true); }}
-                                                                        className="p-1.5 text-gray-600 rounded-xl transition-all"
-                                                                        title="Edit"
-                                                                    >
-                                                                        <Edit className="w-4 h-4" />
-                                                                    </button>
-                                                                )}
-                                                                {hasDelete && (
-                                                                    <button
-                                                                        onClick={() => handleDelete(task)}
-                                                                        className="p-1.5 text-gray-600 rounded-xl transition-all"
-                                                                        title="Delete"
-                                                                    >
-                                                                        <Trash2 className="w-4 h-4" />
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                </tr>
-                                            );
-                                        }) : (
+                                        ) : filteredTasks.length === 0 ? (
                                             <tr>
-                                                <td colSpan="9" className="py-8 text-center text-gray-500">No tasks found.</td>
+                                                <td colSpan="20" className="py-20 text-center">
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <div className="w-16 h-16 bg-[var(--bg-primary)] rounded-full flex items-center justify-center text-[var(--text-secondary)]">
+                                                            <Filter className="w-8 h-8" />
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <h3 className="text-lg font-bold text-[var(--text-primary)]">No matching cases</h3>
+                                                            <p className="text-sm text-[var(--text-secondary)]">Try adjusting your filters or search query</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
                                             </tr>
+                                        ) : (
+                                            filteredTasks.map((t, idx) => {
+                                                const priority = getPriorityColor(t.priority || "Medium");
+                                                const status = getStatusColor(t.status || "Pending");
+                                                const isDeleting = deletingIds.has(t.id);
+
+                                                return (
+                                                    <tr
+                                                        key={t.id}
+                                                        className={`border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors group ${isDeleting ? 'litigation-deleting' : ''}`}
+                                                    >
+                                                        {visibleColumns.checkbox && (
+                                                            <td className="py-4 px-4">
+                                                                <input type="checkbox" className="rounded-xl border-[var(--border-color)] text-teal-500 focus:ring-teal-500 bg-[var(--bg-surface)]" />
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.type && (
+                                                            <td className="py-4 px-4">
+                                                                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] uppercase tracking-wider">
+                                                                    {t.caseType || t.case_type || 'Civil'}
+                                                                </span>
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.reference && (
+                                                            <td className="py-4 px-4">
+                                                                <span className="text-sm font-bold text-[var(--text-primary)]">#{t.reference || 'LIT-000'}</span>
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.description && (
+                                                            <td className="py-4 px-4 max-w-xs">
+                                                                <div
+                                                                    className={`text-sm font-bold text-[var(--text-primary)] truncate ${hasUpdate ? 'cursor-pointer' : ''} transition-colors flex items-center gap-2 whitespace-nowrap`}
+                                                                    onClick={() => { setSelectedTask(t); setModalMode('edit'); setShowModal(true); }}
+                                                                >
+                                                                    <Home className="w-4 h-4 text-[var(--text-secondary)]" />
+                                                                    <span>{t.property_name || t.propertyName || 'Unknown Property'}</span>
+                                                                </div>
+                                                                <div className="text-xs text-[var(--text-secondary)] line-clamp-1">{t.title || 'No title provided'}</div>
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.attachments && (
+                                                            <td className="py-4 px-4">
+                                                                {(() => {
+                                                                    let atts = t?.attachments ?? t?.raw?.attachments ?? [];
+                                                                    try {
+                                                                        if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
+                                                                    } catch {
+                                                                        atts = [];
+                                                                    }
+                                                                    const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
+                                                                    if (list.length === 0) return <span className="text-[var(--text-secondary)] text-sm font-medium">—</span>;
+                                                                    return (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => openAttachmentsGallery(list)}
+                                                                            className="inline-flex items-center gap-2 text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-2xl transition-all hover:bg-teal-100 shadow-sm uppercase tracking-wider"
+                                                                        >
+                                                                            <span>{list.length}</span>
+                                                                            <span>Photos</span>
+                                                                        </button>
+                                                                    );
+                                                                })()}
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.priority && (
+                                                            <td className="py-4 px-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`w-3 h-3 rounded-full ${priority.dot} shadow-sm`}></span>
+                                                                    <span className={`text-sm font-semibold ${priority.text}`}>{t.priority || "Medium"}</span>
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.status && (
+                                                            <td className="py-4 px-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`w-3 h-3 rounded-full ${status.dot} shadow-sm`}></span>
+                                                                    <span className={`text-sm font-semibold ${status.text}`}>{t.status || "Pending"}</span>
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.assigned && (
+                                                            <td className="py-4 px-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${getAvatarColor(t.assigned_to_name || t.assigned_to || t.assignedTo || t.lawyer_assigned)}`}>
+                                                                        {getInitials(t.assigned_to_name || t.assigned_to || t.assignedTo || t.lawyer_assigned)}
+                                                                    </div>
+                                                                    <span className="text-sm font-medium text-[var(--text-primary)]">{t.assigned_to_name || t.assigned_to || t.assignedTo || t.lawyer_assigned || 'Unassigned'}</span>
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                        {visibleColumns.date && (
+                                                            <td className="py-4 px-4">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm font-bold text-[var(--text-primary)]">{formatDate(t.scheduled_date || t.filing_date)}</span>
+                                                                    <span className="text-[10px] text-[var(--text-secondary)] uppercase font-semibold">Filing Date</span>
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                        {/* Custom Columns Data */}
+                                                        {customColumns.filter(col => visibleColumns[col]).map(col => (
+                                                            <td key={col} className="py-4 px-4 text-sm text-[var(--text-primary)] font-medium">
+                                                                {t[col] || '-'}
+                                                            </td>
+                                                        ))}
+                                                        {visibleColumns.actions && (
+                                                            <td className="py-4 px-4 text-center sticky right-0 z-10 bg-[var(--bg-surface)]" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    <button
+                                                                        onClick={() => { setSelectedTask(t); setModalMode('view'); setShowModal(true); }}
+                                                                        className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl transition-colors"
+                                                                        title="View"
+                                                                    >
+                                                                        <Eye className="w-4 h-4" />
+                                                                    </button>
+                                                                    {hasUpdate && (
+                                                                        <button
+                                                                            onClick={() => { setSelectedTask(t); setModalMode('edit'); setShowModal(true); }}
+                                                                            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl transition-all"
+                                                                            title="Edit"
+                                                                        >
+                                                                            <Edit className="w-4 h-4" />
+                                                                        </button>
+                                                                    )}
+                                                                    {hasDelete && (
+                                                                        <button
+                                                                            onClick={() => handleDelete(t)}
+                                                                            className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl transition-all"
+                                                                            title="Delete"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                );
+                                            })
                                         )}
                                     </tbody>
                                 </table>
@@ -1246,39 +1254,25 @@ export default function Litigation({ user }) {
                                         });
 
                                         const getStatusStyle = (status) => {
-                                            if (status === 'pending') {
-                                                return {
-                                                    bg: 'bg-orange-50',
-                                                    border: 'border-orange-200',
-                                                    header: 'bg-orange-100',
-                                                    text: 'text-orange-700',
-                                                    dot: 'bg-orange-500'
-                                                };
-                                            }
-                                            if (status === 'in court') {
-                                                return {
-                                                    bg: 'bg-purple-50',
-                                                    border: 'border-purple-200',
-                                                    header: 'bg-purple-100',
-                                                    text: 'text-purple-700',
-                                                    dot: 'bg-purple-500'
-                                                };
-                                            }
-                                            if (status === 'closed') {
-                                                return {
-                                                    bg: 'bg-emerald-50',
-                                                    border: 'border-emerald-200',
-                                                    header: 'bg-emerald-100',
-                                                    text: 'text-emerald-700',
-                                                    dot: 'bg-emerald-500'
-                                                };
-                                            }
+                                            const low = String(status || '').toLowerCase();
+                                            const isCompleted = low === 'closed' || low === 'completed' || low === 'resolved';
+                                            const isError = low === 'action required' || low === 'overdue' || low === 'failed' || low === 'escalated';
+                                            const isWarning = !isCompleted && !isError;
+
                                             return {
-                                                bg: 'bg-gray-50',
-                                                border: 'border-gray-200',
-                                                header: 'bg-gray-100',
-                                                text: 'text-gray-700',
-                                                dot: 'bg-gray-500'
+                                                bg: 'bg-[var(--bg-primary)]',
+                                                border: 'border-[var(--border-color)]',
+                                                header: 'bg-[var(--bg-surface)]',
+                                                text: isCompleted
+                                                    ? 'text-[var(--color-success)]'
+                                                    : isError
+                                                        ? 'text-[var(--color-error)]'
+                                                        : 'text-[var(--color-warning)]',
+                                                dot: isCompleted
+                                                    ? 'bg-emerald-500'
+                                                    : isError
+                                                        ? 'bg-red-500'
+                                                        : 'bg-orange-500',
                                             };
                                         };
 
@@ -1296,7 +1290,7 @@ export default function Litigation({ user }) {
                                                                     {displayStatus}
                                                                 </h3>
                                                             </div>
-                                                            <span className="bg-white px-2 py-0.5 rounded-xl text-xs font-semibold text-gray-600">
+                                                            <span className="bg-[var(--bg-surface)] px-2 py-0.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] border border-[var(--border-color)]">
                                                                 {statusItems.length}
                                                             </span>
                                                         </div>
@@ -1305,8 +1299,8 @@ export default function Litigation({ user }) {
                                                     <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                                                         {statusItems.length === 0 ? (
                                                             <div className="text-center py-8 px-4">
-                                                                <Gavel className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                                                                <p className="text-gray-400 text-sm">No cases</p>
+                                                                <Gavel className="w-10 h-10 mx-auto mb-2 text-[var(--text-secondary)]" />
+                                                                <p className="text-[var(--text-secondary)] text-sm">No cases</p>
                                                             </div>
                                                         ) : (
                                                             statusItems.map((task) => {
@@ -1316,11 +1310,11 @@ export default function Litigation({ user }) {
                                                                 return (
                                                                     <div
                                                                         key={task.id}
-                                                                        className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 transition-all cursor-pointer ${isDeleting ? 'litigation-card-deleting' : ''}`}
+                                                                        className={`bg-[var(--bg-surface)] rounded-xl p-4 shadow-sm border border-[var(--border-color)] transition-all cursor-pointer ${isDeleting ? 'litigation-card-deleting' : ''}`}
                                                                         onClick={() => { setSelectedTask(task); setModalMode('view'); setShowModal(true); }}
                                                                     >
                                                                         <div className="flex items-center justify-between mb-2">
-                                                                            <span className="text-xs font-mono text-gray-500">{task.reference}</span>
+                                                                            <span className="text-xs font-mono text-[var(--text-secondary)]">{task.reference}</span>
                                                                             <div className="flex items-center gap-1.5">
                                                                                 <span className={`w-2 h-2 rounded-full ${priorityColor.dot}`}></span>
                                                                                 <span className={`text-xs font-medium ${priorityColor.text}`}>
@@ -1329,41 +1323,41 @@ export default function Litigation({ user }) {
                                                                             </div>
                                                                         </div>
 
-                                                                        <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
+                                                                        <h4 className="font-semibold text-[var(--text-primary)] text-sm mb-2 line-clamp-2">
                                                                             {task.case_title || task.title}
                                                                         </h4>
 
                                                                         {(task.case_description || task.description) && (
-                                                                            <p className="text-xs text-gray-500 mb-3 line-clamp-2">
+                                                                            <p className="text-xs text-[var(--text-secondary)] mb-3 line-clamp-2">
                                                                                 {task.case_description || task.description}
                                                                             </p>
                                                                         )}
 
                                                                         {task.category && (
                                                                             <div className="mb-3">
-                                                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-600 rounded-xl text-xs font-medium">
+                                                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl text-xs font-medium">
                                                                                     {task.category}
                                                                                 </span>
                                                                             </div>
                                                                         )}
 
-                                                                        <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
+                                                                        <div className="flex items-center justify-between pt-3 border-t border-[var(--border-color)] mb-2">
                                                                             <div className="flex items-center gap-2">
                                                                                 {(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned) ? (
                                                                                     <>
                                                                                         <div className={`w-6 h-6 rounded-full ${getAvatarColor(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)} flex items-center justify-center text-xs font-semibold`}>
                                                                                             {getInitials(task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned)}
                                                                                         </div>
-                                                                                        <span className="text-xs text-gray-700 truncate max-w-[100px]">
+                                                                                        <span className="text-xs text-[var(--text-primary)] truncate max-w-[100px]">
                                                                                             {task.assigned_to_name || task.assigned_to || task.assignedTo || task.lawyer_assigned}
                                                                                         </span>
                                                                                     </>
                                                                                 ) : (
-                                                                                    <span className="text-xs text-gray-400">Unassigned</span>
+                                                                                    <span className="text-xs text-[var(--text-secondary)]">Unassigned</span>
                                                                                 )}
                                                                             </div>
 
-                                                                            <span className="text-xs text-gray-500">
+                                                                            <span className="text-xs text-[var(--text-secondary)]">
                                                                                 {formatDate(task.next_hearing_date)}
                                                                             </span>
                                                                         </div>
@@ -1374,7 +1368,7 @@ export default function Litigation({ user }) {
                                                                                     e.stopPropagation();
                                                                                     setSelectedTask(task); setModalMode('view'); setShowModal(true);
                                                                                 }}
-                                                                                className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"
+                                                                                className="flex-1 py-1.5 px-2 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"
                                                                                 title="View"
                                                                             >
                                                                                 <Eye className="w-3.5 h-3.5" />
@@ -1386,7 +1380,7 @@ export default function Litigation({ user }) {
                                                                                         e.stopPropagation();
                                                                                         setSelectedTask(task); setModalMode('edit'); setShowModal(true);
                                                                                     }}
-                                                                                    className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"
+                                                                                    className="p-1.5 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl transition-colors"
                                                                                     title="Edit"
                                                                                 >
                                                                                     <Edit className="w-3.5 h-3.5" />
@@ -1398,7 +1392,7 @@ export default function Litigation({ user }) {
                                                                                         e.stopPropagation();
                                                                                         handleDelete(task);
                                                                                     }}
-                                                                                    className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"
+                                                                                    className="p-1.5 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl transition-colors"
                                                                                     title="Delete"
                                                                                 >
                                                                                     <Trash2 className="w-3.5 h-3.5" />
@@ -1500,8 +1494,8 @@ function getStatusStyle(status) {
 function DetailField({ label, value }) {
     return (
         <div className="col-span-1">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
-            <p className="text-gray-900 font-medium">{value || '-'}</p>
+            <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide block mb-1">{label}</label>
+            <p className="text-[var(--text-primary)] font-medium">{value || '-'}</p>
         </div>
     );
 }
@@ -1834,8 +1828,8 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                 />
                             ))}
                             <div className="col-span-1 md:col-span-2">
-                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Description</label>
-                                <p className="text-gray-900 font-medium whitespace-pre-wrap">{form.description || '-'}</p>
+                                <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide block mb-1">Description</label>
+                                <p className="text-[var(--text-primary)] font-medium whitespace-pre-wrap">{form.description || '-'}</p>
                             </div>
 
                             {(() => {
@@ -1845,7 +1839,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                 if (list.length === 0) return null;
                                 return (
                                     <div className="col-span-1 md:col-span-2 pt-2">
-                                        <div className="text-[10px] uppercase text-gray-500 font-bold tracking-wider mb-2">ATTACHMENTS</div>
+                                        <div className="text-[10px] uppercase text-[var(--text-secondary)] font-bold tracking-wider mb-2">ATTACHMENTS</div>
                                         <button
                                             type="button"
                                             onClick={() => openAttachmentsGallery(list)}
@@ -1897,7 +1891,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                         required
                                         value={form.property}
                                         onChange={handlePropertyChange}
-                                        className="rounded-xl form-select"
+                                        className="rounded-xl form-select !h-11 !leading-normal !py-0"
                                     >
                                         <option value="">Select property</option>
                                         {hotelsLoading ? <option>Loading...</option> : hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -1909,7 +1903,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                         required
                                         value={form.category}
                                         onChange={handleCategoryChange}
-                                        className="rounded-xl form-select"
+                                        className="rounded-xl form-select !h-11 !leading-normal !py-0"
                                     >
                                         <option value="">Select category</option>
                                         {[...CATEGORY_OPTIONS, ...customCategories].map((c) => (
@@ -1957,7 +1951,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                         required
                                         value={form.priority}
                                         onChange={(e) => setForm({ ...form, priority: e.target.value })}
-                                        className="form-select rounded-xl"
+                                        className="form-select rounded-xl !h-11 !leading-normal !py-0"
                                     >
                                         <option value="low">Low</option>
                                         <option value="medium">Medium</option>
@@ -1972,7 +1966,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                             value={form.assignedTo || ''}
                                             onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value, assignedToId: '' }))}
                                             disabled={!form.property || staffLoading}
-                                            className="form-select disabled:bg-gray-100 disabled:cursor-not-allowed rounded-xl"
+                                            className="form-select disabled:bg-gray-100 disabled:cursor-not-allowed rounded-xl !h-11 !leading-normal !py-0"
                                             required
                                         >
                                             <option value="">
@@ -1995,7 +1989,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                             onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
                                             disabled={!form.property}
                                             placeholder={!form.property ? "Select property first" : "Name"}
-                                            className="form-input disabled:bg-gray-100 disabled:cursor-not-allowed rounded-xl"
+                                            className="form-input disabled:bg-gray-100 disabled:cursor-not-allowed rounded-xl !h-11 !leading-normal !py-0"
                                             required
                                         />
                                     )}
@@ -2008,7 +2002,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                         value={form.reportedBy}
                                         readOnly
                                         required
-                                        className="rounded-xl form-input bg-gray-100 cursor-not-allowed"
+                                        className="rounded-xl form-input bg-gray-100 cursor-not-allowed !h-11 !leading-normal !py-0"
                                     />
                                 </div>
                                 <div className="col-span-1">
@@ -2017,13 +2011,13 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                         type="date"
                                         value={form.scheduledDate}
                                         onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
-                                        className="form-input rounded-xl"
+                                        className="form-input rounded-xl !h-11 !leading-normal !py-0"
                                         required
                                     />
                                 </div>
 
                                 <div className="col-span-1 md:col-span-2 mt-4">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Attachments</label>
+                                    <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Attachments</label>
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -2032,7 +2026,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                             const files = Array.from(e.target.files || []);
                                             setPhotos(files);
                                         }}
-                                        className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white transition-all shadow-sm"
+                                        className="w-full border border-[var(--border-color)] rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-[var(--bg-surface)] text-[var(--text-primary)] transition-all shadow-sm"
                                     />
                                 </div>
 
@@ -2044,20 +2038,20 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                     if (list.length === 0) return null;
                                     return (
                                         <div className="col-span-1 md:col-span-2 mt-8 space-y-4">
-                                            <h3 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-4 ml-1">Existing Attachments</h3>
+                                            <h3 className="text-[11px] font-extrabold text-[var(--text-secondary)] uppercase tracking-widest mb-4 ml-1">Existing Attachments</h3>
                                             {list.map((id, idx) => (
-                                                <div key={idx} className="flex items-center justify-between bg-white border border-gray-100/80 rounded-2xl p-4 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] transition-all duration-300">
+                                                <div key={idx} className="flex items-center justify-between bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl p-4 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.07)] hover:shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] transition-all duration-300">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-                                                            <Eye size={18} className="text-slate-400" />
+                                                        <div className="w-10 h-10 bg-[var(--bg-primary)] rounded-xl flex items-center justify-center">
+                                                            <Eye size={18} className="text-[var(--text-secondary)]" />
                                                         </div>
-                                                        <span className="text-sm font-bold text-slate-700">Attachment #{idx + 1}</span>
+                                                        <span className="text-sm font-bold text-[var(--text-primary)]">Attachment #{idx + 1}</span>
                                                     </div>
                                                     <div className="flex gap-3">
                                                         <button
                                                             type="button"
                                                             onClick={() => openAttachmentsGallery([id])}
-                                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold text-teal-700 shadow-sm hover:bg-gray-50 hover:border-teal-200 transition-all uppercase tracking-wider"
+                                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl text-[11px] font-bold text-teal-700 shadow-sm hover:bg-[var(--bg-primary)] hover:border-teal-200 transition-all uppercase tracking-wider"
                                                         >
                                                             <Eye size={14} />
                                                             View
@@ -2085,7 +2079,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
 
                                     return (
                                         <div key={col} className="col-span-1">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                                                 {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} <span className="text-red-500">*</span>
                                             </label>
                                             {inputType === 'checkbox' ? (
@@ -2093,7 +2087,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                                     required
                                                     value={form[col] === true ? 'true' : form[col] === false ? 'false' : (form[col] || '')}
                                                     onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                                 >
                                                     <option value="">Select...</option>
                                                     <option value="true">Yes</option>
@@ -2104,7 +2098,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                                     required
                                                     value={form[col] || ''}
                                                     onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-white"
+                                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                                 >
                                                     <option value="">Select...</option>
                                                     {options.map((opt, idx) => (
@@ -2117,7 +2111,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                                     rows={3}
                                                     value={form[col] || ''}
                                                     onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                                 />
                                             ) : inputType === 'date' ? (
                                                 <input
@@ -2125,7 +2119,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                                     required
                                                     value={form[col] ? formatDateISO(form[col]) : ''}
                                                     onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                                 />
                                             ) : (
                                                 <input
@@ -2133,7 +2127,7 @@ function LitigationModal({ api, hotels = [], hotelsLoading = false, onClose, onR
                                                     required
                                                     value={form[col] || ''}
                                                     onChange={e => setForm({ ...form, [col]: e.target.value })}
-                                                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200"
+                                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-200 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                                     placeholder={`Enter ${col.replace(/_/g, ' ')}`}
                                                 />
                                             )}

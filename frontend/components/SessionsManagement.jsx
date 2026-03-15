@@ -288,7 +288,7 @@ const SessionsManagement = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                   <tr>
                     <th className="text-left p-3 font-semibold text-gray-700">Status</th>
                     <th className="text-left p-3 font-semibold text-gray-700">Method</th>

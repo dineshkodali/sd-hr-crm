@@ -443,7 +443,7 @@ const VCSOrganisations = () => {
 
                 const standardCols = ['id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
                     'name', 'description', 'category', 'priority', 'property_id', 'property_name', 'status',
-                    'assigned_to', 'reported_by', 'reported_date', 'scheduled_date', 'notes'];
+                    'assigned_to', 'reported_by', 'reported_date', 'scheduled_date', 'notes', 'attachments'];
                 const custom = columnNames.filter(c => !standardCols.includes(c));
 
                 // Check if custom columns changed to avoid infinite loop
@@ -895,7 +895,7 @@ const VCSOrganisations = () => {
     }), [organisations]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
                 {/* Page Header */}
                 <div className="mb-6 flex items-start justify-between">
@@ -1046,13 +1046,13 @@ const VCSOrganisations = () => {
                             <div className="flex items-center gap-3">
                                 {/* Search Input */}
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                     <input
                                         type="text"
                                         value={query}
                                         onChange={e => setQuery(e.target.value)}
                                         placeholder="Search organisations..."
-                                        className="form-input pl-10 w-72 rounded-xl"
+                                        className="form-input !pl-14 w-72 rounded-xl"
                                     />
                                 </div>
 
@@ -1253,13 +1253,13 @@ const VCSOrganisations = () => {
                         </div>
 
                         {/* Filter Row */}
-                        <div className="flex items-center gap-4 py-4 border-t border-gray-100">
+                        <div className="flex items-center gap-4 py-4 border-t border-gray-100 flex-wrap">
                             <div className="relative">
                                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <select
                                     value={filterPriority}
                                     onChange={(e) => setFilterPriority(e.target.value)}
-                                    className="form-select pl-10 rounded-xl"
+                                    className="form-select !pl-12 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
                                 >
                                     <option>All Priority</option>
                                     <option value="urgent">Urgent</option>
@@ -1274,7 +1274,7 @@ const VCSOrganisations = () => {
                                 <select
                                     value={filterStatus}
                                     onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="form-select pl-10 rounded-xl"
+                                    className="form-select !pl-12 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
                                 >
                                     <option>All Status</option>
                                     <option value="new">New</option>
@@ -1289,7 +1289,7 @@ const VCSOrganisations = () => {
                                 <select
                                     value={propertyFilter}
                                     onChange={(e) => setPropertyFilter(e.target.value)}
-                                    className="form-select pl-10 rounded-xl"
+                                    className="form-select !pl-12 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
                                 >
                                     <option value="">All Properties</option>
                                     {properties.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -1301,7 +1301,7 @@ const VCSOrganisations = () => {
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="form-select pl-10 rounded-xl"
+                                    className="form-select !pl-12 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
                                 >
                                     <option value="">Sort By</option>
                                     <option value="date">Date (Newest)</option>
@@ -1319,7 +1319,7 @@ const VCSOrganisations = () => {
                                         setPropertyFilter('');
                                         setSortBy('');
                                     }}
-                                    className="btn-secondary rounded-xl"
+                                    className="btn-secondary rounded-xl h-10 py-0 text-sm font-semibold"
                                 >
                                     <X className="w-4 h-4" />
                                     <span>Clear</span>
@@ -1332,7 +1332,7 @@ const VCSOrganisations = () => {
                     {viewMode === 'table' && (
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-200">
+                                <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                                     <tr>
                                         {visibleColumns.checkbox && (
                                             <th className="text-left py-4 px-6">
@@ -1370,7 +1370,7 @@ const VCSOrganisations = () => {
                                             </th>
                                         ))}
                                         {visibleColumns.actions && (
-                                            <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
+                                            <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider sticky right-0 z-10 bg-[var(--bg-primary)]" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
                                         )}
                                     </tr>
                                 </thead>
@@ -1520,6 +1520,140 @@ const VCSOrganisations = () => {
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+
+                    {viewMode === 'board' && (
+                        <div className="p-6">
+                            {loading ? (
+                                <div className="py-10 text-center text-gray-500">Loading organisations...</div>
+                            ) : filteredOrganisations.length > 0 ? (
+                                (() => {
+                                    const columns = [
+                                        { key: 'new', title: 'New' },
+                                        { key: 'pending', title: 'Pending' },
+                                        { key: 'completed', title: 'Completed' },
+                                        { key: 'resolved', title: 'Resolved' },
+                                    ];
+
+                                    const byStatus = (filteredOrganisations || []).reduce((acc, org) => {
+                                        const s = String(org?.status || 'new').toLowerCase();
+                                        const normalized = s === 'in progress' ? 'pending' : s;
+                                        if (!acc[normalized]) acc[normalized] = [];
+                                        acc[normalized].push(org);
+                                        return acc;
+                                    }, {});
+
+                                    return (
+                                        <div className="overflow-x-auto">
+                                            <div className="flex gap-4 min-w-[900px]">
+                                                {columns.map((col) => {
+                                                    const items = byStatus[col.key] || [];
+                                                    return (
+                                                        <div key={col.key} className="w-80 shrink-0">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <div className="text-xs font-bold uppercase tracking-widest text-gray-600">{col.title}</div>
+                                                                <div className="text-xs font-semibold text-gray-500">{items.length}</div>
+                                                            </div>
+                                                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 min-h-[220px]">
+                                                                <div className="space-y-3">
+                                                                    {items.map((organisation) => {
+                                                                        const priorityStyle = getPriorityColor(organisation.priority || 'medium');
+                                                                        const statusStyle = getStatusColor(organisation.status || col.key);
+                                                                        const resolvedProperty = resolvePropertyName(organisation);
+
+                                                                        return (
+                                                                            <div
+                                                                                key={organisation.id}
+                                                                                className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm"
+                                                                            >
+                                                                                <div className="flex items-start justify-between gap-3">
+                                                                                    <div className="min-w-0">
+                                                                                        <div className="text-sm font-semibold text-gray-900 truncate">
+                                                                                            {organisation.name || 'Untitled'}
+                                                                                        </div>
+                                                                                        <div className="text-xs text-gray-500 mt-1 truncate">
+                                                                                            {resolvedProperty}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="shrink-0 flex items-center gap-1">
+                                                                                        <button
+                                                                                            onClick={() => handleViewClick(organisation)}
+                                                                                            className="p-1.5 text-gray-600 rounded-xl transition-all"
+                                                                                            title="View"
+                                                                                        >
+                                                                                            <Eye className="w-4 h-4" />
+                                                                                        </button>
+                                                                                        {hasUpdate && (
+                                                                                            <button
+                                                                                                onClick={() => handleEditClick(organisation)}
+                                                                                                className="p-1.5 text-gray-600 rounded-xl transition-all"
+                                                                                                title="Edit"
+                                                                                            >
+                                                                                                <Edit className="w-4 h-4" />
+                                                                                            </button>
+                                                                                        )}
+                                                                                        {hasDelete && (
+                                                                                            <button
+                                                                                                onClick={() => handleDeleteClick(organisation)}
+                                                                                                className="p-1.5 text-gray-600 rounded-xl transition-all"
+                                                                                                title="Delete"
+                                                                                            >
+                                                                                                <Trash2 className="w-4 h-4" />
+                                                                                            </button>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className="mt-3 flex items-center justify-between gap-3">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className={`w-2.5 h-2.5 rounded-full ${priorityStyle.dot} shadow-sm`}></span>
+                                                                                        <span className={`text-xs font-semibold ${priorityStyle.text}`}>{organisation.priority || 'Medium'}</span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className={`w-2.5 h-2.5 rounded-full ${statusStyle.dot} shadow-sm`}></span>
+                                                                                        <span className={`text-xs font-semibold ${statusStyle.text}`}>{organisation.status || col.title}</span>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div className="mt-3 flex items-center justify-between gap-3">
+                                                                                    <div className="text-xs text-gray-500 truncate">
+                                                                                        {formatDate(organisation.scheduled_date) || '—'}
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        {!organisation.assigned_to ? (
+                                                                                            <span className="text-xs text-gray-500">Unassigned</span>
+                                                                                        ) : (
+                                                                                            <>
+                                                                                                <div className={`w-7 h-7 rounded-full ${getAvatarColor(organisation.assigned_to)} flex items-center justify-center text-[10px] font-semibold shadow-sm`}>
+                                                                                                    {getInitials(organisation.assigned_to)}
+                                                                                                </div>
+                                                                                                <span className="text-xs font-medium text-gray-700 max-w-[120px] truncate">
+                                                                                                    {organisation.assigned_to}
+                                                                                                </span>
+                                                                                            </>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+
+                                                                    {!items.length && (
+                                                                        <div className="py-8 text-center text-gray-500 text-sm">No items</div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })()
+                            ) : (
+                                <div className="py-10 text-center text-gray-500">No organisations found.</div>
+                            )}
                         </div>
                     )}
 

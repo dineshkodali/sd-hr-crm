@@ -11,6 +11,60 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+let cachedHseIncidentsSchema = null;
+let cachedHseIncidentsSchemaAt = 0;
+const HSE_INCIDENTS_SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getHseIncidentsSchema() {
+    const now = Date.now();
+    if (
+        cachedHseIncidentsSchema &&
+        cachedHseIncidentsSchemaAt &&
+        now - cachedHseIncidentsSchemaAt < HSE_INCIDENTS_SCHEMA_CACHE_TTL_MS
+    ) {
+        return cachedHseIncidentsSchema;
+    }
+
+    try {
+        const { rows: colRows } = await pool.query(
+            `SELECT column_name, data_type, udt_name
+         FROM information_schema.columns
+         WHERE table_name = 'hse_incidents' AND table_schema = 'public'`
+        );
+        const existingCols = colRows.map((r) => r.column_name);
+        const columnTypeByName = Object.fromEntries(
+            colRows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
+        );
+
+        cachedHseIncidentsSchema = { existingCols, columnTypeByName };
+        cachedHseIncidentsSchemaAt = now;
+        return cachedHseIncidentsSchema;
+    } catch (schemaErr) {
+        console.error('Error querying hse_incidents schema:', schemaErr);
+        const existingCols = [
+            'id',
+            'reference',
+            'incident_type',
+            'severity',
+            'property_id',
+            'property_name',
+            'affected_person',
+            'reported_by',
+            'details',
+            'assigned_investigator',
+            'status',
+            'incident_date',
+            'created_at',
+            'updated_at',
+            'attachments',
+        ];
+        const columnTypeByName = {};
+        cachedHseIncidentsSchema = { existingCols, columnTypeByName };
+        cachedHseIncidentsSchemaAt = now;
+        return cachedHseIncidentsSchema;
+    }
+}
+
 let hseIncidentsAttachmentsReady = false;
 async function ensureHseIncidentsAttachments() {
     if (hseIncidentsAttachmentsReady) return true;
@@ -245,23 +299,7 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
         if (!status || String(status).trim() === '') missing.push('status');
         if (!incident_date || String(incident_date).trim() === '') missing.push('incident_date');
 
-        // Get existing columns
-        let existingCols = [];
-        let columnTypeByName = {};
-        try {
-            const { rows: colRows } = await pool.query(
-                `SELECT column_name, data_type, udt_name
-         FROM information_schema.columns
-         WHERE table_name = 'hse_incidents' AND table_schema = 'public'`
-            );
-            existingCols = colRows.map(r => r.column_name);
-            columnTypeByName = Object.fromEntries(
-                colRows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
-            );
-        } catch (schemaErr) {
-            console.error('Error querying schema:', schemaErr);
-            existingCols = ['id', 'reference', 'incident_type', 'severity', 'property_id', 'property_name', 'affected_person', 'reported_by', 'details', 'assigned_investigator', 'status', 'incident_date', 'created_at', 'updated_at'];
-        }
+        const { existingCols, columnTypeByName } = await getHseIncidentsSchema();
 
         const normalizeUpdateValue = (col, val) => {
             if (val === '') return null;
@@ -284,9 +322,10 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
         let idx = valuesToInsert.length + 1;
 
         // Handle custom columns
-        const standardCols = ['id', 'reference', 'incident_type', 'severity', 'property_id', 'property_name', 'affected_person', 'reported_by', 'details', 'assigned_investigator', 'status', 'incident_date', 'created_at', 'updated_at'];
+        const standardCols = ['id', 'reference', 'incident_type', 'severity', 'property_id', 'property_name', 'affected_person', 'reported_by', 'details', 'assigned_investigator', 'status', 'incident_date', 'created_at', 'updated_at', 'attachments'];
         for (const col of existingCols) {
             if (standardCols.includes(col)) continue;
+            if (col === 'attachments') continue;
             const v = req.body[col];
             const camel = String(col).replace(/_([a-z])/g, (g) => g[1].toUpperCase());
             const v2 = v === undefined ? req.body[camel] : v;
@@ -364,23 +403,7 @@ router.patch('/:id', protect, upload.array('photos', 10), async (req, res) => {
             }
         }
 
-        // Get existing columns
-        let existingCols = [];
-        let columnTypeByName = {};
-        try {
-            const { rows: colRows } = await pool.query(`
-        SELECT column_name, data_type, udt_name
-        FROM information_schema.columns
-        WHERE table_name = 'hse_incidents' AND table_schema = 'public'
-      `);
-            existingCols = colRows.map((r) => r.column_name);
-            columnTypeByName = Object.fromEntries(
-                colRows.map((r) => [r.column_name, String(r.data_type || r.udt_name || '').toLowerCase()])
-            );
-        } catch (schemaErr) {
-            console.error('Error querying schema:', schemaErr);
-            existingCols = ['id', 'reference', 'incident_type', 'severity', 'property_id', 'property_name', 'affected_person', 'reported_by', 'details', 'assigned_investigator', 'status', 'incident_date', 'created_at', 'updated_at'];
-        }
+        const { existingCols, columnTypeByName } = await getHseIncidentsSchema();
 
         const normalizeUpdateValue = (col, val) => {
             if (val === '') return null;

@@ -274,11 +274,13 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
         const standardColumns = [
             'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
             'title', 'description', 'property_id', 'property_name', 'category',
-            'priority', 'assigned_to', 'reported_by', 'scheduled_date', 'status'
+            'priority', 'assigned_to', 'reported_by', 'scheduled_date', 'status',
+            'attachments', 'deleted', 'deleted_at'
         ];
 
         // Find custom columns
-        const customColumns = allColumns.filter(col => !standardColumns.includes(col));
+        const standardCols = new Set(standardColumns);
+        const customColumns = allColumns.filter(col => !standardCols.has(col));
 
         const missing = [];
         if (!req.body.title || String(req.body.title).trim() === '') missing.push('title');

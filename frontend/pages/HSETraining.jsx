@@ -544,6 +544,7 @@ export default function HSETraining({ user }) {
         fetchStaffForHotel(formData.property_id);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showModal, mode, formData?.property_id]);
+
     const closeModal = () => {
         setShowModal(false);
         setSelected(null);
@@ -724,7 +725,6 @@ export default function HSETraining({ user }) {
         }
     };
 
-
     const doDelete = async (id) => {
         if (!id) return;
         setConfirmDialog({
@@ -884,7 +884,7 @@ export default function HSETraining({ user }) {
 
     return (
         <>
-            <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+            <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
                 <div className="p-3 sm:p-4 md:p-6">
                     {/* Page Header */}
                     <div className="mb-6 flex items-start justify-between">
@@ -1034,13 +1034,13 @@ export default function HSETraining({ user }) {
                                 <div className="flex items-center gap-3">
                                     {/* Search Input */}
                                     <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                                         <input
                                             type="text"
                                             value={query}
                                             onChange={e => setQuery(e.target.value)}
                                             placeholder="Search..."
-                                            className="form-input pl-10 w-72 rounded-xl"
+                                            className="form-input !pl-14 w-72 rounded-xl"
                                         />
                                     </div>
 
@@ -1158,7 +1158,7 @@ export default function HSETraining({ user }) {
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* Custom Columns Section - All custom columns */}
+                                                                    {/* Custom Columns Section */}
                                                                     {customColumns.length > 0 && (
                                                                         <div className="pt-4 border-t border-gray-200">
                                                                             <div className="flex items-center justify-between mb-2">
@@ -1243,11 +1243,11 @@ export default function HSETraining({ user }) {
                             {/* Filter Row */}
                             <div className="flex items-center gap-3 flex-wrap">
                                 <div className="relative">
-                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     <select
                                         value={priorityFilter}
                                         onChange={(e) => setPriorityFilter(e.target.value)}
-                                        className="form-select pl-10 rounded-xl"
+                                        className="form-select !pl-14 pr-10 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
                                     >
                                         <option value="">All Priorities</option>
                                         <option value="Urgent">Urgent</option>
@@ -1258,11 +1258,11 @@ export default function HSETraining({ user }) {
                                 </div>
 
                                 <div className="relative">
-                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     <select
                                         value={statusFilter}
                                         onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="form-select pl-10 rounded-xl"
+                                        className="form-select !pl-14 pr-10 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
                                     >
                                         <option value="">All Statuses</option>
                                         <option value="Open">Open</option>
@@ -1273,11 +1273,11 @@ export default function HSETraining({ user }) {
                                 </div>
 
                                 <div className="relative">
-                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     <select
                                         value={propertyFilter}
                                         onChange={(e) => setPropertyFilter(e.target.value)}
-                                        className="form-select pl-10 rounded-xl"
+                                        className="form-select !pl-14 pr-10 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
                                     >
                                         <option value="">All Properties</option>
                                         {hotels.map(h => (
@@ -1287,11 +1287,11 @@ export default function HSETraining({ user }) {
                                 </div>
 
                                 <div className="relative">
-                                    <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                     <select
                                         value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value)}
-                                        className="form-select pl-10 rounded-xl"
+                                        className="form-select !pl-14 pr-10 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
                                     >
                                         <option value="">Sort By</option>
                                         <option value="date">Date (Newest)</option>
@@ -1309,46 +1309,19 @@ export default function HSETraining({ user }) {
                                             setPropertyFilter("");
                                             setSortBy("");
                                         }}
-                                        className="btn-secondary rounded-xl"
+                                        className="btn-secondary rounded-xl h-10 py-0 text-sm font-semibold"
                                     >
                                         Clear Filters
                                     </button>
                                 )}
                             </div>
-
-                            {/* Old Filter Row - Keep for backward compatibility */}
-                            <div className="hidden">
-                                <select
-                                    value={filterPriority}
-                                    onChange={(e) => setFilterPriority(e.target.value)}
-                                    className="bg-gray-100 border border-gray-200 rounded-xl px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                >
-                                    <option value="All">All Priority</option>
-                                    {priorities.map(p => <option key={p} value={p}>{p}</option>)}
-                                </select>
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="bg-gray-100 border border-gray-200 rounded-xl px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                >
-                                    <option value="All">All Status</option>
-                                    <option>Open</option>
-                                    <option>Pending</option>
-                                    <option>Completed</option>
-                                    <option>Overdue</option>
-                                </select>
-                                <select className="bg-gray-100 border border-gray-200 rounded-xl px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                                    <option>All Properties</option>
-                                    {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                                </select>
-                            </div>
-                        </div>
+                        </div>{/* end mb-6 Table Header Section */}
 
                         {/* Data Display - Table or Board View */}
                         {viewMode === 'table' ? (
                             <div className="overflow-x-auto scrollbar-hide relative">
                                 <table className="w-full">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                    <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                                         <tr>
                                             {visibleColumns.checkbox && (
                                                 <th className="text-left py-4 px-4">
@@ -1386,7 +1359,7 @@ export default function HSETraining({ user }) {
                                                 </th>
                                             ))}
                                             {visibleColumns.actions && (
-                                                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
+                                                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider sticky right-0 z-10 bg-[var(--bg-primary)]" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
                                             )}
                                         </tr>
                                     </thead>
@@ -1553,39 +1526,24 @@ export default function HSETraining({ user }) {
                                         });
 
                                         const getStatusStyle = (status) => {
-                                            if (status === 'Scheduled') {
-                                                return {
-                                                    bg: 'bg-orange-50',
-                                                    border: 'border-orange-200',
-                                                    header: 'bg-orange-100',
-                                                    text: 'text-orange-700',
-                                                    dot: 'bg-orange-500'
-                                                };
-                                            }
-                                            if (status === 'In Progress') {
-                                                return {
-                                                    bg: 'bg-purple-50',
-                                                    border: 'border-purple-200',
-                                                    header: 'bg-purple-100',
-                                                    text: 'text-purple-700',
-                                                    dot: 'bg-purple-500'
-                                                };
-                                            }
-                                            if (status === 'Completed') {
-                                                return {
-                                                    bg: 'bg-emerald-50',
-                                                    border: 'border-emerald-200',
-                                                    header: 'bg-emerald-100',
-                                                    text: 'text-emerald-700',
-                                                    dot: 'bg-emerald-500'
-                                                };
-                                            }
+                                            const low = String(status || '').toLowerCase();
+                                            const isCompleted = low === 'completed' || low === 'closed' || low === 'passed' || low === 'resolved';
+                                            const isError = low === 'action required' || low === 'overdue' || low === 'failed' || low === 'escalated';
+
                                             return {
-                                                bg: 'bg-gray-50',
-                                                border: 'border-gray-200',
-                                                header: 'bg-gray-100',
-                                                text: 'text-gray-700',
-                                                dot: 'bg-gray-500'
+                                                bg: 'bg-[var(--bg-primary)]',
+                                                border: 'border-[var(--border-color)]',
+                                                header: 'bg-[var(--bg-surface)]',
+                                                text: isCompleted
+                                                    ? 'text-[var(--color-success)]'
+                                                    : isError
+                                                        ? 'text-[var(--color-error)]'
+                                                        : 'text-[var(--color-warning)]',
+                                                dot: isCompleted
+                                                    ? 'bg-emerald-500'
+                                                    : isError
+                                                        ? 'bg-red-500'
+                                                        : 'bg-orange-500',
                                             };
                                         };
 
@@ -1602,7 +1560,7 @@ export default function HSETraining({ user }) {
                                                                     {status}
                                                                 </h3>
                                                             </div>
-                                                            <span className="bg-white px-2 py-0.5 rounded-xl text-xs font-semibold text-gray-600">
+                                                            <span className="bg-[var(--bg-surface)] px-2 py-0.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] border border-[var(--border-color)]">
                                                                 {statusItems.length}
                                                             </span>
                                                         </div>
@@ -1611,8 +1569,8 @@ export default function HSETraining({ user }) {
                                                     <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                                                         {statusItems.length === 0 ? (
                                                             <div className="text-center py-8 px-4">
-                                                                <GraduationCap className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                                                                <p className="text-gray-400 text-sm">No trainings</p>
+                                                                <GraduationCap className="w-10 h-10 mx-auto mb-2 text-[var(--text-secondary)]" />
+                                                                <p className="text-[var(--text-secondary)] text-sm">No trainings</p>
                                                             </div>
                                                         ) : (
                                                             statusItems.map((training) => {
@@ -1622,11 +1580,11 @@ export default function HSETraining({ user }) {
                                                                 return (
                                                                     <div
                                                                         key={training.id}
-                                                                        className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 transition-all cursor-pointer ${isDeleting ? 'hse-training-card-deleting' : ''}`}
+                                                                        className={`bg-[var(--bg-surface)] rounded-xl p-4 shadow-sm border border-[var(--border-color)] transition-all cursor-pointer ${isDeleting ? 'hse-training-card-deleting' : ''}`}
                                                                         onClick={() => { setSelected(training); setMode('view'); setShowModal(true); }}
                                                                     >
                                                                         <div className="flex items-center justify-between mb-2">
-                                                                            <span className="text-xs font-mono text-gray-500">{training.reference || `TRN-${training.id}`}</span>
+                                                                            <span className="text-xs font-mono text-[var(--text-secondary)]">{training.reference || `TRN-${training.id}`}</span>
                                                                             <div className="flex items-center gap-1.5">
                                                                                 <span className={`w-2 h-2 rounded-full ${priorityColor.dot}`}></span>
                                                                                 <span className={`text-xs font-medium ${priorityColor.text}`}>
@@ -1635,12 +1593,12 @@ export default function HSETraining({ user }) {
                                                                             </div>
                                                                         </div>
 
-                                                                        <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
+                                                                        <h4 className="font-semibold text-[var(--text-primary)] text-sm mb-2 line-clamp-2">
                                                                             {training.title || "Training Session"}
                                                                         </h4>
 
                                                                         {training.description && (
-                                                                            <p className="text-xs text-gray-500 mb-3 line-clamp-2">
+                                                                            <p className="text-xs text-[var(--text-secondary)] mb-3 line-clamp-2">
                                                                                 {training.description}
                                                                             </p>
                                                                         )}
@@ -1653,23 +1611,23 @@ export default function HSETraining({ user }) {
                                                                             )}
                                                                         </div>
 
-                                                                        <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
+                                                                        <div className="flex items-center justify-between pt-3 border-t border-[var(--border-color)] mb-2">
                                                                             <div className="flex items-center gap-2">
                                                                                 {training.assigned_to && training.assigned_to !== 'Unassigned' ? (
                                                                                     <>
                                                                                         <div className={`w-6 h-6 rounded-full ${getAvatarColor(training.assigned_to)} flex items-center justify-center text-xs font-semibold`}>
                                                                                             {getInitials(training.assigned_to)}
                                                                                         </div>
-                                                                                        <span className="text-xs text-gray-700 truncate max-w-[100px]">
+                                                                                        <span className="text-xs text-[var(--text-primary)] truncate max-w-[100px]">
                                                                                             {training.assigned_to}
                                                                                         </span>
                                                                                     </>
                                                                                 ) : (
-                                                                                    <span className="text-xs text-gray-400">Unassigned</span>
+                                                                                    <span className="text-xs text-[var(--text-secondary)]">Unassigned</span>
                                                                                 )}
                                                                             </div>
 
-                                                                            <span className="text-xs text-gray-500">
+                                                                            <span className="text-xs text-[var(--text-secondary)]">
                                                                                 {formatDate(training.scheduled_date)}
                                                                             </span>
                                                                         </div>
@@ -1680,31 +1638,33 @@ export default function HSETraining({ user }) {
                                                                                     e.stopPropagation();
                                                                                     setSelected(training); setMode('view'); setShowModal(true);
                                                                                 }}
-                                                                                className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"
+                                                                                className="flex-1 py-1.5 px-2 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl transition-colors text-xs font-medium flex items-center justify-center gap-1"
                                                                                 title="View"
                                                                             >
                                                                                 <Eye className="w-3.5 h-3.5" />
                                                                                 View
                                                                             </button>
+
                                                                             {hasUpdate && (
                                                                                 <button
                                                                                     onClick={(e) => {
                                                                                         e.stopPropagation();
                                                                                         setSelected(training); setMode('edit'); setFormData({ ...training }); setShowModal(true);
                                                                                     }}
-                                                                                    className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"
+                                                                                    className="p-1.5 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl transition-colors"
                                                                                     title="Edit"
                                                                                 >
                                                                                     <Edit className="w-3.5 h-3.5" />
                                                                                 </button>
                                                                             )}
+
                                                                             {hasDelete && (
                                                                                 <button
                                                                                     onClick={(e) => {
                                                                                         e.stopPropagation();
                                                                                         doDelete(training.id);
                                                                                     }}
-                                                                                    className="p-1.5 bg-gray-50 text-gray-700 rounded-xl transition-colors"
+                                                                                    className="p-1.5 bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-xl transition-colors"
                                                                                     title="Delete"
                                                                                 >
                                                                                     <Trash2 className="w-3.5 h-3.5" />
@@ -1723,7 +1683,7 @@ export default function HSETraining({ user }) {
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </div>{/* end Main Content Area */}
                 </div>
 
                 {/* ----------------- MODAL SECTION ----------------- */}
@@ -2174,7 +2134,7 @@ export default function HSETraining({ user }) {
                         </div>
                     </div>
                 )}
-            </div >
+            </div>
             <ConfirmDialog
                 isOpen={confirmDialog.isOpen}
                 onClose={() => setConfirmDialog(p => ({ ...p, isOpen: false }))}

@@ -339,7 +339,7 @@ export async function createTask(req, res) {
     const allColumns = columnsResult.rows.map(r => r.column_name);
     // Standard columns
     const standardColumns = [
-      'id', 'reference', 'type', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'reported_by', 'assigned_to_id', 'assigned_to_name', 'scheduled_date', 'due_date', 'status', 'created_by_id', 'created_at', 'updated_at', 'deleted', 'completed_date', 'notes'
+      'id', 'reference', 'type', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'reported_by', 'assigned_to_id', 'assigned_to_name', 'scheduled_date', 'due_date', 'status', 'created_by_id', 'created_at', 'updated_at', 'deleted', 'completed_date', 'notes', 'attachments'
     ];
     // Find custom columns
     const customColumns = allColumns.filter(col => !standardColumns.includes(col));
@@ -462,7 +462,7 @@ export async function updateTask(req, res) {
     const allColumns = columnsResult.rows.map(r => r.column_name);
     // Standard columns
     const standardColumns = [
-      'id', 'reference', 'type', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'reported_by', 'assigned_to_id', 'assigned_to_name', 'scheduled_date', 'due_date', 'status', 'created_by_id', 'created_at', 'updated_at', 'deleted', 'completed_date', 'notes'
+      'id', 'reference', 'type', 'title', 'description', 'property_id', 'property_name', 'category', 'priority', 'reported_by', 'assigned_to_id', 'assigned_to_name', 'scheduled_date', 'due_date', 'status', 'created_by_id', 'created_at', 'updated_at', 'deleted', 'completed_date', 'notes', 'attachments'
     ];
     // Find updatable columns
     const updatableColumns = allColumns.filter(col => col !== 'id' && col !== 'created_at' && col !== 'reference' && col !== 'attachments');

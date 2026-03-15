@@ -299,7 +299,7 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
     const standardColumns = [
       'id', 'reference', 'created_at', 'updated_at', 'created_by', 'updated_by',
       'name', 'description', 'category', 'priority', 'property_id', 'property_name', 'status',
-      'assigned_to', 'reported_by', 'reported_date', 'scheduled_date', 'notes'
+      'assigned_to', 'reported_by', 'reported_date', 'scheduled_date', 'notes', 'attachments'
     ];
     // Find custom columns
     const customColumns = allColumns.filter(col => !standardColumns.includes(col));

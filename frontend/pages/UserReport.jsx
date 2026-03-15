@@ -313,8 +313,8 @@ export default function UserReport() {
 
  <div className="p-4 overflow-x-auto">
  <table className="w-full text-sm">
- <thead>
- <tr className="text-left text-xs text-gray-500 border-b">
+ <thead className="bg-[var(--bg-primary)]">
+ <tr className="text-left text-xs text-gray-500 border-b border-[var(--border-color)]">
  {/* checkbox column removed */}
  <th className="p-3">Name</th>
  <th className="p-3">Email</th>

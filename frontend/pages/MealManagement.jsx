@@ -801,7 +801,7 @@ export default function MealManagement({ user }) {
 
     if (permissionsLoading) {
         return (
-            <div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700">
+            <div className="p-8 bg-[var(--bg-primary)] min-h-screen font-sans text-[var(--text-primary)]">
                 <div className="p-3 sm:p-4 md:p-6">
                     <div className="min-h-[40vh] flex items-center justify-center text-sm text-gray-500">Loading...</div>
                 </div>
@@ -811,9 +811,9 @@ export default function MealManagement({ user }) {
 
     if (!canReadPage) {
         return (
-            <div className="p-8 bg-gray-50 min-h-screen font-sans text-slate-700">
+            <div className="p-8 bg-[var(--bg-primary)] min-h-screen font-sans text-[var(--text-primary)]">
                 <div className="p-3 sm:p-4 md:p-6">
-                    <div className="bg-white border border-gray-200 rounded-xl p-6 text-sm text-gray-700">
+                    <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl p-6 text-sm text-[var(--text-secondary)]">
                         You do not have permission to view Meals.
                     </div>
                 </div>
@@ -822,13 +822,13 @@ export default function MealManagement({ user }) {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
                 {/* Page Header */}
                 <div className="mb-6 flex items-start justify-between">
                     <div>
                         <Breadcrumbs items={[{ label: 'Meals' }, { label: 'Meal Management' }]} />
-                        <h1 className="text-3xl font-black text-slate-900 mt-1">Meal Management Dashboard</h1>
+                        <h1 className="text-3xl font-black text-[var(--text-primary)] mt-1">Meal Management Dashboard</h1>
                     </div>
                     <div className="flex items-center gap-3">
                         <DownloadDropdown
@@ -840,15 +840,15 @@ export default function MealManagement({ user }) {
 
                 {showExportModal && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-                        <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
-                            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                        <div className="w-full max-w-2xl rounded-xl bg-[var(--bg-surface)] shadow-2xl border border-[var(--border-color)] overflow-hidden">
+                            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)]">
                                 <div>
-                                    <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
-                                    <div className="text-xs text-gray-500 mt-0.5">Select the columns you want to include</div>
+                                    <div className="text-lg font-semibold text-[var(--text-primary)]">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                                    <div className="text-xs text-[var(--text-secondary)]/60 mt-0.5">Select the columns you want to include</div>
                                 </div>
                                 <button
                                     onClick={closeExport}
-                                    className="p-2 rounded-xl text-gray-500"
+                                    className="p-2 rounded-xl text-[var(--text-secondary)]/40 hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors"
                                     title="Close"
                                 >
                                     <X size={18} />
@@ -857,17 +857,17 @@ export default function MealManagement({ user }) {
 
                             <div className="px-5 py-4">
                                 <div className="flex items-center justify-between mb-3">
-                                    <div className="text-sm font-medium text-gray-700">Columns</div>
+                                    <div className="text-sm font-medium text-[var(--text-primary)]">Columns</div>
                                     <div className="flex items-center gap-3 text-xs">
                                         <button
                                             onClick={() => setSelectedExportKeys(exportColumns.map((c) => c.key))}
-                                            className="text-teal-600 font-medium rounded-xl"
+                                            className="text-teal-500 font-medium rounded-xl hover:text-teal-600 transition-colors"
                                         >
                                             Select all
                                         </button>
                                         <button
                                             onClick={() => setSelectedExportKeys([])}
-                                            className="text-gray-600 font-medium rounded-xl"
+                                            className="text-[var(--text-secondary)]/60 font-medium rounded-xl hover:text-[var(--text-primary)] transition-colors"
                                         >
                                             Clear
                                         </button>
@@ -880,7 +880,7 @@ export default function MealManagement({ user }) {
                                         return (
                                             <label
                                                 key={col.key}
-                                                className="flex items-center gap-2 p-2 rounded-xl border border-gray-100"
+                                                className="flex items-center gap-2 p-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)]/50 cursor-pointer hover:bg-[var(--bg-primary)] transition-colors"
                                             >
                                                 <input
                                                     type="checkbox"
@@ -894,19 +894,19 @@ export default function MealManagement({ user }) {
                                                             return Array.from(set);
                                                         });
                                                     }}
-                                                    className="w-4 h-4 text-teal-600 rounded-xl"
+                                                    className="w-4 h-4 text-teal-600 border-[var(--border-color)] bg-[var(--bg-surface)] rounded"
                                                 />
-                                                <span className="text-sm text-gray-700">{col.header}</span>
+                                                <span className="text-sm text-[var(--text-secondary)]">{col.header}</span>
                                             </label>
                                         );
                                     })}
                                 </div>
                             </div>
 
-                            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-3">
+                            <div className="px-5 py-4 border-t border-[var(--border-color)] flex justify-end gap-3">
                                 <button
                                     onClick={closeExport}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl transition-colors"
+                                    className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] hover:bg-[var(--bg-primary)]/80 rounded-xl transition-colors"
                                 >
                                     Cancel
                                 </button>
@@ -980,8 +980,8 @@ export default function MealManagement({ user }) {
                 {/* --- UPDATED STAT CARDS (Litigation-style) --- */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     {/* Card 1: Total Meals */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="bg-[var(--bg-surface)] p-5 rounded-xl shadow-sm border border-[var(--border-color)] flex items-center gap-4 transition-all duration-200">
+                        <div className="bg-blue-500/10 text-blue-500 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
                             {/* Fork and Knife Icon */}
                             <svg
                                 width="24"
@@ -999,14 +999,14 @@ export default function MealManagement({ user }) {
                             </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Meals</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{counts.total}</div>
+                            <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-0.5">Total Meals</div>
+                            <div className="text-2xl font-black text-[var(--text-primary)] leading-none">{counts.total}</div>
                         </div>
                     </div>
 
                     {/* Card 2: Consumed */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-emerald-100 text-emerald-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="bg-[var(--bg-surface)] p-5 rounded-xl shadow-sm border border-[var(--border-color)] flex items-center gap-4 transition-all duration-200">
+                        <div className="bg-emerald-500/10 text-emerald-500 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
                             {/* Checkmark Circle Icon */}
                             <svg
                                 width="24"
@@ -1023,14 +1023,14 @@ export default function MealManagement({ user }) {
                             </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Consumed</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{counts.consumed}</div>
+                            <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-0.5">Consumed</div>
+                            <div className="text-2xl font-black text-[var(--text-primary)] leading-none">{counts.consumed}</div>
                         </div>
                     </div>
 
                     {/* Card 3: Pending */}
-                    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-yellow-100 text-yellow-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="bg-[var(--bg-surface)] p-5 rounded-xl shadow-sm border border-[var(--border-color)] flex items-center gap-4 transition-all duration-200">
+                        <div className="bg-amber-500/10 text-amber-500 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
                             <svg
                                 width="24"
                                 height="24"
@@ -1046,45 +1046,45 @@ export default function MealManagement({ user }) {
                             </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Pending</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{counts.pending}</div>
+                            <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-0.5">Pending</div>
+                            <div className="text-2xl font-black text-[var(--text-primary)] leading-none">{counts.pending}</div>
                         </div>
                     </div>
                 </div>
 
                 {/* Main Content Area - Meal Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-200">
+                <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-color)] p-6 transition-all duration-200">
                     {/* Table Header Section */}
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <h2 className="text-lg font-semibold text-gray-900 mb-1">All Scheduled Meals</h2>
-                                <p className="text-sm text-gray-500">{filteredMeals().length} total records</p>
+                                <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-1">All Scheduled Meals</h2>
+                                <p className="text-sm text-[var(--text-secondary)]">{filteredMeals().length} total records</p>
                             </div>
                             <div className="flex items-center gap-3">
                                 {/* View Menu */}
                                 <div className="relative" ref={viewRef}>
                                     <button
                                         onClick={() => setShowViewMenu(!showViewMenu)}
-                                        className="bg-white border border-gray-300 text-gray-700 rounded-xl px-4 py-2 text-sm font-medium transition-all flex items-center gap-2"
+                                        className="bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl px-4 py-2 text-sm font-medium transition-all flex items-center gap-2 hover:bg-[var(--bg-primary)]"
                                     >
-                                        <Eye className="w-4 h-4" />
+                                        <Eye className="w-4 h-4 text-[var(--text-secondary)]/60" />
                                         <span>View</span>
-                                        <ChevronDown className="w-4 h-4" />
+                                        <ChevronDown className="w-4 h-4 text-[var(--text-secondary)]/60" />
                                     </button>
 
                                     {/* View Settings Dropdown */}
                                     {showViewMenu && (
-                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                                        <div className="absolute right-0 mt-2 w-80 bg-[var(--bg-surface)] rounded-xl shadow-lg border border-[var(--border-color)] z-50">
                                             <div className="p-4">
-                                                <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
+                                                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">View settings</h3>
                                                 <button
                                                     onClick={() => setShowPropertyVisibility(!showPropertyVisibility)}
-                                                    className="w-full flex items-center justify-between px-2 py-2 text-sm text-gray-700 rounded-xl transition-colors"
+                                                    className="w-full flex items-center justify-between px-2 py-2 text-sm text-[var(--text-secondary)] rounded-xl hover:bg-[var(--bg-primary)] transition-colors"
                                                 >
                                                     <span className="font-medium">Column visibility</span>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-xs text-gray-500">
+                                                        <span className="text-xs text-[var(--text-secondary)]/40">
                                                             {Object.values(visibleColumns).filter(Boolean).length} shown
                                                         </span>
                                                         <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
@@ -1093,21 +1093,21 @@ export default function MealManagement({ user }) {
 
                                                 {/* Column Visibility Panel */}
                                                 {showPropertyVisibility && (
-                                                    <div className="mt-2 border-t border-gray-200 pt-3">
+                                                    <div className="mt-2 border-t border-[var(--border-color)] pt-3">
                                                         <div className="flex items-center justify-between mb-2">
-                                                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Default columns</span>
+                                                            <span className="text-xs font-semibold text-[var(--text-secondary)]/40 uppercase tracking-wider">Default columns</span>
                                                             <div className="text-xs font-medium">
                                                                 <button
                                                                     onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))}
-                                                                    className="text-teal-600 rounded-xl"
+                                                                    className="text-teal-500 hover:text-teal-600 rounded-xl transition-colors"
                                                                     type="button"
                                                                 >
                                                                     Show all
                                                                 </button>
-                                                                <span className="text-gray-300 mx-2">|</span>
+                                                                <span className="text-[var(--border-color)] mx-2">|</span>
                                                                 <button
                                                                     onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: false }), {}))}
-                                                                    className="text-teal-600 rounded-xl"
+                                                                    className="text-teal-500 hover:text-teal-600 rounded-xl transition-colors"
                                                                     type="button"
                                                                 >
                                                                     Hide all
@@ -1115,7 +1115,7 @@ export default function MealManagement({ user }) {
                                                             </div>
                                                         </div>
 
-                                                        <div className="text-xs text-gray-500 mb-3">Toggle column visibility by clicking</div>
+                                                        <div className="text-xs text-[var(--text-secondary)]/40 mb-3">Toggle column visibility by clicking</div>
 
                                                         <div className="max-h-72 overflow-y-auto pr-1 space-y-2">
                                                             {ALL_COLUMNS.map((col) => {
@@ -1131,15 +1131,15 @@ export default function MealManagement({ user }) {
                                                                         key={col}
                                                                         type="button"
                                                                         onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !isVisible })}
-                                                                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-gray-200 bg-white transition-colors"
+                                                                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-primary)] transition-colors"
                                                                     >
-                                                                        <span className={`text-sm font-medium ${isVisible ? 'text-gray-800' : 'text-gray-400'}`}>
+                                                                        <span className={`text-sm font-medium ${isVisible ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/40'}`}>
                                                                             {label}
                                                                         </span>
                                                                         {isVisible ? (
-                                                                            <Eye className="w-4 h-4 text-teal-600" />
+                                                                            <Eye className="w-4 h-4 text-teal-500" />
                                                                         ) : (
-                                                                            <EyeOff className="w-4 h-4 text-gray-400" />
+                                                                            <EyeOff className="w-4 h-4 text-[var(--text-secondary)]/30" />
                                                                         )}
                                                                     </button>
                                                                 );
@@ -1170,53 +1170,53 @@ export default function MealManagement({ user }) {
                         {/* Filter Row */}
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="relative">
-                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
                                 <select
                                     value={filterMealType}
                                     onChange={e => setFilterMealType(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
+                                    className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                                 >
                                     <option>All Meals</option>
                                     <option value="breakfast">Breakfast</option>
                                     <option value="lunch">Lunch</option>
                                     <option value="dinner">Dinner</option>
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
                             </div>
 
                             <div className="relative">
-                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
                                 <select
                                     value={filterStatus}
                                     onChange={e => setFilterStatus(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
+                                    className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                                 >
                                     <option>All Status</option>
                                     <option value="pending">Not Consumed</option>
                                     <option value="consumed">Consumed</option>
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
                             </div>
 
                             <div className="relative">
-                                <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Home className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
                                 <select
                                     value={selectedProperty}
                                     onChange={e => setSelectedProperty(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
+                                    className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                                 >
                                     <option value="">All Properties</option>
                                     {properties.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
                             </div>
 
                             <div className="relative">
-                                <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
                                 <select
                                     value={sortBy}
                                     onChange={e => setSortBy(e.target.value)}
-                                    className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
+                                    className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
                                 >
                                     <option value="">Sort By</option>
                                     <option value="date">Date (Newest)</option>
@@ -1224,12 +1224,12 @@ export default function MealManagement({ user }) {
                                     <option value="status">Status</option>
                                     <option value="serviceUser">Service User</option>
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
                             </div>
 
                             <input
                                 type="date"
-                                className="bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                                className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
                             />
@@ -1252,12 +1252,12 @@ export default function MealManagement({ user }) {
                     </div>
 
                     {/* Tab Switcher - Bookings Style */}
-                    <div className="mb-6 flex items-center gap-3 border-b border-gray-200">
+                    <div className="mb-6 flex items-center gap-3 border-b border-[var(--border-color)]">
                         <button
                             onClick={() => setActiveTab("all")}
                             className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "all"
                                 ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-gray-500'
+                                : 'border-transparent text-[var(--text-secondary)]'
                                 }`}
                         >
                             All Meals
@@ -1266,7 +1266,7 @@ export default function MealManagement({ user }) {
                             onClick={() => setActiveTab("breakfast")}
                             className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "breakfast"
                                 ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-gray-500'
+                                : 'border-transparent text-[var(--text-secondary)]'
                                 }`}
                         >
                             Breakfast
@@ -1275,7 +1275,7 @@ export default function MealManagement({ user }) {
                             onClick={() => setActiveTab("lunch")}
                             className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "lunch"
                                 ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-gray-500'
+                                : 'border-transparent text-[var(--text-secondary)]'
                                 }`}
                         >
                             Lunch
@@ -1284,7 +1284,7 @@ export default function MealManagement({ user }) {
                             onClick={() => setActiveTab("dinner")}
                             className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "dinner"
                                 ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-gray-500'
+                                : 'border-transparent text-[var(--text-secondary)]'
                                 }`}
                         >
                             Dinner
@@ -1294,18 +1294,18 @@ export default function MealManagement({ user }) {
                     {/* Data Table */}
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-gray-200">
-                                    {visibleColumns.serviceUser && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">SERVICE USER</th>}
-                                    {visibleColumns.property && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PROPERTY</th>}
-                                    {visibleColumns.mealType && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">MEAL TYPE</th>}
-                                    {visibleColumns.portion && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">PORTION</th>}
-                                    {visibleColumns.dietary && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">DIETARY</th>}
-                                    {visibleColumns.status && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">STATUS</th>}
-                                    {visibleColumns.actions && <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">ACTIONS</th>}
+                            <thead className="bg-[var(--bg-primary)]">
+                                <tr className="border-b border-[var(--border-color)]">
+                                    {visibleColumns.serviceUser && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/40 uppercase tracking-wider">SERVICE USER</th>}
+                                    {visibleColumns.property && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/40 uppercase tracking-wider">PROPERTY</th>}
+                                    {visibleColumns.mealType && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/40 uppercase tracking-wider">MEAL TYPE</th>}
+                                    {visibleColumns.portion && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/40 uppercase tracking-wider">PORTION</th>}
+                                    {visibleColumns.dietary && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/40 uppercase tracking-wider">DIETARY</th>}
+                                    {visibleColumns.status && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/40 uppercase tracking-wider">STATUS</th>}
+                                    {visibleColumns.actions && <th className="text-center py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/40 uppercase tracking-wider">ACTIONS</th>}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-[var(--border-color)]">
                                 {loading ? (
                                     <tr>
                                         <td
@@ -1332,19 +1332,19 @@ export default function MealManagement({ user }) {
                                                 key={m.id}
                                                 className={`transition-colors ${isDeleting ? 'meal-deleting' : ''}`}
                                             >
-                                                {visibleColumns.serviceUser && <td className="px-4 py-3 font-medium text-gray-900">{m.serviceUser}</td>}
-                                                {visibleColumns.property && <td className="px-4 py-3 text-gray-700">{m.property}</td>}
-                                                {visibleColumns.mealType && <td className="px-4 py-3 text-gray-700">{m.mealType}</td>}
-                                                {visibleColumns.portion && <td className="px-4 py-3 text-gray-700">{m.portion}</td>}
-                                                {visibleColumns.dietary && <td className="px-4 py-3 text-gray-700">{m.dietary}</td>}
+                                                {visibleColumns.serviceUser && <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{m.serviceUser}</td>}
+                                                {visibleColumns.property && <td className="px-4 py-3 text-[var(--text-secondary)]">{m.property}</td>}
+                                                {visibleColumns.mealType && <td className="px-4 py-3 text-[var(--text-secondary)]">{m.mealType}</td>}
+                                                {visibleColumns.portion && <td className="px-4 py-3 text-[var(--text-secondary)]">{m.portion}</td>}
+                                                {visibleColumns.dietary && <td className="px-4 py-3 text-[var(--text-secondary)]">{m.dietary}</td>}
                                                 {visibleColumns.status && (
                                                     <td className="px-4 py-3">
                                                         {String(m.status).toLowerCase() === "consumed" ? (
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                                                                 Consumed
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
                                                                 Pending
                                                             </span>
                                                         )}
@@ -1383,7 +1383,7 @@ export default function MealManagement({ user }) {
                                                                 String(m.status).toLowerCase() === "consumed" ? (
                                                                     <button
                                                                         onClick={() => markNotConsumed(m.id)}
-                                                                        className="ml-1 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-700 text-xs font-medium border border-amber-200"
+                                                                        className="ml-1 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-500 text-xs font-medium border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
                                                                         title="Mark as Not Consumed"
                                                                     >
                                                                         Not Consumed
@@ -1391,7 +1391,7 @@ export default function MealManagement({ user }) {
                                                                 ) : (
                                                                     <button
                                                                         onClick={() => markConsumed(m.id)}
-                                                                        className="ml-1 px-3 py-1.5 rounded-xl bg-teal-500/10 text-teal-700 text-xs font-medium border border-teal-200"
+                                                                        className="ml-1 px-3 py-1.5 rounded-xl bg-teal-500/10 text-teal-500 text-xs font-medium border border-teal-500/20 hover:bg-teal-500/20 transition-colors"
                                                                         title="Mark as Consumed"
                                                                     >
                                                                         Mark Consumed
@@ -1437,8 +1437,8 @@ export default function MealManagement({ user }) {
 // --- VIEW DETAILS MODAL helper ---
 const DetailField = ({ label, value, fullWidth = false }) => (
     <div className={fullWidth ? "md:col-span-2" : ""}>
-        <div className="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-1">{label}</div>
-        <div className="text-slate-800 font-medium text-sm">{value || '-'}</div>
+        <div className="text-[10px] uppercase text-[var(--text-secondary)]/60 font-bold tracking-wider mb-1">{label}</div>
+        <div className="text-[var(--text-primary)] font-medium text-sm">{value || '-'}</div>
     </div>
 );
 
@@ -1447,14 +1447,14 @@ function ViewMealModal({ meal, onClose }) {
     if (!meal) return null;
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 transition-opacity">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in duration-200">
-                <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10 flex-shrink-0">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 transition-opacity">
+            <div className="bg-[var(--bg-surface)] rounded-xl shadow-2xl max-w-2xl w-full h-[70vh] flex flex-col border border-[var(--border-color)] animate-in fade-in zoom-in duration-200">
+                <div className="sticky top-0 bg-[var(--bg-surface)] border-b border-[var(--border-color)] p-4 flex items-center justify-between z-10 flex-shrink-0">
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-900">Meal Details</h2>
-                        <p className="text-xs text-gray-500 mt-1">View meal schedule information</p>
+                        <h2 className="text-xl font-semibold text-[var(--text-primary)]">Meal Details</h2>
+                        <p className="text-xs text-[var(--text-secondary)]/60 mt-1">View meal schedule information</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 transition-colors rounded-xl p-2">
+                    <button onClick={onClose} className="text-[var(--text-secondary)]/40 hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors rounded-xl p-2">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -1483,10 +1483,10 @@ function ViewMealModal({ meal, onClose }) {
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
+                <div className="flex justify-end gap-2 p-4 border-t border-[var(--border-color)]">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 rounded-xl border border-gray-300 text-sm font-medium text-gray-700 transition-colors"
+                        className="px-4 py-2 rounded-xl border border-[var(--border-color)] text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] hover:bg-[var(--bg-primary)]/80 transition-colors"
                     >
                         Close
                     </button>
@@ -1656,12 +1656,12 @@ function ScheduleMealModal({
                     <form id="mealForm" onSubmit={handleSubmit} className="form-section">
                         <div className="form-grid-2">
                             <div className="form-group">
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                                     Service User <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     required
-                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                     value={form.serviceUserId}
                                     onChange={(e) => handleChange("serviceUserId", e.target.value)}
                                 >
@@ -1675,12 +1675,12 @@ function ScheduleMealModal({
                             </div>
 
                             <div className="form-group">
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                                     Property <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     required
-                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                     value={form.propertyId}
                                     onChange={(e) => handleChange("propertyId", e.target.value)}
                                 >
@@ -1696,12 +1696,12 @@ function ScheduleMealModal({
 
                         <div className="form-grid-2">
                             <div className="form-group">
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                                     Meal Type <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     required
-                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                     value={form.mealType}
                                     onChange={(e) => handleChange("mealType", e.target.value)}
                                 >
@@ -1712,13 +1712,13 @@ function ScheduleMealModal({
                             </div>
 
                             <div className="form-group">
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                                     Scheduled Date <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     required
                                     type="date"
-                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                     value={form.scheduledDate}
                                     onChange={(e) => handleChange("scheduledDate", e.target.value)}
                                 />
@@ -1727,12 +1727,12 @@ function ScheduleMealModal({
 
                         <div className="form-grid-2">
                             <div className="form-group">
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                                     Portion Size <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     required
-                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-white"
+                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                     value={form.portion}
                                     onChange={(e) => handleChange("portion", e.target.value)}
                                 >
@@ -1743,12 +1743,12 @@ function ScheduleMealModal({
                             </div>
 
                             <div className="form-group">
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                                     Dietary Requirements <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     required
-                                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                    className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                     value={form.dietary}
                                     onChange={(e) => handleChange("dietary", e.target.value)}
                                     placeholder="e.g., Vegetarian, Halal, Gluten-free"
@@ -1757,12 +1757,12 @@ function ScheduleMealModal({
                         </div>
 
                         <div className="form-group">
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                                 Notes <span className="text-red-500">*</span>
                             </label>
                             <textarea
                                 required
-                                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 h-auto resize-none"
+                                className="w-full border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 h-auto resize-none bg-[var(--bg-surface)] text-[var(--text-primary)]"
                                 rows={3}
                                 value={form.notes}
                                 onChange={(e) => handleChange("notes", e.target.value)}

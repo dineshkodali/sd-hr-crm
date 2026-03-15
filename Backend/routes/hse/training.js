@@ -259,6 +259,9 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
         standardCols.add('id');
         standardCols.add('created_by');
         standardCols.add('updated_by');
+        standardCols.add('attachments');
+        standardCols.add('deleted');
+        standardCols.add('deleted_at');
 
         const customColumns = allColumns.filter(c => !standardCols.has(c));
 

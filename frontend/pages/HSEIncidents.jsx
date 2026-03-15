@@ -910,7 +910,7 @@ export default function HSEIncidents({ user }) {
   }, [records]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6">
         {/* Page Header */}
         <div className="mb-6 flex items-start justify-between">
@@ -977,13 +977,13 @@ export default function HSEIncidents({ user }) {
               <div className="flex items-center gap-3">
                 {/* Search Input */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     placeholder="Search..."
-                    className="bg-white border-2 border-gray-300 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent w-72 shadow-sm "
+                    className="bg-white border-2 border-gray-300 rounded-xl !pl-14 pr-4 py-2.5 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent w-72 shadow-sm "
                   />
                 </div>
 
@@ -1186,11 +1186,11 @@ export default function HSEIncidents({ user }) {
             {/* Filter Row */}
             <div className="flex items-center gap-3 flex-wrap">
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={priorityFilter}
                   onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+                  className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
                 >
                   <option value="">All Severities</option>
                   <option value="Critical">Critical</option>
@@ -1202,11 +1202,11 @@ export default function HSEIncidents({ user }) {
               </div>
 
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+                  className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
                 >
                   <option value="">All Statuses</option>
                   <option value="Open">Open</option>
@@ -1220,11 +1220,11 @@ export default function HSEIncidents({ user }) {
               </div>
 
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={propertyFilter}
                   onChange={(e) => setPropertyFilter(e.target.value)}
-                  className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+                  className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
                 >
                   <option value="">All Properties</option>
                   {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
@@ -1233,11 +1233,11 @@ export default function HSEIncidents({ user }) {
               </div>
 
               <div className="relative">
-                <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-white border border-gray-300 rounded-xl pl-10 pr-8 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
+                  className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
                 >
                   <option value="">Sort By</option>
                   <option value="date">Date (Newest)</option>
@@ -1256,7 +1256,7 @@ export default function HSEIncidents({ user }) {
                     setPropertyFilter("");
                     setSortBy("");
                   }}
-                  className="text-sm text-teal-600 font-medium px-3 py-2 rounded-xl transition-colors"
+                  className="h-10 text-sm text-teal-600 font-semibold px-3 py-0 rounded-xl transition-colors"
                 >
                   Clear Filters
                 </button>
@@ -1294,7 +1294,7 @@ export default function HSEIncidents({ user }) {
           {viewMode === 'table' ? (
             <div className="overflow-x-auto scrollbar-hide relative">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                   <tr>
                     {visibleColumns.checkbox && (
                       <th className="text-left py-4 px-4">
@@ -1332,7 +1332,7 @@ export default function HSEIncidents({ user }) {
                       </th>
                     ))}
                     {visibleColumns.actions && (
-                      <th className="sticky right-0 z-10 bg-gray-50 text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider" style={{ boxShadow: '-4px 0 8px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
+                      <th className="sticky right-0 z-10 bg-[var(--bg-primary)] text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider" style={{ boxShadow: '-4px 0 8px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
                     )}
                   </tr>
                 </thead>
@@ -1499,36 +1499,36 @@ export default function HSEIncidents({ user }) {
                   const getStatusStyle = (status) => {
                     if (status === 'Open') {
                       return {
-                        bg: 'bg-orange-50',
-                        border: 'border-orange-200',
-                        header: 'bg-orange-100',
-                        text: 'text-orange-700',
+                        bg: 'bg-[var(--bg-primary)]',
+                        border: 'border-[var(--border-color)]',
+                        header: 'bg-[var(--bg-surface)]',
+                        text: 'text-[var(--color-warning)]',
                         dot: 'bg-orange-500'
                       };
                     }
                     if (status === 'Investigating') {
                       return {
-                        bg: 'bg-purple-50',
-                        border: 'border-purple-200',
-                        header: 'bg-purple-100',
-                        text: 'text-purple-700',
+                        bg: 'bg-[var(--bg-primary)]',
+                        border: 'border-[var(--border-color)]',
+                        header: 'bg-[var(--bg-surface)]',
+                        text: 'text-[var(--color-info)]',
                         dot: 'bg-purple-500'
                       };
                     }
                     if (status === 'Closed') {
                       return {
-                        bg: 'bg-emerald-50',
-                        border: 'border-emerald-200',
-                        header: 'bg-emerald-100',
-                        text: 'text-emerald-700',
+                        bg: 'bg-[var(--bg-primary)]',
+                        border: 'border-[var(--border-color)]',
+                        header: 'bg-[var(--bg-surface)]',
+                        text: 'text-[var(--color-success)]',
                         dot: 'bg-emerald-500'
                       };
                     }
                     return {
-                      bg: 'bg-gray-50',
-                      border: 'border-gray-200',
-                      header: 'bg-gray-100',
-                      text: 'text-gray-700',
+                      bg: 'bg-[var(--bg-primary)]',
+                      border: 'border-[var(--border-color)]',
+                      header: 'bg-[var(--bg-surface)]',
+                      text: 'text-[var(--text-primary)]',
                       dot: 'bg-gray-500'
                     };
                   };
@@ -1537,7 +1537,7 @@ export default function HSEIncidents({ user }) {
 
                   return (
                     <div key={status} className="flex-shrink-0 w-80">
-                      <div className="rounded-xl border ${style.border} ${style.bg}">
+                      <div className={`rounded-xl border ${style.border} ${style.bg}`}>
                         <div className={`${style.header} px-4 py-3 border-b ${style.border}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -1546,7 +1546,7 @@ export default function HSEIncidents({ user }) {
                                 {status}
                               </h3>
                             </div>
-                            <span className="bg-white px-2 py-0.5 rounded-xl text-xs font-semibold text-gray-600">
+                            <span className="bg-[var(--bg-surface)] px-2 py-0.5 rounded-xl text-xs font-semibold text-[var(--text-secondary)] border border-[var(--border-color)]">
                               {statusItems.length}
                             </span>
                           </div>
@@ -1555,22 +1555,23 @@ export default function HSEIncidents({ user }) {
                         <div className="p-3 space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto">
                           {statusItems.length === 0 ? (
                             <div className="text-center py-8 px-4">
-                              <AlertTriangle className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-                              <p className="text-gray-400 text-sm">No incidents</p>
+                              <AlertTriangle className="w-10 h-10 mx-auto mb-2 text-[var(--text-secondary)]/40" />
+                              <p className="text-[var(--text-secondary)] text-sm">No incidents</p>
                             </div>
                           ) : (
                             statusItems.map((incident) => {
+
                               const severityColor = getPriorityColor(incident.severity || "Medium");
                               const isDeleting = deletingIds.has(incident.id);
 
                               return (
                                 <div
                                   key={incident.id}
-                                  className={`bg-white rounded-xl p-4 shadow-sm border border-gray-200 transition-all cursor-pointer ${isDeleting ? 'hse-incident-card-deleting' : ''}`}
+                                  className={`bg-[var(--bg-surface)] rounded-xl p-4 shadow-sm border border-[var(--border-color)] transition-all cursor-pointer ${isDeleting ? 'hse-incident-card-deleting' : ''}`}
                                   onClick={() => { setSelected(incident); setMode('view'); setShowModal(true); }}
                                 >
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-mono text-gray-500">{incident.reference || `INC-${incident.id}`}</span>
+                                    <span className="text-xs font-mono text-[var(--text-secondary)]/60">{incident.reference || `INC-${incident.id}`}</span>
                                     <div className="flex items-center gap-1.5">
                                       <span className={`w-2 h-2 rounded-full ${severityColor.dot}`}></span>
                                       <span className={`text-xs font-medium ${severityColor.text}`}>
@@ -1579,41 +1580,41 @@ export default function HSEIncidents({ user }) {
                                     </div>
                                   </div>
 
-                                  <h4 className="font-semibold text-gray-900 text-sm mb-2 line-clamp-2">
+                                  <h4 className="font-semibold text-[var(--text-primary)] text-sm mb-2 line-clamp-2">
                                     {incident.incident_type || "HSE Incident"}
                                   </h4>
 
                                   {incident.details && (
-                                    <p className="text-xs text-gray-500 mb-3 line-clamp-2">
+                                    <p className="text-xs text-[var(--text-secondary)]/60 mb-3 line-clamp-2">
                                       {incident.details}
                                     </p>
                                   )}
 
                                   <div className="flex items-center gap-2 mb-3">
                                     {incident.incident_type && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-xl text-xs font-medium">
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium border border-[var(--border-color)]" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--color-error)' }}>
                                         {incident.incident_type}
                                       </span>
                                     )}
                                   </div>
 
-                                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 mb-2">
+                                  <div className="flex items-center justify-between pt-3 border-t border-[var(--border-color)] mb-2">
                                     <div className="flex items-center gap-2">
                                       {incident.assigned_investigator && incident.assigned_investigator !== 'Unassigned' ? (
                                         <>
                                           <div className={`w-6 h-6 rounded-full ${getAvatarColor(incident.assigned_investigator)} flex items-center justify-center text-xs font-semibold`}>
                                             {getInitials(incident.assigned_investigator)}
                                           </div>
-                                          <span className="text-xs text-gray-700 truncate max-w-[100px]">
+                                          <span className="text-xs text-[var(--text-primary)] truncate max-w-[100px]">
                                             {incident.assigned_investigator}
                                           </span>
                                         </>
                                       ) : (
-                                        <span className="text-xs text-gray-400">Unassigned</span>
+                                        <span className="text-xs text-[var(--text-secondary)]/60">Unassigned</span>
                                       )}
                                     </div>
 
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-[var(--text-secondary)]/60">
                                       {formatDate(incident.incident_date)}
                                     </span>
                                   </div>
@@ -1624,7 +1625,7 @@ export default function HSEIncidents({ user }) {
                                         e.stopPropagation();
                                         setSelected(incident); setMode('view'); setShowModal(true);
                                       }}
-                                      className="flex-1 py-1.5 px-2 bg-gray-50 text-gray-700 rounded-xl text-xs font-medium flex items-center justify-center gap-1"
+                                      className="flex-1 py-1.5 px-2 bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-xl text-xs font-medium flex items-center justify-center gap-1 hover:bg-[var(--bg-primary)]/80"
                                       title="View"
                                     >
                                       <Eye className="w-3.5 h-3.5" />
@@ -1636,7 +1637,7 @@ export default function HSEIncidents({ user }) {
                                           e.stopPropagation();
                                           setSelected(incident); setMode('edit'); setFormData({ ...incident }); setShowModal(true);
                                         }}
-                                        className="p-1.5 bg-gray-50 text-gray-700 rounded-xl"
+                                        className="p-1.5 bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-xl hover:bg-[var(--bg-primary)]/80"
                                         title="Edit"
                                       >
                                         <Edit className="w-3.5 h-3.5" />
@@ -1648,7 +1649,7 @@ export default function HSEIncidents({ user }) {
                                           e.stopPropagation();
                                           doDelete(incident.id);
                                         }}
-                                        className="p-1.5 bg-gray-50 text-gray-700 rounded-xl"
+                                        className="p-1.5 bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-xl hover:bg-red-50 hover:text-red-600"
                                         title="Delete"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />

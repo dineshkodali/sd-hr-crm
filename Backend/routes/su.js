@@ -1107,10 +1107,10 @@ router.post("/users", protect, async (req, res) => {
       if (req.user?.role === "staff" && req.user.hotel_id) {
         pushIfExists(propertyCol, req.user.hotel_id);
       } else {
-      pushIfExists(
-        propertyCol,
-        body.property_id || body.hotel_id || body.accommodation_id || null
-      );
+        pushIfExists(
+          propertyCol,
+          body.property_id || body.hotel_id || body.accommodation_id || null
+        );
       }
     }
 
@@ -1356,8 +1356,13 @@ router.put("/users/:id", protect, async (req, res) => {
     }
 
     // property / hotel
-    if (property_id !== undefined) {
-      pushSet("property_id", property_id);
+    let propertyCol = null;
+    if (suCols.includes("property_id")) propertyCol = "property_id";
+    else if (suCols.includes("hotel_id")) propertyCol = "hotel_id";
+    else if (suCols.includes("accommodation_id")) propertyCol = "accommodation_id";
+
+    if (propertyCol && (property_id !== undefined || body?.hotel_id !== undefined || body?.accommodation_id !== undefined)) {
+      pushSet(propertyCol, property_id || body?.hotel_id || body?.accommodation_id || null);
     }
     if (property !== undefined) {
       pushSet("property", property);
@@ -1385,7 +1390,8 @@ router.put("/users/:id", protect, async (req, res) => {
             );
             const rn = r.rows?.[0]?.room_number;
             if (rn !== undefined) {
-              pushSet("room_number", rn);
+              const roomColToUpdate = suCols.includes("room_number") ? "room_number" : (suCols.includes("room") ? "room" : null);
+              if (roomColToUpdate) pushSet(roomColToUpdate, rn);
             }
           }
         }
@@ -1400,8 +1406,16 @@ router.put("/users/:id", protect, async (req, res) => {
     }
 
     // Handle array-like fields for PostgreSQL array columns
-    const handleArrayField = (value) => {
+    const handleArrayField = (value, colName) => {
       if (value === undefined || value === null) return null;
+
+      // If the actual DB column is NOT an array type, return as-is (coercion will handle it)
+      const dataType = suColTypeByName.get(colName) || '';
+      if (!dataType.toLowerCase().includes('array') && !dataType.toLowerCase().includes('[]')) {
+        if (Array.isArray(value)) return value.join(', ');
+        return value;
+      }
+
       if (Array.isArray(value)) {
         // Filter out empty strings and return array
         const filtered = value.filter(item => item !== null && item !== undefined && String(item).trim() !== "");
@@ -1423,13 +1437,8 @@ router.put("/users/:id", protect, async (req, res) => {
 
     for (const [field, value] of Object.entries(arrayFields)) {
       if (suCols.includes(field)) {
-        const processedValue = handleArrayField(value);
-        if (processedValue !== null) {
-          pushSet(field, processedValue);
-        } else {
-          // Explicitly set to null if value is null/empty
-          pushSet(field, null);
-        }
+        const processedValue = handleArrayField(value, field);
+        pushSet(field, processedValue);
       }
     }
 

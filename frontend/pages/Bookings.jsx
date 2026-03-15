@@ -324,7 +324,7 @@ export default function Bookings({ user }) {
     return String(v);
   };
 
-  const renderDynamicField = (col) => {
+  const renderDynamicField = useCallback((col) => {
     const key = String(col?.column_name || '').trim();
     if (!key) return null;
     const label = labelize(key);
@@ -336,12 +336,12 @@ export default function Bookings({ user }) {
     if (inputType === 'textarea') {
       return (
         <div key={key} className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">{label}</label>
           <textarea
             rows={2}
             value={formData?.[key] ?? ''}
             onChange={(e) => setFormData((p) => ({ ...p, [key]: e.target.value }))}
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 !h-auto"
+            className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 !h-auto"
           />
         </div>
       );
@@ -350,11 +350,11 @@ export default function Bookings({ user }) {
     if (inputType === 'select' || inputType === 'radio') {
       return (
         <div key={key} className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">{label}</label>
           <select
             value={formData?.[key] ?? ''}
             onChange={(e) => setFormData((p) => ({ ...p, [key]: e.target.value }))}
-            className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+            className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
           >
             <option value="">Select</option>
             {(opts || []).map((o, idx) => {
@@ -372,17 +372,18 @@ export default function Bookings({ user }) {
         const selected = Array.isArray(formData?.[key]) ? formData[key] : [];
         return (
           <div key={key} className="form-group">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
+            <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">{label}</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {(opts || []).map((o, idx) => {
                 const v = typeof o === 'string' ? o : (o?.value ?? o?.label ?? String(o));
                 const t = typeof o === 'string' ? o : (o?.label ?? o?.value ?? String(o));
                 const checked = selected.includes(v);
                 return (
-                  <label key={`${key}-${idx}`} className="flex items-center gap-2 text-sm text-slate-700">
+                  <label key={`${key}-${idx}`} className="flex items-center gap-2 text-sm text-[var(--text-secondary)] bg-[var(--bg-primary)] p-2 rounded-xl border border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-primary)]/80 transition-colors">
                     <input
                       type="checkbox"
                       checked={checked}
+                      className="w-4 h-4 text-teal-500 border-[var(--border-color)] bg-[var(--bg-surface)] rounded"
                       onChange={(e) => {
                         const next = new Set(selected);
                         if (e.target.checked) next.add(v);
@@ -401,10 +402,11 @@ export default function Bookings({ user }) {
 
       return (
         <div key={key} className="form-group">
-          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] bg-[var(--bg-primary)] p-3 rounded-xl border border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-primary)]/80 transition-colors">
             <input
               type="checkbox"
               checked={Boolean(formData?.[key])}
+              className="w-4 h-4 text-teal-500 border-[var(--border-color)] bg-[var(--bg-surface)] rounded"
               onChange={(e) => setFormData((p) => ({ ...p, [key]: !!e.target.checked }))}
             />
             <span>{label}</span>
@@ -424,16 +426,16 @@ export default function Bookings({ user }) {
 
     return (
       <div key={key} className="form-group">
-        <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
+        <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">{label}</label>
         <input
           type={htmlType}
           value={formData?.[key] ?? ''}
           onChange={(e) => setFormData((p) => ({ ...p, [key]: e.target.value }))}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+          className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
         />
       </div>
     );
-  };
+  }, [formData, dynamicColumns, parseInputOptions, labelize]);
 
   const formatDynamicValue = (col, rawValue) => {
     const inputType = String(col?.input_type || '').toLowerCase();
@@ -643,17 +645,17 @@ export default function Bookings({ user }) {
     const dobValue = booking.date_of_birth ?? booking.dob;
     setFormData((prev) => {
       const next = {
-      first_name: booking.first_name ?? '',
-      last_name: booking.last_name ?? '',
-      date_of_birth: normalizeDateInput(dobValue),
-      nationality: booking.nationality ?? '',
-      home_office_reference: booking.home_office_reference ?? '',
-      property_id: booking.property_id ?? '',
-      room_id: booking.room_id ?? '',
-      check_in_date: normalizeDateInput(booking.check_in),
-      vulnerabilities: booking.vulnerabilities ?? '',
-      medical_conditions: booking.medical_conditions ?? '',
-      dietary_requirements: booking.dietary_requirements ?? ''
+        first_name: booking.first_name ?? '',
+        last_name: booking.last_name ?? '',
+        date_of_birth: normalizeDateInput(dobValue),
+        nationality: booking.nationality ?? '',
+        home_office_reference: booking.home_office_reference ?? '',
+        property_id: booking.property_id ?? '',
+        room_id: booking.room_id ?? '',
+        check_in_date: normalizeDateInput(booking.check_in),
+        vulnerabilities: booking.vulnerabilities ?? '',
+        medical_conditions: booking.medical_conditions ?? '',
+        dietary_requirements: booking.dietary_requirements ?? ''
       };
 
       const rawSu = booking?._su || booking || {};
@@ -890,63 +892,63 @@ export default function Bookings({ user }) {
   /* ─── Shared form fields ─── */
   const renderBookingFormFields = useCallback((isEdit = false) => (
     <>
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-xl text-sm">{error}</div>}
+      {error && <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-3 py-2 rounded-xl text-sm">{error}</div>}
       <div className="form-grid-2">
         <div className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">First Name <span className="text-red-500">*</span></label>
-          <input type="text" required value={formData.first_name} onChange={e => setFormData(p => ({ ...p, first_name: e.target.value }))} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">First Name <span className="text-red-500">*</span></label>
+          <input type="text" required value={formData.first_name} onChange={e => setFormData(p => ({ ...p, first_name: e.target.value }))} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
         </div>
         <div className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Last Name <span className="text-red-500">*</span></label>
-          <input type="text" required value={formData.last_name} onChange={e => setFormData(p => ({ ...p, last_name: e.target.value }))} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Last Name <span className="text-red-500">*</span></label>
+          <input type="text" required value={formData.last_name} onChange={e => setFormData(p => ({ ...p, last_name: e.target.value }))} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
         </div>
       </div>
       <div className="form-grid-2">
         <div className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Date of Birth <span className="text-red-500">*</span></label>
-          <input type="date" required value={formData.date_of_birth} onChange={e => setFormData(p => ({ ...p, date_of_birth: e.target.value }))} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Date of Birth <span className="text-red-500">*</span></label>
+          <input type="date" required value={formData.date_of_birth} onChange={e => setFormData(p => ({ ...p, date_of_birth: e.target.value }))} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
         </div>
         <div className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Nationality <span className="text-red-500">*</span></label>
-          <input type="text" required value={formData.nationality} onChange={e => setFormData(p => ({ ...p, nationality: e.target.value }))} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Nationality <span className="text-red-500">*</span></label>
+          <input type="text" required value={formData.nationality} onChange={e => setFormData(p => ({ ...p, nationality: e.target.value }))} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
         </div>
       </div>
       <div className="form-group">
-        <label className="block text-sm font-semibold text-slate-700 mb-2">Home Office Reference <span className="text-red-500">*</span></label>
-        <input type="text" required value={formData.home_office_reference} onChange={e => setFormData(p => ({ ...p, home_office_reference: e.target.value }))} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+        <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Home Office Reference <span className="text-red-500">*</span></label>
+        <input type="text" required value={formData.home_office_reference} onChange={e => setFormData(p => ({ ...p, home_office_reference: e.target.value }))} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
       </div>
       <div className="form-grid-3">
         <div className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Property <span className="text-red-500">*</span></label>
-          <select required value={formData.property_id} onChange={e => { const v = e.target.value; setFormData(p => ({ ...p, property_id: v, room_id: '' })); handlePropertyChange(v); }} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Property <span className="text-red-500">*</span></label>
+          <select required value={formData.property_id} onChange={e => { const v = e.target.value; setFormData(p => ({ ...p, property_id: v, room_id: '' })); handlePropertyChange(v); }} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500">
             <option value="">Select</option>
             {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
         <div className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Room <span className="text-red-500">*</span></label>
-          <select required value={formData.room_id} onChange={e => setFormData(p => ({ ...p, room_id: e.target.value }))} disabled={!formData.property_id} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed">
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Room <span className="text-red-500">*</span></label>
+          <select required value={formData.room_id} onChange={e => setFormData(p => ({ ...p, room_id: e.target.value }))} disabled={!formData.property_id} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 disabled:opacity-50 disabled:cursor-not-allowed">
             <option value="">{formData.property_id ? 'Select' : 'Select property first'}</option>
             {rooms.map(r => <option key={r.id} value={r.id}>{r.room_number} - {r.type}</option>)}
           </select>
         </div>
         <div className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Check-in Date <span className="text-red-500">*</span></label>
-          <input type="date" required value={formData.check_in_date} onChange={e => setFormData(p => ({ ...p, check_in_date: e.target.value }))} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Check-in Date <span className="text-red-500">*</span></label>
+          <input type="date" required value={formData.check_in_date} onChange={e => setFormData(p => ({ ...p, check_in_date: e.target.value }))} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
         </div>
       </div>
       <div className="form-group">
-        <label className="block text-sm font-semibold text-slate-700 mb-2">Vulnerabilities <span className="text-red-500">*</span></label>
-        <input type="text" required value={formData.vulnerabilities} onChange={e => setFormData(p => ({ ...p, vulnerabilities: e.target.value }))} placeholder="Separate multiple items with commas" className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
+        <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Vulnerabilities <span className="text-red-500">*</span></label>
+        <input type="text" required value={formData.vulnerabilities} onChange={e => setFormData(p => ({ ...p, vulnerabilities: e.target.value }))} placeholder="Separate multiple items with commas" className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500" />
       </div>
       <div className="form-grid-2">
         <div className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Medical Conditions <span className="text-red-500">*</span></label>
-          <textarea rows={2} required value={formData.medical_conditions} onChange={e => setFormData(p => ({ ...p, medical_conditions: e.target.value }))} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 !h-auto" />
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Medical Conditions <span className="text-red-500">*</span></label>
+          <textarea rows={2} required value={formData.medical_conditions} onChange={e => setFormData(p => ({ ...p, medical_conditions: e.target.value }))} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 !h-auto" />
         </div>
         <div className="form-group">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Dietary Requirements <span className="text-red-500">*</span></label>
-          <textarea rows={2} required value={formData.dietary_requirements} onChange={e => setFormData(p => ({ ...p, dietary_requirements: e.target.value }))} className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 !h-auto" />
+          <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">Dietary Requirements <span className="text-red-500">*</span></label>
+          <textarea rows={2} required value={formData.dietary_requirements} onChange={e => setFormData(p => ({ ...p, dietary_requirements: e.target.value }))} className="w-full border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 !h-auto" />
         </div>
       </div>
 
@@ -965,17 +967,17 @@ export default function Bookings({ user }) {
   const isLoading = loadingServiceUsers; // show spinner only on first load
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="p-3 sm:p-4 md:p-6">
 
         {/* Page Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Bookings</h1>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Bookings</h1>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Home className="w-4 h-4" /><span>&gt;</span><span>Properties</span><span>&gt;</span><span>Bookings</span>
             </div>
-            <p className="text-sm text-gray-600 mt-1">Manage reservations and check-ins</p>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">Manage reservations and check-ins</p>
           </div>
           <div className="flex items-center gap-3">
             <DownloadDropdown onDownloadPDF={() => { setExportFormat('pdf'); setShowExportModal(true); setSelectedExportKeys(prev => prev.length ? prev : exportColumns.map(c => c.key)); }} onDownloadCSV={() => { setExportFormat('csv'); setShowExportModal(true); setSelectedExportKeys(prev => prev.length ? prev : exportColumns.map(c => c.key)); }} />
@@ -985,17 +987,17 @@ export default function Bookings({ user }) {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
           {[
-            { icon: <UserCheck className="w-7 h-7" />, color: 'bg-green-100 text-green-600', label: 'Checked In', value: stats.checkedIn },
-            { icon: <UserX className="w-7 h-7" />, color: 'bg-blue-100 text-blue-600', label: 'Checked Out', value: stats.checkedOut },
-            { icon: <Users className="w-7 h-7" />, color: 'bg-purple-100 text-purple-600', label: 'Total Guests', value: stats.totalGuests },
-            { icon: <Calendar className="w-7 h-7" />, color: 'bg-orange-100 text-orange-600', label: 'Arriving Today', value: stats.arrivingToday },
-            { icon: <ClipboardList className="w-7 h-7" />, color: 'bg-yellow-100 text-yellow-600', label: 'Pending Approval', value: stats.pendingApproval, onClick: () => setActiveTab('pending'), extra: 'cursor-pointer' },
+            { icon: <UserCheck className="w-7 h-7" />, color: 'bg-green-500/10 text-green-500', label: 'Checked In', value: stats.checkedIn },
+            { icon: <UserX className="w-7 h-7" />, color: 'bg-blue-500/10 text-blue-500', label: 'Checked Out', value: stats.checkedOut },
+            { icon: <Users className="w-7 h-7" />, color: 'bg-purple-500/10 text-purple-500', label: 'Total Guests', value: stats.totalGuests },
+            { icon: <Calendar className="w-7 h-7" />, color: 'bg-orange-500/10 text-orange-500', label: 'Arriving Today', value: stats.arrivingToday },
+            { icon: <ClipboardList className="w-7 h-7" />, color: 'bg-teal-500/10 text-teal-500', label: 'Pending Approval', value: stats.pendingApproval, onClick: () => setActiveTab('pending'), extra: 'cursor-pointer' },
           ].map(({ icon, color, label, value, onClick, extra }) => (
-            <div key={label} onClick={onClick} className={`bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all duration-200 ${extra ?? ''}`}>
+            <div key={label} onClick={onClick} className={`bg-[var(--bg-surface)] rounded-xl p-5 shadow-sm border border-[var(--border-color)] flex items-center gap-4 transition-all duration-200 ${extra ?? ''}`}>
               <div className={`${color} h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0`}>{icon}</div>
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</div>
-                <div className="text-2xl font-black text-slate-800 leading-none">{value}</div>
+                <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-0.5">{label}</div>
+                <div className="text-2xl font-black text-[var(--text-primary)] leading-none">{value}</div>
               </div>
             </div>
           ))}
@@ -1004,32 +1006,32 @@ export default function Bookings({ user }) {
         {/* Export Modal */}
         {showExportModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="w-full max-w-2xl rounded-xl bg-[var(--bg-surface)] shadow-2xl border border-[var(--border-color)] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)]">
                 <div>
-                  <div className="text-lg font-semibold text-gray-900">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Select columns to include</div>
+                  <div className="text-lg font-semibold text-[var(--text-primary)]">Download {exportFormat === 'pdf' ? 'PDF' : 'CSV'}</div>
+                  <div className="text-xs text-[var(--text-secondary)]/60 mt-0.5">Select columns to include</div>
                 </div>
-                <button onClick={() => { setShowExportModal(false); setExportFormat(null); }} className="p-2 rounded-xl text-gray-500"><X className="w-5 h-5" /></button>
+                <button onClick={() => { setShowExportModal(false); setExportFormat(null); }} className="p-2 rounded-xl text-[var(--text-secondary)]/60 hover:bg-[var(--bg-primary)]"><X className="w-5 h-5" /></button>
               </div>
               <div className="px-5 py-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm font-medium text-gray-700">Columns</div>
+                  <div className="text-sm font-medium text-[var(--text-secondary)]">Columns</div>
                   <div className="flex gap-3 text-xs">
-                    <button onClick={() => setSelectedExportKeys(exportColumns.map(c => c.key))} className="text-teal-600 font-medium">Select all</button>
-                    <button onClick={() => setSelectedExportKeys([])} className="text-gray-600 font-medium">Clear</button>
+                    <button onClick={() => setSelectedExportKeys(exportColumns.map(c => c.key))} className="text-teal-500 font-medium">Select all</button>
+                    <button onClick={() => setSelectedExportKeys([])} className="text-[var(--text-secondary)]/60 font-medium">Clear</button>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[45vh] overflow-auto">
                   {exportColumns.map(col => (
-                    <label key={col.key} className="flex items-center gap-2 p-2 rounded-xl border border-gray-100">
-                      <input type="checkbox" checked={(selectedExportKeys ?? []).includes(col.key)} onChange={e => { setSelectedExportKeys(prev => { const s = new Set(prev ?? []); e.target.checked ? s.add(col.key) : s.delete(col.key); return Array.from(s); }); }} className="w-4 h-4 text-teal-600 rounded" />
-                      <span className="text-sm text-gray-700">{col.header}</span>
+                    <label key={col.key} className="flex items-center gap-2 p-2 rounded-xl border border-[var(--border-color)] hover:bg-[var(--bg-primary)] cursor-pointer">
+                      <input type="checkbox" checked={(selectedExportKeys ?? []).includes(col.key)} onChange={e => { setSelectedExportKeys(prev => { const s = new Set(prev ?? []); e.target.checked ? s.add(col.key) : s.delete(col.key); return Array.from(s); }); }} className="w-4 h-4 text-teal-500 rounded border-[var(--border-color)] bg-[var(--bg-surface)]" />
+                      <span className="text-sm text-[var(--text-secondary)]">{col.header}</span>
                     </label>
                   ))}
                 </div>
               </div>
-              <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <div className="px-5 py-4 border-t border-[var(--border-color)] flex justify-end gap-3">
                 <button onClick={() => { setShowExportModal(false); setExportFormat(null); }} className="rounded-xl btn-secondary btn-sm">Cancel</button>
                 <button onClick={runExport} className="rounded-xl btn-primary btn-sm">Download</button>
               </div>
@@ -1038,16 +1040,16 @@ export default function Bookings({ user }) {
         )}
 
         {/* Main Table Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-200">
+        <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-color)] p-6 transition-all duration-200">
 
           {/* Tabs */}
-          <div className="mb-6 flex items-center gap-3 border-b border-gray-200">
+          <div className="mb-6 flex items-center gap-3 border-b border-[var(--border-color)]">
             {[
               { key: 'all', label: 'All Bookings' }, { key: 'checked-in', label: 'Checked In' },
               { key: 'arriving', label: 'Arriving Today' }, { key: 'late', label: 'Late Checkout' },
               { key: 'pending', label: 'Pending' },
             ].map(({ key, label }) => (
-              <button key={key} onClick={() => setActiveTab(key)} className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === key ? 'border-teal-500 text-teal-600' : 'border-transparent text-gray-500'}`}>{label}</button>
+              <button key={key} onClick={() => setActiveTab(key)} className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === key ? 'border-teal-500 text-teal-600' : 'border-transparent text-[var(--text-secondary)]'}`}>{label}</button>
             ))}
           </div>
 
@@ -1055,18 +1057,18 @@ export default function Bookings({ user }) {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-1">
                   {activeTab === 'all' ? 'All Bookings' : activeTab === 'checked-in' ? 'Checked In' : activeTab === 'arriving' ? 'Arriving Today' : activeTab === 'late' ? 'Late Checkout' : 'Pending'}
                 </h2>
-                <p className="text-sm text-gray-500 flex items-center gap-2">
+                <p className="text-sm text-[var(--text-secondary)] flex items-center gap-2">
                   {filteredBookings.length} of {bookings.length} bookings
                   {loadingEnrichment && <span className="inline-flex items-center gap-1 text-xs text-teal-600"><span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>enriching…</span>}
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search bookings…" className="form-input !pl-10 !w-72 rounded-xl" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60" />
+                  <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search bookings…" className="form-input !pl-10 !w-72 rounded-xl bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-primary)]" />
                 </div>
 
                 {/* View Dropdown */}
@@ -1075,38 +1077,38 @@ export default function Bookings({ user }) {
                     <Eye className="w-4 h-4" /><span>{viewMode === 'table' ? 'Table' : 'Board'}</span><ChevronDown className="w-4 h-4" />
                   </button>
                   {showViewMenu && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50">
+                    <div className="absolute right-0 mt-2 w-80 bg-[var(--bg-surface)] rounded-xl shadow-xl border border-[var(--border-color)] z-50">
                       <div className="p-4">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-3">View Settings</h3>
-                        <div className="mb-3 pb-3 border-b border-gray-200">
-                          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
+                        <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">View Settings</h3>
+                        <div className="mb-3 pb-3 border-b border-[var(--border-color)]">
+                          <div className="text-xs font-medium text-[var(--text-secondary)]/60 uppercase tracking-wider mb-2">Display Mode</div>
                           <div className="flex gap-2">
                             {[['table', <Columns className="w-4 h-4" />, 'Table'], ['board', <ClipboardList className="w-4 h-4" />, 'Board']].map(([mode, icon, label]) => (
-                              <button key={mode} onClick={() => setViewMode(mode)} className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === mode ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-700'}`}>{icon}<span>{label}</span></button>
+                              <button key={mode} onClick={() => setViewMode(mode)} className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2 ${viewMode === mode ? 'bg-teal-500 text-white' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)]'}`}>{icon}<span>{label}</span></button>
                             ))}
                           </div>
                         </div>
                         {viewMode === 'table' && (
                           <>
-                            <button onClick={() => setShowColumnVisibility(!showColumnVisibility)} className="w-full flex items-center justify-between px-2 py-2 text-sm text-gray-700 rounded-xl">
+                            <button onClick={() => setShowColumnVisibility(!showColumnVisibility)} className="w-full flex items-center justify-between px-2 py-2 text-sm text-[var(--text-secondary)] rounded-xl hover:bg-[var(--bg-primary)]">
                               <span className="font-medium">Column visibility</span>
-                              <div className="flex items-center gap-2"><span className="text-xs text-gray-500">{Object.values(visibleColumns).filter(Boolean).length} shown</span><ChevronDown className={`w-4 h-4 transition-transform ${showColumnVisibility ? 'rotate-180' : ''}`} /></div>
+                              <div className="flex items-center gap-2"><span className="text-xs text-[var(--text-secondary)]/60">{Object.values(visibleColumns).filter(Boolean).length} shown</span><ChevronDown className={`w-4 h-4 transition-transform ${showColumnVisibility ? 'rotate-180' : ''}`} /></div>
                             </button>
                             {showColumnVisibility && (
-                              <div className="mt-2 border-t border-gray-200 pt-3">
+                              <div className="mt-2 border-t border-[var(--border-color)] pt-3">
                                 <div className="flex items-center justify-between mb-2">
-                                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Columns</span>
+                                  <span className="text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Columns</span>
                                   <div className="text-xs font-medium flex gap-2">
-                                    <button onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))} className="text-teal-600">Show all</button>
-                                    <span className="text-gray-300">|</span>
-                                    <button onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: false }), {}))} className="text-teal-600">Hide all</button>
+                                    <button onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {}))} className="text-teal-500">Show all</button>
+                                    <span className="text-[var(--border-color)]">|</span>
+                                    <button onClick={() => setVisibleColumns(ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: false }), {}))} className="text-teal-500">Hide all</button>
                                   </div>
                                 </div>
                                 <div className="max-h-72 overflow-y-auto space-y-2">
                                   {ALL_COLUMNS.map(col => (
-                                    <button key={col} type="button" onClick={() => setVisibleColumns(p => ({ ...p, [col]: !p[col] }))} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-gray-200 bg-white transition-colors">
-                                      <span className={`text-sm font-medium ${visibleColumns[col] ? 'text-gray-800' : 'text-gray-400'}`}>{col === 'order_no' ? 'Order no' : col.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase())}</span>
-                                      {visibleColumns[col] ? <Eye className="w-4 h-4 text-teal-600" /> : <EyeOff className="w-4 h-4 text-gray-400" />}
+                                    <button key={col} type="button" onClick={() => setVisibleColumns(p => ({ ...p, [col]: !p[col] }))} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] transition-colors hover:bg-[var(--bg-primary)]">
+                                      <span className={`text-sm font-medium ${visibleColumns[col] ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/40'}`}>{col === 'order_no' ? 'Order no' : col.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase())}</span>
+                                      {visibleColumns[col] ? <Eye className="w-4 h-4 text-teal-500" /> : <EyeOff className="w-4 h-4 text-[var(--text-secondary)]/40" />}
                                     </button>
                                   ))}
                                 </div>
@@ -1126,33 +1128,33 @@ export default function Bookings({ user }) {
             {/* Filters */}
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="form-select !pl-10 !w-44 rounded-xl">
+                <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none z-10" />
+                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="appearance-none h-10 py-0 !pl-10 !pr-10 w-44 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] hover:bg-[var(--bg-primary)] transition-all cursor-pointer shadow-sm leading-none text-left">
                   <option value="">All Status</option>
                   <option value="Checked In">Checked In</option>
                   <option value="Checked Out">Checked Out</option>
                   <option value="Pending">Pending</option>
                   <option value="Late Checkout">Late Checkout</option>
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none z-10" />
               </div>
               <div className="relative">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                <select value={filterProperty} onChange={e => setFilterProperty(e.target.value)} className="form-select !pl-10 !w-48 rounded-xl">
+                <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none z-10" />
+                <select value={filterProperty} onChange={e => setFilterProperty(e.target.value)} className="appearance-none h-10 py-0 !pl-10 !pr-10 w-48 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] hover:bg-[var(--bg-primary)] transition-all cursor-pointer shadow-sm leading-none text-left">
                   <option value="">All Properties</option>
                   {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none z-10" />
               </div>
               <div className="relative">
-                <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="form-select !w-40 rounded-xl">
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="appearance-none h-10 py-0 !pl-4 !pr-10 w-40 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] hover:bg-[var(--bg-primary)] transition-all cursor-pointer shadow-sm leading-none text-left">
                   <option value="">Sort by…</option>
                   <option value="date">Check-in Date</option>
                   <option value="name">Name</option>
                   <option value="room">Room</option>
                   <option value="status">Status</option>
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none z-10" />
               </div>
             </div>
           </div>
@@ -1161,22 +1163,22 @@ export default function Bookings({ user }) {
           {viewMode === 'table' && (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    {visibleColumns.checkbox && <th className="w-12 py-3 px-4"><input type="checkbox" className="rounded border-gray-300" /></th>}
-                    {visibleColumns.name && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Full Name</th>}
-                    {visibleColumns.order_no && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Order No.</th>}
-                    {visibleColumns.room && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Room</th>}
-                    {visibleColumns.check_in && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Check-In</th>}
-                    {visibleColumns.day && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Day</th>}
-                    {visibleColumns.guests && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Guests</th>}
-                    {visibleColumns.origin && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Origin</th>}
-                    {visibleColumns.immigration_status && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Immigration Status</th>}
-                    {visibleColumns.status && <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>}
-                    {visibleColumns.actions && <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>}
+                <thead className="bg-[var(--bg-primary)]">
+                  <tr className="border-b border-[var(--border-color)]">
+                    {visibleColumns.checkbox && <th className="w-12 py-3 px-4"><input type="checkbox" className="rounded border-[var(--border-color)] bg-[var(--bg-surface)]" /></th>}
+                    {visibleColumns.name && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Full Name</th>}
+                    {visibleColumns.order_no && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Order No.</th>}
+                    {visibleColumns.room && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Room</th>}
+                    {visibleColumns.check_in && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Check-In</th>}
+                    {visibleColumns.day && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Day</th>}
+                    {visibleColumns.guests && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Guests</th>}
+                    {visibleColumns.origin && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Origin</th>}
+                    {visibleColumns.immigration_status && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Immigration Status</th>}
+                    {visibleColumns.status && <th className="text-left py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Status</th>}
+                    {visibleColumns.actions && <th className="text-center py-3 px-4 text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wider">Actions</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[var(--border-color)]">
                   {isLoading ? (
                     <tr>
                       <td colSpan={visibleColCount} className="py-8 text-center text-gray-500">
@@ -1187,7 +1189,7 @@ export default function Bookings({ user }) {
                       </td>
                     </tr>
                   ) : filteredBookings.length === 0 ? (
-                    <tr><td colSpan={visibleColCount} className="py-8 text-center text-gray-500">No bookings found</td></tr>
+                    <tr><td colSpan={visibleColCount} className="py-8 text-center text-[var(--text-secondary)]/60">No bookings found</td></tr>
                   ) : (
                     filteredBookings.map(booking => {
                       const statusColors = getStatusColor(booking.status);
@@ -1195,21 +1197,21 @@ export default function Bookings({ user }) {
                       const isDeleting = deletingIds.has(booking.id);
                       return (
                         <tr key={booking.id} className={`transition-colors ${isDeleting ? 'booking-deleting' : ''}`}>
-                          {visibleColumns.checkbox && <td className="py-3 px-4"><input type="checkbox" className="rounded border-gray-300" /></td>}
-                          {visibleColumns.name && <td className="py-3 px-4"><div className="font-medium text-gray-900">{booking.full_name}</div></td>}
-                          {visibleColumns.order_no && <td className="py-3 px-4 text-sm text-gray-600">{booking.order_no}</td>}
+                          {visibleColumns.checkbox && <td className="py-3 px-4"><input type="checkbox" className="rounded border-[var(--border-color)] bg-[var(--bg-surface)]" /></td>}
+                          {visibleColumns.name && <td className="py-3 px-4"><div className="font-medium text-[var(--text-primary)]">{booking.full_name}</div></td>}
+                          {visibleColumns.order_no && <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">{booking.order_no}</td>}
                           {visibleColumns.room && (
                             <td className="py-3 px-4">
                               <div className="flex flex-col">
-                                <span className="font-medium text-gray-900">{booking.room}</span>
-                                <span className="text-xs text-gray-500">{booking.room_type}</span>
+                                <span className="font-medium text-[var(--text-primary)]">{booking.room}</span>
+                                <span className="text-xs text-[var(--text-secondary)]/60">{booking.room_type}</span>
                               </div>
                             </td>
                           )}
-                          {visibleColumns.check_in && <td className="py-3 px-4 text-sm text-gray-600">{formatDate(booking.check_in)}</td>}
-                          {visibleColumns.day && <td className="py-3 px-4 text-sm text-gray-600">{booking.day}</td>}
-                          {visibleColumns.guests && <td className="py-3 px-4 text-sm text-gray-600">{booking.guests}</td>}
-                          {visibleColumns.origin && <td className="py-3 px-4 text-sm text-gray-600">{booking.origin}</td>}
+                          {visibleColumns.check_in && <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">{formatDate(booking.check_in)}</td>}
+                          {visibleColumns.day && <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">{booking.day}</td>}
+                          {visibleColumns.guests && <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">{booking.guests}</td>}
+                          {visibleColumns.origin && <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">{booking.origin}</td>}
                           {visibleColumns.immigration_status && (
                             <td className="py-3 px-4">
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">{booking.immigration_status ?? 'Pending'}</span>
@@ -1260,31 +1262,31 @@ export default function Bookings({ user }) {
                   const isPending = (booking.status ?? '').toLowerCase().includes('pending');
                   const isDeleting = deletingIds.has(booking.id);
                   return (
-                    <div key={booking.id} className={`bg-white border border-gray-200 rounded-xl p-4 transition-all ${isDeleting ? 'board-card-deleting' : ''}`}>
+                    <div key={booking.id} className={`bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl p-4 transition-all hover:shadow-md ${isDeleting ? 'board-card-deleting' : ''}`}>
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="font-semibold text-gray-900">{booking.full_name}</h3>
-                          <p className="text-xs text-gray-500 mt-0.5">{booking.order_no}</p>
+                          <h3 className="font-semibold text-[var(--text-primary)]">{booking.full_name}</h3>
+                          <p className="text-xs text-[var(--text-secondary)]/60 mt-0.5">{booking.order_no}</p>
                         </div>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${statusColors.bg} ${statusColors.text} ${statusColors.border}`}>{booking.status}</span>
                       </div>
                       <div className="space-y-2">
-                        <div className="flex items-center text-sm"><BedDouble className="w-4 h-4 text-gray-400 mr-2" /><span className="text-gray-600">{booking.room} - {booking.room_type}</span></div>
-                        <div className="flex items-center text-sm"><Calendar className="w-4 h-4 text-gray-400 mr-2" /><span className="text-gray-600">{formatDate(booking.check_in)} ({booking.day})</span></div>
-                        <div className="flex items-center text-sm"><Users className="w-4 h-4 text-gray-400 mr-2" /><span className="text-gray-600">{booking.guests} guest{booking.guests > 1 ? 's' : ''}</span></div>
-                        <div className="flex items-center text-sm"><Home className="w-4 h-4 text-gray-400 mr-2" /><span className="text-gray-600">{booking.origin}</span></div>
+                        <div className="flex items-center text-sm"><BedDouble className="w-4 h-4 text-[var(--text-secondary)]/40 mr-2" /><span className="text-[var(--text-secondary)]">{booking.room} - {booking.room_type}</span></div>
+                        <div className="flex items-center text-sm"><Calendar className="w-4 h-4 text-[var(--text-secondary)]/40 mr-2" /><span className="text-[var(--text-secondary)]">{formatDate(booking.check_in)} ({booking.day})</span></div>
+                        <div className="flex items-center text-sm"><Users className="w-4 h-4 text-[var(--text-secondary)]/40 mr-2" /><span className="text-[var(--text-secondary)]">{booking.guests} guest{booking.guests > 1 ? 's' : ''}</span></div>
+                        <div className="flex items-center text-sm"><Home className="w-4 h-4 text-[var(--text-secondary)]/40 mr-2" /><span className="text-[var(--text-secondary)]">{booking.origin}</span></div>
                       </div>
-                      <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2">
+                      <div className="mt-3 pt-3 border-t border-[var(--border-color)] flex gap-2">
                         {isPending ? (
                           <>
-                            <button onClick={() => handleApprove(booking)} className="flex-1 py-1.5 text-center text-sm bg-green-50 text-green-700 rounded-xl font-medium">Approve</button>
-                            <button onClick={() => handleReject(booking)} className="flex-1 py-1.5 text-center text-sm bg-red-50 text-red-700 rounded-xl font-medium">Reject</button>
+                            <button onClick={() => handleApprove(booking)} className="flex-1 py-1.5 text-center text-sm bg-green-500/10 text-green-500 rounded-xl font-medium hover:bg-green-500/20 transition-colors">Approve</button>
+                            <button onClick={() => handleReject(booking)} className="flex-1 py-1.5 text-center text-sm bg-red-500/10 text-red-500 rounded-xl font-medium hover:bg-red-500/20 transition-colors">Reject</button>
                           </>
                         ) : (
                           <div className="flex w-full gap-1.5">
-                            <button onClick={() => handleView(booking)} className="flex-1 text-center text-sm text-teal-600 font-medium rounded-xl py-1.5">View</button>
-                            <button onClick={() => handleEdit(booking)} className="flex-1 text-center text-sm text-emerald-600 font-medium rounded-xl py-1.5">Edit</button>
-                            <button onClick={() => handleDelete(booking)} className="flex-1 text-center text-sm text-rose-600 font-medium rounded-xl py-1.5">Delete</button>
+                            <button onClick={() => handleView(booking)} className="flex-1 text-center text-sm text-teal-500 font-medium rounded-xl py-1.5 hover:bg-teal-500/10 transition-colors">View</button>
+                            <button onClick={() => handleEdit(booking)} className="flex-1 text-center text-sm text-emerald-500 font-medium rounded-xl py-1.5 hover:bg-emerald-500/10 transition-colors">Edit</button>
+                            <button onClick={() => handleDelete(booking)} className="flex-1 text-center text-sm text-rose-500 font-medium rounded-xl py-1.5 hover:bg-rose-500/10 transition-colors">Delete</button>
                           </div>
                         )}
                       </div>
@@ -1303,14 +1305,14 @@ export default function Bookings({ user }) {
           <div className="modal-container h-[70vh]">
             <div className="modal-header">
               <div><h2 className="modal-title">New Booking</h2><p className="modal-subtitle">Register a new arrival.</p></div>
-              <button onClick={() => setShowModal(false)} className="modal-close-btn rounded-xl"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowModal(false)} className="modal-close-btn rounded-xl"><X className="w-5 h-5 text-[var(--text-secondary)]/60" /></button>
             </div>
             <form id="booking-form" onSubmit={handleSubmit} className="modal-content form-section">
               {renderBookingFormFields(false)}
             </form>
             <div className="modal-footer">
-              <button type="button" onClick={() => setShowModal(false)} disabled={submitting} className="px-3 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium">Cancel</button>
-              <button type="submit" form="booking-form" disabled={submitting} className="px-3 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium">{submitting ? 'Creating…' : 'Create Booking'}</button>
+              <button type="button" onClick={() => setShowModal(false)} disabled={submitting} className="px-3 py-2.5 border border-[var(--border-color)] rounded-xl text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-primary)] transition-colors">Cancel</button>
+              <button type="submit" form="booking-form" disabled={submitting} className="px-3 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium hover:bg-teal-600 transition-colors">{submitting ? 'Creating…' : 'Create Booking'}</button>
             </div>
           </div>
         </div>,
@@ -1323,7 +1325,7 @@ export default function Bookings({ user }) {
           <div className="modal-container h-[70vh]">
             <div className="modal-header">
               <div><h2 className="modal-title">Booking Details</h2><p className="modal-subtitle">View booking information</p></div>
-              <button onClick={() => setShowViewModal(false)} className="modal-close-btn rounded-xl"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowViewModal(false)} className="modal-close-btn rounded-xl"><X className="w-5 h-5 text-[var(--text-secondary)]/60" /></button>
             </div>
             <div className="modal-content">
               <div className="form-grid-2">
@@ -1341,24 +1343,24 @@ export default function Bookings({ user }) {
                   ['Origin', selectedBooking.origin],
                 ].map(([label, val]) => (
                   <div key={label}>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
-                    <p className="text-gray-900 font-medium">{val}</p>
+                    <label className="text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wide block mb-1">{label}</label>
+                    <p className="text-[var(--text-primary)] font-medium">{val}</p>
                   </div>
                 ))}
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Immigration Status</label>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">{selectedBooking.immigration_status || 'Pending'}</span>
+                  <label className="text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wide block mb-1">Immigration Status</label>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">{selectedBooking.immigration_status || 'Pending'}</span>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Status</label>
+                  <label className="text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wide block mb-1">Status</label>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(selectedBooking.status).bg} ${getStatusColor(selectedBooking.status).text} ${getStatusColor(selectedBooking.status).border}`}>{selectedBooking.status}</span>
                 </div>
               </div>
               {dynamicColumns.length > 0 && (
                 <div className="mt-5">
-                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Custom Fields</div>
+                  <div className="text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wide block mb-2">Custom Fields</div>
                   {suColumnsLoading ? (
-                    <div className="text-sm text-gray-400">Loading custom fields...</div>
+                    <div className="text-sm text-[var(--text-secondary)]/40">Loading custom fields...</div>
                   ) : (
                     <div className="form-grid-2">
                       {dynamicColumns.map((c) => {
@@ -1369,8 +1371,8 @@ export default function Bookings({ user }) {
                         const val = formatDynamicValue(c, raw);
                         return (
                           <div key={k}>
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{label}</label>
-                            <p className="text-gray-900 font-medium">{val}</p>
+                            <label className="text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wide block mb-1">{label}</label>
+                            <p className="text-[var(--text-primary)] font-medium">{val}</p>
                           </div>
                         );
                       })}
@@ -1379,9 +1381,9 @@ export default function Bookings({ user }) {
                 </div>
               )}
               {['vulnerabilities', 'medical_conditions', 'dietary_requirements'].map(k => selectedBooking[k] ? (
-                <div key={k}>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">{k.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase())}</label>
-                  <p className="text-gray-700">{selectedBooking[k]}</p>
+                <div key={k} className="mt-4">
+                  <label className="text-xs font-semibold text-[var(--text-secondary)]/60 uppercase tracking-wide block mb-1">{k.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase())}</label>
+                  <p className="text-[var(--text-secondary)]">{selectedBooking[k]}</p>
                 </div>
               ) : null)}
             </div>
@@ -1400,7 +1402,7 @@ export default function Bookings({ user }) {
           <div className="modal-container h-[70vh]">
             <div className="modal-header">
               <div><h2 className="modal-title">Edit Booking</h2><p className="modal-subtitle">Update booking information</p></div>
-              <button onClick={() => setShowEditModal(false)} className="modal-close-btn rounded-xl"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowEditModal(false)} className="modal-close-btn rounded-xl"><X className="w-5 h-5 text-[var(--text-secondary)]/60" /></button>
             </div>
             <form id="edit-booking-form" onSubmit={async (e) => {
               e.preventDefault();
@@ -1465,8 +1467,8 @@ export default function Bookings({ user }) {
               {renderBookingFormFields(true)}
             </form>
             <div className="modal-footer">
-              <button type="button" onClick={() => setShowEditModal(false)} disabled={submitting} className="px-3 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium">Cancel</button>
-              <button type="submit" form="edit-booking-form" disabled={submitting} className="px-3 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium">{submitting ? 'Updating…' : 'Update Booking'}</button>
+              <button type="button" onClick={() => setShowEditModal(false)} disabled={submitting} className="px-3 py-2.5 border border-[var(--border-color)] rounded-xl text-[var(--text-secondary)] text-sm font-medium hover:bg-[var(--bg-primary)] transition-colors">Cancel</button>
+              <button type="submit" form="edit-booking-form" disabled={submitting} className="px-3 py-2.5 bg-teal-500 text-white rounded-xl text-sm font-medium hover:bg-teal-600 transition-colors">{submitting ? 'Updating…' : 'Update Booking'}</button>
             </div>
           </div>
         </div>,

@@ -649,30 +649,30 @@ export default function PPARFileUpload() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6 font-sans text-slate-800">
+        <div className="min-h-screen bg-[var(--bg-primary)] p-6 font-sans text-[var(--text-primary)]">
             <div className="p-3 sm:p-4 md:p-6">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900">PPAR File Management</h1>
-                    <p className="text-sm text-gray-500 mt-2">Upload and manage property room data, create and track incidents</p>
+                    <h1 className="text-3xl font-bold text-[var(--text-primary)]">PPAR File Management</h1>
+                    <p className="text-sm text-[var(--text-secondary)] mt-2">Upload and manage property room data, create and track incidents</p>
                 </div>
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+                <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-color)] shadow-sm p-6 mb-6">
                     {/* Title */}
-                    <h2 className="text-lg font-bold text-slate-800">Upload PPAR File</h2>
-                    <p className="text-sm text-slate-500 mt-1">
+                    <h2 className="text-lg font-bold text-[var(--text-primary)]">Upload PPAR File</h2>
+                    <p className="text-sm text-[var(--text-secondary)] mt-1">
                         Select a property and upload an Excel or CSV file containing room
                         and bedspace data
                     </p>
 
                     {/* Property */}
                     <div className="mt-6">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                             Property
                         </label>
                         <select
                             value={formData.propertyId}
                             onChange={handlePropertyChange}
-                            className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:border-teal-200 focus:ring-2 focus:ring-teal-300"
+                            className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl px-3 py-2 text-sm focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 outline-none transition-colors"
                         >
                             <option value="">Select a property...</option>
                             {hotels.map(h => (
@@ -683,11 +683,11 @@ export default function PPARFileUpload() {
 
                     {/* File Upload */}
                     <div className="mt-6">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                             PPAR File
                         </label>
 
-                        <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="border-2 border-dashed border-[var(--border-color)] rounded-xl p-6 bg-[var(--bg-primary)] hover:bg-[var(--bg-surface)] transition-colors">
                             <input
                                 type="file"
                                 id="ppar-file"
@@ -701,12 +701,12 @@ export default function PPARFileUpload() {
                             />
                             <label htmlFor="ppar-file" className="cursor-pointer block">
                                 <div className="flex flex-col items-center gap-3">
-                                    <Upload className="w-8 h-8 text-slate-400" />
+                                    <Upload className="w-8 h-8 text-[var(--text-secondary)]/50" />
                                     <div>
-                                        <p className="text-sm font-medium text-slate-700">
+                                        <p className="text-sm font-medium text-[var(--text-primary)]">
                                             Click to select file or drag and drop
                                         </p>
-                                        <p className="text-xs text-slate-500 mt-1">
+                                        <p className="text-xs text-[var(--text-secondary)] mt-1">
                                             Supported: .csv
                                         </p>
                                     </div>
@@ -715,20 +715,20 @@ export default function PPARFileUpload() {
                         </div>
 
                         {selectedFile && (
-                            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
-                                <span className="text-sm text-blue-700 font-medium">
+                            <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-between">
+                                <span className="text-sm text-blue-500 font-medium tracking-wide">
                                     Selected: {selectedFile.name}
                                 </span>
                                 <button
                                     onClick={() => setSelectedFile(null)}
-                                    className="text-blue-600 hover:text-blue-700 text-sm font-medium rounded-xl"
+                                    className="text-blue-500 hover:text-blue-400 text-sm font-medium rounded-xl transition-colors"
                                 >
                                     Clear
                                 </button>
                             </div>
                         )}
 
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-[var(--text-secondary)] mt-2">
                             Required columns: Floor, Room Number, Room Type, Bedspaces
                         </p>
                     </div>
@@ -737,7 +737,7 @@ export default function PPARFileUpload() {
                     <div className="flex gap-3 mt-6">
                         <button
                             onClick={downloadSample}
-                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
+                            className="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] hover:bg-[var(--bg-surface)] text-[var(--text-primary)] font-medium py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
                         >
                             <Download className="w-4 h-4" />
                             Download Sample
@@ -786,12 +786,12 @@ export default function PPARFileUpload() {
                     {uploading && uploadProgress > 0 && (
                         <div className="mt-4">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs font-medium text-slate-600">Uploading...</span>
-                                <span className="text-xs font-medium text-slate-600">{uploadProgress}%</span>
+                                <span className="text-xs font-medium text-[var(--text-secondary)]">Uploading...</span>
+                                <span className="text-xs font-medium text-[var(--text-secondary)]">{uploadProgress}%</span>
                             </div>
-                            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div className="w-full bg-[var(--border-color)] rounded-full h-2 overflow-hidden">
                                 <div
-                                    className="bg-teal-500 h-full rounded-full "
+                                    className="bg-teal-500 h-full rounded-full transition-all duration-300"
                                     style={{ width: `${uploadProgress}%` }}
                                 />
                             </div>
@@ -799,64 +799,64 @@ export default function PPARFileUpload() {
                     )}
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+                <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-color)] shadow-sm p-6 mb-6">
                     {/* Title */}
-                    <h3 className="text-lg font-semibold text-slate-800">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                         File Format Requirements
                     </h3>
 
                     {/* Subtitle */}
-                    <p className="text-sm text-slate-500 mt-2">
+                    <p className="text-sm text-[var(--text-secondary)] mt-2">
                         Your PPAR file should include the following columns
                         (case-insensitive):
                     </p>
 
                     {/* Requirements List */}
-                    <ul className="mt-4 space-y-3 text-sm text-slate-600">
+                    <ul className="mt-4 space-y-3 text-sm text-[var(--text-secondary)]">
                         <li>
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold text-[var(--text-primary)]">
                                 Floor or Floor Number:
                             </span>{" "}
                             Numeric floor number
                         </li>
 
                         <li>
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold text-[var(--text-primary)]">
                                 Room or Room Number:
                             </span>{" "}
                             Room identifier (e.g., “101”, “A1”)
                         </li>
 
                         <li>
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold text-[var(--text-primary)]">
                                 Room Type or Type:
                             </span>{" "}
                             single, shared, dormitory, or family
                         </li>
 
                         <li>
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold text-[var(--text-primary)]">
                                 Beds or Bedspaces:
                             </span>{" "}
                             Total number of beds in the room
                         </li>
 
                         <li>
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold text-[var(--text-primary)]">
                                 Kitchen (optional):
                             </span>{" "}
                             Yes/No or True/False
                         </li>
 
                         <li>
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold text-[var(--text-primary)]">
                                 Bathroom (optional):
                             </span>{" "}
                             Yes/No or True/False
                         </li>
 
                         <li>
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold text-[var(--text-primary)]">
                                 Size (optional):
                             </span>{" "}
                             Room size in square meters

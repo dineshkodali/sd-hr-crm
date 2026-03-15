@@ -4,6 +4,16 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
+  const resolveProxyTarget = () => {
+    const candidate = (env.VITE_API_URL || '').trim();
+    // Vite proxy target must be an absolute URL. If env provides a relative
+    // path like "/api" (common for production), fall back to local backend.
+    if (/^https?:\/\//i.test(candidate)) return candidate;
+    return 'http://localhost:4000';
+  };
+
+  const proxyTarget = resolveProxyTarget();
+
   return {
     plugins: [react()],
 
@@ -18,7 +28,7 @@ export default defineConfig(({ mode }) => {
       port: parseInt(env.VITE_PORT) || 3002,
       proxy: {
         "/api": {
-          target: env.VITE_API_URL || "http://localhost:4000",
+          target: proxyTarget,
           changeOrigin: true,
           secure: false,
         },

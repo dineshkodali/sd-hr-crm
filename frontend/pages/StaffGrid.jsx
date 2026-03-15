@@ -1670,7 +1670,7 @@ export default function StaffGrid() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6 font-sans text-slate-800">
+        <div className="-m-6 p-6 min-h-screen bg-[var(--bg-primary)] font-sans text-slate-800">
             <div className="p-3 sm:p-4 md:p-6">
 
                 {/* Header */}
@@ -1698,7 +1698,7 @@ export default function StaffGrid() {
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-8 px-4 py-3 flex items-center gap-4 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 hover:border-gray-300">
                     <span className="text-lg font-semibold text-slate-900 whitespace-nowrap">Employees Grid</span>
 
-                    <div className="flex-1 flex items-center border border-gray-200 bg-gray-50 rounded-xl px-3 py-2">
+                    <div className="flex-[8] md:flex-[10] min-w-[200px] flex items-center border border-gray-200 bg-gray-50 rounded-xl px-3 py-2">
                         <input
                             type="text"
                             placeholder="Search employees..."
@@ -1711,7 +1711,7 @@ export default function StaffGrid() {
                     <select
                         value={filterRole}
                         onChange={(e) => setFilterRole(e.target.value)}
-                        className="border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300"
+                        className="border border-gray-200 rounded-xl px-2 py-2 text-sm text-gray-600 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 max-w-[140px]"
                     >
                         <option value="">All Roles</option>
                         {uniqueRoles.map((role) => (
@@ -1722,7 +1722,7 @@ export default function StaffGrid() {
                     <select
                         value={filterBranch}
                         onChange={(e) => setFilterBranch(e.target.value)}
-                        className="border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300"
+                        className="border border-gray-200 rounded-xl px-2 py-2 text-sm text-gray-600 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 max-w-[140px]"
                     >
                         <option value="">All Branches</option>
                         {uniqueBranches.map((branch) => (
@@ -1733,7 +1733,7 @@ export default function StaffGrid() {
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300"
+                        className="border border-gray-200 rounded-xl px-2 py-2 text-sm text-gray-600 focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 max-w-[140px]"
                     >
                         <option value="recent">Sort By: Recent</option>
                         <option value="name">Sort By: Name (A–Z)</option>
@@ -1756,83 +1756,83 @@ export default function StaffGrid() {
                             {filteredAndSortedStaff.map((s) => {
                                 const isDeleting = deletingIds.has(s.id);
                                 return (
-                                <div
-                                    key={s.id || s.email}
-                                    className={`group relative bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col items-center transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-gray-200 ${isDeleting ? 'staff-grid-card-deleting' : ''}`}
-                                >
-                                    {/* 3-dot menu */}
-                                    <div className="absolute top-4 right-4 z-10">
-                                        <button className="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-500 flex items-center justify-center transition-colors">
-                                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                                <circle cx="12" cy="5" r="2" />
-                                                <circle cx="12" cy="12" r="2" />
-                                                <circle cx="12" cy="19" r="2" />
-                                            </svg>
-                                        </button>
-                                    </div>
-
-                                    {/* Avatar */}
-                                    <div className="relative mb-4 mt-2">
-                                        <div className="p-1 rounded-full border-2 border-teal-50 bg-white">
-                                            <Avatar user={s} size={80} />
+                                    <div
+                                        key={s.id || s.email}
+                                        className={`group relative bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col items-center transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-gray-200 ${isDeleting ? 'staff-grid-card-deleting' : ''}`}
+                                    >
+                                        {/* 3-dot menu */}
+                                        <div className="absolute top-4 right-4 z-10">
+                                            <button className="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-500 flex items-center justify-center transition-colors">
+                                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                                    <circle cx="12" cy="5" r="2" />
+                                                    <circle cx="12" cy="12" r="2" />
+                                                    <circle cx="12" cy="19" r="2" />
+                                                </svg>
+                                            </button>
                                         </div>
-                                        <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
-                                    </div>
 
-                                    {/* Basic Info */}
-                                    <div className="text-center w-full mb-6">
-                                        <h3 className="text-lg font-bold text-slate-800 truncate px-2 mb-1">
-                                            {s.name || s.email}
-                                        </h3>
-                                        <div className="flex items-center justify-center gap-2 flex-wrap">
-                                            <span className="inline-block bg-teal-50 text-teal-600 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide border border-teal-100">
-                                                {s.role || "Staff"}
-                                            </span>
-                                            {s.branch && (
-                                                <span className="inline-block bg-blue-50 text-blue-600 text-xs font-semibold px-3 py-1 rounded-full tracking-wide border border-blue-100">
-                                                    {s.branch}
+                                        {/* Avatar */}
+                                        <div className="relative mb-4 mt-2">
+                                            <div className="p-1 rounded-full border-2 border-teal-50 bg-white">
+                                                <Avatar user={s} size={80} />
+                                            </div>
+                                            <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+                                        </div>
+
+                                        {/* Basic Info */}
+                                        <div className="text-center w-full mb-6">
+                                            <h3 className="text-lg font-bold text-slate-800 truncate px-2 mb-1">
+                                                {s.name || s.email}
+                                            </h3>
+                                            <div className="flex items-center justify-center gap-2 flex-wrap">
+                                                <span className="inline-block bg-teal-50 text-teal-600 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide border border-teal-100">
+                                                    {s.role || "Staff"}
                                                 </span>
-                                            )}
+                                                {s.branch && (
+                                                    <span className="inline-block bg-[var(--accent-shadow)] text-[var(--accent-primary)] text-xs font-bold px-3 py-1 rounded-full tracking-wide border border-[var(--accent-primary)]/30 shadow-sm">
+                                                        {s.branch}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Contact */}
-                                    <div className="w-full space-y-3 mb-6 border-t border-b border-gray-50 py-4">
-                                        <div className="flex items-center gap-3 text-sm text-gray-500 justify-center">
-                                            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                            </svg>
-                                            <span className="truncate max-w-[150px]">{s.email || "No Email"}</span>
+                                        {/* Contact */}
+                                        <div className="w-full space-y-3 mb-6 border-t border-b border-gray-50 py-4">
+                                            <div className="flex items-center gap-3 text-sm text-gray-500 justify-center">
+                                                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                                <span className="truncate max-w-[150px]">{s.email || "No Email"}</span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-sm text-gray-500 justify-center">
+                                                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                </svg>
+                                                <span>{s.phone || "No Phone"}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-3 text-sm text-gray-500 justify-center">
-                                            <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                            </svg>
-                                            <span>{s.phone || "No Phone"}</span>
-                                        </div>
-                                    </div>
 
-                                    {/* Actions */}
-                                    <div className="flex gap-3 w-full mt-auto">
-                                        <button
-                                            onClick={() => openProfile(s.id)}
-                                            className="flex-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-slate-600 hover:text-teal-600 text-sm font-medium py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-all"
-                                        >
-                                            Profile
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                            </svg>
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(s.id)}
-                                            className="w-10 flex items-center justify-center bg-white border border-gray-200 hover:border-red-200 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-xl transition-colors"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
+                                        {/* Actions */}
+                                        <div className="flex gap-3 w-full mt-auto">
+                                            <button
+                                                onClick={() => openProfile(s.id)}
+                                                className="flex-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-slate-600 hover:text-teal-600 text-sm font-medium py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-all"
+                                            >
+                                                Profile
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(s.id)}
+                                                className="w-10 flex items-center justify-center bg-white border border-gray-200 hover:border-red-200 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-xl transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
                                 );
                             })}
                         </div>

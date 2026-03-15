@@ -1213,7 +1213,7 @@ export default function RiskAssessments({ user }) {
                     {viewMode === 'table' ? (
                         <div className="overflow-x-auto scrollbar-hide">
                             <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-200">
+                                <thead className="bg-[var(--bg-primary)] border-b border-[var(--border-color)]">
                                     <tr>
                                         {visibleColumns.checkbox && (
                                             <th className="text-left py-4 px-4">
@@ -1248,7 +1248,7 @@ export default function RiskAssessments({ user }) {
                                             </th>
                                         ))}
                                         {visibleColumns.actions && (
-                                            <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider sticky right-0 z-10 bg-gray-50" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
+                                            <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider sticky right-0 z-10 bg-[var(--bg-primary)]" style={{ boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.08)' }}>ACTIONS</th>
                                         )}
                                     </tr>
                                 </thead>

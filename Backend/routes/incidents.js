@@ -17,6 +17,11 @@ async function ensureIncidentsTable() {
     const check = await pool.query(`SELECT to_regclass('maintenance.incidents') AS exists`);
     if (check.rows?.[0]?.exists) {
       try {
+        await pool.query("ALTER TABLE maintenance.incidents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+      } catch (e) {
+        // ignore
+      }
+      try {
         await pool.query("ALTER TABLE maintenance.incidents ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb");
       } catch (e) {
         // ignore
@@ -447,12 +452,17 @@ router.post('/', protect, upload.array('photos', 10), async (req, res) => {
           const next = [...(Array.isArray(attachments) ? attachments : []), ...newAttachmentIds];
           try {
             const up = await pool.query(
-              `UPDATE maintenance.incidents SET attachments = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
-              [next, created.id]
+              `UPDATE maintenance.incidents SET attachments = $1::jsonb WHERE id = $2 RETURNING *`,
+              [JSON.stringify(next), created.id]
             );
             return res.status(201).json({ success: true, data: up.rows?.[0] || created });
-          } catch {
-            // ignore
+          } catch (e) {
+            console.error("Error updating incident with attachment IDs:", e);
+            return res.status(201).json({
+              success: true,
+              data: created,
+              warning: "Incident created but photo attachments failed to link."
+            });
           }
         }
       }
@@ -588,7 +598,28 @@ router.put('/:id', protect, upload.array('photos', 10), async (req, res) => {
       // Include the update if value is defined (including null)
       if (val !== undefined) {
         updates.push(`${col} = $${idx}`);
-        values.push(val);
+
+        let finalVal = val;
+        // Basic type coercion for specific fields if needed
+        const meta = colRows.find(r => r.column_name === col);
+        if (meta && meta.data_type === 'boolean' && val !== null) {
+          if (typeof val === 'boolean') finalVal = val;
+          else {
+            const s = String(val).toLowerCase().trim();
+            finalVal = ['true', '1', 'yes', 'on'].includes(s);
+          }
+        } else if (meta && (meta.data_type === 'integer' || meta.data_type === 'numeric') && val !== null) {
+          if (typeof val === 'string' && val.trim() === '') finalVal = null;
+          else {
+            const n = Number(val);
+            if (!isNaN(n)) finalVal = n;
+          }
+        } else if (typeof val === 'string' && val.trim() === '') {
+          // Fallback: empty strings to null for everything else too if they are optional
+          finalVal = null;
+        }
+
+        values.push(finalVal);
         idx++;
       }
     }

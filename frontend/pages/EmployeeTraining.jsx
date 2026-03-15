@@ -415,8 +415,8 @@ export default function EmployeeTraining() {
  {/* Table */}
  <div className="overflow-x-auto">
  <table className="w-full text-left border-collapse">
- <thead>
- <tr className="bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+ <thead className="bg-[var(--bg-primary)]">
+ <tr className="border-b border-[var(--border-color)] text-xs font-semibold text-slate-500 uppercase tracking-wider">
  <th className="p-4 w-10 text-center"><input type="checkbox" className="rounded-xl border-slate-300 accent-orange-500 w-4 h-4 cursor-pointer" /></th>
  <th className="p-4 w-32">Reference</th>
  <th className="p-4 min-w-[250px]">Description</th>
