@@ -5,7 +5,7 @@ FROM node:22-alpine AS frontend-builder
 WORKDIR /build
 
 COPY frontend/package*.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm install --no-audit --no-fund
 
 COPY frontend/ .
 RUN npm run build && rm -rf node_modules
@@ -20,7 +20,7 @@ WORKDIR /deps
 # Install only what's needed for native modules, then remove build tools
 COPY Backend/package*.json ./
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
-    && npm ci --no-audit --no-fund --omit=dev \
+    && npm install --no-audit --no-fund --omit=dev \
     && apk del .build-deps
 
 
