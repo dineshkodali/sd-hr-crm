@@ -16,6 +16,11 @@ services:
       - DB_NAME=new_CRM
       - DB_USER=sdcommercial
       - DB_PASSWORD=sdcommercial
+      # Security & Session Configuration
+      - ACTIVITY_LOGS_ENABLED=true
+      - HTTPS_ONLY=${HTTPS_ONLY:-false}
+      - JWT_EXPIRY=2h
+      - SESSION_INACTIVITY_TIMEOUT=5m
       # Email Configuration
       - EMAIL_SERVICE=gmail
       - EMAIL_USER=dineshkodali16@gmail.com
