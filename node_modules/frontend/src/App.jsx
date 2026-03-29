@@ -64,9 +64,24 @@ import Settings from "../pages/Settings";
 import Bookings from "../pages/Bookings";
 import OrganizationChart from "../pages/OrganizationChart";
 
+import { applyTheme, applyCustomTheme } from "./utils/themeUtils";
+
 import "./index.css";
 
 axios.defaults.withCredentials = true;
+
+function ThemeBootstrap() {
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("appTheme") || "lighter";
+    if (savedTheme === "custom") {
+      const savedColor = localStorage.getItem("customThemeColor") || "#3deedd";
+      applyCustomTheme(savedColor);
+      return;
+    }
+    applyTheme(savedTheme);
+  }, []);
+  return null;
+}
 
 // Safe fallback helper
 function makeSafe(ComponentImport, name = "Page") {
@@ -326,6 +341,57 @@ export default function App() {
     else localStorage.removeItem("user");
   }, [user]);
 
+  // --- INACTIVITY TIMEOUT LOGIC ---
+  useEffect(() => {
+    if (!user) return;
+
+    let timeoutId;
+    const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes
+
+    const handleLogout = async () => {
+      console.log("Inactivity timeout reached. Logging out...");
+      try {
+        await axios.post("/api/auth/logout");
+      } catch (err) {
+        console.error("Auto-logout error:", err);
+      }
+      setUser(null);
+      localStorage.removeItem("user");
+      localStorage.removeItem("authToken"); // important to clear this too!
+      window.location.href = "/login"; // Force redirect
+    };
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleLogout, INACTIVITY_LIMIT);
+    };
+
+    // Initial timer start
+    resetTimer();
+
+    // Events that reset the inactivity timer
+    const events = [
+      "mousedown",
+      "mousemove",
+      "keypress",
+      "scroll",
+      "touchstart",
+      "click"
+    ];
+
+    events.forEach(event => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      events.forEach(event => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [user]);
+  // --- END INACTIVITY TIMEOUT LOGIC ---
+
   useEffect(() => {
     let mounted = true;
     const validate = async () => {
@@ -335,7 +401,12 @@ export default function App() {
           setUser(res.data);
         }
       } catch (err) {
-        if (mounted) setUser(null);
+        if (mounted) {
+          // If 401, clear user
+          if (err.response?.status === 401) {
+            setUser(null);
+          }
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -367,8 +438,9 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Router>
+        <ThemeBootstrap />
         {/* GLOBAL APP CONTAINER: Flex column with fixed height */}
-        <div className="flex flex-col h-screen overflow-hidden bg-[#f8f9fa]">
+        <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-primary)]">
 
           {/* TOP NAVIGATION: Fixed Height, non-scrolling */}
           <div className="shrink-0 z-50 top-navbar">
@@ -911,10 +983,10 @@ export default function App() {
               } />
 
               {/* Manager HR routes */}
-              
+
 
               {/* Manager Finance routes */}
-              
+
 
               {/* Forms/Table Manager routes */}
               <Route path="/admin/forms" element={
@@ -932,7 +1004,7 @@ export default function App() {
               } />
 
               {/* Explicit Performance Management route (HR menu -> Performance) */}
-              
+
 
               {/* Explicit Employee Training route (HR menu -> Training) */}
               <Route
@@ -945,7 +1017,7 @@ export default function App() {
               />
 
               {/* Payroll (Finance menu -> Payroll) */}
-              
+
 
               {/* --- STAFF ROUTES --- */}
               <Route path="/staff" element={
@@ -978,7 +1050,7 @@ export default function App() {
               } />
 
               {/* Redirects */}
-              
+
               <Route path="/tickets/:id" element={<RedirectToAdminTicket />} />
 
               {/* Fallback */}

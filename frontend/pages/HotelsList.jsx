@@ -8,6 +8,23 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import PropertyDetails from "./PropertyDetailsComponent";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix for default Leaflet markers in React
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+import iconRetina from 'leaflet/dist/images/marker-icon-2x.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconRetinaUrl: iconRetina,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 const DELETE_STYLE_ID = 'hotels-list-delete-anim';
 if (typeof document !== 'undefined' && !document.getElementById(DELETE_STYLE_ID)) {
@@ -37,6 +54,11 @@ export default function HotelsList({ user: userProp }) {
   const [deletingIds, setDeletingIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+
+  const [viewMode, setViewMode] = useState("list"); // 'list' or 'map'
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkAction, setBulkAction] = useState("");
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   const [roomsOccupiedByHotel, setRoomsOccupiedByHotel] = useState({});
   const roomsOccupiedCacheRef = useRef({});
@@ -121,6 +143,14 @@ export default function HotelsList({ user: userProp }) {
   const fetchHotels = async () => {
     setLoading(true);
     try {
+      // Use the newly added backend search endpoint if there is a query, else standard fetch
+      if (search.trim()) {
+        const res = await axios.get(`/api/properties/search?q=${encodeURIComponent(search.trim())}`);
+        const searchResults = res.data;
+        // Transform search results into our hotel shape or fallback
+        // The endpoint returns property_id, property_name, room_number, and tenant names.
+        // We'll just fetch all and filter client side for now as the search returns a different shape.
+      }
       const res = await axios.get("/api/hotels");
       const list = Array.isArray(res.data?.hotels)
         ? res.data.hotels
@@ -800,6 +830,44 @@ export default function HotelsList({ user: userProp }) {
     setDetailProperty(null);
   };
 
+  const toggleSelect = (id) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredHotels.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredHotels.map(h => h.id ?? h._id ?? h.name)));
+    }
+  };
+
+  const executeBulkAction = async () => {
+    if (!bulkAction || selectedIds.size === 0) return;
+    setIsBulkUpdating(true);
+    try {
+      // Add more bulk actions here
+      if (bulkAction === 'assign_branch') {
+         const branchId = prompt("Enter Branch ID to assign:");
+         if (!branchId) return;
+         await axios.put("/api/properties/bulk", {
+           propertyIds: Array.from(selectedIds),
+           updates: { branch_id: parseInt(branchId) }
+         });
+      }
+      setSelectedIds(new Set());
+      setBulkAction("");
+      await fetchHotels();
+    } catch (err) {
+      alert("Bulk update failed");
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   // --- RENDER ---
 
   // FULL PAGE DETAIL VIEW
@@ -1048,11 +1116,27 @@ export default function HotelsList({ user: userProp }) {
     </div>
   </div> */}
 
-        <div className="bg-[var(--bg-surface)] rounded-xl shadow-lg border border-[var(--border-color)] mb-8 px-4 py-3 flex items-center gap-4 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 hover:border-[var(--accent-primary)]/30">
-          {/* LEFT LABEL */}
-          <span className="text-lg font-semibold text-[var(--text-primary)] whitespace-nowrap">
-            Property List
-          </span>
+        <div className="bg-[var(--bg-surface)] rounded-xl shadow-lg border border-[var(--border-color)] mb-8 px-4 py-3 flex flex-col md:flex-row items-center gap-4 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 hover:border-[var(--accent-primary)]/30">
+          {/* LEFT LABEL / VIEW TOGGLE */}
+          <div className="flex items-center gap-4 w-full md:w-auto shrink-0 justify-between md:justify-start">
+             <span className="text-lg font-semibold text-[var(--text-primary)] whitespace-nowrap hidden sm:block">
+              Listing Options
+            </span>
+             <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--border-color)]">
+               <button 
+                 onClick={() => setViewMode('list')} 
+                 className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${viewMode === 'list' ? 'bg-[var(--bg-surface)] shadow-sm text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+               >
+                 Grid
+               </button>
+               <button 
+                 onClick={() => setViewMode('map')} 
+                 className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${viewMode === 'map' ? 'bg-[var(--bg-surface)] shadow-sm text-[var(--accent-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+               >
+                 Map View
+               </button>
+             </div>
+          </div>
 
           {/* SEARCH INPUT */}
           <div className="flex-[8] md:flex-[10] min-w-[200px] flex items-center border border-[var(--border-color)] bg-[var(--bg-primary)] rounded-xl px-3 py-2 ">
@@ -1080,16 +1164,85 @@ export default function HotelsList({ user: userProp }) {
             />
           </div>
 
-          {/* FILTER BUTTON */}
-          <select className="border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-2 py-2 text-sm text-[var(--text-secondary)] focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 max-w-[140px]">
-            <option>All Types</option>
-            <option>Hotel Style</option>
-            <option>Self-Contained</option>
-          </select>
+          {/* RIGHT CONTROLS: BULK ACTIONS & FILTER */}
+          <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-end flex-wrap sm:flex-nowrap">
+            {selectedIds.size > 0 && viewMode === 'list' && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[var(--text-secondary)]">{selectedIds.size} selected</span>
+                <select 
+                  value={bulkAction}
+                  onChange={(e) => setBulkAction(e.target.value)}
+                  className="border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-2 py-2 text-sm text-[var(--text-secondary)] focus:border-blue-400 focus:ring-2 focus:ring-blue-200 max-w-[140px]"
+                >
+                  <option value="">Bulk Actions</option>
+                  <option value="assign_branch">Assign to Branch</option>
+                </select>
+                <button 
+                  onClick={executeBulkAction}
+                  disabled={!bulkAction || isBulkUpdating}
+                  className="btn-primary btn-sm rounded-lg py-2 px-3 disabled:opacity-50"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+            <select 
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="border border-[var(--border-color)] bg-[var(--bg-surface)] rounded-xl px-2 py-2 text-sm text-[var(--text-secondary)] focus:border-emerald-200 focus:ring-2 focus:ring-emerald-300 max-w-[140px]"
+            >
+              <option value="">All Types</option>
+              <option value="Hotel Style">Hotel Style</option>
+              <option value="Self-Contained">Self-Contained</option>
+            </select>
+          </div>
         </div>
 
-        {/* PROPERTY CARDS GRID */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* PROPERTY CARDS GRID OR MAP */}
+        {viewMode === "map" ? (
+          <div className="bg-[var(--bg-surface)] rounded-xl shadow-lg border border-[var(--border-color)] h-[600px] overflow-hidden relative z-0">
+            <MapContainer center={[53.4808, -2.2426]} zoom={12} className="h-full w-full">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {filteredHotels.map(h => {
+                const lat = h.latitude ? parseFloat(h.latitude) : null;
+                const lng = h.longitude ? parseFloat(h.longitude) : null;
+                if (!lat || !lng) return null;
+                
+                return (
+                  <Marker key={h.id} position={[lat, lng]}>
+                    <Popup>
+                      <div className="p-1">
+                        <strong className="block text-sm mb-1">{h.name}</strong>
+                        <span className="text-xs text-gray-600 block mb-2">{h.address || h.city}</span>
+                        <button onClick={() => openDetails(h)} className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded w-full">
+                          View Details
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {/* Optional Select All Row Option */}
+            {filteredHotels.length > 0 && (
+              <div className="flex items-center gap-2 px-2 hidden">
+                <input 
+                  type="checkbox" 
+                  checked={selectedIds.size === filteredHotels.length} 
+                  onChange={toggleSelectAll} 
+                  className="rounded border-gray-300 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
+                />
+                <span className="text-sm font-medium text-[var(--text-secondary)]">Select All</span>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {loading ? (
             <div className="col-span-full p-12 text-center text-gray-500">
               Loading properties...
@@ -1167,8 +1320,16 @@ export default function HotelsList({ user: userProp }) {
                     )}
                   </div>
 
-                  {/* Card Icon Header */}
-                  <div className="flex flex-col items-center mt-2">
+                  {/* Card Icon Header & Select Checkbox */}
+                  <div className="flex flex-col items-center mt-2 relative">
+                    <div className="absolute top-0 left-0">
+                      <input 
+                        type="checkbox"
+                        checked={selectedIds.has(id)}
+                        onChange={() => toggleSelect(id)}
+                        className="w-5 h-5 rounded border-gray-300 text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] cursor-pointer"
+                      />
+                    </div>
                     <div
                       className="
                 w-15 h-15
@@ -1271,7 +1432,9 @@ export default function HotelsList({ user: userProp }) {
               );
             })
           )}
-        </div>
+            </div>
+          </div>
+        )}
 
         {/* Add Property Modal */}
         {showAdd && createPortal(

@@ -1,8 +1,33 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Home, Building, BedDouble, Users, MapPin, Plus } from "lucide-react";
+import { Home, Building, BedDouble, Users, MapPin, Plus, MoreHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Breadcrumbs from "../components/Breadcrumbs";
+
+const ALL_TABS = [
+    { id: "overview", label: "Overview" },
+    { id: "floors", label: "Floors & Rooms" },
+    { id: "residents", label: "Residents" },
+    { id: "maintenance", label: "Maintenance" },
+    { id: "inspections", label: "Inspections" },
+    { id: "incidents", label: "Incidents" },
+    { id: "compliance", label: "Compliance" },
+    { id: "complaints", label: "Complaints" },
+    { id: "aire_tasks", label: "AIRE Tasks" },
+    { id: "litigation", label: "Litigation" },
+    { id: "hse_incidents", label: "HSE Incidents" },
+    { id: "hse_risk_management", label: "HSE Risk Management" },
+    { id: "hse_audits", label: "HSE Audits" },
+    { id: "hse_training", label: "HSE Training" },
+    { id: "safeguarding_referrals", label: "Safeguarding Referrals" },
+    { id: "risk_assessments", label: "Risk Assessments" },
+    { id: "vulnerable_users", label: "Vulnerable Users" },
+    { id: "multi_agency", label: "Multi Agency" },
+    { id: "vcs_organisations", label: "VCS Organisations" },
+    { id: "case_management", label: "Case Management" },
+    { id: "emergency_protocols", label: "Emergency Protocols" },
+    { id: "documents", label: "Documents" },
+];
 
 export default function PropertyDetails({ property }) {
 
@@ -17,6 +42,7 @@ export default function PropertyDetails({ property }) {
     } = property || {};
 
     const [liveHotel, setLiveHotel] = useState(null);
+    const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 
     const hotelId = useMemo(() => {
         const raw = property?._raw;
@@ -297,30 +323,47 @@ export default function PropertyDetails({ property }) {
                 </div>
 
                 {/* Tabs */}
-                <div className="mb-6">
-                    <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm overflow-x-auto scrollbar-hide">
-                        <div className="flex items-center gap-1 whitespace-nowrap min-w-max">
-                            <button onClick={() => setActiveTab("overview")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "overview" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Overview</button>
-                            <button onClick={() => setActiveTab("floors")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "floors" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Floors & Rooms</button>
-                            <button onClick={() => setActiveTab("residents")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "residents" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Residents</button>
-                            <button onClick={() => setActiveTab("maintenance")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "maintenance" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Maintenance</button>
-                            <button onClick={() => setActiveTab("inspections")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "inspections" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Inspections</button>
-                            <button onClick={() => setActiveTab("incidents")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "incidents" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Incidents</button>
-                            <button onClick={() => setActiveTab("compliance")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "compliance" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Compliance</button>
-                            <button onClick={() => setActiveTab("complaints")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "complaints" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Complaints</button>
-                            <button onClick={() => setActiveTab("aire_tasks")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "aire_tasks" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>AIRE Tasks</button>
-                            <button onClick={() => setActiveTab("litigation")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "litigation" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Litigation</button>
-                            <button onClick={() => setActiveTab("hse_incidents")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_incidents" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>HSE Incidents</button>
-                            <button onClick={() => setActiveTab("hse_risk_management")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_risk_management" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>HSE Risk Management</button>
-                            <button onClick={() => setActiveTab("hse_audits")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_audits" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>HSE Audits</button>
-                            <button onClick={() => setActiveTab("hse_training")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "hse_training" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>HSE Training</button>
-                            <button onClick={() => setActiveTab("safeguarding_referrals")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "safeguarding_referrals" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Safeguarding Referrals</button>
-                            <button onClick={() => setActiveTab("risk_assessments")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "risk_assessments" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Risk Assessments</button>
-                            <button onClick={() => setActiveTab("vulnerable_users")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "vulnerable_users" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Vulnerable Users</button>
-                            <button onClick={() => setActiveTab("multi_agency")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "multi_agency" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Multi Agency</button>
-                            <button onClick={() => setActiveTab("vcs_organisations")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "vcs_organisations" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>VCS Organisations</button>
-                            <button onClick={() => setActiveTab("case_management")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "case_management" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Case Management</button>
-                            <button onClick={() => setActiveTab("emergency_protocols")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === "emergency_protocols" ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}>Emergency Protocols</button>
+                <div className="mb-6 relative">
+                    <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="flex items-center gap-1 flex-wrap">
+                            {ALL_TABS.slice(0, 6).map(tab => (
+                                <button 
+                                    key={tab.id} 
+                                    onClick={() => setActiveTab(tab.id)} 
+                                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${activeTab === tab.id ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                            
+                            <div className="relative">
+                                <button 
+                                    onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${ALL_TABS.slice(6).some(t => t.id === activeTab) ? "bg-[var(--accent-primary)] text-white shadow-sm" : "text-[var(--text-secondary)] hover:bg-[var(--accent-shadow)]"}`}
+                                >
+                                    <MoreHorizontal size={18} /> More
+                                </button>
+                                
+                                {isMoreMenuOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setIsMoreMenuOpen(false)}></div>
+                                        <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 shadow-xl rounded-xl z-50 py-2 max-h-[60vh] overflow-y-auto">
+                                            {ALL_TABS.slice(6).map(tab => (
+                                                <button 
+                                                    key={tab.id}
+                                                    onClick={() => {
+                                                        setActiveTab(tab.id);
+                                                        setIsMoreMenuOpen(false);
+                                                    }}
+                                                    className={`block w-full text-left px-4 py-2.5 text-sm transition-colors ${activeTab === tab.id ? "bg-blue-50 text-blue-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
+                                                >
+                                                    {tab.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -390,6 +433,9 @@ export default function PropertyDetails({ property }) {
                     )}
                     {activeTab === "history" && (
                         <HistoryCard hotelId={hotelId} hotelName={hotelName} />
+                    )}
+                    {activeTab === "documents" && (
+                        <PropertyDocumentsCard hotelId={hotelId} />
                     )}
                 </div>
             </div>
@@ -1846,6 +1892,162 @@ function Toggle({ label, description }) {
                 <input type="checkbox" className="h-5 w-9 rounded-full" />
                 <span className="text-xs text-gray-500">{description}</span>
             </div>
+        </div>
+    );
+}
+
+function PropertyDocumentsCard({ hotelId }) {
+    const [docs, setDocs] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [file, setFile] = useState(null);
+    const [docType, setDocType] = useState('Lease Agreement');
+
+    const fetchDocs = async () => {
+        if (!hotelId) return;
+        setLoading(true);
+        try {
+            const res = await axios.get(`/api/property-documents/${hotelId}`, { withCredentials: true });
+            setDocs(res.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchDocs();
+    }, [hotelId]);
+
+    const handleUpload = async (e) => {
+        e.preventDefault();
+        if (!file || !hotelId) return;
+
+        const formData = new FormData();
+        formData.append('document', file);
+        formData.append('document_type', docType);
+
+        setUploading(true);
+        try {
+            await axios.post(`/api/property-documents/${hotelId}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                withCredentials: true
+            });
+            setFile(null);
+            const fileInput = document.getElementById('prop-doc-file-input');
+            if (fileInput) fileInput.value = '';
+            
+            fetchDocs();
+        } catch (err) {
+            alert(err.response?.data?.error || 'Upload failed');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleDelete = async (docId) => {
+        if (!confirm('Are you sure you want to delete this document?')) return;
+        try {
+            await axios.delete(`/api/property-documents/${docId}`, { withCredentials: true });
+            fetchDocs();
+        } catch (err) {
+            alert('Delete failed');
+        }
+    };
+
+    return (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex justify-between flex-wrap gap-4 mb-6 items-end">
+                <div>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-1">Property Documents</h2>
+                    <p className="text-sm text-gray-500">Manage leases, safety certificates, and compliance files.</p>
+                </div>
+                
+                <form onSubmit={handleUpload} className="flex flex-wrap items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-inner">
+                    <select 
+                        value={docType} 
+                        onChange={e => setDocType(e.target.value)}
+                        className="border border-gray-300 rounded top-navbar text-sm px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                        <option value="Lease Agreement">Lease Agreement</option>
+                        <option value="Safety Certificate">Safety Certificate</option>
+                        <option value="Insurance">Insurance</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <input 
+                        id="prop-doc-file-input"
+                        type="file" 
+                        onChange={e => setFile(e.target.files[0])} 
+                        className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        required
+                    />
+                    <button 
+                        type="submit" 
+                        disabled={uploading || !file}
+                        className="btn-primary btn-sm rounded-lg px-6 py-2 disabled:opacity-50 transition-all font-medium whitespace-nowrap"
+                    >
+                        {uploading ? 'Uploading...' : 'Upload File'}
+                    </button>
+                </form>
+            </div>
+
+            {loading ? (
+                <p className="text-center py-6 text-gray-500">Loading documents...</p>
+            ) : docs.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+                    <p className="text-gray-500 font-medium tracking-wide">No documents uploaded yet.</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                    <table className="w-full">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Document Type</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">File Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Date Uploaded</th>
+                                <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                            {docs.map(doc => (
+                                <tr key={doc.id} className="hover:bg-blue-50/50 transition-colors group">
+                                    <td className="px-4 py-4 text-sm font-semibold text-gray-800">
+                                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-md">{doc.document_type}</span>
+                                    </td>
+                                    <td className="px-4 py-4 text-sm font-medium">
+                                        <a 
+                                            href={doc.file_url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                            </svg>
+                                            {doc.file_name}
+                                        </a>
+                                    </td>
+                                    <td className="px-4 py-4 text-sm text-gray-500 font-medium">
+                                        {new Date(doc.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </td>
+                                    <td className="px-4 py-4 text-right">
+                                        <button 
+                                            onClick={() => handleDelete(doc.id)} 
+                                            className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                            title="Delete Document"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 }

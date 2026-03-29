@@ -69,19 +69,26 @@ export const ConfirmModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-        <h3 className="text-xl font-semibold text-gray-900 mb-3">{title}</h3>
-        <p className="text-gray-600 text-sm mb-6 leading-relaxed">{message}</p>
-        <div className="flex justify-end gap-3">
+      <div className="bg-white w-full max-w-[360px] rounded-[20px] p-5 shadow-2xl overflow-hidden">
+        <div className="flex items-start gap-4 mb-5">
+          <div className="bg-rose-50 text-rose-500 rounded-full p-2.5 shrink-0">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div className="pt-1">
+            <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
+            <p className="text-gray-500 text-sm leading-relaxed">{message}</p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2.5">
           <button
             onClick={onClose}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-xl font-medium transition-colors text-sm"
+            className="px-5 py-2 rounded-full border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors text-sm"
           >
             {cancelText}
           </button>
           <button
             onClick={handleConfirm}
-            className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-xl font-medium transition-colors text-sm"
+            className="px-5 py-2 rounded-full bg-[#f43f5e] hover:bg-rose-600 text-white font-medium transition-colors text-sm shadow-sm"
           >
             {confirmText}
           </button>

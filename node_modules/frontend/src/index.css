@@ -1,13 +1,449 @@
 ﻿@import "tailwindcss";
 
+:root {
+  /* Default: Lighter Theme */
+  --bg-primary: #f8f9fa;
+  --bg-surface: #ffffff;
+  --text-primary: #334155;
+  --text-secondary: #64748b;
+  --accent-primary: #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-shadow: rgba(14, 165, 233, 0.2);
+  --border-color: #e2e8f0;
+  --transition-speed: 0.4s;
+  --text-white: #ffffff;
+}
+
+/* Global Theme Overrides for Tailwind Utilities */
+.text-teal-500,
+.text-teal-600,
+.text-teal-700,
+.text-blue-500,
+.text-blue-600,
+.text-blue-700,
+.hover\:text-teal-500:hover,
+.hover\:text-teal-600:hover,
+.hover\:text-teal-700:hover,
+.hover\:text-blue-500:hover,
+.hover\:text-blue-600:hover,
+.hover\:text-blue-700:hover {
+  color: var(--accent-primary) !important;
+}
+
+.bg-teal-500,
+.bg-teal-600,
+.bg-blue-500,
+.bg-blue-600,
+.hover\:bg-teal-500:hover,
+.hover\:bg-teal-600:hover,
+.hover\:bg-blue-500:hover,
+.hover\:bg-blue-600:hover {
+  background-color: var(--accent-primary) !important;
+}
+
+.bg-white,
+.bg-slate-50,
+.bg-gray-50,
+.bg-neutral-50 {
+  background-color: var(--bg-surface) !important;
+}
+
+.bg-slate-100,
+.bg-gray-100,
+.bg-neutral-100 {
+  background-color: var(--bg-primary) !important;
+}
+
+.text-gray-900,
+.text-slate-900,
+.text-neutral-900,
+.text-zinc-900,
+.text-gray-800,
+.text-slate-800,
+.text-neutral-800,
+.text-zinc-800,
+.text-gray-700,
+.text-slate-700,
+.text-neutral-700,
+.text-zinc-700,
+.text-black {
+  color: var(--text-primary) !important;
+}
+
+.text-gray-600,
+.text-slate-600,
+.text-neutral-600,
+.text-zinc-600,
+.text-gray-500,
+.text-slate-500,
+.text-neutral-500,
+.text-zinc-500,
+.text-gray-400,
+.text-slate-400,
+.text-neutral-400,
+.text-zinc-400,
+.text-gray-300,
+.text-slate-300,
+.text-neutral-300,
+.text-zinc-300 {
+  color: var(--text-secondary) !important;
+}
+
+.border-gray-50,
+.border-slate-50,
+.border-neutral-50,
+.border-zinc-50,
+.border-gray-100,
+.border-slate-100,
+.border-neutral-100,
+.border-zinc-100,
+.border-gray-200,
+.border-slate-200,
+.border-neutral-200,
+.border-zinc-200,
+.border-gray-300,
+.border-slate-300,
+.border-neutral-300,
+.border-zinc-300,
+.border-\[\#E2E8F0\],
+.border-\[\#e2e8f0\],
+.border-\[\#F1F5F9\],
+.border-\[\#f1f5f9\],
+.border-\[\#E5E7EB\],
+.border-\[\#e5e7eb\],
+.border-\[\#D1D5DB\],
+.border-\[\#d1d5db\] {
+  border-color: var(--border-color) !important;
+}
+
+/* Hardcoded Hex Utility Overrides */
+.bg-\[\#F8F9FA\],
+.bg-\[\#f8f9fa\],
+.bg-\[\#F8FAFC\],
+.bg-\[\#f8fafc\],
+.bg-\[\#F1F5F9\],
+.bg-\[\#f1f5f9\],
+.bg-\[\#FFFFFF\],
+.bg-\[\#ffffff\] {
+  background-color: var(--bg-surface) !important;
+}
+
+.bg-\[\#F9FAFB\],
+.bg-\[\#f9fafb\],
+.bg-\[\#F3F4F6\],
+.bg-\[\#f3f4f6\] {
+  background-color: var(--bg-primary) !important;
+}
+
+.text-\[\#111827\],
+.text-\[\#1F2937\],
+.text-\[\#1f2937\],
+.text-\[\#374151\],
+.text-\[\#334155\],
+.text-\[\#0f172a\] {
+  color: var(--text-primary) !important;
+}
+
+.text-\[\#4B5563\],
+.text-\[\#6B7280\],
+.text-\[\#64748B\],
+.text-\[\#94A3B8\] {
+  color: var(--text-secondary) !important;
+}
+
+.bg-\[\#4CA99D\],
+.bg-\[\#4ca99d\],
+.bg-\[\#3deedd\],
+.bg-\[\#5cd9c7\],
+.text-\[\#4CA99D\],
+.text-\[\#4ca99d\],
+.text-\[\#3deedd\],
+.text-\[\#5cd9c7\] {
+  background-color: var(--accent-primary) !important;
+  color: var(--text-white) !important;
+}
+
+/* If it's a text class using teal hex, it should stay teal but theme-aware */
+.text-\[\#4CA99D\],
+.text-\[\#4ca99d\],
+.text-\[\#3deedd\],
+.text-\[\#5cd9c7\] {
+  background-color: transparent !important;
+  color: var(--accent-primary) !important;
+}
+
+/* Sidebar and Background Mapping */
+.bg-slate-900,
+.bg-zinc-900,
+.bg-neutral-900,
+.bg-gray-900,
+.bg-slate-800,
+.bg-zinc-800,
+.bg-neutral-800,
+.bg-gray-800,
+.bg-\[\#0f172a\],
+.bg-\[\#111827\],
+.bg-\[\#1e293b\],
+.bg-\[\#18181b\] {
+  background-color: var(--bg-sidebar) !important;
+}
+
+/* Sidebar Text Contrast */
+.bg-slate-900 .text-slate-300,
+.bg-slate-900 .text-slate-400,
+.bg-slate-900 .text-gray-400,
+.bg-\[var\(--bg-sidebar\)\] .text-slate-300,
+.sidebar .text-slate-300,
+.bg-\#0f172a .text-slate-300 {
+  color: var(--text-on-sidebar) !important;
+}
+
+/* Text on Accent/Buttons - High Specificity Overrides */
+.bg-teal-500,
+.bg-teal-600,
+.btn-primary,
+.bg-\[var\(--accent-primary\)\],
+.bg-orange-500,
+.bg-red-500,
+.bg-green-500,
+.bg-blue-500 {
+  color: var(--text-on-accent) !important;
+}
+
+.bg-teal-500 span,
+.bg-teal-600 span,
+.btn-primary span,
+.text-white.bg-teal-500,
+.text-white.bg-orange-500 {
+  color: var(--text-on-accent) !important;
+}
+
+/* Contrast-Aware Text Overrides on themed backgrounds */
+.bg-slate-900 .text-white,
+.bg-slate-900.text-white,
+.bg-zinc-900 .text-white,
+.bg-zinc-900.text-white,
+.bg-gray-900 .text-white,
+.bg-gray-900.text-white,
+.bg-\[\#0f172a\] .text-white,
+.bg-\[\#0f172a\].text-white {
+  color: var(--text-on-sidebar) !important;
+}
+
+.bg-teal-500 .text-white,
+.bg-teal-500.text-white,
+.bg-teal-600 .text-white,
+.bg-teal-600.text-white,
+.bg-\[\#4CA99D\] .text-white,
+.bg-\[\#4CA99D\].text-white,
+.bg-\[\#4ca99d\] .text-white,
+.bg-\[\#4ca99d\].text-white,
+.bg-\[\#3deedd\] .text-white,
+.bg-\[\#3deedd\].text-white {
+  color: var(--text-on-accent) !important;
+}
+
+/* Fix for icons and specific text shades in sidebar */
+.bg-sidebar .lucide,
+.bg-slate-900 .lucide,
+.bg-slate-900 .text-slate-100,
+.bg-slate-900 .text-slate-200,
+.bg-slate-900 .text-slate-300,
+.bg-slate-900 .text-gray-100,
+.bg-slate-900 .text-gray-200,
+.bg-slate-900 .text-gray-300 {
+  color: var(--text-on-sidebar) !important;
+}
+
+.bg-accent-primary .lucide,
+.bg-teal-500 .lucide,
+.bg-teal-600 .lucide,
+.bg-\[\#4CA99D\] .lucide {
+  color: var(--text-on-accent) !important;
+}
+
+/* Semantic Color Overrides */
+.text-red-500,
+.text-red-600,
+.text-red-700,
+.text-pink-600 {
+  color: var(--color-error) !important;
+}
+
+.bg-red-500,
+.bg-red-600,
+.bg-pink-600 {
+  background-color: var(--color-error) !important;
+  color: #ffffff !important;
+  /* Semantic colors usually need white text for contrast */
+}
+
+.text-orange-500,
+.text-orange-600,
+.text-orange-500,
+.text-orange-600,
+.text-orange-700,
+.text-orange-800,
+.text-yellow-600,
+.text-amber-600,
+.text-amber-700 {
+  color: var(--color-warning) !important;
+}
+
+.bg-orange-500,
+.bg-orange-600,
+.bg-orange-700,
+.bg-yellow-600,
+.bg-amber-600 {
+  background-color: var(--color-warning) !important;
+  color: var(--text-on-accent) !important;
+}
+
+.text-teal-500,
+.text-teal-600,
+.text-teal-700,
+.text-teal-800,
+.text-cyan-600 {
+  color: var(--accent-primary) !important;
+}
+
+.bg-teal-500,
+.bg-teal-600,
+.bg-teal-700,
+.bg-cyan-600 {
+  background-color: var(--accent-primary) !important;
+  color: var(--text-on-accent) !important;
+}
+
+.text-green-500,
+.text-green-600,
+.text-green-700,
+.text-emerald-600,
+.text-emerald-700 {
+  color: var(--color-success) !important;
+}
+
+.bg-green-50,
+.bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+.border-green-100,
+.border-emerald-100,
+.border-emerald-200 {
+  border-color: var(--color-success) !important;
+  opacity: 0.3;
+}
+
+.bg-green-500,
+.bg-green-600,
+.bg-emerald-500,
+.bg-emerald-600 {
+  background-color: var(--color-success) !important;
+  color: #ffffff !important;
+}
+
+.text-blue-500,
+.text-blue-600,
+.text-blue-700,
+.text-indigo-600,
+.text-indigo-700 {
+  color: var(--color-info) !important;
+}
+
+.bg-blue-50,
+.bg-indigo-50 {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.border-blue-100,
+.border-indigo-100,
+.border-indigo-200 {
+  border-color: var(--color-info) !important;
+  opacity: 0.3;
+}
+
+.bg-blue-500,
+.bg-blue-600,
+.bg-indigo-500,
+.bg-indigo-600 {
+  background-color: var(--color-info) !important;
+  color: #ffffff !important;
+}
+
+/* Also add for red/orange subtle bgs */
+.bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+.border-red-100,
+.border-red-200 {
+  border-color: var(--color-error) !important;
+  opacity: 0.3;
+}
+
+.bg-orange-50,
+.bg-amber-50 {
+  background-color: rgba(249, 115, 22, 0.1) !important;
+}
+
+.border-orange-100,
+.border-orange-200,
+.border-amber-100,
+.border-amber-200 {
+  border-color: var(--color-warning) !important;
+  opacity: 0.3;
+}
+
+/* Scrollbar Theme Sync */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-shadow);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
+
+* {
+  transition: background-color var(--transition-speed) ease,
+    color var(--transition-speed) ease,
+    border-color var(--transition-speed) ease,
+    box-shadow var(--transition-speed) ease;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: inherit;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+* {
+  transition: border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @layer base {
   * {
     font-family: 'Poppins', system-ui, -apple-system, sans-serif;
   }
 
   body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-family: 'Poppins', system-ui, -apple-system, sans-serif;
-    font-weight: 400;
+    font-size: var(--base-font-size, 16px);
+    font-weight: var(--base-font-weight, 400);
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -87,12 +523,12 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem 1.5rem;
-  background: #00b8a3;
+  background: var(--accent-primary);
   color: white;
   font-size: 0.875rem;
   font-weight: 700;
   border-radius: 0.75rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 184, 163, 0.2), 0 2px 4px -1px rgba(0, 184, 163, 0.1);
+  box-shadow: 0 4px 6px -1px var(--accent-shadow), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(0, 0, 0, 0.05);
   cursor: pointer;
@@ -101,9 +537,9 @@
 }
 
 .btn-primary:hover {
-  background: #00a08e;
+  background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 10px 15px -3px rgba(0, 184, 163, 0.3), 0 4px 6px -2px rgba(0, 184, 163, 0.2);
+  box-shadow: 0 10px 15px -3px var(--accent-shadow), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary:active {
@@ -145,12 +581,12 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem 1.25rem;
-  background-color: white;
-  color: #475569;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
   /* slate-600 */
   font-size: 0.875rem;
-  font-weight: 600;
-  border: 1px solid #e2e8f0;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
   /* slate-200 */
   border-radius: 0.75rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -160,8 +596,8 @@
 }
 
 .btn-secondary:hover {
-  background-color: #f8fafc;
-  border-color: #cbd5e1;
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
   transform: translateY(-1px);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -200,33 +636,40 @@
 /* Global Form Input Styles */
 .form-input {
   width: 100%;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-color);
   /* slate-300 */
   border-radius: 0.75rem;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
-  background-color: white;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
   outline: none;
   transition: all 0.2s;
   height: 2.25rem;
   /* Standardized compact height */
 }
 
+.form-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
 .form-input:focus {
-  border-color: #a7f3d0;
-  /* emerald-200 */
-  box-shadow: 0 0 0 3px rgba(110, 231, 183, 0.5);
-  /* emerald-300 with opacity */
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-shadow);
 }
 
 .form-select {
   width: 100%;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-color);
   /* slate-300 */
   border-radius: 0.75rem;
   padding: 0.5rem 2rem 0.5rem 0.75rem;
   font-size: 0.875rem;
-  background-color: white;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
   outline: none;
   transition: all 0.2s;
   height: 2.25rem;
@@ -240,8 +683,8 @@
 }
 
 .form-select:focus {
-  border-color: #a7f3d0;
-  box-shadow: 0 0 0 3px rgba(110, 231, 183, 0.5);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-shadow);
 }
 
 .form-label {
@@ -260,15 +703,13 @@ table thead th {
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b !important;
-  /* slate-500 */
+  color: var(--text-secondary) !important;
 }
 
 table tbody td {
   font-size: 0.8125rem !important;
   /* Match header size for data */
-  color: #334155 !important;
-  /* slate-700 */
+  color: var(--text-primary) !important;
 }
 
 
@@ -325,7 +766,9 @@ body.form-modal-open {
   }
 
   .modal-container {
-    @apply bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col;
+    @apply w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
     animation: modal-in 0.2s ease-out forwards;
   }
 
@@ -343,7 +786,9 @@ body.form-modal-open {
 
   /* Modal Sections */
   .modal-header {
-    @apply flex justify-between items-start p-6 border-b border-slate-100 shrink-0 bg-slate-50/30;
+    @apply flex justify-between items-start p-6 border-b shrink-0;
+    border-color: var(--border-color);
+    background-color: var(--bg-primary);
   }
 
   .modal-title {
@@ -363,7 +808,9 @@ body.form-modal-open {
   }
 
   .modal-footer {
-    @apply flex justify-end gap-3 p-6 border-t border-slate-100 shrink-0 bg-slate-50/50 rounded-b-2xl;
+    @apply flex justify-end gap-3 p-6 border-t shrink-0 rounded-b-2xl;
+    border-color: var(--border-color);
+    background-color: var(--bg-primary);
   }
 
   /* Form Elements */
@@ -381,11 +828,18 @@ body.form-modal-open {
 
   /* Checkbox Card Style (for checklists) */
   .checkbox-card {
-    @apply flex items-start gap-3 text-sm p-3 border rounded-lg cursor-pointer transition-all duration-200 border-slate-200 hover:border-slate-300 hover:bg-slate-50;
+    @apply flex items-start gap-3 text-sm p-3 border rounded-lg cursor-pointer transition-all duration-200;
+    border-color: var(--border-color);
+  }
+
+  .checkbox-card:hover {
+    background-color: var(--bg-primary);
+    border-color: var(--accent-primary);
   }
 
   .checkbox-card.checked {
-    @apply bg-emerald-50 border-emerald-200;
+    background-color: var(--accent-shadow);
+    border-color: var(--accent-primary);
   }
 
   .checkbox-card-text {

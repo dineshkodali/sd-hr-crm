@@ -9,19 +9,19 @@ const router = express.Router();
 router.get("/kpis", protect, async (req, res) => {
   try {
     const timeRange = req.query.timeRange || "30d";
-    
+
     // Get basic counts
     const hotelsQuery = await pool.query("SELECT COUNT(*)::bigint as total FROM hotels");
     const roomsQuery = await pool.query("SELECT COUNT(*)::bigint as total FROM rooms");
     const usersQuery = await pool.query("SELECT COUNT(*)::bigint as total FROM users WHERE status = 'active'");
-    
+
     const kpis = {
       totalHotels: Number(hotelsQuery.rows[0]?.total || 0),
       totalRooms: Number(roomsQuery.rows[0]?.total || 0),
       totalUsers: Number(usersQuery.rows[0]?.total || 0),
       timeRange
     };
-    
+
     res.json(kpis);
   } catch (error) {
     console.error("Dashboard KPIs error:", error);
@@ -133,7 +133,7 @@ router.get("/trends", protect, async (req, res) => {
 router.get("/occupancy", protect, async (req, res) => {
   try {
     const timeRange = req.query.timeRange || "30d";
-    
+
     // Calculate occupancy from hotels data
     const occupancyQuery = await pool.query(`
       SELECT 
@@ -141,12 +141,12 @@ router.get("/occupancy", protect, async (req, res) => {
         SUM(occupied_beds) as occupied_beds
       FROM hotels
     `);
-    
+
     const result = occupancyQuery.rows[0];
     const totalBeds = Number(result?.total_beds || 0);
     const occupiedBeds = Number(result?.occupied_beds || 0);
     const occupancyRate = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0;
-    
+
     let topProperties = [];
     try {
       const suReg = await pool.query("SELECT to_regclass('public.service_users') AS pub, to_regclass('service_users') AS plain");
@@ -205,7 +205,7 @@ router.get("/occupancy", protect, async (req, res) => {
 router.get("/incidents-summary", protect, async (req, res) => {
   try {
     const timeRange = req.query.timeRange || "30d";
-    
+
     // Get incidents count from maintenance schema
     let incidentsCount = 0;
     let openIncidents = 0;
@@ -227,7 +227,7 @@ router.get("/incidents-summary", protect, async (req, res) => {
       // Table might not exist
       console.warn("Incidents table not found:", e.message);
     }
-    
+
     res.json({
       totalIncidents: incidentsCount,
       openIncidents,
@@ -324,7 +324,7 @@ router.get("/compliance-summary", protect, async (req, res) => {
 router.get("/attention-items", protect, async (req, res) => {
   try {
     const timeRange = req.query.timeRange || "30d";
-    
+
     // Get items needing attention
     const maintenanceQuery = await pool.query("SELECT COUNT(*)::bigint as total FROM maintenance_tasks WHERE status = 'pending'");
     let openIncidents = 0;
@@ -336,7 +336,7 @@ router.get("/attention-items", protect, async (req, res) => {
     } catch (e) {
       console.warn("Attention-items incidents query failed:", e.message);
     }
-    
+
     res.json({
       maintenanceTasks: Number(maintenanceQuery.rows[0]?.total || 0),
       openIncidents,
@@ -352,7 +352,7 @@ router.get("/attention-items", protect, async (req, res) => {
 router.get("/demographics", protect, async (req, res) => {
   try {
     const timeRange = req.query.timeRange || "30d";
-    
+
     // Get user demographics
     const usersQuery = await pool.query(`
       SELECT role, COUNT(*)::bigint as count 
@@ -360,12 +360,12 @@ router.get("/demographics", protect, async (req, res) => {
       WHERE status = 'active' 
       GROUP BY role
     `);
-    
+
     const demographics = usersQuery.rows.reduce((acc, row) => {
       acc[row.role] = Number(row.count);
       return acc;
     }, {});
-    
+
     res.json({
       userRoles: demographics,
       timeRange
@@ -380,19 +380,19 @@ router.get("/demographics", protect, async (req, res) => {
 router.get("/maintenance-stats", protect, async (req, res) => {
   try {
     const timeRange = req.query.timeRange || "30d";
-    
+
     // Get maintenance statistics
     const tasksQuery = await pool.query(`
       SELECT status, COUNT(*)::bigint as count 
       FROM maintenance_tasks 
       GROUP BY status
     `);
-    
+
     const stats = tasksQuery.rows.reduce((acc, row) => {
       acc[row.status] = Number(row.count);
       return acc;
     }, {});
-    
+
     res.json({
       taskStats: stats,
       timeRange

@@ -697,7 +697,7 @@ export default function Reports() {
  };
 
  return (
- <div className="min-h-screen bg-[#f8f9fa] p-6 font-sans">
+ <div className="min-h-screen bg-[var(--bg-primary)] p-6 font-sans">
  {/* --- HEADER --- */}
  <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
  <div>

@@ -51,6 +51,9 @@ import branchesRoutes from "./routes/branches.js";
 import roomsListRoutes from "./routes/rooms-list.js";
 import propertiesRoutes from "./routes/properties.js";
 import reportTemplatesRoutes from "./routes/report-templates.js";
+import propertyDocumentsRoutes from "./routes/property-documents.js";
+import tenantDocumentsRoutes from "./routes/tenant-documents.js";
+import occupantsRoutes from "./routes/occupants.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -368,6 +371,15 @@ mountRoute("/api/org-chart", orgChartRoutes, "orgChartRoutes");
 
 // Properties
 mountRoute("/api/properties", propertiesRoutes, "propertiesRoutes");
+
+// Property Documents
+mountRoute("/api/property-documents", propertyDocumentsRoutes, "propertyDocumentsRoutes");
+
+// Tenant Documents
+mountRoute("/api/tenant-documents", tenantDocumentsRoutes, "tenantDocumentsRoutes");
+
+// Occupants
+mountRoute("/api/occupants", occupantsRoutes, "occupantsRoutes");
 
 // profile (keep last)
 mountRoute("/api/profile", profileRoutes, "profileRoutes");

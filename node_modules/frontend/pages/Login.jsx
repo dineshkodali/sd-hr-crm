@@ -271,15 +271,15 @@ const Login = ({ setUser }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 font-sans text-slate-800">
-      <div className="w-full max-w-[1100px] h-[735px] bg-white rounded-[30px] shadow-2xl overflow-hidden flex flex-col lg:flex-row">
+    <div className="min-h-screen flex items-center justify-center p-4 font-sans" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+      <div className="w-full max-w-[1100px] h-[735px] rounded-[30px] shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-[var(--border-color)]" style={{ backgroundColor: 'var(--bg-surface)' }}>
 
         {/* LEFT SIDE: Form Area */}
         <div className="w-full lg:w-[40%] bg-white p-8 lg:p-12 flex flex-col justify-center items-center relative">
 
           <div className="w-full max-w-sm">
             <div className="flex flex-col items-center mb-8">
-              <div className="w-16 h-16 bg-[#4CA99D] rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-teal-200">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-[var(--accent-shadow)]" style={{ backgroundColor: 'var(--accent-primary)' }}>
                 <ShieldCheck className="text-white w-8 h-8" strokeWidth={1.5} />
               </div>
               <h1 className="text-2xl font-bold text-gray-900">SD Commercial</h1>
@@ -323,7 +323,8 @@ const Login = ({ setUser }) => {
                           placeholder="Enter your email"
                           value={form.email}
                           onChange={handleChange}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4CA99D] focus:bg-white transition-all"
+                          className="w-full pl-10 pr-4 py-3 border border-[var(--border-color)] rounded-xl placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:bg-[var(--bg-surface)] transition-all"
+                          style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                           required
                         />
                       </div>
@@ -341,14 +342,15 @@ const Login = ({ setUser }) => {
                           placeholder="Enter your password"
                           value={form.password}
                           onChange={handleChange}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4CA99D] focus:bg-white transition-all"
+                          className="w-full pl-10 pr-4 py-3 border border-[var(--border-color)] rounded-xl placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:bg-[var(--bg-surface)] transition-all"
+                          style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                           required
                         />
                       </div>
                     </div>
 
                     <div className="flex justify-end">
-                      <button type="button" onClick={handleForgotPasswordClick} className="text-[#4CA99D] text-sm hover:underline font-medium">
+                      <button type="button" onClick={handleForgotPasswordClick} className="text-[var(--accent-primary)] text-sm hover:underline font-medium">
                         Forgot password?
                       </button>
                     </div>
@@ -356,7 +358,8 @@ const Login = ({ setUser }) => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#9ACCC6] hover:bg-[#88c0b5] text-white font-semibold py-3.5 rounded-xl transition-colors shadow-sm"
+                      className="w-full text-white font-semibold py-3.5 rounded-xl transition-colors shadow-sm"
+                      style={{ backgroundColor: 'var(--accent-primary)' }}
                     >
                       {loading ? "Signing In..." : "Sign In"}
                     </button>
@@ -372,16 +375,16 @@ const Login = ({ setUser }) => {
                               onClick={() => setMethod2FA("authenticator")}
                               className="w-full py-3 px-4 bg-gray-50 border border-gray-100 rounded-xl flex items-center gap-3 hover:bg-gray-100 transition-colors"
                             >
-                              <Smartphone className="text-[#4CA99D] w-5 h-5" />
-                              <span className="text-gray-700 font-medium">Authenticator App</span>
+                              <Smartphone className="text-[var(--accent-primary)] w-5 h-5" />
+                              <span className="text-[var(--text-primary)] font-medium">Authenticator App</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => setMethod2FA("backup")}
                               className="w-full py-3 px-4 bg-gray-50 border border-gray-100 rounded-xl flex items-center gap-3 hover:bg-gray-100 transition-colors"
                             >
-                              <Key className="text-gray-500 w-5 h-5" />
-                              <span className="text-gray-700 font-medium">Backup Code</span>
+                              <Key className="text-[var(--text-secondary)] w-5 h-5" />
+                              <span className="text-[var(--text-primary)] font-medium">Backup Code</span>
                             </button>
                           </>
                         )}
@@ -396,7 +399,7 @@ const Login = ({ setUser }) => {
                           }}
                           className="w-full py-3 px-4 bg-gray-50 border border-gray-100 rounded-xl flex items-center gap-3 hover:bg-gray-100 transition-colors"
                         >
-                          <Mail className="text-blue-500 w-5 h-5" />
+                          <Mail className="text-[var(--accent-primary)] w-5 h-5" />
                           <span className="text-gray-700 font-medium">Email OTP</span>
                         </button>
 
@@ -418,7 +421,7 @@ const Login = ({ setUser }) => {
                               type="button"
                               onClick={handleRequestOTP}
                               disabled={loading}
-                              className="text-[#4CA99D] underline text-sm mb-2 block w-full text-center"
+                              className="text-[var(--accent-primary)] underline text-sm mb-2 block w-full text-center"
                             >
                               {loading ? "Sending..." : "Send Code"}
                             </button>
@@ -428,7 +431,7 @@ const Login = ({ setUser }) => {
                             type="text"
                             autoFocus
                             placeholder={method2FA === "backup" ? "XXXXXX" : "000000"}
-                            className="w-full text-center text-2xl tracking-widest py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#4CA99D] outline-none"
+                            className="w-full text-center text-2xl tracking-widest py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--accent-primary)] outline-none"
                             maxLength={method2FA === "backup" ? 10 : 6}
                             value={method2FA === "backup" ? backupCode : method2FA === "authenticator" ? totpCode : otpCode}
                             onChange={(e) => {
@@ -444,14 +447,14 @@ const Login = ({ setUser }) => {
                           <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-[#9ACCC6] hover:bg-[#88c0b5] text-white font-semibold py-3 rounded-xl transition-colors shadow-sm"
+                            className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-semibold py-3 rounded-xl transition-colors shadow-sm"
                           >
                             {loading ? "Verifying..." : "Verify & Login"}
                           </button>
                         )}
 
                         <div className="flex justify-between text-sm mt-2">
-                          <button type="button" onClick={() => { setMethod2FA(""); setError(""); }} className="text-[#4CA99D]">Change Method</button>
+                          <button type="button" onClick={() => { setMethod2FA(""); setError(""); }} className="text-[var(--accent-primary)]">Change Method</button>
                           <button type="button" onClick={handleBack} className="text-gray-500">Cancel</button>
                         </div>
                       </div>
@@ -474,7 +477,7 @@ const Login = ({ setUser }) => {
                           placeholder="Your account email"
                           value={resetEmail}
                           onChange={(e) => setResetEmail(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4CA99D] focus:bg-white transition-all"
+                          className="w-full pl-10 pr-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:bg-[var(--bg-surface)] transition-all"
                           required
                         />
                       </div>
@@ -482,7 +485,7 @@ const Login = ({ setUser }) => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#9ACCC6] hover:bg-[#88c0b5] text-white font-semibold py-3.5 rounded-xl transition-colors shadow-sm"
+                      className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-semibold py-3.5 rounded-xl transition-colors shadow-sm"
                     >
                       {loading ? "Sending..." : "Send Reset Code"}
                     </button>
@@ -499,7 +502,7 @@ const Login = ({ setUser }) => {
                         placeholder="Enter 6-digit code"
                         value={resetOtp}
                         onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-center text-xl tracking-widest text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4CA99D] focus:bg-white transition-all"
+                        className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl text-center text-xl tracking-widest text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:bg-[var(--bg-surface)] transition-all"
                         required
                         maxLength={6}
                       />
@@ -515,7 +518,7 @@ const Login = ({ setUser }) => {
                           placeholder="Min 6 chars"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4CA99D] focus:bg-white transition-all"
+                          className="w-full pl-10 pr-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:bg-[var(--bg-surface)] transition-all"
                           required
                         />
                       </div>
@@ -531,7 +534,7 @@ const Login = ({ setUser }) => {
                           placeholder="Confirm new password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4CA99D] focus:bg-white transition-all"
+                          className="w-full pl-10 pr-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:bg-[var(--bg-surface)] transition-all"
                           required
                         />
                       </div>
@@ -539,7 +542,7 @@ const Login = ({ setUser }) => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-[#9ACCC6] hover:bg-[#88c0b5] text-white font-semibold py-3.5 rounded-xl transition-colors shadow-sm"
+                      className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white font-semibold py-3.5 rounded-xl transition-colors shadow-sm"
                     >
                       {loading ? "Resetting..." : "Set New Password"}
                     </button>
@@ -555,11 +558,11 @@ const Login = ({ setUser }) => {
         </div>
 
         {/* RIGHT SIDE: Info Panel */}
-        <div className="hidden lg:flex w-full lg:w-[60%] bg-[#409187] relative flex-col justify-center p-12 text-white">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#4CA99D] to-[#367c74] opacity-90"></div>
+        <div className="hidden lg:flex w-full lg:w-[60%] relative flex-col justify-center p-12 text-[var(--text-on-accent)]" style={{ backgroundColor: 'var(--accent-primary)' }}>
+          <div className="absolute inset-0 opacity-90" style={{ background: 'linear-gradient(to bottom right, var(--accent-primary), var(--accent-hover))' }}></div>
           <div className="relative z-10 max-w-lg mx-auto">
-            <h2 className="text-3xl font-bold mb-3 text-center">Streamline Your Operations</h2>
-            <p className="text-teal-50 text-center mb-10 text-sm leading-relaxed">
+            <h2 className="text-3xl font-bold mb-3 text-center text-[var(--text-on-accent)]">Streamline Your Operations</h2>
+            <p className="text-[var(--text-on-accent)] opacity-80 text-center mb-10 text-sm leading-relaxed">
               Comprehensive management platform for housing estate services.
               Securely manage properties, residents, and compliance in one place.
             </p>
@@ -567,7 +570,7 @@ const Login = ({ setUser }) => {
             <div className="grid grid-cols-2 gap-4 mb-12">
               <div className="bg-white/10 backdrop-blur-sm p-5 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-default">
                 <div className="mb-3 w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-white" />
+                  <Building2 className="w-5 h-5 text-[var(--text-on-accent)]" />
                 </div>
                 <h3 className="font-semibold text-sm mb-1">Property Management</h3>
                 <p className="text-xs text-teal-100">Multi-site portfolio tracking</p>
@@ -575,7 +578,7 @@ const Login = ({ setUser }) => {
 
               <div className="bg-white/10 backdrop-blur-sm p-5 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-default">
                 <div className="mb-3 w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
+                  <Users className="w-5 h-5 text-[var(--text-on-accent)]" />
                 </div>
                 <h3 className="font-semibold text-sm mb-1">Service Users</h3>
                 <p className="text-xs text-teal-100">Complete resident profiles</p>
@@ -583,7 +586,7 @@ const Login = ({ setUser }) => {
 
               <div className="bg-white/10 backdrop-blur-sm p-5 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-default">
                 <div className="mb-3 w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <FileCheck className="w-5 h-5 text-white" />
+                  <FileCheck className="w-5 h-5 text-[var(--text-on-accent)]" />
                 </div>
                 <h3 className="font-semibold text-sm mb-1">Compliance</h3>
                 <p className="text-xs text-teal-100">Automated tracking & alerts</p>
@@ -591,7 +594,7 @@ const Login = ({ setUser }) => {
 
               <div className="bg-white/10 backdrop-blur-sm p-5 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-default">
                 <div className="mb-3 w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <ShieldCheck className="w-5 h-5 text-white" />
+                  <ShieldCheck className="w-5 h-5 text-[var(--text-on-accent)]" />
                 </div>
                 <h3 className="font-semibold text-sm mb-1">Safeguarding</h3>
                 <p className="text-xs text-teal-100">Risk assessment tools</p>
