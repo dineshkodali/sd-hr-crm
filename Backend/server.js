@@ -122,6 +122,10 @@ app.use(cors({
       'http://192.168.0.4:3000',  // Added your local IP
       'http://172.22.48.1:3002', // Added your current access IP
       'http://172.22.48.1:3000', // Added your current access IP
+      'http://crm.sdcdms.co.uk',
+      'https://crm.sdcdms.co.uk',
+      'http://crm.sdcdms.co.uk:3002',
+      'https://crm.sdcdms.co.uk:3002',
       'http://crm.sdgsolutions.in',
       'https://crm.sdgsolutions.in',
       'http://crm.sdgsolutions.in:3002',

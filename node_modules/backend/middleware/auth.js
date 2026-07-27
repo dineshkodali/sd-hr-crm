@@ -204,7 +204,8 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ message: "Not authorized — token failed" });
     }
 
-    // synthetic admin fallback (useful for dev)
+    // synthetic admin fallback (useful for dev) - MUST BE BEFORE session check
+    // as synthetic admin does not exist in the database sessions table.
     if (decoded?.id === "admin-synthetic") {
       req.user = {
         id: decoded.id,
@@ -215,6 +216,29 @@ export const protect = async (req, res, next) => {
       };
       return next();
     }
+
+    // --- ENHANCED SESSION SECURITY CHECK ---
+    try {
+      const { validateSession, updateLastActivity, terminateSession, getClientInfo } = await import("../utils/sessionHelper.js");
+      const { ipAddress: currentIp, userAgent: currentUserAgent } = getClientInfo(req);
+
+      const { valid, reason, session } = await validateSession(token, currentIp, currentUserAgent);
+
+      if (!valid) {
+        console.warn(`Auth: Session validation failed for token preview ${preview}. Reason: ${reason}`);
+        if (session) {
+          await terminateSession(session.id, session.user_id);
+        }
+        return res.status(401).json({ message: `Session invalid: ${reason}` });
+      }
+
+      // Update last activity to keep session alive
+      await updateLastActivity(token);
+
+    } catch (sessionErr) {
+      console.error("Auth: Error during session security check:", sessionErr && sessionErr.message);
+    }
+    // --- END ENHANCED SESSION SECURITY CHECK ---
 
     // Detect hotel assignment column and include it as hotel_id if present
     let hotelCol = null;

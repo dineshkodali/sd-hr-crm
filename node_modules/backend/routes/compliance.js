@@ -105,6 +105,60 @@ async function getCertificateColumns() {
   return set;
 }
 
+let CERT_PROPERTY_FK_CACHE = { at: 0, target: null };
+async function getCertificatesPropertyFkTarget() {
+  const now = Date.now();
+  if (CERT_PROPERTY_FK_CACHE.target && now - CERT_PROPERTY_FK_CACHE.at < 60_000) return CERT_PROPERTY_FK_CACHE.target;
+  const r = await safeQuery(
+    `SELECT
+      ccu.table_schema AS foreign_table_schema,
+      ccu.table_name   AS foreign_table_name,
+      ccu.column_name  AS foreign_column_name
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu
+      ON tc.constraint_name = kcu.constraint_name
+     AND tc.table_schema = kcu.table_schema
+    JOIN information_schema.constraint_column_usage ccu
+      ON ccu.constraint_name = tc.constraint_name
+     AND ccu.table_schema = tc.table_schema
+    WHERE tc.constraint_type = 'FOREIGN KEY'
+      AND tc.table_schema = 'public'
+      AND tc.table_name = 'certificates'
+      AND kcu.column_name = 'property_id'
+    LIMIT 1`,
+    []
+  );
+  const row = r.ok ? r.rows?.[0] : null;
+  const target = row?.foreign_table_name
+    ? {
+      schema: row.foreign_table_schema || 'public',
+      table: row.foreign_table_name,
+      column: row.foreign_column_name || 'id'
+    }
+    : null;
+  CERT_PROPERTY_FK_CACHE = { at: now, target };
+  return target;
+}
+
+async function resolveCertificatePropertyId(candidate) {
+  const raw = String(candidate ?? '').trim();
+  if (!/^\d+$/.test(raw)) return null;
+  const fk = await getCertificatesPropertyFkTarget();
+  if (!fk?.table || !fk?.column) return null;
+
+  const schema = fk.schema && String(fk.schema).trim() ? String(fk.schema).trim() : 'public';
+  const table = String(fk.table).trim();
+  const column = String(fk.column).trim();
+  if (!table || !column) return null;
+
+  const r = await safeQuery(
+    `SELECT 1 FROM ${quoteIdent(schema)}.${quoteIdent(table)} WHERE ${quoteIdent(column)}::text = $1 LIMIT 1`,
+    [raw]
+  );
+  if (!r.ok || r.rowCount <= 0) return null;
+  return Number(raw);
+}
+
 async function getAllowedHotelIds(user) {
   if (!user) return [];
   if (user.role === "admin") return null;
@@ -367,7 +421,6 @@ router.get("/", protect, async (req, res) => {
   }
 });
 
-/* get one */
 router.get("/:id", protect, async (req, res) => {
   try {
     await ensureComplianceInitialized();
@@ -381,23 +434,32 @@ router.get("/:id", protect, async (req, res) => {
 
     const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
 
-    const sql = `
-      SELECT c.*,
-        COALESCE(h.name, c.hotel_name) AS hotel_name
-      FROM public.certificates c
-      ${HOTEL_JOIN}
-      WHERE c.id::text = $1 AND c.is_active = true
-    `;
-    const r = await safeQuery(sql, [String(id)]);
+    const r = await safeQuery(
+      "SELECT * FROM public.certificates WHERE id::text = $1 AND is_active = true LIMIT 1",
+      [String(id)]
+    );
 
     if (!r.ok) return res.status(500).json({ ok: false, error: "Server error" });
     if (!r.rows[0]) return res.status(404).json({ ok: false, error: "Not found" });
 
-    if (!recordAllowedByScope(r.rows[0], allowedHotelIds, allowedHotelNamesLower)) {
+    const row = r.rows[0];
+
+    if (!recordAllowedByScope(row, allowedHotelIds, allowedHotelNamesLower)) {
       return res.status(403).json({ ok: false, error: "Access denied" });
     }
 
-    const row = r.rows[0];
+    if (row.property_id != null && String(row.property_id).trim() !== "") {
+      const pk = await getHotelsPkColumn();
+      const col = pk ? pk : "id";
+      const hr = await safeQuery(
+        `SELECT name FROM public.hotels WHERE ${quoteIdent(col)}::text = $1 LIMIT 1`,
+        [String(row.property_id)]
+      );
+      if (hr.ok && hr.rows?.[0]?.name != null) {
+        row.hotel_name = String(hr.rows[0].name);
+      }
+    }
+
     row.hotel_name = row.hotel_name && String(row.hotel_name).trim() ? String(row.hotel_name).trim() : "";
     return res.json({ ok: true, data: row });
   } catch (err) {
@@ -457,176 +519,86 @@ router.get("/:id/document", protect, async (req, res) => {
 router.post("/", protect, upload.single("document"), async (req, res) => {
   try {
     await ensureComplianceInitialized();
+    const cols = await getCertificateColumns();
+
+    // Determine hotel_name and property_id
     const {
-      certificate_type,
-      // accept either a textual hotel name (preferred) or hotel_id/property_id (legacy)
       hotel_id: in_hotel_id,
       property_id: in_property_id,
       hotel_name: in_hotel_name,
-      issue_date,
-      expiry_date,
-      issued_by,
-      file_path,
-      notes,
     } = req.body || {};
 
-    const document_name = req.file?.originalname || null;
-    const document_mime = req.file?.mimetype || null;
-    const document_data = req.file?.buffer || null;
-
-    const missing = [];
-    if (!certificate_type || String(certificate_type).trim() === "") missing.push("certificate_type");
-    if (!issue_date || String(issue_date).trim() === "") missing.push("issue_date");
-    if (!expiry_date || String(expiry_date).trim() === "") missing.push("expiry_date");
-    if (!issued_by || String(issued_by).trim() === "") missing.push("issued_by");
-    if (!notes || String(notes).trim() === "") missing.push("notes");
-    // certificate_number is not destructured above in existing code; accept from body
-    const certificate_number = req.body?.certificate_number ?? null;
-    if (!certificate_number || String(certificate_number).trim() === "") missing.push("certificate_number");
-
-    // Require at least one property identifier
-    const hasPropertyIdentifier =
-      (in_hotel_name && String(in_hotel_name).trim() !== "") ||
-      (in_hotel_id !== undefined && in_hotel_id !== null && String(in_hotel_id).trim() !== "") ||
-      (in_property_id !== undefined && in_property_id !== null && String(in_property_id).trim() !== "");
-    if (!hasPropertyIdentifier) missing.push("property_id");
-
-    // Require all custom columns
-    const cols = await getCertificateColumns();
-    const standard = new Set([
-      'id', 'certificate_type', 'property_id', 'hotel_id', 'certificate_number',
-      'issue_date', 'expiry_date', 'issued_by', 'status', 'notes',
-      'created_at', 'updated_at', 'document_data', 'document_name', 'document_mime',
-      'file_path', 'hotel_name', 'property_name', 'is_active', 'created_by'
-    ]);
-    for (const col of Array.from(cols || [])) {
-      if (standard.has(col)) continue;
-      const v = req.body?.[col];
-      const camel = String(col).replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-      const v2 = v === undefined ? req.body?.[camel] : v;
-      if (v2 === undefined || v2 === null || String(v2).trim() === "") {
-        missing.push(col);
-      }
-    }
-
-    if (missing.length) {
-      return res.status(400).json({ ok: false, error: `Missing required fields: ${missing.join(', ')}` });
-    }
-
-    const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
-    const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
-    if (allowedHotelIds !== null && allowedHotelIds.length === 0) {
-      return res.status(403).json({ ok: false, error: "Access denied" });
-    }
-
-    // Determine hotel_name to store:
-    // Priority: explicit hotel_name field > in_hotel_id (if numeric try to lookup hotels.name) > in_property_id (try lookup) > null
     let hotelNameToStore = null;
-
     if (in_hotel_name && String(in_hotel_name).trim() !== "") {
       hotelNameToStore = String(in_hotel_name).trim();
-    } else if (in_hotel_id !== undefined && in_hotel_id !== null && String(in_hotel_id).trim() !== "") {
-      // if numeric: try to fetch hotels.name by id
-      const candid = String(in_hotel_id).trim();
+    } else {
+      const candid = String(in_hotel_id || in_property_id || "").trim();
       if (/^\d+$/.test(candid)) {
-        try {
-          const hotelPkCol = await getHotelsPkColumn();
-          const pk = hotelPkCol && /^[A-Za-z_][A-Za-z0-9_]*$/.test(hotelPkCol) ? hotelPkCol : null;
-          const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
-          const r = await safeQuery(sql, [Number(candid)]);
-          if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
-          else hotelNameToStore = candid; // fallback to string provided
-        } catch {
-          hotelNameToStore = candid;
-        }
-      } else {
-        hotelNameToStore = candid;
-      }
-    } else if (in_property_id !== undefined && in_property_id !== null && String(in_property_id).trim() !== "") {
-      const candid = String(in_property_id).trim();
-      if (/^\d+$/.test(candid)) {
-        try {
-          const hotelPkCol = await getHotelsPkColumn();
-          const pk = hotelPkCol && /^[A-Za-z_][A-Za-z0-9_]*$/.test(hotelPkCol) ? hotelPkCol : null;
-          const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
-          const r = await safeQuery(sql, [Number(candid)]);
-          if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
-          else hotelNameToStore = candid;
-        } catch {
-          hotelNameToStore = candid;
-        }
-      } else {
+        const pk = await getHotelsPkColumn();
+        const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
+        const r = await safeQuery(sql, [Number(candid)]);
+        if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
+        else if (candid) hotelNameToStore = candid;
+      } else if (candid) {
         hotelNameToStore = candid;
       }
     }
 
+    const resolvedPropertyId = await resolveCertificatePropertyId(in_property_id || in_hotel_id);
+    const fkTarget = await getCertificatesPropertyFkTarget();
+    const fkIsHotels = String(fkTarget?.table || '').toLowerCase() === 'hotels';
+
+    // Permission check
+    const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
+    const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
     if (allowedHotelIds !== null) {
-      const hn = hotelNameToStore != null ? String(hotelNameToStore).trim().toLowerCase() : "";
-      if (hn && Array.isArray(allowedHotelNamesLower) && !allowedHotelNamesLower.includes(hn)) {
-        return res.status(403).json({ ok: false, error: "Cannot create certificate for a property outside your access" });
+      if (allowedHotelIds.length === 0) return res.status(403).json({ ok: false, error: "Access denied" });
+      const hn = hotelNameToStore ? hotelNameToStore.toLowerCase().trim() : "";
+      if (hn && !allowedHotelNamesLower.includes(hn)) return res.status(403).json({ ok: false, error: "Access denied for this property" });
+      if (fkIsHotels && resolvedPropertyId && !allowedHotelIds.includes(Number(resolvedPropertyId))) {
+        return res.status(403).json({ ok: false, error: "Access denied for this property" });
       }
     }
 
-    const insertSql = `INSERT INTO public.certificates (certificate_type, property_id, hotel_name, issue_date, expiry_date, issued_by, file_path, document_name, document_mime, document_data, notes, created_by, is_active)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`;
-    // property_id we keep as null unless user provided an actual property id that resolves to a properties.id
-    let resolvedPropertyId = null;
-    // try quick resolve if they provided a numeric property_id (backwards-compatible)
-    if (in_property_id !== undefined && in_property_id !== null && /^\d+$/.test(String(in_property_id).trim())) {
-      const tryId = Number(String(in_property_id).trim());
-      const rp = await safeQuery("SELECT id FROM properties WHERE id = $1 LIMIT 1", [tryId]);
-      if (rp.ok && rp.rowCount > 0) resolvedPropertyId = rp.rows[0].id;
+    // Build Payload
+    const data = { ...req.body };
+    delete data.id;
+    data.property_id = resolvedPropertyId;
+    data.hotel_name = hotelNameToStore;
+    data.is_active = true;
+    data.created_by = toIntOrNull(req.session?.user?.id || req.user?.id || null);
+
+    if (req.file) {
+      data.document_name = req.file.originalname;
+      data.document_mime = req.file.mimetype;
+      data.document_data = req.file.buffer;
+      data.file_path = data.file_path || req.file.originalname;
     }
 
-    if (allowedHotelIds !== null && resolvedPropertyId != null && !allowedHotelIds.includes(Number(resolvedPropertyId))) {
-      return res.status(403).json({ ok: false, error: "Cannot create certificate for a property outside your access" });
-    }
+    // Dynamic Insert
+    const fields = [];
+    const placeholders = [];
+    const values = [];
+    let idx = 1;
 
-    const params = [
-      certificate_type,
-      resolvedPropertyId,
-      hotelNameToStore,
-      issue_date,
-      expiry_date,
-      issued_by || null,
-      file_path || document_name || null,
-      document_name,
-      document_mime,
-      document_data,
-      notes || null,
-      toIntOrNull(req.session?.user?.id || req.user?.id || null),
-      true, // is_active
-    ];
-
-    const r = await safeQuery(insertSql, params);
-    if (!r.ok) {
-      const err = r.error;
-      if (err && typeof err.code === "string" && err.code === "23503") {
-        return res
-          .status(400)
-          .json({ ok: false, error: `Invalid foreign key value (property_id). Attempted value: ${String(resolvedPropertyId)}` });
+    for (const [k, v] of Object.entries(data)) {
+      if (cols.has(k)) {
+        fields.push(quoteIdent(k));
+        placeholders.push(`$${idx++}`);
+        values.push(v === "" ? null : v);
       }
-      return res.status(500).json({ ok: false, error: "Server error" });
     }
 
-    try {
-      const insertedId = r.rows[0]?.id;
-      const fetchSql = `
-        SELECT c.*,
-          COALESCE(h.name, c.hotel_name) AS hotel_name
-        FROM public.certificates c
-        ${HOTEL_JOIN}
-        WHERE c.id::text = $1
-      `;
-      const fetch = await safeQuery(fetchSql, [String(insertedId)]);
-      if (!fetch.ok) return res.status(201).json({ ok: true, data: r.rows[0] });
-      const row = fetch.rows[0];
-      row.hotel_name = row.hotel_name && String(row.hotel_name).trim() ? String(row.hotel_name).trim() : "";
-      return res.status(201).json({ ok: true, data: row });
-    } catch (err2) {
-      console.error("After-insert select error:", err2);
-      return res.status(201).json({ ok: true, data: r.rows[0] });
-    }
+    if (fields.length === 0) return res.status(400).json({ ok: false, error: "No valid fields provided" });
+
+    const sql = `INSERT INTO public.certificates (${fields.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING id`;
+    const r = await safeQuery(sql, values);
+    if (!r.ok) return res.status(500).json({ ok: false, error: "Insert failed" });
+
+    const insertedId = r.rows[0].id;
+    const fetch = await safeQuery("SELECT * FROM public.certificates WHERE id::text = $1 LIMIT 1", [String(insertedId)]);
+    return res.status(201).json({ ok: true, data: fetch.rows?.[0] || { id: insertedId } });
+
   } catch (err) {
     console.error("POST /api/compliance error:", err);
     return res.status(500).json({ ok: false, error: "Server error" });
@@ -640,150 +612,98 @@ router.put("/:id", protect, upload.single("document"), async (req, res) => {
     const id = req.params.id;
     if (!id) return res.status(400).json({ ok: false, error: "Invalid id" });
 
+    const cols = await getCertificateColumns();
+
+    // Check existing
     const allowedHotelIds = await getAllowedHotelIds(req.session?.user || req.user);
     const allowedHotelNamesLower = await getAllowedHotelNamesLower(allowedHotelIds);
-    if (allowedHotelIds !== null && allowedHotelIds.length === 0) {
-      return res.status(403).json({ ok: false, error: "Access denied" });
-    }
+    const chk = await safeQuery("SELECT property_id, hotel_name FROM public.certificates WHERE id::text = $1 AND is_active = true", [String(id)]);
+    if (!chk.ok || !chk.rows[0]) return res.status(404).json({ ok: false, error: "Not found" });
+    if (!recordAllowedByScope(chk.rows[0], allowedHotelIds, allowedHotelNamesLower)) return res.status(403).json({ ok: false, error: "Access denied" });
 
-    if (allowedHotelIds !== null) {
-      const chk = await safeQuery(
-        "SELECT property_id, hotel_name FROM public.certificates WHERE id::text = $1 AND is_active = true LIMIT 1",
-        [String(id)]
-      );
-      const row = chk.rows?.[0];
-      if (!row) return res.status(404).json({ ok: false, error: "Not found" });
-      if (!recordAllowedByScope(row, allowedHotelIds, allowedHotelNamesLower)) {
-        return res.status(403).json({ ok: false, error: "Access denied" });
-      }
-    }
-
+    // Determine hotel_name and property_id
     const {
-      certificate_type,
       hotel_id: in_hotel_id,
       property_id: in_property_id,
       hotel_name: in_hotel_name,
-      issue_date,
-      expiry_date,
-      issued_by,
-      file_path,
-      notes,
-      is_active,
     } = req.body || {};
 
-    const document_name = req.file?.originalname || null;
-    const document_mime = req.file?.mimetype || null;
-    const document_data = req.file?.buffer || null;
-
-    // Determine hotel_name to store (same priority as create)
     let hotelNameToStore = null;
     if (in_hotel_name && String(in_hotel_name).trim() !== "") {
       hotelNameToStore = String(in_hotel_name).trim();
-    } else if (in_hotel_id !== undefined && in_hotel_id !== null && String(in_hotel_id).trim() !== "") {
-      const candid = String(in_hotel_id).trim();
+    } else if (in_hotel_id || in_property_id) {
+      const candid = String(in_hotel_id || in_property_id || "").trim();
       if (/^\d+$/.test(candid)) {
-        try {
-          const hotelPkCol = await getHotelsPkColumn();
-          const pk = hotelPkCol && /^[A-Za-z_][A-Za-z0-9_]*$/.test(hotelPkCol) ? hotelPkCol : null;
-          const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
-          const r = await safeQuery(sql, [Number(candid)]);
-          if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
-          else hotelNameToStore = candid;
-        } catch {
-          hotelNameToStore = candid;
-        }
-      } else {
-        hotelNameToStore = candid;
-      }
-    } else if (in_property_id !== undefined && in_property_id !== null && String(in_property_id).trim() !== "") {
-      const candid = String(in_property_id).trim();
-      if (/^\d+$/.test(candid)) {
-        try {
-          const hotelPkCol = await getHotelsPkColumn();
-          const pk = hotelPkCol && /^[A-Za-z_][A-Za-z0-9_]*$/.test(hotelPkCol) ? hotelPkCol : null;
-          const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
-          const r = await safeQuery(sql, [Number(candid)]);
-          if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
-          else hotelNameToStore = candid;
-        } catch {
-          hotelNameToStore = candid;
-        }
-      } else {
+        const pk = await getHotelsPkColumn();
+        const sql = pk ? `SELECT name FROM hotels WHERE ${pk} = $1 LIMIT 1` : "SELECT name FROM hotels WHERE id = $1 LIMIT 1";
+        const r = await safeQuery(sql, [Number(candid)]);
+        if (r.ok && r.rowCount > 0) hotelNameToStore = r.rows[0].name;
+        else hotelNameToStore = candid;
+      } else if (candid) {
         hotelNameToStore = candid;
       }
     }
 
-    if (allowedHotelIds !== null) {
-      const hn = hotelNameToStore != null ? String(hotelNameToStore).trim().toLowerCase() : "";
-      if (hn && Array.isArray(allowedHotelNamesLower) && !allowedHotelNamesLower.includes(hn)) {
-        return res.status(403).json({ ok: false, error: "Cannot move certificate to a property outside your access" });
+    const resolvedPropertyId = await resolveCertificatePropertyId(in_property_id || in_hotel_id);
+    const fkTarget = await getCertificatesPropertyFkTarget();
+    const fkIsHotels = String(fkTarget?.table || '').toLowerCase() === 'hotels';
+
+    // Permission check for target property
+    if (allowedHotelIds !== null && (hotelNameToStore || resolvedPropertyId)) {
+      const hn = hotelNameToStore ? hotelNameToStore.toLowerCase().trim() : "";
+      if (hn && !allowedHotelNamesLower.includes(hn)) return res.status(403).json({ ok: false, error: "Access denied for target property" });
+      if (fkIsHotels && resolvedPropertyId && !allowedHotelIds.includes(Number(resolvedPropertyId))) {
+        return res.status(403).json({ ok: false, error: "Access denied for target property" });
       }
     }
 
-    // Resolve property_id only if numeric and exists (backwards-compatible)
-    let resolvedPropertyId = null;
-    if (in_property_id !== undefined && in_property_id !== null && /^\d+$/.test(String(in_property_id).trim())) {
-      const tryId = Number(String(in_property_id).trim());
-      const rp = await safeQuery("SELECT id FROM properties WHERE id = $1 LIMIT 1", [tryId]);
-      if (rp.ok && rp.rowCount > 0) resolvedPropertyId = rp.rows[0].id;
+    // Build Payload
+    const data = { ...req.body };
+    delete data.id;
+    if (Object.prototype.hasOwnProperty.call(req.body || {}, "property_id") || Object.prototype.hasOwnProperty.call(req.body || {}, "hotel_id")) {
+      data.property_id = resolvedPropertyId;
+    }
+    if (hotelNameToStore) data.hotel_name = hotelNameToStore;
+    data.updated_at = "now()";
+
+    if (req.file) {
+      data.document_name = req.file.originalname;
+      data.document_mime = req.file.mimetype;
+      data.document_data = req.file.buffer;
     }
 
-    if (allowedHotelIds !== null && resolvedPropertyId != null && !allowedHotelIds.includes(Number(resolvedPropertyId))) {
-      return res.status(403).json({ ok: false, error: "Cannot move certificate to a property outside your access" });
-    }
+    // Dynamic Update
+    const sets = [];
+    const values = [];
+    let idx = 1;
 
-    const sql = `UPDATE public.certificates SET certificate_type = $1, property_id = $2, hotel_name = $3, issue_date = $4, expiry_date = $5, issued_by = $6, file_path = $7, document_name = COALESCE($8, document_name), document_mime = COALESCE($9, document_mime), document_data = COALESCE($10, document_data), notes = $11, is_active = $12, updated_at = now() WHERE id::text = $13 RETURNING id`;
-    const params = [
-      certificate_type,
-      resolvedPropertyId,
-      hotelNameToStore,
-      issue_date,
-      expiry_date,
-      issued_by || null,
-      file_path || document_name || null,
-      document_name,
-      document_mime,
-      document_data,
-      notes || null,
-      (is_active === false ? false : true),
-      String(id),
-    ];
-
-    const r = await safeQuery(sql, params);
-    if (!r.ok) {
-      const err = r.error;
-      if (err && typeof err.code === "string" && err.code === "23503") {
-        return res
-          .status(400)
-          .json({ ok: false, error: `Invalid foreign key value (property_id). Attempted value: ${String(resolvedPropertyId)}` });
+    for (const [k, v] of Object.entries(data)) {
+      if (cols.has(k)) {
+        if (k === "updated_at") {
+          sets.push(`${quoteIdent(k)} = now()`);
+        } else {
+          sets.push(`${quoteIdent(k)} = $${idx++}`);
+          values.push(v === "" ? null : v);
+        }
       }
-      return res.status(500).json({ ok: false, error: "Server error" });
     }
 
-    if (!r.rows[0]) return res.status(404).json({ ok: false, error: "Not found" });
+    if (sets.length === 0) return res.status(404).json({ ok: false, error: "Nothing to update" });
 
-    try {
-      const fetchSql = `
-        SELECT c.*,
-          COALESCE(h.name, c.hotel_name) AS hotel_name
-        FROM public.certificates c
-        ${HOTEL_JOIN}
-        WHERE c.id::text = $1
-      `;
-      const fetch = await safeQuery(fetchSql, [String(id)]);
-      if (!fetch.ok) return res.json({ ok: true, data: r.rows[0] });
-      const row = fetch.rows[0];
-      row.hotel_name = row.hotel_name && String(row.hotel_name).trim() ? String(row.hotel_name).trim() : "";
-      return res.json({ ok: true, data: row });
-    } catch (err2) {
-      console.error("After-update select error:", err2);
-      return res.json({ ok: true, data: r.rows[0] });
-    }
+    values.push(String(id));
+    const sql = `UPDATE public.certificates SET ${sets.join(", ")} WHERE id::text = $${idx} RETURNING id`;
+    const r = await safeQuery(sql, values);
+    if (!r.ok) return res.status(500).json({ ok: false, error: "Update failed" });
+
+    const fetch = await safeQuery("SELECT * FROM public.certificates WHERE id::text = $1 LIMIT 1", [String(id)]);
+    return res.json({ ok: true, data: fetch.rows?.[0] || { id } });
+
   } catch (err) {
     console.error("PUT /api/compliance/:id error:", err);
     return res.status(500).json({ ok: false, error: "Server error" });
   }
 });
+
 
 /* soft delete */
 router.delete("/:id", protect, async (req, res) => {

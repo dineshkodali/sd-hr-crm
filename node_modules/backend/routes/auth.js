@@ -13,7 +13,9 @@ import {
 import { createOTP, verifyOTP, sendOTPEmail } from '../utils/otpHelper.js';
 import {
   logLoginAttempt,
-  createAuthSession
+  createAuthSession,
+  getClientInfo,
+  parseUserAgent
 } from '../utils/sessionHelper.js';
 import { logActivity, getActivityLogs, getActivityStats } from '../utils/activityLogger.js';
 
@@ -26,7 +28,7 @@ const cookieOptions = {
   secure: process.env.NODE_ENV === "production" && process.env.HTTPS_ONLY === "true", // only true for HTTPS production
   sameSite: process.env.NODE_ENV === "production" ? "Lax" : "Lax", // Lax for HTTP production
   path: "/", // ensure cookie is sent to all routes on the domain
-  maxAge: 30 * 24 * 60 * 60 * 1000,
+  maxAge: 2 * 60 * 60 * 1000, // 2 hours
   domain: process.env.COOKIE_DOMAIN || (process.env.NODE_ENV === "production" ? undefined : undefined),
 };
 
@@ -37,7 +39,7 @@ const generateToken = (id) => {
     "default-jwt-secret-for-production-change-this-in-env-32-chars-minimum";
   
   return jwt.sign({ id }, jwtSecret, {
-    expiresIn: "30d",
+    expiresIn: "2h",
   });
 };
 
@@ -123,9 +125,8 @@ router.post("/login", async (req, res) => {
     const { email, password, totpCode, backupCode, otpCode } = req.body;
     if (!email || !password) return res.status(400).json({ message: "Please provide email and password" });
 
-    // Get client info
-    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
-    const userAgent = req.get('User-Agent') || 'unknown';
+    // Get client info consistently
+    const { ipAddress, userAgent } = getClientInfo(req);
 
     const userRes = await pool.query(
       "SELECT * FROM users WHERE email = $1",
@@ -491,9 +492,7 @@ router.post("/request-login-otp", async (req, res) => {
     const otpCode = await createOTP(user.email, user.id, 'login', 10); // 10 minute expiry
     
     // Parse device metadata
-    const ipAddress = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0];
-    const userAgent = req.headers['user-agent'] || 'Unknown';
-    const { parseUserAgent } = await import('../utils/sessionHelper.js');
+    const { ipAddress, userAgent } = getClientInfo(req);
     const { browser, os, deviceType } = parseUserAgent(userAgent);
     
     await sendOTPEmail(user.email, otpCode, 'login', {
@@ -521,10 +520,27 @@ router.get("/me", protect, async (req, res) => {
 });
 
 /* ---------- LOGOUT ---------- */
-router.post("/logout", (req, res) => {
-  // Expire cookie immediately
-  res.cookie("token", "", { ...cookieOptions, maxAge: 1 });
-  res.json({ message: "Logged out successfully" });
+router.post("/logout", async (req, res) => {
+  try {
+    const token = req.cookies?.token || 
+                 (req.headers.authorization && req.headers.authorization.split(' ')[1]) ||
+                 req.body.token;
+    
+    if (token) {
+      const { terminateSession, getSessionByToken } = await import('../utils/sessionHelper.js');
+      const session = await getSessionByToken(token);
+      if (session) {
+        await terminateSession(session.id, session.user_id);
+      }
+    }
+    
+    // Expire cookie immediately
+    res.cookie("token", "", { ...cookieOptions, maxAge: 1 });
+    res.json({ message: "Logged out successfully" });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ message: "Error during logout" });
+  }
 });
 
 /* ---------- ADMIN: pending managers ---------- */

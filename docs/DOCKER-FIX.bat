@@ -27,7 +27,7 @@ echo ========================================
 echo.
 
 echo Your application should now be available at:
-echo http://crm.sdgsolutions.in
+echo https://crm.sdcdms.co.uk
 echo.
 
 echo To check logs:
