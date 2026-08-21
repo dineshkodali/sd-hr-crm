@@ -1,72 +1,69 @@
 /* eslint-disable no-unused-vars */
 /* src/App.jsx */
 
-import React, { Component, useState, useEffect } from "react";
+import React, { Component, useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from "react-router-dom";
 import axios from "axios";
 
-import Home from "../pages/Home";
-import Login from "../pages/Login";
-import Register from "../pages/Register";
-import UserManagement from "./pages/UserManagement";
 import Navbar from "../pages/Navbar";
-import AdminDashboard from "../pages/AdminDashboard";
-import ManagerDashboard from "../pages/ManagerDashboard";
-import StaffDashboard from "../pages/StaffDashboard";
-import HotelsList from "../pages/HotelsList";
-import HotelDetails from "../pages/HotelDetails";
-import RoomsManager from "../pages/RoomsManager";
-import RoomDetails from "../pages/RoomDetails";
-import Notifications from "../pages/Notifications";
-
-import AdminAddMember from "../pages/AdminAddMember";
-import Profile from "../pages/Profile";
-import Activity from "../pages/Activity";
-import Users from "../pages/Users";
-import ServiceUsers from "../pages/ServiceUsersList";
-import ServiceUserProfile from "../pages/ServiceUserProfile";
-import ServiceUserAnalytics from "../pages/ServiceUserAnalytics";
-import MoveInOut from "../pages/MoveInOut";
-import MealManagement from "../pages/MealManagement";
-import PparUpload from "../pages/PparUpload";
-
-import StaffRooms from "../pages/StaffRooms";
-import ManagerStaff from "../pages/ManagerStaff";
-import StaffGrid from "../pages/StaffGrid";
-
 import AdminLayout from "../components/AdminLayout";
-import UserReport from "../pages/UserReport";
-
-import MaintenancePage from "../pages/MaintenancePage";
-import Compliance from "../pages/Compliance";
-import Inspections from "../pages/Inspections";
-import Incidents from "../pages/Incidents";
-import AIRETasks from "../pages/AIRETasks";
-import Litigation from "../pages/Litigation";
-import Forms from "../pages/Forms";
-import FormView from "../pages/FormView";
-import FormSubmissions from "../pages/FormSubmissions";
-import SafeguardingReferrals from "../pages/SafeguardingReferrals";
-import RiskAssessments from "../pages/RiskAssessments";
-import VulnerableUsers from "../pages/VulnerableUsers";
-import MultiAgency from "../pages/MultiAgency";
-import HSEIncidents from "../pages/HSEIncidents";
-import HSERiskManagement from "../pages/HSERiskManagement";
-import HSETraining from "../pages/HSETraining";
-import HSEAudits from "../pages/HSEAudits";
-import Complaints from "../pages/Complaints";
-import VCSOrganisations from "../pages/VCSOrganisations";
-import CaseManagement from "../pages/CaseManagement";
-import EmergencyProtocols from "../pages/EmergencyProtocols";
-import EmployeeTraining from "../pages/EmployeeTraining";
-import AccessManagement from "../pages/AccessManagement";
-import Settings from "../pages/Settings";
-import Bookings from "../pages/Bookings";
-import OrganizationChart from "../pages/OrganizationChart";
-
 import { applyTheme, applyCustomTheme } from "./utils/themeUtils";
 
 import "./index.css";
+
+// Lazy-loaded pages
+const Home = lazy(() => import("../pages/Home"));
+const Login = lazy(() => import("../pages/Login"));
+const Register = lazy(() => import("../pages/Register"));
+const UserManagement = lazy(() => import("./pages/UserManagement"));
+const AdminDashboard = lazy(() => import("../pages/AdminDashboard"));
+const ManagerDashboard = lazy(() => import("../pages/ManagerDashboard"));
+const StaffDashboard = lazy(() => import("../pages/StaffDashboard"));
+const HotelsList = lazy(() => import("../pages/HotelsList"));
+const HotelDetails = lazy(() => import("../pages/HotelDetails"));
+const RoomsManager = lazy(() => import("../pages/RoomsManager"));
+const RoomDetails = lazy(() => import("../pages/RoomDetails"));
+const Notifications = lazy(() => import("../pages/Notifications"));
+const AdminAddMember = lazy(() => import("../pages/AdminAddMember"));
+const Profile = lazy(() => import("../pages/Profile"));
+const Activity = lazy(() => import("../pages/Activity"));
+const Users = lazy(() => import("../pages/Users"));
+const ServiceUsers = lazy(() => import("../pages/ServiceUsersList"));
+const ServiceUserProfile = lazy(() => import("../pages/ServiceUserProfile"));
+const ServiceUserAnalytics = lazy(() => import("../pages/ServiceUserAnalytics"));
+const MoveInOut = lazy(() => import("../pages/MoveInOut"));
+const MealManagement = lazy(() => import("../pages/MealManagement"));
+const PparUpload = lazy(() => import("../pages/PparUpload"));
+const StaffRooms = lazy(() => import("../pages/StaffRooms"));
+const ManagerStaff = lazy(() => import("../pages/ManagerStaff"));
+const StaffGrid = lazy(() => import("../pages/StaffGrid"));
+const UserReport = lazy(() => import("../pages/UserReport"));
+const MaintenancePage = lazy(() => import("../pages/MaintenancePage"));
+const Compliance = lazy(() => import("../pages/Compliance"));
+const Inspections = lazy(() => import("../pages/Inspections"));
+const Incidents = lazy(() => import("../pages/Incidents"));
+const AIRETasks = lazy(() => import("../pages/AIRETasks"));
+const Litigation = lazy(() => import("../pages/Litigation"));
+const Forms = lazy(() => import("../pages/Forms"));
+const FormView = lazy(() => import("../pages/FormView"));
+const FormSubmissions = lazy(() => import("../pages/FormSubmissions"));
+const SafeguardingReferrals = lazy(() => import("../pages/SafeguardingReferrals"));
+const RiskAssessments = lazy(() => import("../pages/RiskAssessments"));
+const VulnerableUsers = lazy(() => import("../pages/VulnerableUsers"));
+const MultiAgency = lazy(() => import("../pages/MultiAgency"));
+const HSEIncidents = lazy(() => import("../pages/HSEIncidents"));
+const HSERiskManagement = lazy(() => import("../pages/HSERiskManagement"));
+const HSETraining = lazy(() => import("../pages/HSETraining"));
+const HSEAudits = lazy(() => import("../pages/HSEAudits"));
+const Complaints = lazy(() => import("../pages/Complaints"));
+const VCSOrganisations = lazy(() => import("../pages/VCSOrganisations"));
+const CaseManagement = lazy(() => import("../pages/CaseManagement"));
+const EmergencyProtocols = lazy(() => import("../pages/EmergencyProtocols"));
+const EmployeeTraining = lazy(() => import("../pages/EmployeeTraining"));
+const AccessManagement = lazy(() => import("../pages/AccessManagement"));
+const Settings = lazy(() => import("../pages/Settings"));
+const Bookings = lazy(() => import("../pages/Bookings"));
+const OrganizationChart = lazy(() => import("../pages/OrganizationChart"));
 
 axios.defaults.withCredentials = true;
 
@@ -449,7 +446,8 @@ export default function App() {
 
           {/* MAIN CONTENT CONTAINER: Fills remaining height */}
           <div className="flex-1 overflow-hidden relative z-0">
-            <Routes>
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] text-gray-500">Loading page...</div>}>
+              <Routes>
 
               {/* --- PUBLIC ROUTES --- */}
               <Route path="/login" element={<LoginSafe setUser={setUser} />} />
@@ -1056,7 +1054,8 @@ export default function App() {
               {/* Fallback */}
               <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />
 
-            </Routes>
+             </Routes>
+            </Suspense>
           </div>
         </div>
       </Router>
