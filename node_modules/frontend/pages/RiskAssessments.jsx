@@ -157,25 +157,6 @@ export default function RiskAssessments({ user }) {
     const hasDelete = canDelete("safeguarding_risk_assessments");
 
     // Image gallery hook — opens in-page modal instead of new tab
-    const { galleryOpen: _galleryOpen, galleryItems: _galleryItems, galleryTitle: _galleryTitle, galleryApi: _galleryApi, openGallery: _openGallery, closeGallery: _closeGallery } = useImageGallery();
-
-    const [showModal, setShowModal] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteId, setDeleteId] = useState(null);
-    const [deleting, setDeleting] = useState(false);
-    // Track rows/cards currently being deleted for animation
-    const [deletingIds, setDeletingIds] = useState(new Set());
-    const [error, setError] = useState(null);
-    const [hotels, setHotels] = useState([]);
-    const [hotelsLoading, setHotelsLoading] = useState(false);
-    const [assessments, setAssessments] = useState([]);
-    const [assessmentsLoading, setAssessmentsLoading] = useState(false);
-    const [selectedAssessment, setSelectedAssessment] = useState(null);
-    const [modalMode, setModalMode] = useState('create');
-
-    // Attachments state
-    const [selectedPhotos, setSelectedPhotos] = useState([]);
     const [existingAttachments, setExistingAttachments] = useState([]);
 
     const [staffUsers, setStaffUsers] = useState([]);
@@ -810,13 +791,17 @@ export default function RiskAssessments({ user }) {
     };
 
     // Calculate stats
-    const statsData = useMemo(() => ({
-        total: assessments.length,
-        new: stats['New'],
-        underReview: stats['Under Review'],
-        escalated: stats['Escalated'],
-completed: stats['Completed'],
-    }), [assessments, stats]);
+    const statsData = useMemo(() => {
+        const counts = { new: 0, underReview: 0, escalated: 0, resolved: 0 };
+        (Array.isArray(assessments) ? assessments : []).forEach(r => {
+            const status = String(r?.status || '').toLowerCase();
+            if (status === 'new' || status === 'open' || status === 'pending') counts.new++;
+            else if (status === 'under review' || status === 'in progress') counts.underReview++;
+            else if (status === 'escalated') counts.escalated++;
+            else if (status === 'resolved' || status === 'completed' || status === 'closed') counts.resolved++;
+        });
+        return { total: assessments.length, ...counts };
+    }, [assessments]);
 
     return (
         <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>

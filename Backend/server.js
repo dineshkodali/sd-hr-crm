@@ -3,6 +3,7 @@
 
 import "./load-env.js"; // MUST be first to ensure env vars are loaded before db.js
 import express from "express";
+import compression from "compression";
 import cors from "cors";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
@@ -96,6 +97,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGINS) {
    ---------------------------- */
 
 app.set("trust proxy", 1);
+app.use(compression());
 
 // Security Headers Middleware (CSP, HSTS, X-Content-Type-Options, X-Frame-Options)
 app.use((req, res, next) => {

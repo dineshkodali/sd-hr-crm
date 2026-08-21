@@ -1636,20 +1636,17 @@ export default function VulnerableUsers({ user }) {
 
 
     // Calculate stats
-
-    const statsData = useMemo(() => ({
-
-        total: records.length,
-
-        new: stats['New'],
-
-        underReview: stats['Under Review'],
-
-        escalated: stats['Escalated'],
-
-        completed: stats['Completed'],
-
-    }), [records, stats]);
+    const statsData = useMemo(() => {
+        const counts = { new: 0, underReview: 0, escalated: 0, resolved: 0 };
+        (Array.isArray(records) ? records : []).forEach(r => {
+            const status = String(r?.status || '').toLowerCase();
+            if (status === 'new' || status === 'open' || status === 'pending') counts.new++;
+            else if (status === 'under review' || status === 'in progress') counts.underReview++;
+            else if (status === 'escalated') counts.escalated++;
+            else if (status === 'resolved' || status === 'completed' || status === 'closed') counts.resolved++;
+        });
+        return { total: records.length, ...counts };
+    }, [records]);
 
 
 

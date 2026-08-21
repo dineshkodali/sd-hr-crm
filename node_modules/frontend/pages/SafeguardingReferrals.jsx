@@ -122,6 +122,14 @@ export default function SafeguardingReferrals({ user }) {
     // Image gallery hook — opens in-page modal instead of new tab
     const { galleryOpen: _galleryOpen, galleryItems: _galleryItems, galleryTitle: _galleryTitle, galleryApi: _galleryApi, openGallery: _openGallery, closeGallery: _closeGallery } = useImageGallery();
 
+    const SNAP_KEY = 'safeguarding_referrals_snap_v1';
+    const snapData = useMemo(() => {
+        try {
+            const raw = localStorage.getItem(SNAP_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch { return null; }
+    }, []);
+
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [selectedPhotos, setSelectedPhotos] = useState([]);
@@ -130,12 +138,11 @@ export default function SafeguardingReferrals({ user }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteId, setDeleteId] = useState(null);
     const [deleting, setDeleting] = useState(false);
-    // Track rows/cards currently being deleted for animation
     const [deletingIds, setDeletingIds] = useState(new Set());
     const [error, setError] = useState(null);
-    const [hotels, setHotels] = useState([]);
+    const [hotels, setHotels] = useState(() => snapData?.hotels || []);
     const [setHotelsLoading] = useState(false);
-    const [referrals, setReferrals] = useState([]);
+    const [referrals, setReferrals] = useState(() => snapData?.referrals || []);
     const [referralsLoading, setReferralsLoading] = useState(false);
     const [selectedReferral, setSelectedReferral] = useState(null);
     const [modalMode, setModalMode] = useState('create');
@@ -298,21 +305,27 @@ export default function SafeguardingReferrals({ user }) {
         load();
         async function loadReferrals() {
             try {
-                setReferralsLoading(true);
+                if (!referrals.length) setReferralsLoading(true);
                 const r = await api.get('/api/safeguarding/referrals?limit=500').catch(() => ({ data: [] }));
-                if (mounted) setReferrals(Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? []));
+                const list = Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? []);
+                if (mounted) {
+                    setReferrals(list);
+                    try { localStorage.setItem(SNAP_KEY, JSON.stringify({ referrals: list, hotels })); } catch {}
+                }
             } catch (err) { console.warn('Failed to load referrals', err); }
             finally { if (mounted) setReferralsLoading(false); }
         }
         loadReferrals();
         return () => { mounted = false; };
-    }, [api]);
+    }, [api, hotels, referrals.length]);
 
     const refreshReferrals = async () => {
         try {
             setReferralsLoading(true);
             const r = await api.get('/api/safeguarding/referrals?limit=500').catch(() => ({ data: [] }));
-            setReferrals(Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? []));
+            const list = Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? []);
+            setReferrals(list);
+            try { localStorage.setItem(SNAP_KEY, JSON.stringify({ referrals: list, hotels })); } catch {}
         } catch (err) { console.warn('refreshReferrals failed', err); }
         finally { setReferralsLoading(false); }
     };
@@ -524,10 +537,17 @@ export default function SafeguardingReferrals({ user }) {
         closeExport();
     };
 
-    const statsData = useMemo(() => ({
-        total: referrals.length, new: stats['New'], underReview: stats['Under Review'],
-        escalated: stats['Escalated'], resolved: stats['Resolved'],
-    }), [referrals, stats]);
+    const statsData = useMemo(() => {
+        const counts = { new: 0, underReview: 0, escalated: 0, resolved: 0 };
+        (Array.isArray(referrals) ? referrals : []).forEach(r => {
+            const status = String(r?.status || '').toLowerCase();
+            if (status === 'new' || status === 'open' || status === 'pending') counts.new++;
+            else if (status === 'under review' || status === 'in progress') counts.underReview++;
+            else if (status === 'escalated') counts.escalated++;
+            else if (status === 'resolved' || status === 'completed' || status === 'closed') counts.resolved++;
+        });
+        return { total: referrals.length, ...counts };
+    }, [referrals]);
 
     return (
         <div className="min-h-screen bg-[var(--bg-primary)]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
