@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 import {
@@ -22,7 +23,6 @@ import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import Breadcrumbs from "../components/Breadcrumbs";
-import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
 
 /* Inject delete animation CSS once */
 const DELETE_STYLE_ID = 'hse-risk-delete-anim';

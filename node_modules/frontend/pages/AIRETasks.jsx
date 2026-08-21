@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-empty */
 import React, { useState, useEffect, useMemo } from 'react';
+import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 import { AlertModal, ConfirmModal } from '../components/ModalDialogs';
@@ -28,7 +29,6 @@ import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 import Breadcrumbs from "../components/Breadcrumbs";
-import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
 
 /* Inject delete animation CSS once */
 const DELETE_STYLE_ID = 'airetasks-delete-anim';

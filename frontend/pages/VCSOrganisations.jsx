@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
@@ -8,7 +9,6 @@ import { generateCSV } from '../utils/csvGenerator';
 import { DownloadDropdown } from '../components/DownloadDropdown';
 import Breadcrumbs from "../components/Breadcrumbs";
 import {
-import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
     Home,
     Building2,
     Search,
