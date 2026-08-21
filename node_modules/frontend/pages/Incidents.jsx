@@ -65,6 +65,7 @@ import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 
 import { DownloadDropdown } from "../components/DownloadDropdown";
+import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
 
 
 
@@ -325,6 +326,9 @@ export default function Incidents({ user }) {
     const hasDelete = canDelete("incidents");
 
 
+
+    // Image gallery hook — opens in-page modal instead of new tab
+    const { galleryOpen: _galleryOpen, galleryItems: _galleryItems, galleryTitle: _galleryTitle, galleryApi: _galleryApi, openGallery: _openGallery, closeGallery: _closeGallery } = useImageGallery();
 
     const [rows, setRows] = useState([]);
 
@@ -1408,126 +1412,12 @@ export default function Incidents({ user }) {
 
 
 
-    function openAttachmentsGallery(attachments) {
-
+        function openAttachmentsGallery(attachments) {
         let atts = attachments || [];
-
-        try {
-
-            if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
-
-        } catch {
-
-            atts = [];
-
-        }
-
+        try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
         const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
-
         if (!list.length) return;
-
-
-
-        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
-
-        const urls = list.map((x) => {
-
-            // If x is a number or numeric string, it's an ID
-
-            const isNumericId = /^\d+$/.test(String(x));
-
-            const u = isNumericId ? `/api/incidents/attachments/${x}` : String(x);
-
-            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
-
-        });
-
-        const safeTitle = `Incident Photos (${urls.length})`;
-
-        const html = `
-
-      <!doctype html>
-
-      <html lang="en">
-
-        <head>
-
-          <meta charset="utf-8">
-
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-
-          <title>${safeTitle}</title>
-
-          <style>
-
-            :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --accent: #2dd4bf; }
-
-            body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
-
-            header { position: sticky; top: 0; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
-
-            .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; padding: 1.5rem; }
-
-            .card { background: var(--card); border-radius: 1rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
-
-            .card:hover { transform: translateY(-4px); border-color: var(--accent); }
-
-            .card img { width: 100%; height: 250px; object-fit: cover; background: #000; display: block; cursor: pointer; }
-
-            .card-meta { padding: 1rem; font-size: 0.875rem; display: flex; justify-content: space-between; align-items: center; }
-
-            .btn { background: var(--accent); color: var(--bg); padding: 0.5rem 1rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; font-size: 0.75rem; }
-
-          </style>
-
-        </head>
-
-        <body>
-
-          <header>
-
-            <div style="font-weight: 700; font-size: 1.1rem; letter-spacing: -0.025em;">${safeTitle}</div>
-
-            <div style="font-size: 0.75rem; opacity: 0.6;">Premium Viewer</div>
-
-          </header>
-
-          <div class="gallery">
-
-            ${urls.map((u, i) => `
-
-              <div class="card">
-
-                <img src="${u}" alt="Photo ${i + 1}" onclick="window.open('${u}', '_blank')">
-
-                <div class="card-meta">
-
-                  <span>Photo ${i + 1}</span>
-
-                  <a href="${u}" target="_blank" class="btn">Full View</a>
-
-                </div>
-
-              </div>
-
-            `).join('')}
-
-          </div>
-
-        </body>
-
-      </html>
-
-    `;
-
-        const blob = new Blob([html], { type: 'text/html' });
-
-        const blobUrl = URL.createObjectURL(blob);
-
-        window.open(blobUrl, '_blank');
-
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-
+        _openGallery(list, "Incident Photos", "/api/incidents/attachments");
     }
 
 
@@ -2089,7 +1979,6 @@ export default function Incidents({ user }) {
                 ))}
 
             </div>
-
         );
 
     };
@@ -3690,6 +3579,8 @@ export default function Incidents({ user }) {
                 />
 
             </div>
+
+            <ImageGalleryModal open={_galleryOpen} onClose={_closeGallery} items={_galleryItems} title={_galleryTitle} apiBase={_galleryApi} />
 
         </div>
 

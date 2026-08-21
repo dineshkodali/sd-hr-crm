@@ -1,17 +1,26 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,480;0,9..40,600&display=swap');
 
 :root {
-  /* Default: Lighter Theme */
-  --bg-primary: #f8f9fa;
+  /* Lovable-Inspired Green & White Theme */
+  --bg-primary: #ffffff;
   --bg-surface: #ffffff;
-  --text-primary: #334155;
-  --text-secondary: #64748b;
-  --accent-primary: #0ea5e9;
-  --accent-hover: #0284c7;
-  --accent-shadow: rgba(14, 165, 233, 0.2);
-  --border-color: #e2e8f0;
-  --transition-speed: 0.4s;
+  --text-primary: #1c1c1c; /* Charcoal 100% */
+  --text-secondary: rgba(28, 28, 28, 0.82); /* Charcoal 82% */
+  --accent-primary: #10b981; /* Green */
+  --accent-hover: #059669; /* Darker Green */
+  --accent-shadow: rgba(16, 185, 129, 0.2);
+  --border-color: #eceae4; /* Passive border */
+  --border-interactive: rgba(28, 28, 28, 0.4); /* Interactive border */
+  --transition-speed: 0.2s;
   --text-white: #ffffff;
+  --font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Global Theme Overrides for Tailwind Utilities */
@@ -850,3 +859,78 @@ body.form-modal-open {
     @apply text-slate-900 font-medium;
   }
 }
+
+/* ========================================================
+   LOVABLE INSPIRED COMPONENT OVERRIDES
+   ======================================================== */
+
+/* Typography */
+h1, h2, h3, .text-4xl, .text-5xl, .text-6xl {
+  font-weight: 600;
+  letter-spacing: -1.2px;
+}
+.text-6xl { letter-spacing: -1.5px; line-height: 1.05; }
+.text-5xl { letter-spacing: -1.2px; line-height: 1.1; }
+.text-4xl { letter-spacing: -0.9px; line-height: 1.15; }
+
+/* Buttons */
+button, .btn, a.btn, .bg-teal-500, .bg-blue-500, .bg-emerald-500, .bg-teal-600, .bg-blue-600 {
+  border-radius: 6px !important;
+  font-weight: 400 !important;
+  transition: all var(--transition-speed) ease-in-out;
+}
+
+/* Primary Dark (Accent) Button - The Signature Inset Shadow */
+.bg-teal-500, .bg-blue-500, .bg-emerald-500, .bg-teal-600, .bg-blue-600 {
+  background-color: var(--accent-primary) !important;
+  color: var(--text-white) !important;
+  box-shadow: rgba(255,255,255,0.2) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px 0px 0px 0.5px inset, rgba(0,0,0,0.05) 0px 1px 2px 0px !important;
+  border: none !important;
+}
+.bg-teal-500:hover, .bg-blue-500:hover, .bg-emerald-500:hover, .bg-teal-600:hover, .bg-blue-600:hover {
+  background-color: var(--accent-primary) !important;
+  opacity: 0.8;
+}
+
+/* Secondary / Ghost Buttons */
+.border-teal-500, .border-blue-500, .border-emerald-500 {
+  border-color: var(--border-interactive) !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+}
+
+/* Rounded Pills */
+.rounded-full.bg-teal-500, .rounded-full.bg-blue-500 {
+  border-radius: 9999px !important;
+}
+
+/* Focus States */
+*:focus-visible {
+  outline: none;
+  box-shadow: rgba(16, 185, 129, 0.4) 0px 4px 12px !important;
+}
+
+/* Cards & Containers */
+.bg-white.rounded-xl, .bg-white.rounded-lg, .bg-white.rounded-2xl {
+  background-color: var(--bg-surface) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important; /* Remove harsh drop shadows, use borders */
+}
+
+/* Inputs & Forms */
+input, textarea, select {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color) !important;
+  border-radius: 6px !important;
+  color: var(--text-primary) !important;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: rgba(16, 185, 129, 0.4) 0px 4px 12px !important;
+}
+
+/* Divider & Borders */
+.border-b, .border-t, .border-l, .border-r {
+  border-color: var(--border-color) !important;
+}

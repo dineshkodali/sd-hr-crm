@@ -22,6 +22,7 @@ import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
 
 /* Inject delete animation CSS once */
 const DELETE_STYLE_ID = 'hse-audits-delete-anim';
@@ -145,6 +146,9 @@ export default function HSEAudits({ user }) {
     const hasCreate = canCreate("hse_audits");
     const hasUpdate = canUpdate("hse_audits");
     const hasDelete = canDelete("hse_audits");
+
+    // Image gallery hook — opens in-page modal instead of new tab
+    const { galleryOpen: _galleryOpen, galleryItems: _galleryItems, galleryTitle: _galleryTitle, galleryApi: _galleryApi, openGallery: _openGallery, closeGallery: _closeGallery } = useImageGallery();
 
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -535,89 +539,9 @@ export default function HSEAudits({ user }) {
         setShowModal(true);
     };
 
-    const openAttachmentsGallery = (items = []) => {
-        let atts = items || [];
-        try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
-        const finalItems = Array.isArray(atts) ? atts.filter(Boolean) : [];
-        if (!finalItems.length) return;
-
-        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
-        const urls = finalItems.map((x) => {
-            const isNumericId = /^\d+$/.test(String(x));
-            const u = isNumericId ? `/api/hse/audits/attachments/${x}` : String(x);
-            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
-        });
-        const safeTitle = `Audit Attachments (${urls.length})`;
-        const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${safeTitle}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-        .img-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .img-card:hover { transform: translateY(-4px); border-color: #38bdf8; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); }
-        .full-view-btn { opacity: 0; transform: translateY(10px); transition: all 0.3s ease; }
-        .img-card:hover .full-view-btn { opacity: 1; transform: translateY(0); }
-    </style>
-</head>
-<body class="min-h-screen">
-    <header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <div class="bg-blue-500/20 p-2 rounded-xl">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            </div>
-            <div>
-                <h1 class="font-bold text-lg tracking-tight">${safeTitle}</h1>
-                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Premium Attachment Viewer</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-4 text-xs font-semibold">
-            <span class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full border border-slate-700">${urls.length} Items</span>
-            <button onclick="window.close()" class="bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-full border border-red-500/20 transition-all">Close</button>
-        </div>
-    </header>
-
-    <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-8">
-        ${urls.map((u, i) => `
-            <div class="img-card group relative bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden flex flex-col">
-                <div class="aspect-[4/3] overflow-hidden bg-slate-900 flex items-center justify-center relative">
-                    <img src="${u}" alt="Attachment ${i + 1}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x300/1e293b/64748b?text=File+Preview'"/>
-                    
-                    <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <a href="${u}" target="_blank" class="full-view-btn bg-white text-slate-900 px-5 py-2.5 rounded-xl font-bold text-sm shadow-xl hover:bg-blue-50 transition-colors flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>
-                            Full View
-                        </a>
-                    </div>
-                </div>
-                <div class="p-4 border-t border-slate-700 bg-slate-800/30 flex items-center justify-between">
-                    <div>
-                        <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Attachment ${i + 1}</p>
-                        <p class="text-xs text-slate-300 font-medium truncate max-w-[140px]">IMG_REF_${Math.floor(Math.random() * 10000)}</p>
-                    </div>
-                    <a href="${u}" download class="p-2 text-slate-400 hover:text-white transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    </a>
-                </div>
-            </div>
-        `).join('')}
-    </main>
-
-    <footer class="p-12 text-center">
-        <p class="text-slate-500 text-sm font-medium">End of Gallery • Total ${urls.length} Attachments</p>
-    </footer>
-</body>
-</html>`;
-        const blob = new Blob([html], { type: 'text/html' });
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        const openAttachmentsGallery = (items = []) => {
+        if (!items.length) return;
+        _openGallery(items, "HSE Audit Documents", "/api/hse/audits/attachments");
     };
 
     const removeAttachment = async (attachmentId) => {
@@ -2151,6 +2075,7 @@ export default function HSEAudits({ user }) {
                 message={alertDialog.message}
                 type={alertDialog.type}
             />
+            <ImageGalleryModal open={_galleryOpen} onClose={_closeGallery} items={_galleryItems} title={_galleryTitle} apiBase={_galleryApi} />
         </>
     );
 }

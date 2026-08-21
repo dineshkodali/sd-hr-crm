@@ -8,6 +8,7 @@ import { generateCSV } from '../utils/csvGenerator';
 import { DownloadDropdown } from '../components/DownloadDropdown';
 import Breadcrumbs from "../components/Breadcrumbs";
 import {
+import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
     Home,
     Building2,
     AlertCircle,
@@ -156,6 +157,9 @@ const DetailField = ({ label, value }) => (
 /* --- MAIN COMPONENT --- */
 export default function EmergencyProtocols() {
     // Custom columns state (AIRETasks pattern)
+    // Image gallery hook — opens in-page modal instead of new tab
+    const { galleryOpen: _galleryOpen, galleryItems: _galleryItems, galleryTitle: _galleryTitle, galleryApi: _galleryApi, openGallery: _openGallery, closeGallery: _closeGallery } = useImageGallery();
+
     const [customColumns, setCustomColumns] = useState([]);
     const [customColumnMetadata, setCustomColumnMetadata] = useState({});
     const [availableColumns, setAvailableColumns] = useState(DEFAULT_COLUMNS);
@@ -709,74 +713,12 @@ export default function EmergencyProtocols() {
         }
     }
 
-    function openAttachmentsGallery(attachments) {
+        function openAttachmentsGallery(attachments) {
         let atts = attachments || [];
-        try {
-            if (typeof atts === 'string' && atts) atts = JSON.parse(atts);
-        } catch {
-            atts = [];
-        }
+        try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
         const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
         if (!list.length) return;
-
-        const base = (import.meta?.env?.VITE_API_URL || window.location.origin || '').replace(/\/$/, '');
-        const urls = list.map((x) => {
-            const isNumericId = /^\d+$/.test(String(x));
-            const u = isNumericId ? `/api/emergency-protocols/attachments/${x}` : String(x);
-            return /^https?:\/\//i.test(u) ? u : `${base}${u.startsWith('/') ? '' : '/'}${u}`;
-        });
-
-        const safeTitle = `Emergency Protocol Attachments (${urls.length})`;
-        const html = `
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <title>${safeTitle}</title>
-    <style>
-        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #0b1220; color: #e5e7eb; }
-        header { position: sticky; top: 0; background: rgba(11, 18, 32, 0.9); backdrop-filter: blur(12px); padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100; display: flex; justify-content: space-between; align-items: center; }
-        .title-area h1 { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
-        .title-area p { margin: 4px 0 0; font-size: 12px; color: #94a3b8; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 24px; }
-        .card { background: #161e2d; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; }
-        .card:hover { transform: translateY(-4px); border-color: rgba(20, 184, 166, 0.4); }
-        .img-wrap { width: 100%; aspect-ratio: 4/3; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .img-wrap img { width: 100%; height: 100%; object-fit: contain; }
-        .meta { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); }
-        .meta span { font-size: 13px; font-weight: 600; color: #ccfbf1; }
-        .btn { background: #14b8a6; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; transition: background 0.2s; }
-        .btn:hover { background: #0d9488; }
-    </style>
-</head>
-<body>
-    <header>
-        <div class="title-area">
-            <h1>${safeTitle}</h1>
-            <p>Premium Attachment Viewer</p>
-        </div>
-    </header>
-    <div class="grid">
-        ${urls.map((u, i) => `
-            <div class="card">
-                <div class="img-wrap">
-                    <img src="${u}" alt="Attachment ${i + 1}" loading="lazy"/>
-                </div>
-                <div class="meta">
-                    <span>Photo ${i + 1}</span>
-                    <a href="${u}" target="_blank" class="btn">Full Res</a>
-                </div>
-            </div>
-        `).join('')}
-    </div>
-</body>
-</html>`;
-
-        const blob = new Blob([html], { type: 'text/html' });
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        _openGallery(list, "Emergency Protocol Documents", "/api/emergency-protocols/attachments");
     }
 
 
@@ -2281,6 +2223,7 @@ export default function EmergencyProtocols() {
                 message={confirmDialog.message}
                 type={confirmDialog.type}
             />
+            <ImageGalleryModal open={_galleryOpen} onClose={_closeGallery} items={_galleryItems} title={_galleryTitle} apiBase={_galleryApi} />
         </div >
     );
 }
