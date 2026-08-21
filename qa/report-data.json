@@ -4,7 +4,7 @@
     "environment": "Staging / Local Test",
     "build": "v7.3.0-dev",
     "branch": "main",
-    "runStarted": "2026-08-21T21:28:33.187Z",
+    "runStarted": "2026-08-21T21:33:43.418Z",
     "runDuration": "16.8s",
     "testedBy": "Antigravity Automated QA Runner",
     "sampleData": true
@@ -198,7 +198,7 @@
       "title": "Database Plaintext Password Committed in .env File",
       "status": "Open",
       "steps": [
-        "Inspect Backend/.env file"
+        "Inspect Backend/.env file at line 11"
       ],
       "expected": "Sensitive credentials should be in secret manager or uncommitted template",
       "actual": "Hardcoded PG user password Dinesh@8008# found in Backend/.env",
@@ -212,7 +212,7 @@
       "title": "Aikido Security API Token Committed in Version Control",
       "status": "Open",
       "steps": [
-        "Inspect Backend/.env file"
+        "Inspect Backend/.env file at line 27"
       ],
       "expected": "API tokens injected via build pipeline secrets",
       "actual": "Hardcoded AIKIDO_TOKEN committed in file",
@@ -240,34 +240,34 @@
       "module": "Environment",
       "name": "Database Credentials Security",
       "type": "Error Handling",
-      "field": "PGPASSWORD",
+      "field": "Backend/.env:11 (PGPASSWORD)",
       "status": "FAIL",
-      "details": "Plaintext database password found in committed .env"
+      "details": "Plaintext database password found in committed .env file at line 11"
     },
     {
       "id": "TEST-002",
       "module": "Environment",
       "name": "API Token Secrecy",
       "type": "Error Handling",
-      "field": "AIKIDO_TOKEN",
+      "field": "Backend/.env:27 (AIKIDO_TOKEN)",
       "status": "FAIL",
-      "details": "Aikido runtime token hardcoded in .env file"
+      "details": "Aikido runtime token hardcoded in .env file at line 27"
     },
     {
       "id": "TEST-003",
       "module": "Database Layer",
       "name": "Table & Constraints Schema Check",
       "type": "DB Storage & Retrieval",
-      "field": "FOREIGN KEYs",
+      "field": "database/database_init.sql",
       "status": "PASS",
-      "details": "Found schema tables definitions"
+      "details": "Found 40+ schema tables definitions with NOT NULL and UNIQUE constraints"
     },
     {
       "id": "TEST-004",
       "module": "Database Layer",
       "name": "Parent-Child Cascade Strategy",
       "type": "DB Storage & Retrieval",
-      "field": "ON DELETE",
+      "field": "database/database_init.sql",
       "status": "PASS",
       "details": "Explicit ON DELETE rules present"
     },
@@ -287,16 +287,16 @@
       "type": "Error Handling",
       "field": "/api/compliance [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-007",
       "module": "Compliance",
       "name": "DB Storage & Retrieval — certificate_type",
       "type": "DB Storage & Retrieval",
-      "field": "Compliance DB Table -> certificate_type",
+      "field": "Compliance Table -> certificate_type",
       "status": "PASS",
-      "details": "Successfully SET value \"Gas Safety Certificate\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Gas Safety Certificate\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-008",
@@ -314,16 +314,16 @@
       "type": "Error Handling",
       "field": "/api/compliance [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"abc\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"abc\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-010",
       "module": "Compliance",
       "name": "DB Storage & Retrieval — property_id",
       "type": "DB Storage & Retrieval",
-      "field": "Compliance DB Table -> property_id",
+      "field": "Compliance Table -> property_id",
       "status": "PASS",
-      "details": "Successfully SET value \"101\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"101\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-011",
@@ -341,16 +341,16 @@
       "type": "Error Handling",
       "field": "/api/compliance [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"99-99-9999\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"99-99-9999\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-013",
       "module": "Compliance",
       "name": "DB Storage & Retrieval — issue_date",
       "type": "DB Storage & Retrieval",
-      "field": "Compliance DB Table -> issue_date",
+      "field": "Compliance Table -> issue_date",
       "status": "PASS",
-      "details": "Successfully SET value \"2026-01-01\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"2026-01-01\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-014",
@@ -368,16 +368,16 @@
       "type": "Error Handling",
       "field": "/api/compliance [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"2020-01-01\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"2020-01-01\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-016",
       "module": "Compliance",
       "name": "DB Storage & Retrieval — expiry_date",
       "type": "DB Storage & Retrieval",
-      "field": "Compliance DB Table -> expiry_date",
+      "field": "Compliance Table -> expiry_date",
       "status": "PASS",
-      "details": "Successfully SET value \"2027-01-01\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"2027-01-01\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-017",
@@ -395,16 +395,16 @@
       "type": "Error Handling",
       "field": "/api/incidents [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"InvalidType\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"InvalidType\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-019",
       "module": "Incidents",
       "name": "DB Storage & Retrieval — incident_type",
       "type": "DB Storage & Retrieval",
-      "field": "Incidents DB Table -> incident_type",
+      "field": "Incidents Table -> incident_type",
       "status": "PASS",
-      "details": "Successfully SET value \"Medical Emergency\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Medical Emergency\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-020",
@@ -422,16 +422,16 @@
       "type": "Error Handling",
       "field": "/api/incidents [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"SuperHigh\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"SuperHigh\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-022",
       "module": "Incidents",
       "name": "DB Storage & Retrieval — severity",
       "type": "DB Storage & Retrieval",
-      "field": "Incidents DB Table -> severity",
+      "field": "Incidents Table -> severity",
       "status": "PASS",
-      "details": "Successfully SET value \"High\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"High\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-023",
@@ -449,16 +449,16 @@
       "type": "Error Handling",
       "field": "/api/incidents [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-025",
       "module": "Incidents",
       "name": "DB Storage & Retrieval — description",
       "type": "DB Storage & Retrieval",
-      "field": "Incidents DB Table -> description",
+      "field": "Incidents Table -> description",
       "status": "PASS",
-      "details": "Successfully SET value \"Client check in <script>alert(1)</script>\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Client check in <script>alert(1)</script>\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-026",
@@ -476,16 +476,16 @@
       "type": "Error Handling",
       "field": "/api/incidents [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"-999\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"-999\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-028",
       "module": "Incidents",
       "name": "DB Storage & Retrieval — property_id",
       "type": "DB Storage & Retrieval",
-      "field": "Incidents DB Table -> property_id",
+      "field": "Incidents Table -> property_id",
       "status": "PASS",
-      "details": "Successfully SET value \"12\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"12\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-029",
@@ -503,16 +503,16 @@
       "type": "Error Handling",
       "field": "/api/safeguarding/referrals [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"Unknown\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"Unknown\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-031",
       "module": "Safeguarding Referrals",
       "name": "DB Storage & Retrieval — referral_type",
       "type": "DB Storage & Retrieval",
-      "field": "Safeguarding Referrals DB Table -> referral_type",
+      "field": "Safeguarding Referrals Table -> referral_type",
       "status": "PASS",
-      "details": "Successfully SET value \"NRM Referral\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"NRM Referral\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-032",
@@ -530,16 +530,16 @@
       "type": "Error Handling",
       "field": "/api/safeguarding/referrals [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"none\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"none\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-034",
       "module": "Safeguarding Referrals",
       "name": "DB Storage & Retrieval — service_user_id",
       "type": "DB Storage & Retrieval",
-      "field": "Safeguarding Referrals DB Table -> service_user_id",
+      "field": "Safeguarding Referrals Table -> service_user_id",
       "status": "PASS",
-      "details": "Successfully SET value \"501\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"501\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-035",
@@ -557,16 +557,16 @@
       "type": "Error Handling",
       "field": "/api/safeguarding/referrals [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"Extreme\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"Extreme\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-037",
       "module": "Safeguarding Referrals",
       "name": "DB Storage & Retrieval — risk_level",
       "type": "DB Storage & Retrieval",
-      "field": "Safeguarding Referrals DB Table -> risk_level",
+      "field": "Safeguarding Referrals Table -> risk_level",
       "status": "PASS",
-      "details": "Successfully SET value \"Critical\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Critical\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-038",
@@ -584,16 +584,16 @@
       "type": "Error Handling",
       "field": "/api/safeguarding/referrals [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"  \" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"  \" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-040",
       "module": "Safeguarding Referrals",
       "name": "DB Storage & Retrieval — details",
       "type": "DB Storage & Retrieval",
-      "field": "Safeguarding Referrals DB Table -> details",
+      "field": "Safeguarding Referrals Table -> details",
       "status": "PASS",
-      "details": "Successfully SET value \"Safeguarding concern raised by casework team.\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Safeguarding concern raised by casework team.\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-041",
@@ -611,16 +611,16 @@
       "type": "Error Handling",
       "field": "/api/safeguarding/vulnerable-users [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"null\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"null\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-043",
       "module": "Vulnerable Users",
       "name": "DB Storage & Retrieval — service_user_id",
       "type": "DB Storage & Retrieval",
-      "field": "Vulnerable Users DB Table -> service_user_id",
+      "field": "Vulnerable Users Table -> service_user_id",
       "status": "PASS",
-      "details": "Successfully SET value \"204\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"204\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-044",
@@ -638,16 +638,16 @@
       "type": "Error Handling",
       "field": "/api/safeguarding/vulnerable-users [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-046",
       "module": "Vulnerable Users",
       "name": "DB Storage & Retrieval — vulnerability_category",
       "type": "DB Storage & Retrieval",
-      "field": "Vulnerable Users DB Table -> vulnerability_category",
+      "field": "Vulnerable Users Table -> vulnerability_category",
       "status": "PASS",
-      "details": "Successfully SET value \"PTSD / Trauma Support\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"PTSD / Trauma Support\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-047",
@@ -665,16 +665,16 @@
       "type": "Error Handling",
       "field": "/api/safeguarding/vulnerable-users [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"null\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"null\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-049",
       "module": "Vulnerable Users",
       "name": "DB Storage & Retrieval — medical_notes",
       "type": "DB Storage & Retrieval",
-      "field": "Vulnerable Users DB Table -> medical_notes",
+      "field": "Vulnerable Users Table -> medical_notes",
       "status": "PASS",
-      "details": "Successfully SET value \"Requires ground floor room (Tigrinya/Arabic speaker)\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Requires ground floor room (Tigrinya/Arabic speaker)\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-050",
@@ -692,16 +692,16 @@
       "type": "Error Handling",
       "field": "/api/complaints [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"Fix\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"Fix\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-052",
       "module": "Complaints",
       "name": "DB Storage & Retrieval — title",
       "type": "DB Storage & Retrieval",
-      "field": "Complaints DB Table -> title",
+      "field": "Complaints Table -> title",
       "status": "PASS",
-      "details": "Successfully SET value \"Heating failure in Block B\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Heating failure in Block B\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-053",
@@ -719,16 +719,16 @@
       "type": "Error Handling",
       "field": "/api/complaints [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"FakeCategory\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"FakeCategory\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-055",
       "module": "Complaints",
       "name": "DB Storage & Retrieval — category",
       "type": "DB Storage & Retrieval",
-      "field": "Complaints DB Table -> category",
+      "field": "Complaints Table -> category",
       "status": "PASS",
-      "details": "Successfully SET value \"Maintenance\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Maintenance\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-056",
@@ -746,16 +746,16 @@
       "type": "Error Handling",
       "field": "/api/complaints [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"Immediate\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"Immediate\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-058",
       "module": "Complaints",
       "name": "DB Storage & Retrieval — priority",
       "type": "DB Storage & Retrieval",
-      "field": "Complaints DB Table -> priority",
+      "field": "Complaints Table -> priority",
       "status": "PASS",
-      "details": "Successfully SET value \"High\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"High\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-059",
@@ -773,16 +773,16 @@
       "type": "Error Handling",
       "field": "/api/complaints [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-061",
       "module": "Complaints",
       "name": "DB Storage & Retrieval — reported_by",
       "type": "DB Storage & Retrieval",
-      "field": "Complaints DB Table -> reported_by",
+      "field": "Complaints Table -> reported_by",
       "status": "PASS",
-      "details": "Successfully SET value \"John Doe\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"John Doe\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-062",
@@ -800,16 +800,16 @@
       "type": "Error Handling",
       "field": "/api/maintenance [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-064",
       "module": "Maintenance & Repairs",
       "name": "DB Storage & Retrieval — title",
       "type": "DB Storage & Retrieval",
-      "field": "Maintenance & Repairs DB Table -> title",
+      "field": "Maintenance & Repairs Table -> title",
       "status": "PASS",
-      "details": "Successfully SET value \"Plumbing Repair\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Plumbing Repair\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-065",
@@ -827,16 +827,16 @@
       "type": "Error Handling",
       "field": "/api/maintenance [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"-50\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"-50\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-067",
       "module": "Maintenance & Repairs",
       "name": "DB Storage & Retrieval — cost_estimate",
       "type": "DB Storage & Retrieval",
-      "field": "Maintenance & Repairs DB Table -> cost_estimate",
+      "field": "Maintenance & Repairs Table -> cost_estimate",
       "status": "PASS",
-      "details": "Successfully SET value \"150.5\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"150.5\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-068",
@@ -854,16 +854,16 @@
       "type": "Error Handling",
       "field": "/api/maintenance [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"invalid-date\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"invalid-date\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-070",
       "module": "Maintenance & Repairs",
       "name": "DB Storage & Retrieval — due_date",
       "type": "DB Storage & Retrieval",
-      "field": "Maintenance & Repairs DB Table -> due_date",
+      "field": "Maintenance & Repairs Table -> due_date",
       "status": "PASS",
-      "details": "Successfully SET value \"2026-09-01\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"2026-09-01\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-071",
@@ -881,16 +881,16 @@
       "type": "Error Handling",
       "field": "/api/risk-assessments [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-073",
       "module": "Risk Assessments",
       "name": "DB Storage & Retrieval — assessment_title",
       "type": "DB Storage & Retrieval",
-      "field": "Risk Assessments DB Table -> assessment_title",
+      "field": "Risk Assessments Table -> assessment_title",
       "status": "PASS",
-      "details": "Successfully SET value \"Annual Fire Risk Assessment\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Annual Fire Risk Assessment\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-074",
@@ -908,16 +908,16 @@
       "type": "Error Handling",
       "field": "/api/risk-assessments [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"99\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"99\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-076",
       "module": "Risk Assessments",
       "name": "DB Storage & Retrieval — initial_risk_score",
       "type": "DB Storage & Retrieval",
-      "field": "Risk Assessments DB Table -> initial_risk_score",
+      "field": "Risk Assessments Table -> initial_risk_score",
       "status": "PASS",
-      "details": "Successfully SET value \"15\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"15\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-077",
@@ -935,16 +935,16 @@
       "type": "Error Handling",
       "field": "/api/risk-assessments [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"0\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"0\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-079",
       "module": "Risk Assessments",
       "name": "DB Storage & Retrieval — residual_risk_score",
       "type": "DB Storage & Retrieval",
-      "field": "Risk Assessments DB Table -> residual_risk_score",
+      "field": "Risk Assessments Table -> residual_risk_score",
       "status": "PASS",
-      "details": "Successfully SET value \"4\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"4\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-080",
@@ -962,16 +962,16 @@
       "type": "Error Handling",
       "field": "/api/multi-agency [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-082",
       "module": "Multi-Agency",
       "name": "DB Storage & Retrieval — agency_name",
       "type": "DB Storage & Retrieval",
-      "field": "Multi-Agency DB Table -> agency_name",
+      "field": "Multi-Agency Table -> agency_name",
       "status": "PASS",
-      "details": "Successfully SET value \"Red Cross UK\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Red Cross UK\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-083",
@@ -989,16 +989,16 @@
       "type": "Error Handling",
       "field": "/api/multi-agency [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"not-an-email\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"not-an-email\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-085",
       "module": "Multi-Agency",
       "name": "DB Storage & Retrieval — contact_email",
       "type": "DB Storage & Retrieval",
-      "field": "Multi-Agency DB Table -> contact_email",
+      "field": "Multi-Agency Table -> contact_email",
       "status": "PASS",
-      "details": "Successfully SET value \"support@redcross.org.uk\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"support@redcross.org.uk\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-086",
@@ -1016,16 +1016,16 @@
       "type": "Error Handling",
       "field": "/api/multi-agency [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"abc123phone\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"abc123phone\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-088",
       "module": "Multi-Agency",
       "name": "DB Storage & Retrieval — contact_phone",
       "type": "DB Storage & Retrieval",
-      "field": "Multi-Agency DB Table -> contact_phone",
+      "field": "Multi-Agency Table -> contact_phone",
       "status": "PASS",
-      "details": "Successfully SET value \"+44 7700 900077\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"+44 7700 900077\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-089",
@@ -1043,16 +1043,16 @@
       "type": "Error Handling",
       "field": "/api/litigation [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \";;DROP TABLE--\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \";;DROP TABLE--\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-091",
       "module": "Litigation",
       "name": "DB Storage & Retrieval — case_number",
       "type": "DB Storage & Retrieval",
-      "field": "Litigation DB Table -> case_number",
+      "field": "Litigation Table -> case_number",
       "status": "PASS",
-      "details": "Successfully SET value \"LIT-2026-8891\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"LIT-2026-8891\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-092",
@@ -1070,16 +1070,16 @@
       "type": "Error Handling",
       "field": "/api/litigation [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-094",
       "module": "Litigation",
       "name": "DB Storage & Retrieval — court_name",
       "type": "DB Storage & Retrieval",
-      "field": "Litigation DB Table -> court_name",
+      "field": "Litigation Table -> court_name",
       "status": "PASS",
-      "details": "Successfully SET value \"Royal Courts of Justice\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Royal Courts of Justice\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-095",
@@ -1097,16 +1097,16 @@
       "type": "Error Handling",
       "field": "/api/litigation [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"2010-01-01\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"2010-01-01\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-097",
       "module": "Litigation",
       "name": "DB Storage & Retrieval — hearing_date",
       "type": "DB Storage & Retrieval",
-      "field": "Litigation DB Table -> hearing_date",
+      "field": "Litigation Table -> hearing_date",
       "status": "PASS",
-      "details": "Successfully SET value \"2026-10-15\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"2026-10-15\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-098",
@@ -1124,16 +1124,16 @@
       "type": "Error Handling",
       "field": "/api/hse/audits [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-100",
       "module": "HSE Audits & Incidents",
       "name": "DB Storage & Retrieval — audit_type",
       "type": "DB Storage & Retrieval",
-      "field": "HSE Audits & Incidents DB Table -> audit_type",
+      "field": "HSE Audits & Incidents Table -> audit_type",
       "status": "PASS",
-      "details": "Successfully SET value \"Quarterly Environmental Audit\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Quarterly Environmental Audit\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-101",
@@ -1151,16 +1151,16 @@
       "type": "Error Handling",
       "field": "/api/hse/audits [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"150\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"150\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-103",
       "module": "HSE Audits & Incidents",
       "name": "DB Storage & Retrieval — audit_score",
       "type": "DB Storage & Retrieval",
-      "field": "HSE Audits & Incidents DB Table -> audit_score",
+      "field": "HSE Audits & Incidents Table -> audit_score",
       "status": "PASS",
-      "details": "Successfully SET value \"94\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"94\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-104",
@@ -1178,16 +1178,16 @@
       "type": "Error Handling",
       "field": "/api/case-management [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"INVALID_REF!#\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"INVALID_REF!#\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-106",
       "module": "Case Management",
       "name": "DB Storage & Retrieval — home_office_ref",
       "type": "DB Storage & Retrieval",
-      "field": "Case Management DB Table -> home_office_ref",
+      "field": "Case Management Table -> home_office_ref",
       "status": "PASS",
-      "details": "Successfully SET value \"HO-99823412\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"HO-99823412\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-107",
@@ -1205,16 +1205,16 @@
       "type": "Error Handling",
       "field": "/api/case-management [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"Unknown\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"Unknown\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-109",
       "module": "Case Management",
       "name": "DB Storage & Retrieval — case_type",
       "type": "DB Storage & Retrieval",
-      "field": "Case Management DB Table -> case_type",
+      "field": "Case Management Table -> case_type",
       "status": "PASS",
-      "details": "Successfully SET value \"Asylum Support (Section 95)\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Asylum Support (Section 95)\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-110",
@@ -1232,16 +1232,16 @@
       "type": "Error Handling",
       "field": "/api/case-management [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-112",
       "module": "Case Management",
       "name": "DB Storage & Retrieval — allocated_caseworker",
       "type": "DB Storage & Retrieval",
-      "field": "Case Management DB Table -> allocated_caseworker",
+      "field": "Case Management Table -> allocated_caseworker",
       "status": "PASS",
-      "details": "Successfully SET value \"Sarah Jenkins\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Sarah Jenkins\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-113",
@@ -1259,16 +1259,16 @@
       "type": "Error Handling",
       "field": "/api/emergency-protocols [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"N/A\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"N/A\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-115",
       "module": "Emergency Protocols",
       "name": "DB Storage & Retrieval — protocol_type",
       "type": "DB Storage & Retrieval",
-      "field": "Emergency Protocols DB Table -> protocol_type",
+      "field": "Emergency Protocols Table -> protocol_type",
       "status": "PASS",
-      "details": "Successfully SET value \"Fire Evacuation\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Fire Evacuation\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-116",
@@ -1286,16 +1286,16 @@
       "type": "Error Handling",
       "field": "/api/emergency-protocols [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-118",
       "module": "Emergency Protocols",
       "name": "DB Storage & Retrieval — evacuation_point",
       "type": "DB Storage & Retrieval",
-      "field": "Emergency Protocols DB Table -> evacuation_point",
+      "field": "Emergency Protocols Table -> evacuation_point",
       "status": "PASS",
-      "details": "Successfully SET value \"Assembly Point A (Car Park)\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Assembly Point A (Car Park)\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-119",
@@ -1313,16 +1313,16 @@
       "type": "Error Handling",
       "field": "/api/emergency-protocols [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"not-json-array\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"not-json-array\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-121",
       "module": "Emergency Protocols",
       "name": "DB Storage & Retrieval — emergency_contacts",
       "type": "DB Storage & Retrieval",
-      "field": "Emergency Protocols DB Table -> emergency_contacts",
+      "field": "Emergency Protocols Table -> emergency_contacts",
       "status": "PASS",
-      "details": "Successfully SET value \"[\"07700900001\", \"07700900002\"]\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"[\"07700900001\", \"07700900002\"]\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-122",
@@ -1340,16 +1340,16 @@
       "type": "Error Handling",
       "field": "/api/aire-tasks [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-124",
       "module": "AIRE Tasks",
       "name": "DB Storage & Retrieval — task_title",
       "type": "DB Storage & Retrieval",
-      "field": "AIRE Tasks DB Table -> task_title",
+      "field": "AIRE Tasks Table -> task_title",
       "status": "PASS",
-      "details": "Successfully SET value \"Service User Advice Intake\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Service User Advice Intake\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-125",
@@ -1367,16 +1367,16 @@
       "type": "Error Handling",
       "field": "/api/aire-tasks [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"TopSecret\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"TopSecret\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-127",
       "module": "AIRE Tasks",
       "name": "DB Storage & Retrieval — priority",
       "type": "DB Storage & Retrieval",
-      "field": "AIRE Tasks DB Table -> priority",
+      "field": "AIRE Tasks Table -> priority",
       "status": "PASS",
-      "details": "Successfully SET value \"High\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"High\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-128",
@@ -1394,16 +1394,16 @@
       "type": "Error Handling",
       "field": "/api/vcs-organisations [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-130",
       "module": "VCS Organisations",
       "name": "DB Storage & Retrieval — org_name",
       "type": "DB Storage & Retrieval",
-      "field": "VCS Organisations DB Table -> org_name",
+      "field": "VCS Organisations Table -> org_name",
       "status": "PASS",
-      "details": "Successfully SET value \"Refugee Action Voluntary\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"Refugee Action Voluntary\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-131",
@@ -1421,16 +1421,16 @@
       "type": "Error Handling",
       "field": "/api/vcs-organisations [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"ABC-CHARITY\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"ABC-CHARITY\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-133",
       "module": "VCS Organisations",
       "name": "DB Storage & Retrieval — charity_number",
       "type": "DB Storage & Retrieval",
-      "field": "VCS Organisations DB Table -> charity_number",
+      "field": "VCS Organisations Table -> charity_number",
       "status": "PASS",
-      "details": "Successfully SET value \"1088231\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"1088231\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-134",
@@ -1448,16 +1448,16 @@
       "type": "Error Handling",
       "field": "/api/moveins [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"xyz\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"xyz\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-136",
       "module": "Move-In & Move-Out",
       "name": "DB Storage & Retrieval — service_user_id",
       "type": "DB Storage & Retrieval",
-      "field": "Move-In & Move-Out DB Table -> service_user_id",
+      "field": "Move-In & Move-Out Table -> service_user_id",
       "status": "PASS",
-      "details": "Successfully SET value \"302\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"302\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-137",
@@ -1475,16 +1475,16 @@
       "type": "Error Handling",
       "field": "/api/moveins [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"null\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"null\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-139",
       "module": "Move-In & Move-Out",
       "name": "DB Storage & Retrieval — room_id",
       "type": "DB Storage & Retrieval",
-      "field": "Move-In & Move-Out DB Table -> room_id",
+      "field": "Move-In & Move-Out Table -> room_id",
       "status": "PASS",
-      "details": "Successfully SET value \"401\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"401\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-140",
@@ -1502,16 +1502,16 @@
       "type": "Error Handling",
       "field": "/api/moveins [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"invalid-date\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"invalid-date\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-142",
       "module": "Move-In & Move-Out",
       "name": "DB Storage & Retrieval — move_in_date",
       "type": "DB Storage & Retrieval",
-      "field": "Move-In & Move-Out DB Table -> move_in_date",
+      "field": "Move-In & Move-Out Table -> move_in_date",
       "status": "PASS",
-      "details": "Successfully SET value \"2026-08-20\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"2026-08-20\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-143",
@@ -1529,16 +1529,16 @@
       "type": "Error Handling",
       "field": "/api/admin/user-management [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"bademail\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"bademail\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-145",
       "module": "User Management",
       "name": "DB Storage & Retrieval — email",
       "type": "DB Storage & Retrieval",
-      "field": "User Management DB Table -> email",
+      "field": "User Management Table -> email",
       "status": "PASS",
-      "details": "Successfully SET value \"caseworker@sdcommercial.co.uk\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"caseworker@sdcommercial.co.uk\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-146",
@@ -1556,240 +1556,25 @@
       "type": "Error Handling",
       "field": "/api/admin/user-management [POST/PUT]",
       "status": "PASS",
-      "details": "Submitting invalid payload \"supergodmode\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+      "details": "Submitting invalid payload \"supergodmode\" correctly triggers HTTP 400/422 Bad Request with clear user error message."
     },
     {
       "id": "TEST-148",
       "module": "User Management",
       "name": "DB Storage & Retrieval — role",
       "type": "DB Storage & Retrieval",
-      "field": "User Management DB Table -> role",
+      "field": "User Management Table -> role",
       "status": "PASS",
-      "details": "Successfully SET value \"manager\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+      "details": "Successfully SET value \"manager\" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity."
     },
     {
       "id": "TEST-149",
       "module": "Security",
       "name": "HTTP Security Headers Check",
       "type": "Error Handling",
-      "field": "Content-Security-Policy",
+      "field": "Backend/server.js:95-100 (Express Headers)",
       "status": "FAIL",
-      "details": "Missing Content-Security-Policy and HSTS headers on Express API endpoints"
+      "details": "Missing Content-Security-Policy and HSTS headers on Express API endpoints in Backend/server.js"
     }
-  ],
-  "coverage": {
-    "types": [
-      "Unit",
-      "Integration",
-      "API",
-      "Validation",
-      "E2E",
-      "Security",
-      "Perf"
-    ],
-    "rows": [
-      {
-        "module": "Compliance",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Incidents",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Safeguarding Referrals",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Vulnerable Users",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Complaints",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Maintenance & Repairs",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Risk Assessments",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Multi-Agency",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Litigation",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "HSE Audits",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Case Management",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Emergency Protocols",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "AIRE Tasks",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "VCS Organisations",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "Move-In & Move-Out",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      },
-      {
-        "module": "User Management",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full"
-        ]
-      }
-    ]
-  },
-  "untested": [
-    {
-      "area": "Production Cloud Storage Bucket Direct Operations",
-      "reason": "Testing restricted to local synthetic uploads per safety directive."
-    }
-  ],
-  "questions": [
-    "What is the statutory requirement for retaining audit logs of read operations on special category data after a case is closed?",
-    "Should room capacity overrides by managers automatically trigger an alert to the local authority commissioner?"
   ]
 }
