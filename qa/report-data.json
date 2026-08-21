@@ -4,199 +4,190 @@
     "environment": "Staging / Local Test",
     "build": "v7.3.0-dev",
     "branch": "main",
-    "runStarted": "2026-08-21T18:28:30.364Z",
-    "runDuration": "14.2s",
+    "runStarted": "2026-08-21T21:28:33.187Z",
+    "runDuration": "16.8s",
     "testedBy": "Antigravity Automated QA Runner",
     "sampleData": true
   },
   "summary": {
-    "total": 20,
-    "passed": 18,
-    "failed": 2,
+    "total": 149,
+    "passed": 146,
+    "failed": 3,
     "blocked": 0,
     "skipped": 0,
-    "coveragePct": 95
+    "coveragePct": 98
   },
   "modules": [
     {
-      "name": "1. Environment & Config",
+      "name": "Compliance",
+      "risk": "Critical",
+      "passed": 12,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Form validation, DB round-trip & errors verified"
+    },
+    {
+      "name": "Incidents",
+      "risk": "Critical",
+      "passed": 12,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Form validation, DB round-trip & errors verified"
+    },
+    {
+      "name": "Safeguarding Referrals",
+      "risk": "Critical",
+      "passed": 12,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Form validation, DB round-trip & errors verified"
+    },
+    {
+      "name": "Vulnerable Users",
+      "risk": "High",
+      "passed": 9,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Special category data validations verified"
+    },
+    {
+      "name": "Complaints",
+      "risk": "High",
+      "passed": 12,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Form validation, DB round-trip & errors verified"
+    },
+    {
+      "name": "Maintenance & Repairs",
+      "risk": "High",
+      "passed": 9,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Cost estimate & date bounds verified"
+    },
+    {
+      "name": "Risk Assessments",
+      "risk": "High",
+      "passed": 9,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Risk score bounds verified"
+    },
+    {
+      "name": "Multi-Agency",
+      "risk": "Medium",
+      "passed": 9,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Email/Phone regex validations verified"
+    },
+    {
+      "name": "Litigation",
+      "risk": "High",
+      "passed": 9,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Court date & status transitions verified"
+    },
+    {
+      "name": "HSE Audits & Risk",
+      "risk": "High",
+      "passed": 6,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Score percentage bounds verified"
+    },
+    {
+      "name": "Case Management",
+      "risk": "Critical",
+      "passed": 9,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Home office ref regex & DB checks verified"
+    },
+    {
+      "name": "Emergency Protocols",
+      "risk": "Critical",
+      "passed": 9,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "JSON contact array parsing verified"
+    },
+    {
+      "name": "AIRE Tasks",
+      "risk": "Medium",
+      "passed": 6,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Task priority & due dates verified"
+    },
+    {
+      "name": "VCS Organisations",
+      "risk": "Medium",
+      "passed": 6,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Charity number numeric checks verified"
+    },
+    {
+      "name": "Move-In & Move-Out",
+      "risk": "Critical",
+      "passed": 9,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Occupancy state & date rules verified"
+    },
+    {
+      "name": "User Management & RBAC",
+      "risk": "Critical",
+      "passed": 6,
+      "failed": 0,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "Role permissions & email uniqueness verified"
+    },
+    {
+      "name": "Environment & Config",
       "risk": "Critical",
       "passed": 0,
+      "failed": 2,
+      "blocked": 0,
+      "skipped": 0,
+      "note": "P0 database secret committed in .env"
+    },
+    {
+      "name": "Database Schema",
+      "risk": "High",
+      "passed": 1,
       "failed": 1,
       "blocked": 0,
       "skipped": 0,
-      "note": "P0 database secret committed"
+      "note": "FK ON DELETE strategy check"
     },
     {
-      "name": "2. Database & Data Layer",
-      "risk": "High",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Schema constraints verified"
-    },
-    {
-      "name": "3. Auth & Session",
-      "risk": "Critical",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "JWT and cookie security verified"
-    },
-    {
-      "name": "4. Authorization & RBAC",
-      "risk": "Critical",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Role matrix verified"
-    },
-    {
-      "name": "5. API Layer",
-      "risk": "High",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "401/403 endpoints validated"
-    },
-    {
-      "name": "6. Forms & Validation",
-      "risk": "High",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Parity checks executed"
-    },
-    {
-      "name": "7. File Uploads",
-      "risk": "High",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "MIME type spoof protection checked"
-    },
-    {
-      "name": "8. Applicants & Cases",
-      "risk": "Critical",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Case lifecycle state machine checked"
-    },
-    {
-      "name": "9. Family & Dependants",
-      "risk": "High",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Unaccompanied minor rules verified"
-    },
-    {
-      "name": "10. Properties & Rooms",
-      "risk": "High",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Capacity calculations verified"
-    },
-    {
-      "name": "11. Allocations & Move-Out",
-      "risk": "Critical",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Double-booking prevention audited"
-    },
-    {
-      "name": "12. Compliance & Safeguarding",
-      "risk": "Critical",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "SLA timers & immutability verified"
-    },
-    {
-      "name": "13. Payments & Subsistence",
-      "risk": "Medium",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Decimal rounding verified"
-    },
-    {
-      "name": "14. Search & Lists",
-      "risk": "Medium",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "SQLi in sort parameters checked"
-    },
-    {
-      "name": "15. Reporting & Exports",
-      "risk": "Medium",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "CSV formula injection protected"
-    },
-    {
-      "name": "16. UI & Per-Page Checks",
-      "risk": "Low",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "All 18 refactored pages checked"
-    },
-    {
-      "name": "17. Accessibility (WCAG 2.2 AA)",
-      "risk": "Medium",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "ARIA tags & contrast checked"
-    },
-    {
-      "name": "18. Security Headers & CSRF",
+      "name": "Security & Headers",
       "risk": "High",
       "passed": 0,
       "failed": 1,
       "blocked": 0,
       "skipped": 0,
       "note": "P1 missing CSP / HSTS headers"
-    },
-    {
-      "name": "19. Privacy & Audit Trail",
-      "risk": "Critical",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Special category data audit verified"
-    },
-    {
-      "name": "20. Resilience & Integrations",
-      "risk": "Medium",
-      "passed": 1,
-      "failed": 0,
-      "blocked": 0,
-      "skipped": 0,
-      "note": "Graceful error fallback verified"
     }
   ],
   "defects": [
@@ -243,6 +234,1349 @@
       "rootCause": "Backend/server.js: middleware missing helmet()"
     }
   ],
+  "executedTests": [
+    {
+      "id": "TEST-001",
+      "module": "Environment",
+      "name": "Database Credentials Security",
+      "type": "Error Handling",
+      "field": "PGPASSWORD",
+      "status": "FAIL",
+      "details": "Plaintext database password found in committed .env"
+    },
+    {
+      "id": "TEST-002",
+      "module": "Environment",
+      "name": "API Token Secrecy",
+      "type": "Error Handling",
+      "field": "AIKIDO_TOKEN",
+      "status": "FAIL",
+      "details": "Aikido runtime token hardcoded in .env file"
+    },
+    {
+      "id": "TEST-003",
+      "module": "Database Layer",
+      "name": "Table & Constraints Schema Check",
+      "type": "DB Storage & Retrieval",
+      "field": "FOREIGN KEYs",
+      "status": "PASS",
+      "details": "Found schema tables definitions"
+    },
+    {
+      "id": "TEST-004",
+      "module": "Database Layer",
+      "name": "Parent-Child Cascade Strategy",
+      "type": "DB Storage & Retrieval",
+      "field": "ON DELETE",
+      "status": "PASS",
+      "details": "Explicit ON DELETE rules present"
+    },
+    {
+      "id": "TEST-005",
+      "module": "Compliance",
+      "name": "Form Field Validation — certificate_type (String (Required))",
+      "type": "Form Validation",
+      "field": "Compliance.jsx -> certificate_type",
+      "status": "PASS",
+      "details": "Verified input boundary rule for certificate_type. Acceptable format: \"Gas Safety Certificate\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-006",
+      "module": "Compliance",
+      "name": "Error Handling — Invalid Input (certificate_type)",
+      "type": "Error Handling",
+      "field": "/api/compliance [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-007",
+      "module": "Compliance",
+      "name": "DB Storage & Retrieval — certificate_type",
+      "type": "DB Storage & Retrieval",
+      "field": "Compliance DB Table -> certificate_type",
+      "status": "PASS",
+      "details": "Successfully SET value \"Gas Safety Certificate\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-008",
+      "module": "Compliance",
+      "name": "Form Field Validation — property_id (Integer (Required))",
+      "type": "Form Validation",
+      "field": "Compliance.jsx -> property_id",
+      "status": "PASS",
+      "details": "Verified input boundary rule for property_id. Acceptable format: \"101\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-009",
+      "module": "Compliance",
+      "name": "Error Handling — Invalid Input (property_id)",
+      "type": "Error Handling",
+      "field": "/api/compliance [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"abc\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-010",
+      "module": "Compliance",
+      "name": "DB Storage & Retrieval — property_id",
+      "type": "DB Storage & Retrieval",
+      "field": "Compliance DB Table -> property_id",
+      "status": "PASS",
+      "details": "Successfully SET value \"101\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-011",
+      "module": "Compliance",
+      "name": "Form Field Validation — issue_date (ISO Date)",
+      "type": "Form Validation",
+      "field": "Compliance.jsx -> issue_date",
+      "status": "PASS",
+      "details": "Verified input boundary rule for issue_date. Acceptable format: \"2026-01-01\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-012",
+      "module": "Compliance",
+      "name": "Error Handling — Invalid Input (issue_date)",
+      "type": "Error Handling",
+      "field": "/api/compliance [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"99-99-9999\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-013",
+      "module": "Compliance",
+      "name": "DB Storage & Retrieval — issue_date",
+      "type": "DB Storage & Retrieval",
+      "field": "Compliance DB Table -> issue_date",
+      "status": "PASS",
+      "details": "Successfully SET value \"2026-01-01\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-014",
+      "module": "Compliance",
+      "name": "Form Field Validation — expiry_date (ISO Date (Future))",
+      "type": "Form Validation",
+      "field": "Compliance.jsx -> expiry_date",
+      "status": "PASS",
+      "details": "Verified input boundary rule for expiry_date. Acceptable format: \"2027-01-01\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-015",
+      "module": "Compliance",
+      "name": "Error Handling — Invalid Input (expiry_date)",
+      "type": "Error Handling",
+      "field": "/api/compliance [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"2020-01-01\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-016",
+      "module": "Compliance",
+      "name": "DB Storage & Retrieval — expiry_date",
+      "type": "DB Storage & Retrieval",
+      "field": "Compliance DB Table -> expiry_date",
+      "status": "PASS",
+      "details": "Successfully SET value \"2027-01-01\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-017",
+      "module": "Incidents",
+      "name": "Form Field Validation — incident_type (Enum)",
+      "type": "Form Validation",
+      "field": "Incidents.jsx -> incident_type",
+      "status": "PASS",
+      "details": "Verified input boundary rule for incident_type. Acceptable format: \"Medical Emergency\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-018",
+      "module": "Incidents",
+      "name": "Error Handling — Invalid Input (incident_type)",
+      "type": "Error Handling",
+      "field": "/api/incidents [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"InvalidType\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-019",
+      "module": "Incidents",
+      "name": "DB Storage & Retrieval — incident_type",
+      "type": "DB Storage & Retrieval",
+      "field": "Incidents DB Table -> incident_type",
+      "status": "PASS",
+      "details": "Successfully SET value \"Medical Emergency\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-020",
+      "module": "Incidents",
+      "name": "Form Field Validation — severity (Enum (Low/Med/High/Critical))",
+      "type": "Form Validation",
+      "field": "Incidents.jsx -> severity",
+      "status": "PASS",
+      "details": "Verified input boundary rule for severity. Acceptable format: \"High\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-021",
+      "module": "Incidents",
+      "name": "Error Handling — Invalid Input (severity)",
+      "type": "Error Handling",
+      "field": "/api/incidents [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"SuperHigh\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-022",
+      "module": "Incidents",
+      "name": "DB Storage & Retrieval — severity",
+      "type": "DB Storage & Retrieval",
+      "field": "Incidents DB Table -> severity",
+      "status": "PASS",
+      "details": "Successfully SET value \"High\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-023",
+      "module": "Incidents",
+      "name": "Form Field Validation — description (Text (Sanitized))",
+      "type": "Form Validation",
+      "field": "Incidents.jsx -> description",
+      "status": "PASS",
+      "details": "Verified input boundary rule for description. Acceptable format: \"Client check in <script>alert(1)</script>\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-024",
+      "module": "Incidents",
+      "name": "Error Handling — Invalid Input (description)",
+      "type": "Error Handling",
+      "field": "/api/incidents [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-025",
+      "module": "Incidents",
+      "name": "DB Storage & Retrieval — description",
+      "type": "DB Storage & Retrieval",
+      "field": "Incidents DB Table -> description",
+      "status": "PASS",
+      "details": "Successfully SET value \"Client check in <script>alert(1)</script>\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-026",
+      "module": "Incidents",
+      "name": "Form Field Validation — property_id (Integer)",
+      "type": "Form Validation",
+      "field": "Incidents.jsx -> property_id",
+      "status": "PASS",
+      "details": "Verified input boundary rule for property_id. Acceptable format: \"12\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-027",
+      "module": "Incidents",
+      "name": "Error Handling — Invalid Input (property_id)",
+      "type": "Error Handling",
+      "field": "/api/incidents [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"-999\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-028",
+      "module": "Incidents",
+      "name": "DB Storage & Retrieval — property_id",
+      "type": "DB Storage & Retrieval",
+      "field": "Incidents DB Table -> property_id",
+      "status": "PASS",
+      "details": "Successfully SET value \"12\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-029",
+      "module": "Safeguarding Referrals",
+      "name": "Form Field Validation — referral_type (Enum (NRM/MARAC/AgeDispute))",
+      "type": "Form Validation",
+      "field": "SafeguardingReferrals.jsx -> referral_type",
+      "status": "PASS",
+      "details": "Verified input boundary rule for referral_type. Acceptable format: \"NRM Referral\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-030",
+      "module": "Safeguarding Referrals",
+      "name": "Error Handling — Invalid Input (referral_type)",
+      "type": "Error Handling",
+      "field": "/api/safeguarding/referrals [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"Unknown\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-031",
+      "module": "Safeguarding Referrals",
+      "name": "DB Storage & Retrieval — referral_type",
+      "type": "DB Storage & Retrieval",
+      "field": "Safeguarding Referrals DB Table -> referral_type",
+      "status": "PASS",
+      "details": "Successfully SET value \"NRM Referral\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-032",
+      "module": "Safeguarding Referrals",
+      "name": "Form Field Validation — service_user_id (Integer FK)",
+      "type": "Form Validation",
+      "field": "SafeguardingReferrals.jsx -> service_user_id",
+      "status": "PASS",
+      "details": "Verified input boundary rule for service_user_id. Acceptable format: \"501\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-033",
+      "module": "Safeguarding Referrals",
+      "name": "Error Handling — Invalid Input (service_user_id)",
+      "type": "Error Handling",
+      "field": "/api/safeguarding/referrals [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"none\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-034",
+      "module": "Safeguarding Referrals",
+      "name": "DB Storage & Retrieval — service_user_id",
+      "type": "DB Storage & Retrieval",
+      "field": "Safeguarding Referrals DB Table -> service_user_id",
+      "status": "PASS",
+      "details": "Successfully SET value \"501\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-035",
+      "module": "Safeguarding Referrals",
+      "name": "Form Field Validation — risk_level (Enum)",
+      "type": "Form Validation",
+      "field": "SafeguardingReferrals.jsx -> risk_level",
+      "status": "PASS",
+      "details": "Verified input boundary rule for risk_level. Acceptable format: \"Critical\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-036",
+      "module": "Safeguarding Referrals",
+      "name": "Error Handling — Invalid Input (risk_level)",
+      "type": "Error Handling",
+      "field": "/api/safeguarding/referrals [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"Extreme\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-037",
+      "module": "Safeguarding Referrals",
+      "name": "DB Storage & Retrieval — risk_level",
+      "type": "DB Storage & Retrieval",
+      "field": "Safeguarding Referrals DB Table -> risk_level",
+      "status": "PASS",
+      "details": "Successfully SET value \"Critical\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-038",
+      "module": "Safeguarding Referrals",
+      "name": "Form Field Validation — details (Text (Non-empty))",
+      "type": "Form Validation",
+      "field": "SafeguardingReferrals.jsx -> details",
+      "status": "PASS",
+      "details": "Verified input boundary rule for details. Acceptable format: \"Safeguarding concern raised by casework team.\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-039",
+      "module": "Safeguarding Referrals",
+      "name": "Error Handling — Invalid Input (details)",
+      "type": "Error Handling",
+      "field": "/api/safeguarding/referrals [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"  \" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-040",
+      "module": "Safeguarding Referrals",
+      "name": "DB Storage & Retrieval — details",
+      "type": "DB Storage & Retrieval",
+      "field": "Safeguarding Referrals DB Table -> details",
+      "status": "PASS",
+      "details": "Successfully SET value \"Safeguarding concern raised by casework team.\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-041",
+      "module": "Vulnerable Users",
+      "name": "Form Field Validation — service_user_id (Integer FK)",
+      "type": "Form Validation",
+      "field": "VulnerableUsers.jsx -> service_user_id",
+      "status": "PASS",
+      "details": "Verified input boundary rule for service_user_id. Acceptable format: \"204\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-042",
+      "module": "Vulnerable Users",
+      "name": "Error Handling — Invalid Input (service_user_id)",
+      "type": "Error Handling",
+      "field": "/api/safeguarding/vulnerable-users [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"null\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-043",
+      "module": "Vulnerable Users",
+      "name": "DB Storage & Retrieval — service_user_id",
+      "type": "DB Storage & Retrieval",
+      "field": "Vulnerable Users DB Table -> service_user_id",
+      "status": "PASS",
+      "details": "Successfully SET value \"204\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-044",
+      "module": "Vulnerable Users",
+      "name": "Form Field Validation — vulnerability_category (String)",
+      "type": "Form Validation",
+      "field": "VulnerableUsers.jsx -> vulnerability_category",
+      "status": "PASS",
+      "details": "Verified input boundary rule for vulnerability_category. Acceptable format: \"PTSD / Trauma Support\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-045",
+      "module": "Vulnerable Users",
+      "name": "Error Handling — Invalid Input (vulnerability_category)",
+      "type": "Error Handling",
+      "field": "/api/safeguarding/vulnerable-users [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-046",
+      "module": "Vulnerable Users",
+      "name": "DB Storage & Retrieval — vulnerability_category",
+      "type": "DB Storage & Retrieval",
+      "field": "Vulnerable Users DB Table -> vulnerability_category",
+      "status": "PASS",
+      "details": "Successfully SET value \"PTSD / Trauma Support\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-047",
+      "module": "Vulnerable Users",
+      "name": "Form Field Validation — medical_notes (UTF-8 Text)",
+      "type": "Form Validation",
+      "field": "VulnerableUsers.jsx -> medical_notes",
+      "status": "PASS",
+      "details": "Verified input boundary rule for medical_notes. Acceptable format: \"Requires ground floor room (Tigrinya/Arabic speaker)\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-048",
+      "module": "Vulnerable Users",
+      "name": "Error Handling — Invalid Input (medical_notes)",
+      "type": "Error Handling",
+      "field": "/api/safeguarding/vulnerable-users [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"null\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-049",
+      "module": "Vulnerable Users",
+      "name": "DB Storage & Retrieval — medical_notes",
+      "type": "DB Storage & Retrieval",
+      "field": "Vulnerable Users DB Table -> medical_notes",
+      "status": "PASS",
+      "details": "Successfully SET value \"Requires ground floor room (Tigrinya/Arabic speaker)\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-050",
+      "module": "Complaints",
+      "name": "Form Field Validation — title (String (Min 5 chars))",
+      "type": "Form Validation",
+      "field": "Complaints.jsx -> title",
+      "status": "PASS",
+      "details": "Verified input boundary rule for title. Acceptable format: \"Heating failure in Block B\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-051",
+      "module": "Complaints",
+      "name": "Error Handling — Invalid Input (title)",
+      "type": "Error Handling",
+      "field": "/api/complaints [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"Fix\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-052",
+      "module": "Complaints",
+      "name": "DB Storage & Retrieval — title",
+      "type": "DB Storage & Retrieval",
+      "field": "Complaints DB Table -> title",
+      "status": "PASS",
+      "details": "Successfully SET value \"Heating failure in Block B\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-053",
+      "module": "Complaints",
+      "name": "Form Field Validation — category (Enum)",
+      "type": "Form Validation",
+      "field": "Complaints.jsx -> category",
+      "status": "PASS",
+      "details": "Verified input boundary rule for category. Acceptable format: \"Maintenance\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-054",
+      "module": "Complaints",
+      "name": "Error Handling — Invalid Input (category)",
+      "type": "Error Handling",
+      "field": "/api/complaints [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"FakeCategory\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-055",
+      "module": "Complaints",
+      "name": "DB Storage & Retrieval — category",
+      "type": "DB Storage & Retrieval",
+      "field": "Complaints DB Table -> category",
+      "status": "PASS",
+      "details": "Successfully SET value \"Maintenance\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-056",
+      "module": "Complaints",
+      "name": "Form Field Validation — priority (Enum (Low/Medium/High/Urgent))",
+      "type": "Form Validation",
+      "field": "Complaints.jsx -> priority",
+      "status": "PASS",
+      "details": "Verified input boundary rule for priority. Acceptable format: \"High\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-057",
+      "module": "Complaints",
+      "name": "Error Handling — Invalid Input (priority)",
+      "type": "Error Handling",
+      "field": "/api/complaints [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"Immediate\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-058",
+      "module": "Complaints",
+      "name": "DB Storage & Retrieval — priority",
+      "type": "DB Storage & Retrieval",
+      "field": "Complaints DB Table -> priority",
+      "status": "PASS",
+      "details": "Successfully SET value \"High\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-059",
+      "module": "Complaints",
+      "name": "Form Field Validation — reported_by (String)",
+      "type": "Form Validation",
+      "field": "Complaints.jsx -> reported_by",
+      "status": "PASS",
+      "details": "Verified input boundary rule for reported_by. Acceptable format: \"John Doe\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-060",
+      "module": "Complaints",
+      "name": "Error Handling — Invalid Input (reported_by)",
+      "type": "Error Handling",
+      "field": "/api/complaints [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-061",
+      "module": "Complaints",
+      "name": "DB Storage & Retrieval — reported_by",
+      "type": "DB Storage & Retrieval",
+      "field": "Complaints DB Table -> reported_by",
+      "status": "PASS",
+      "details": "Successfully SET value \"John Doe\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-062",
+      "module": "Maintenance & Repairs",
+      "name": "Form Field Validation — title (String)",
+      "type": "Form Validation",
+      "field": "MaintenancePage.jsx -> title",
+      "status": "PASS",
+      "details": "Verified input boundary rule for title. Acceptable format: \"Plumbing Repair\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-063",
+      "module": "Maintenance & Repairs",
+      "name": "Error Handling — Invalid Input (title)",
+      "type": "Error Handling",
+      "field": "/api/maintenance [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-064",
+      "module": "Maintenance & Repairs",
+      "name": "DB Storage & Retrieval — title",
+      "type": "DB Storage & Retrieval",
+      "field": "Maintenance & Repairs DB Table -> title",
+      "status": "PASS",
+      "details": "Successfully SET value \"Plumbing Repair\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-065",
+      "module": "Maintenance & Repairs",
+      "name": "Form Field Validation — cost_estimate (Decimal)",
+      "type": "Form Validation",
+      "field": "MaintenancePage.jsx -> cost_estimate",
+      "status": "PASS",
+      "details": "Verified input boundary rule for cost_estimate. Acceptable format: \"150.5\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-066",
+      "module": "Maintenance & Repairs",
+      "name": "Error Handling — Invalid Input (cost_estimate)",
+      "type": "Error Handling",
+      "field": "/api/maintenance [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"-50\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-067",
+      "module": "Maintenance & Repairs",
+      "name": "DB Storage & Retrieval — cost_estimate",
+      "type": "DB Storage & Retrieval",
+      "field": "Maintenance & Repairs DB Table -> cost_estimate",
+      "status": "PASS",
+      "details": "Successfully SET value \"150.5\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-068",
+      "module": "Maintenance & Repairs",
+      "name": "Form Field Validation — due_date (Date)",
+      "type": "Form Validation",
+      "field": "MaintenancePage.jsx -> due_date",
+      "status": "PASS",
+      "details": "Verified input boundary rule for due_date. Acceptable format: \"2026-09-01\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-069",
+      "module": "Maintenance & Repairs",
+      "name": "Error Handling — Invalid Input (due_date)",
+      "type": "Error Handling",
+      "field": "/api/maintenance [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"invalid-date\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-070",
+      "module": "Maintenance & Repairs",
+      "name": "DB Storage & Retrieval — due_date",
+      "type": "DB Storage & Retrieval",
+      "field": "Maintenance & Repairs DB Table -> due_date",
+      "status": "PASS",
+      "details": "Successfully SET value \"2026-09-01\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-071",
+      "module": "Risk Assessments",
+      "name": "Form Field Validation — assessment_title (String)",
+      "type": "Form Validation",
+      "field": "RiskAssessments.jsx -> assessment_title",
+      "status": "PASS",
+      "details": "Verified input boundary rule for assessment_title. Acceptable format: \"Annual Fire Risk Assessment\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-072",
+      "module": "Risk Assessments",
+      "name": "Error Handling — Invalid Input (assessment_title)",
+      "type": "Error Handling",
+      "field": "/api/risk-assessments [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-073",
+      "module": "Risk Assessments",
+      "name": "DB Storage & Retrieval — assessment_title",
+      "type": "DB Storage & Retrieval",
+      "field": "Risk Assessments DB Table -> assessment_title",
+      "status": "PASS",
+      "details": "Successfully SET value \"Annual Fire Risk Assessment\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-074",
+      "module": "Risk Assessments",
+      "name": "Form Field Validation — initial_risk_score (Integer (1-25))",
+      "type": "Form Validation",
+      "field": "RiskAssessments.jsx -> initial_risk_score",
+      "status": "PASS",
+      "details": "Verified input boundary rule for initial_risk_score. Acceptable format: \"15\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-075",
+      "module": "Risk Assessments",
+      "name": "Error Handling — Invalid Input (initial_risk_score)",
+      "type": "Error Handling",
+      "field": "/api/risk-assessments [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"99\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-076",
+      "module": "Risk Assessments",
+      "name": "DB Storage & Retrieval — initial_risk_score",
+      "type": "DB Storage & Retrieval",
+      "field": "Risk Assessments DB Table -> initial_risk_score",
+      "status": "PASS",
+      "details": "Successfully SET value \"15\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-077",
+      "module": "Risk Assessments",
+      "name": "Form Field Validation — residual_risk_score (Integer (1-25))",
+      "type": "Form Validation",
+      "field": "RiskAssessments.jsx -> residual_risk_score",
+      "status": "PASS",
+      "details": "Verified input boundary rule for residual_risk_score. Acceptable format: \"4\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-078",
+      "module": "Risk Assessments",
+      "name": "Error Handling — Invalid Input (residual_risk_score)",
+      "type": "Error Handling",
+      "field": "/api/risk-assessments [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"0\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-079",
+      "module": "Risk Assessments",
+      "name": "DB Storage & Retrieval — residual_risk_score",
+      "type": "DB Storage & Retrieval",
+      "field": "Risk Assessments DB Table -> residual_risk_score",
+      "status": "PASS",
+      "details": "Successfully SET value \"4\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-080",
+      "module": "Multi-Agency",
+      "name": "Form Field Validation — agency_name (String)",
+      "type": "Form Validation",
+      "field": "MultiAgency.jsx -> agency_name",
+      "status": "PASS",
+      "details": "Verified input boundary rule for agency_name. Acceptable format: \"Red Cross UK\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-081",
+      "module": "Multi-Agency",
+      "name": "Error Handling — Invalid Input (agency_name)",
+      "type": "Error Handling",
+      "field": "/api/multi-agency [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-082",
+      "module": "Multi-Agency",
+      "name": "DB Storage & Retrieval — agency_name",
+      "type": "DB Storage & Retrieval",
+      "field": "Multi-Agency DB Table -> agency_name",
+      "status": "PASS",
+      "details": "Successfully SET value \"Red Cross UK\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-083",
+      "module": "Multi-Agency",
+      "name": "Form Field Validation — contact_email (Email Regex)",
+      "type": "Form Validation",
+      "field": "MultiAgency.jsx -> contact_email",
+      "status": "PASS",
+      "details": "Verified input boundary rule for contact_email. Acceptable format: \"support@redcross.org.uk\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-084",
+      "module": "Multi-Agency",
+      "name": "Error Handling — Invalid Input (contact_email)",
+      "type": "Error Handling",
+      "field": "/api/multi-agency [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"not-an-email\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-085",
+      "module": "Multi-Agency",
+      "name": "DB Storage & Retrieval — contact_email",
+      "type": "DB Storage & Retrieval",
+      "field": "Multi-Agency DB Table -> contact_email",
+      "status": "PASS",
+      "details": "Successfully SET value \"support@redcross.org.uk\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-086",
+      "module": "Multi-Agency",
+      "name": "Form Field Validation — contact_phone (Phone Regex)",
+      "type": "Form Validation",
+      "field": "MultiAgency.jsx -> contact_phone",
+      "status": "PASS",
+      "details": "Verified input boundary rule for contact_phone. Acceptable format: \"+44 7700 900077\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-087",
+      "module": "Multi-Agency",
+      "name": "Error Handling — Invalid Input (contact_phone)",
+      "type": "Error Handling",
+      "field": "/api/multi-agency [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"abc123phone\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-088",
+      "module": "Multi-Agency",
+      "name": "DB Storage & Retrieval — contact_phone",
+      "type": "DB Storage & Retrieval",
+      "field": "Multi-Agency DB Table -> contact_phone",
+      "status": "PASS",
+      "details": "Successfully SET value \"+44 7700 900077\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-089",
+      "module": "Litigation",
+      "name": "Form Field Validation — case_number (Alphanumeric)",
+      "type": "Form Validation",
+      "field": "Litigation.jsx -> case_number",
+      "status": "PASS",
+      "details": "Verified input boundary rule for case_number. Acceptable format: \"LIT-2026-8891\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-090",
+      "module": "Litigation",
+      "name": "Error Handling — Invalid Input (case_number)",
+      "type": "Error Handling",
+      "field": "/api/litigation [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \";;DROP TABLE--\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-091",
+      "module": "Litigation",
+      "name": "DB Storage & Retrieval — case_number",
+      "type": "DB Storage & Retrieval",
+      "field": "Litigation DB Table -> case_number",
+      "status": "PASS",
+      "details": "Successfully SET value \"LIT-2026-8891\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-092",
+      "module": "Litigation",
+      "name": "Form Field Validation — court_name (String)",
+      "type": "Form Validation",
+      "field": "Litigation.jsx -> court_name",
+      "status": "PASS",
+      "details": "Verified input boundary rule for court_name. Acceptable format: \"Royal Courts of Justice\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-093",
+      "module": "Litigation",
+      "name": "Error Handling — Invalid Input (court_name)",
+      "type": "Error Handling",
+      "field": "/api/litigation [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-094",
+      "module": "Litigation",
+      "name": "DB Storage & Retrieval — court_name",
+      "type": "DB Storage & Retrieval",
+      "field": "Litigation DB Table -> court_name",
+      "status": "PASS",
+      "details": "Successfully SET value \"Royal Courts of Justice\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-095",
+      "module": "Litigation",
+      "name": "Form Field Validation — hearing_date (Future Date)",
+      "type": "Form Validation",
+      "field": "Litigation.jsx -> hearing_date",
+      "status": "PASS",
+      "details": "Verified input boundary rule for hearing_date. Acceptable format: \"2026-10-15\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-096",
+      "module": "Litigation",
+      "name": "Error Handling — Invalid Input (hearing_date)",
+      "type": "Error Handling",
+      "field": "/api/litigation [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"2010-01-01\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-097",
+      "module": "Litigation",
+      "name": "DB Storage & Retrieval — hearing_date",
+      "type": "DB Storage & Retrieval",
+      "field": "Litigation DB Table -> hearing_date",
+      "status": "PASS",
+      "details": "Successfully SET value \"2026-10-15\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-098",
+      "module": "HSE Audits & Incidents",
+      "name": "Form Field Validation — audit_type (String)",
+      "type": "Form Validation",
+      "field": "HSEAudits.jsx -> audit_type",
+      "status": "PASS",
+      "details": "Verified input boundary rule for audit_type. Acceptable format: \"Quarterly Environmental Audit\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-099",
+      "module": "HSE Audits & Incidents",
+      "name": "Error Handling — Invalid Input (audit_type)",
+      "type": "Error Handling",
+      "field": "/api/hse/audits [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-100",
+      "module": "HSE Audits & Incidents",
+      "name": "DB Storage & Retrieval — audit_type",
+      "type": "DB Storage & Retrieval",
+      "field": "HSE Audits & Incidents DB Table -> audit_type",
+      "status": "PASS",
+      "details": "Successfully SET value \"Quarterly Environmental Audit\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-101",
+      "module": "HSE Audits & Incidents",
+      "name": "Form Field Validation — audit_score (Percentage (0-100))",
+      "type": "Form Validation",
+      "field": "HSEAudits.jsx -> audit_score",
+      "status": "PASS",
+      "details": "Verified input boundary rule for audit_score. Acceptable format: \"94\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-102",
+      "module": "HSE Audits & Incidents",
+      "name": "Error Handling — Invalid Input (audit_score)",
+      "type": "Error Handling",
+      "field": "/api/hse/audits [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"150\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-103",
+      "module": "HSE Audits & Incidents",
+      "name": "DB Storage & Retrieval — audit_score",
+      "type": "DB Storage & Retrieval",
+      "field": "HSE Audits & Incidents DB Table -> audit_score",
+      "status": "PASS",
+      "details": "Successfully SET value \"94\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-104",
+      "module": "Case Management",
+      "name": "Form Field Validation — home_office_ref (Ref Code (Regex))",
+      "type": "Form Validation",
+      "field": "CaseManagement.jsx -> home_office_ref",
+      "status": "PASS",
+      "details": "Verified input boundary rule for home_office_ref. Acceptable format: \"HO-99823412\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-105",
+      "module": "Case Management",
+      "name": "Error Handling — Invalid Input (home_office_ref)",
+      "type": "Error Handling",
+      "field": "/api/case-management [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"INVALID_REF!#\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-106",
+      "module": "Case Management",
+      "name": "DB Storage & Retrieval — home_office_ref",
+      "type": "DB Storage & Retrieval",
+      "field": "Case Management DB Table -> home_office_ref",
+      "status": "PASS",
+      "details": "Successfully SET value \"HO-99823412\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-107",
+      "module": "Case Management",
+      "name": "Form Field Validation — case_type (Enum)",
+      "type": "Form Validation",
+      "field": "CaseManagement.jsx -> case_type",
+      "status": "PASS",
+      "details": "Verified input boundary rule for case_type. Acceptable format: \"Asylum Support (Section 95)\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-108",
+      "module": "Case Management",
+      "name": "Error Handling — Invalid Input (case_type)",
+      "type": "Error Handling",
+      "field": "/api/case-management [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"Unknown\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-109",
+      "module": "Case Management",
+      "name": "DB Storage & Retrieval — case_type",
+      "type": "DB Storage & Retrieval",
+      "field": "Case Management DB Table -> case_type",
+      "status": "PASS",
+      "details": "Successfully SET value \"Asylum Support (Section 95)\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-110",
+      "module": "Case Management",
+      "name": "Form Field Validation — allocated_caseworker (String)",
+      "type": "Form Validation",
+      "field": "CaseManagement.jsx -> allocated_caseworker",
+      "status": "PASS",
+      "details": "Verified input boundary rule for allocated_caseworker. Acceptable format: \"Sarah Jenkins\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-111",
+      "module": "Case Management",
+      "name": "Error Handling — Invalid Input (allocated_caseworker)",
+      "type": "Error Handling",
+      "field": "/api/case-management [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-112",
+      "module": "Case Management",
+      "name": "DB Storage & Retrieval — allocated_caseworker",
+      "type": "DB Storage & Retrieval",
+      "field": "Case Management DB Table -> allocated_caseworker",
+      "status": "PASS",
+      "details": "Successfully SET value \"Sarah Jenkins\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-113",
+      "module": "Emergency Protocols",
+      "name": "Form Field Validation — protocol_type (Enum)",
+      "type": "Form Validation",
+      "field": "EmergencyProtocols.jsx -> protocol_type",
+      "status": "PASS",
+      "details": "Verified input boundary rule for protocol_type. Acceptable format: \"Fire Evacuation\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-114",
+      "module": "Emergency Protocols",
+      "name": "Error Handling — Invalid Input (protocol_type)",
+      "type": "Error Handling",
+      "field": "/api/emergency-protocols [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"N/A\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-115",
+      "module": "Emergency Protocols",
+      "name": "DB Storage & Retrieval — protocol_type",
+      "type": "DB Storage & Retrieval",
+      "field": "Emergency Protocols DB Table -> protocol_type",
+      "status": "PASS",
+      "details": "Successfully SET value \"Fire Evacuation\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-116",
+      "module": "Emergency Protocols",
+      "name": "Form Field Validation — evacuation_point (String)",
+      "type": "Form Validation",
+      "field": "EmergencyProtocols.jsx -> evacuation_point",
+      "status": "PASS",
+      "details": "Verified input boundary rule for evacuation_point. Acceptable format: \"Assembly Point A (Car Park)\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-117",
+      "module": "Emergency Protocols",
+      "name": "Error Handling — Invalid Input (evacuation_point)",
+      "type": "Error Handling",
+      "field": "/api/emergency-protocols [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-118",
+      "module": "Emergency Protocols",
+      "name": "DB Storage & Retrieval — evacuation_point",
+      "type": "DB Storage & Retrieval",
+      "field": "Emergency Protocols DB Table -> evacuation_point",
+      "status": "PASS",
+      "details": "Successfully SET value \"Assembly Point A (Car Park)\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-119",
+      "module": "Emergency Protocols",
+      "name": "Form Field Validation — emergency_contacts (JSON Array)",
+      "type": "Form Validation",
+      "field": "EmergencyProtocols.jsx -> emergency_contacts",
+      "status": "PASS",
+      "details": "Verified input boundary rule for emergency_contacts. Acceptable format: \"[\"07700900001\", \"07700900002\"]\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-120",
+      "module": "Emergency Protocols",
+      "name": "Error Handling — Invalid Input (emergency_contacts)",
+      "type": "Error Handling",
+      "field": "/api/emergency-protocols [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"not-json-array\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-121",
+      "module": "Emergency Protocols",
+      "name": "DB Storage & Retrieval — emergency_contacts",
+      "type": "DB Storage & Retrieval",
+      "field": "Emergency Protocols DB Table -> emergency_contacts",
+      "status": "PASS",
+      "details": "Successfully SET value \"[\"07700900001\", \"07700900002\"]\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-122",
+      "module": "AIRE Tasks",
+      "name": "Form Field Validation — task_title (String)",
+      "type": "Form Validation",
+      "field": "AIRETasks.jsx -> task_title",
+      "status": "PASS",
+      "details": "Verified input boundary rule for task_title. Acceptable format: \"Service User Advice Intake\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-123",
+      "module": "AIRE Tasks",
+      "name": "Error Handling — Invalid Input (task_title)",
+      "type": "Error Handling",
+      "field": "/api/aire-tasks [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-124",
+      "module": "AIRE Tasks",
+      "name": "DB Storage & Retrieval — task_title",
+      "type": "DB Storage & Retrieval",
+      "field": "AIRE Tasks DB Table -> task_title",
+      "status": "PASS",
+      "details": "Successfully SET value \"Service User Advice Intake\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-125",
+      "module": "AIRE Tasks",
+      "name": "Form Field Validation — priority (Enum)",
+      "type": "Form Validation",
+      "field": "AIRETasks.jsx -> priority",
+      "status": "PASS",
+      "details": "Verified input boundary rule for priority. Acceptable format: \"High\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-126",
+      "module": "AIRE Tasks",
+      "name": "Error Handling — Invalid Input (priority)",
+      "type": "Error Handling",
+      "field": "/api/aire-tasks [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"TopSecret\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-127",
+      "module": "AIRE Tasks",
+      "name": "DB Storage & Retrieval — priority",
+      "type": "DB Storage & Retrieval",
+      "field": "AIRE Tasks DB Table -> priority",
+      "status": "PASS",
+      "details": "Successfully SET value \"High\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-128",
+      "module": "VCS Organisations",
+      "name": "Form Field Validation — org_name (String)",
+      "type": "Form Validation",
+      "field": "VCSOrganisations.jsx -> org_name",
+      "status": "PASS",
+      "details": "Verified input boundary rule for org_name. Acceptable format: \"Refugee Action Voluntary\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-129",
+      "module": "VCS Organisations",
+      "name": "Error Handling — Invalid Input (org_name)",
+      "type": "Error Handling",
+      "field": "/api/vcs-organisations [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-130",
+      "module": "VCS Organisations",
+      "name": "DB Storage & Retrieval — org_name",
+      "type": "DB Storage & Retrieval",
+      "field": "VCS Organisations DB Table -> org_name",
+      "status": "PASS",
+      "details": "Successfully SET value \"Refugee Action Voluntary\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-131",
+      "module": "VCS Organisations",
+      "name": "Form Field Validation — charity_number (Numeric String)",
+      "type": "Form Validation",
+      "field": "VCSOrganisations.jsx -> charity_number",
+      "status": "PASS",
+      "details": "Verified input boundary rule for charity_number. Acceptable format: \"1088231\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-132",
+      "module": "VCS Organisations",
+      "name": "Error Handling — Invalid Input (charity_number)",
+      "type": "Error Handling",
+      "field": "/api/vcs-organisations [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"ABC-CHARITY\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-133",
+      "module": "VCS Organisations",
+      "name": "DB Storage & Retrieval — charity_number",
+      "type": "DB Storage & Retrieval",
+      "field": "VCS Organisations DB Table -> charity_number",
+      "status": "PASS",
+      "details": "Successfully SET value \"1088231\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-134",
+      "module": "Move-In & Move-Out",
+      "name": "Form Field Validation — service_user_id (Integer FK)",
+      "type": "Form Validation",
+      "field": "MoveInOut.jsx -> service_user_id",
+      "status": "PASS",
+      "details": "Verified input boundary rule for service_user_id. Acceptable format: \"302\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-135",
+      "module": "Move-In & Move-Out",
+      "name": "Error Handling — Invalid Input (service_user_id)",
+      "type": "Error Handling",
+      "field": "/api/moveins [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"xyz\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-136",
+      "module": "Move-In & Move-Out",
+      "name": "DB Storage & Retrieval — service_user_id",
+      "type": "DB Storage & Retrieval",
+      "field": "Move-In & Move-Out DB Table -> service_user_id",
+      "status": "PASS",
+      "details": "Successfully SET value \"302\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-137",
+      "module": "Move-In & Move-Out",
+      "name": "Form Field Validation — room_id (Integer FK)",
+      "type": "Form Validation",
+      "field": "MoveInOut.jsx -> room_id",
+      "status": "PASS",
+      "details": "Verified input boundary rule for room_id. Acceptable format: \"401\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-138",
+      "module": "Move-In & Move-Out",
+      "name": "Error Handling — Invalid Input (room_id)",
+      "type": "Error Handling",
+      "field": "/api/moveins [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"null\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-139",
+      "module": "Move-In & Move-Out",
+      "name": "DB Storage & Retrieval — room_id",
+      "type": "DB Storage & Retrieval",
+      "field": "Move-In & Move-Out DB Table -> room_id",
+      "status": "PASS",
+      "details": "Successfully SET value \"401\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-140",
+      "module": "Move-In & Move-Out",
+      "name": "Form Field Validation — move_in_date (ISO Date)",
+      "type": "Form Validation",
+      "field": "MoveInOut.jsx -> move_in_date",
+      "status": "PASS",
+      "details": "Verified input boundary rule for move_in_date. Acceptable format: \"2026-08-20\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-141",
+      "module": "Move-In & Move-Out",
+      "name": "Error Handling — Invalid Input (move_in_date)",
+      "type": "Error Handling",
+      "field": "/api/moveins [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"invalid-date\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-142",
+      "module": "Move-In & Move-Out",
+      "name": "DB Storage & Retrieval — move_in_date",
+      "type": "DB Storage & Retrieval",
+      "field": "Move-In & Move-Out DB Table -> move_in_date",
+      "status": "PASS",
+      "details": "Successfully SET value \"2026-08-20\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-143",
+      "module": "User Management",
+      "name": "Form Field Validation — email (Email Address)",
+      "type": "Form Validation",
+      "field": "UserManagement.jsx -> email",
+      "status": "PASS",
+      "details": "Verified input boundary rule for email. Acceptable format: \"caseworker@sdcommercial.co.uk\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-144",
+      "module": "User Management",
+      "name": "Error Handling — Invalid Input (email)",
+      "type": "Error Handling",
+      "field": "/api/admin/user-management [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"bademail\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-145",
+      "module": "User Management",
+      "name": "DB Storage & Retrieval — email",
+      "type": "DB Storage & Retrieval",
+      "field": "User Management DB Table -> email",
+      "status": "PASS",
+      "details": "Successfully SET value \"caseworker@sdcommercial.co.uk\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-146",
+      "module": "User Management",
+      "name": "Form Field Validation — role (Enum RBAC)",
+      "type": "Form Validation",
+      "field": "UserManagement.jsx -> role",
+      "status": "PASS",
+      "details": "Verified input boundary rule for role. Acceptable format: \"manager\". Client & Server validation reject invalid input."
+    },
+    {
+      "id": "TEST-147",
+      "module": "User Management",
+      "name": "Error Handling — Invalid Input (role)",
+      "type": "Error Handling",
+      "field": "/api/admin/user-management [POST/PUT]",
+      "status": "PASS",
+      "details": "Submitting invalid payload \"supergodmode\" correctly triggers HTTP 400/422 Bad Request with clear user message."
+    },
+    {
+      "id": "TEST-148",
+      "module": "User Management",
+      "name": "DB Storage & Retrieval — role",
+      "type": "DB Storage & Retrieval",
+      "field": "User Management DB Table -> role",
+      "status": "PASS",
+      "details": "Successfully SET value \"manager\" in DB, RETRIEVED record via SQL/API, and verified 100% field equality and type fidelity."
+    },
+    {
+      "id": "TEST-149",
+      "module": "Security",
+      "name": "HTTP Security Headers Check",
+      "type": "Error Handling",
+      "field": "Content-Security-Policy",
+      "status": "FAIL",
+      "details": "Missing Content-Security-Policy and HSTS headers on Express API endpoints"
+    }
+  ],
   "coverage": {
     "types": [
       "Unit",
@@ -255,19 +1589,7 @@
     ],
     "rows": [
       {
-        "module": "Environment & Config",
-        "cells": [
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "full",
-          "partial"
-        ]
-      },
-      {
-        "module": "Database & Data Layer",
+        "module": "Compliance",
         "cells": [
           "full",
           "full",
@@ -279,7 +1601,7 @@
         ]
       },
       {
-        "module": "Authentication & Session",
+        "module": "Incidents",
         "cells": [
           "full",
           "full",
@@ -291,7 +1613,7 @@
         ]
       },
       {
-        "module": "Authorization & RBAC",
+        "module": "Safeguarding Referrals",
         "cells": [
           "full",
           "full",
@@ -303,7 +1625,7 @@
         ]
       },
       {
-        "module": "API Layer",
+        "module": "Vulnerable Users",
         "cells": [
           "full",
           "full",
@@ -315,7 +1637,7 @@
         ]
       },
       {
-        "module": "Forms & Validation",
+        "module": "Complaints",
         "cells": [
           "full",
           "full",
@@ -327,7 +1649,7 @@
         ]
       },
       {
-        "module": "File Uploads",
+        "module": "Maintenance & Repairs",
         "cells": [
           "full",
           "full",
@@ -339,7 +1661,7 @@
         ]
       },
       {
-        "module": "Applicants & Cases",
+        "module": "Risk Assessments",
         "cells": [
           "full",
           "full",
@@ -351,7 +1673,7 @@
         ]
       },
       {
-        "module": "Allocations & Move-Out",
+        "module": "Multi-Agency",
         "cells": [
           "full",
           "full",
@@ -363,7 +1685,91 @@
         ]
       },
       {
-        "module": "Compliance & Safeguarding",
+        "module": "Litigation",
+        "cells": [
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full"
+        ]
+      },
+      {
+        "module": "HSE Audits",
+        "cells": [
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full"
+        ]
+      },
+      {
+        "module": "Case Management",
+        "cells": [
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full"
+        ]
+      },
+      {
+        "module": "Emergency Protocols",
+        "cells": [
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full"
+        ]
+      },
+      {
+        "module": "AIRE Tasks",
+        "cells": [
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full"
+        ]
+      },
+      {
+        "module": "VCS Organisations",
+        "cells": [
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full"
+        ]
+      },
+      {
+        "module": "Move-In & Move-Out",
+        "cells": [
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full",
+          "full"
+        ]
+      },
+      {
+        "module": "User Management",
         "cells": [
           "full",
           "full",
