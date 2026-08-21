@@ -35,7 +35,13 @@ import {
 
     EyeOff,
 
-    Check
+    Check,
+
+    Plus,
+
+    CheckCircle,
+
+    Clock
 
 } from "lucide-react";
 
@@ -1124,7 +1130,7 @@ export default function VulnerableUsers({ user }) {
 
 
 
-        const openAttachmentsGallery = (items = []) => {
+    const openAttachmentsGallery = (items = []) => {
         if (!items.length) return;
         _openGallery(items, "Vulnerable Users Documents", "/api/vulnerable-users/attachments");
     };
@@ -1653,108 +1659,72 @@ export default function VulnerableUsers({ user }) {
 
             <div className="p-3 sm:p-4 md:p-6">
 
-                {/* Page Header */}
-
-                <div className="mb-6 flex items-start justify-between">
-
-                    <div>
-
-                        <Breadcrumbs items={[{ label: 'Safeguarding', path: '/admin/safeguarding-referrals' }, { label: 'Vulnerable Users', path: '/admin/vulnerable-users' }]} />
-
-                        <h1 className="text-3xl font-black text-slate-900 mt-1">Vulnerable Users Dashboard</h1>
-
-                    </div>
-
-                    {hasCreate && (
-
-                        <div className="flex items-center gap-3">
-
-                            <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
-
+                {/* Header Card */}
+                <div className="bg-white rounded-2xl shadow-2xs border border-slate-200 p-6 md:p-8 mb-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <Breadcrumbs items={[{ label: 'Safeguarding', path: '/admin/safeguarding-referrals' }, { label: 'Vulnerable Users', path: '/admin/vulnerable-users' }]} />
+                            <h1 className="text-3xl font-black text-slate-900 mt-1">Vulnerable Users Dashboard</h1>
+                            <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage all vulnerable user records and support cases</p>
                         </div>
-
-                    )}
-
+                        {hasCreate && (
+                            <div className="flex items-center gap-3">
+                                <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
+                                <button
+                                    onClick={() => handleOpenModal('create')}
+                                    className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-4 text-xs flex items-center gap-2 shadow-2xs transition-colors"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span>+ Add Record</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
 
 
                 {/* Stats Overview */}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-
-                    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all">
-
-                        <div className="bg-blue-100 text-blue-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
-
-                            <Users className="w-7 h-7" />
-
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-[#20b2aa] text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Users size={20} strokeWidth={2.5} />
                         </div>
-
                         <div className="flex-1 min-w-0">
-
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">New</div>
-
-                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.new}</div>
-
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">New</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.new}</div>
                         </div>
-
                     </div>
 
-                    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all">
-
-                        <div className="bg-orange-100 text-orange-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
-
-                            <Users className="w-7 h-7" />
-
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-amber-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Users size={20} strokeWidth={2.5} />
                         </div>
-
                         <div className="flex-1 min-w-0">
-
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Under Review</div>
-
-                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.underReview}</div>
-
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Under Review</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.underReview}</div>
                         </div>
-
                     </div>
 
-                    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all">
-
-                        <div className="bg-purple-100 text-purple-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
-
-                            <Users className="w-7 h-7" />
-
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-purple-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Users size={20} strokeWidth={2.5} />
                         </div>
-
                         <div className="flex-1 min-w-0">
-
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Escalated</div>
-
-                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.escalated}</div>
-
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Escalated</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.escalated}</div>
                         </div>
-
                     </div>
 
-                    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all">
-
-                        <div className="bg-green-100 text-green-600 h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0">
-
-                            <Users className="w-7 h-7" />
-
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-emerald-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Users size={20} strokeWidth={2.5} />
                         </div>
-
                         <div className="flex-1 min-w-0">
-
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Completed</div>
-
-                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.completed}</div>
-
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Completed</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.completed}</div>
                         </div>
-
                     </div>
-
                 </div>
 
 

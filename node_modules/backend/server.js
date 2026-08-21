@@ -97,6 +97,16 @@ if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGINS) {
 
 app.set("trust proxy", 1);
 
+// Security Headers Middleware (CSP, HSTS, X-Content-Type-Options, X-Frame-Options)
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https:;");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  next();
+});
+
 // File: C:\PostgreAuth\Backend\server.js
 
 // ... (imports remain the same)

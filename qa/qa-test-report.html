@@ -20,7 +20,7 @@
       <div>
         <div class="flex items-center gap-3">
           <span class="px-3.5 py-1 bg-blue-500/10 text-blue-400 text-xs font-extrabold rounded-full border border-blue-500/20 tracking-wider uppercase">Full E2E Audit & Validation Suite</span>
-          <span class="text-xs text-slate-400 font-medium">Run Date: 21/08/2026, 22:33:43</span>
+          <span class="text-xs text-slate-400 font-medium">Run Date: 21/08/2026, 22:36:47</span>
         </div>
         <h1 class="text-3xl font-extrabold tracking-tight text-white mt-2">Asylum Accommodation CRM — QA Test Report</h1>
         <p class="text-sm text-slate-400 mt-1">SD HR CRM — Asylum Accommodation System • Staging / Local Test (v7.3.0-dev) • Antigravity Automated QA Runner</p>
@@ -29,7 +29,7 @@
       <div class="flex items-center gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
         <div class="text-right">
           <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verification Rate</p>
-          <p class="text-2xl font-black text-emerald-400">98% PASS</p>
+          <p class="text-2xl font-black text-emerald-400">99% PASS</p>
         </div>
         <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-lg">
           ✓
@@ -46,12 +46,12 @@
       </div>
       <div class="card-glass p-6 rounded-2xl border-emerald-500/20">
         <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Passed Tests</p>
-        <p class="text-3xl font-black text-emerald-400 mt-2">146</p>
+        <p class="text-3xl font-black text-emerald-400 mt-2">147</p>
         <p class="text-xs text-emerald-400/80 mt-1 font-medium">100% Validated State</p>
       </div>
       <div class="card-glass p-6 rounded-2xl border-rose-500/20">
         <p class="text-xs font-bold text-rose-400 uppercase tracking-wider">Failed / Defects</p>
-        <p class="text-3xl font-black text-rose-400 mt-2">3</p>
+        <p class="text-3xl font-black text-rose-400 mt-2">2</p>
         <p class="text-xs text-rose-400/80 mt-1 font-medium">Logged in qa/defects.md</p>
       </div>
       <div class="card-glass p-6 rounded-2xl border-amber-500/20">
@@ -66,7 +66,7 @@
       <div class="flex items-center justify-between border-b border-rose-500/20 pb-4">
         <div>
           <h2 class="text-xl font-extrabold text-rose-400 flex items-center gap-2">
-            <span>🚨 FAILED TESTS & ERRORS FOUND (3)</span>
+            <span>🚨 FAILED TESTS & ERRORS FOUND (2)</span>
           </h2>
           <p class="text-xs text-slate-400 mt-1">Exact breakdown of tests that failed, target file/line locations, and failure details.</p>
         </div>
@@ -102,15 +102,6 @@
       <td class="p-3 font-mono text-rose-300 font-bold">Backend/.env:27 (AIKIDO_TOKEN)</td>
       <td class="p-3"><span class="px-2.5 py-1 text-xs font-black bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/40">FAIL</span></td>
       <td class="p-3 text-xs leading-relaxed text-rose-200">Aikido runtime token hardcoded in .env file at line 27</td>
-    </tr>
-  
-    <tr class="bg-rose-950/20 text-rose-200 border-b border-rose-500/20">
-      <td class="p-3 font-mono font-bold">TEST-149</td>
-      <td class="p-3 font-bold">Security</td>
-      <td class="p-3 font-bold text-white">HTTP Security Headers Check</td>
-      <td class="p-3 font-mono text-rose-300 font-bold">Backend/server.js:95-100 (Express Headers)</td>
-      <td class="p-3"><span class="px-2.5 py-1 text-xs font-black bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/40">FAIL</span></td>
-      <td class="p-3 text-xs leading-relaxed text-rose-200">Missing Content-Security-Policy and HSTS headers on Express API endpoints in Backend/server.js</td>
     </tr>
   
           </tbody>
@@ -1917,16 +1908,16 @@
         <td class="p-3 text-slate-300 text-xs leading-relaxed max-w-sm font-medium">Successfully SET value "manager" in PostgreSQL DB, RETRIEVED record via SQL query, and verified 100% field equality and type fidelity.</td>
       </tr>
     
-      <tr class="bg-rose-950/20 border-b border-rose-500/20">
+      <tr class="hover:bg-slate-800/40 border-b border-slate-800/60">
         <td class="p-3 font-mono font-bold text-slate-400">TEST-149</td>
         <td class="p-3 font-bold text-slate-200">Security</td>
         <td class="p-3">
           <p class="font-bold text-white">HTTP Security Headers Check</p>
-          <p class="text-[10px] text-slate-400 font-mono mt-0.5">Backend/server.js:95-100 (Express Headers)</p>
+          <p class="text-[10px] text-slate-400 font-mono mt-0.5">Backend/server.js:100 (Security Headers Middleware)</p>
         </td>
         <td class="p-3"><span class="px-2 py-0.5 text-[10px] font-bold rounded-md border bg-amber-500/10 text-amber-400 border-amber-500/30">Error Handling</span></td>
-        <td class="p-3"><span class="px-2.5 py-1 text-[10px] font-black bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/40">FAIL</span></td>
-        <td class="p-3 text-slate-300 text-xs leading-relaxed max-w-sm font-medium">Missing Content-Security-Policy and HSTS headers on Express API endpoints in Backend/server.js</td>
+        <td class="p-3"><span class="px-2.5 py-1 text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/30">PASS</span></td>
+        <td class="p-3 text-slate-300 text-xs leading-relaxed max-w-sm font-medium">Verified Content-Security-Policy, HSTS, X-Content-Type-Options & X-Frame-Options headers present on Express routes</td>
       </tr>
     
           </tbody>

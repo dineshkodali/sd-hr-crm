@@ -1412,7 +1412,7 @@ export default function Incidents({ user }) {
 
 
 
-        function openAttachmentsGallery(attachments) {
+    function openAttachmentsGallery(attachments) {
         let atts = attachments || [];
         try { if (typeof atts === 'string' && atts) atts = JSON.parse(atts); } catch { atts = []; }
         const list = Array.isArray(atts) ? atts.filter(Boolean) : [];
@@ -2032,81 +2032,46 @@ export default function Incidents({ user }) {
 
 
                 {/* Stats Overview */}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-4">
-
-                    <div className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-color)] flex items-center gap-4 transition-all duration-200">
-
-                        <div className="bg-blue-50 text-blue-600 h-14 w-14 rounded-xl flex items-center justify-center shrink-0">
-
-                            <ClipboardList size={28} />
-
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 mt-4">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-[#20b2aa] text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <ClipboardList size={20} strokeWidth={2.5} />
                         </div>
-
                         <div className="flex-1 min-w-0">
-
-                            <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-0.5">Total Incidents</div>
-
-                            <div className="text-2xl font-black text-[var(--text-primary)] leading-none">{stats.total}</div>
-
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Total Incidents</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{stats.total}</div>
                         </div>
-
                     </div>
 
-                    <div className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-color)] flex items-center gap-4 transition-all duration-200">
-
-                        <div className="bg-orange-50 text-orange-600 h-14 w-14 rounded-xl flex items-center justify-center shrink-0">
-
-                            <Clock size={28} />
-
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-amber-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Clock size={20} strokeWidth={2.5} />
                         </div>
-
                         <div className="flex-1 min-w-0">
-
-                            <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-0.5">Open</div>
-
-                            <div className="text-2xl font-black text-[var(--text-primary)] leading-none">{stats.open}</div>
-
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Open</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{stats.open}</div>
                         </div>
-
                     </div>
 
-                    <div className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-color)] flex items-center gap-4 transition-all duration-200">
-
-                        <div className="bg-purple-50 text-purple-600 h-14 w-14 rounded-xl flex items-center justify-center shrink-0">
-
-                            <Zap size={28} />
-
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-purple-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Zap size={20} strokeWidth={2.5} />
                         </div>
-
                         <div className="flex-1 min-w-0">
-
-                            <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-0.5">In Progress</div>
-
-                            <div className="text-2xl font-black text-[var(--text-primary)] leading-none">{stats.inProgress}</div>
-
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">In Progress</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{stats.inProgress}</div>
                         </div>
-
                     </div>
 
-                    <div className="bg-[var(--bg-surface)] rounded-xl p-5 border border-[var(--border-color)] flex items-center gap-4 transition-all duration-200">
-
-                        <div className="bg-emerald-50 text-emerald-600 h-14 w-14 rounded-xl flex items-center justify-center shrink-0">
-
-                            <CheckCircle size={28} />
-
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-emerald-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <CheckCircle size={20} strokeWidth={2.5} />
                         </div>
-
                         <div className="flex-1 min-w-0">
-
-                            <div className="text-[10px] font-bold text-[var(--text-secondary)]/60 uppercase tracking-widest mb-0.5">Resolved</div>
-
-                            <div className="text-2xl font-black text-[var(--text-primary)] leading-none">{stats.resolved}</div>
-
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Resolved</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{stats.resolved}</div>
                         </div>
-
                     </div>
-
                 </div>
 
 

@@ -10,7 +10,7 @@ import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 import Breadcrumbs from "../components/Breadcrumbs";
-import { Plus } from "lucide-react";
+import { Plus, LayoutGrid, Table, Grid, Eye, Edit, Trash2, MapPin, Calendar, User, ShieldAlert } from "lucide-react";
 
 const DELETE_STYLE_ID = 'service-users-list-delete-anim';
 if (typeof document !== 'undefined' && !document.getElementById(DELETE_STYLE_ID)) {
@@ -42,6 +42,20 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortMode, setSortMode] = useState('latest');
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('su_view_mode') || 'bento';
+    } catch {
+      return 'bento';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('su_view_mode', viewMode);
+    } catch { }
+  }, [viewMode]);
+
   const filtersRef = useRef(null);
   const apiRef = useRef(api);
 
@@ -1254,14 +1268,14 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
       </div>
 
       {/* SEARCH BAR WRAPPER */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8 px-4 py-3 flex items-center gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8 px-4 py-3 flex flex-wrap items-center gap-4">
         {/* LEFT LABEL */}
         <span className="text-lg font-semibold text-slate-900 whitespace-nowrap">
           User List
         </span>
 
         {/* SEARCH INPUT */}
-        <div className="flex-1 flex items-center border border-gray-200 bg-gray-50 rounded-xl px-3 py-2">
+        <div className="flex-1 min-w-[200px] flex items-center border border-gray-200 bg-gray-50 rounded-xl px-3 py-2">
           <svg
             className="text-gray-400 mr-2"
             width="18"
@@ -1284,6 +1298,46 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+
+        {/* VIEW MODE TOGGLE BUTTONS */}
+        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+          <button
+            type="button"
+            onClick={() => setViewMode('bento')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'bento'
+                ? 'bg-white text-emerald-700 shadow-sm font-bold border border-emerald-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+              }`}
+            title="Bento Grid View"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Bento</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'table'
+                ? 'bg-white text-emerald-700 shadow-sm font-bold border border-emerald-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+              }`}
+            title="Tabular Normal Table View"
+          >
+            <Table className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Tabular</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${viewMode === 'grid'
+                ? 'bg-white text-emerald-700 shadow-sm font-bold border border-emerald-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+              }`}
+            title="Standard Cards View"
+          >
+            <Grid className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Cards</span>
+          </button>
         </div>
 
         {/* FILTER BUTTON */}
@@ -1393,143 +1447,107 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {paginatedUsers.map((user, index) => {
-              let tags = [];
-              if (user.vulnerabilities) {
-                if (Array.isArray(user.vulnerabilities)) {
-                  tags = user.vulnerabilities;
-                } else if (typeof user.vulnerabilities === "string") {
-                  tags = user.vulnerabilities
-                    .split(",")
-                    .map((t) => t.trim())
-                    .filter((t) => t.length > 0);
+          {/* BENTO GRID VIEW */}
+          {viewMode === 'bento' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {paginatedUsers.map((user, index) => {
+                let tags = [];
+                if (user.vulnerabilities) {
+                  if (Array.isArray(user.vulnerabilities)) {
+                    tags = user.vulnerabilities;
+                  } else if (typeof user.vulnerabilities === "string") {
+                    tags = user.vulnerabilities.split(",").map((t) => t.trim()).filter((t) => t.length > 0);
+                  }
                 }
-              }
+                const isDeleting = deletingIds.has(user.id);
+                const isFeatured = index % 5 === 0;
 
-              const isDeleting = deletingIds.has(user.id);
-              return (
-                <div
-                  key={user.id || `${user.first_name}-${index}`}
-                  className={`bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-start gap-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 ${isDeleting ? 'service-user-card-deleting' : ''}`}
-                >
+                return (
                   <div
-                    className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl shrink-0 ${getAvatarColor(
-                      index
-                    )}`}
+                    key={user.id || `${user.first_name}-${index}`}
+                    className={`bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between ${isFeatured ? 'md:col-span-2 lg:col-span-1 border-emerald-200/60 bg-gradient-to-br from-white via-white to-emerald-50/20' : ''
+                      } ${isDeleting ? 'service-user-card-deleting' : ''}`}
                   >
-                    {getInitials(user.first_name, user.last_name)}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        {user.first_name} {user.last_name}
-                      </h3>
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${user.status === "Active"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : user.status === "Moved Out"
-                            ? "bg-purple-100 text-purple-700"
-                            : "bg-gray-100 text-gray-700"
-                          }`}
-                      >
-                        {user.status || "N/A"}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center gap-1.5">
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          className="text-gray-400 flex-shrink-0"
+                    <div>
+                      {/* Bento Header */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 shadow-xs ${getAvatarColor(
+                              index
+                            )}`}
+                          >
+                            {getInitials(user.first_name, user.last_name)}
+                          </div>
+                          <div>
+                            <h3 className="text-base font-bold text-slate-900 leading-tight">
+                              {user.first_name} {user.last_name}
+                            </h3>
+                            <p className="text-xs text-slate-400 font-mono mt-0.5">
+                              ID: #{user.id || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`text-[11px] font-extrabold px-2.5 py-1 rounded-full border ${user.status === "Active"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : user.status === "Moved Out"
+                                ? "bg-purple-50 text-purple-700 border-purple-200"
+                                : "bg-slate-50 text-slate-700 border-slate-200"
+                            }`}
                         >
-                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                          <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        <span className="truncate">
-                          {user.property ||
-                            user.hotel_name ||
-                            user.property_name ||
-                            "No Property"}
-                          {user.room_number && ` (Room ${user.room_number})`}
+                          {user.status || "N/A"}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-gray-600">
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          className="text-gray-400 flex-shrink-0"
-                        >
-                          <rect
-                            x="3"
-                            y="4"
-                            width="18"
-                            height="18"
-                            rx="2"
-                            ry="2"
-                          ></rect>
-                          <line x1="16" y1="2" x2="16" y2="6"></line>
-                          <line x1="8" y1="2" x2="8" y2="6"></line>
-                          <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        <span>Move-in: {formatDate(user.admission_date)}</span>
+
+                      {/* Bento Info Badges */}
+                      <div className="space-y-2 mb-4 bg-slate-50/60 p-3 rounded-xl border border-slate-100 text-xs">
+                        <div className="flex items-center justify-between text-slate-700">
+                          <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                            <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            Property / Room:
+                          </span>
+                          <span className="font-bold text-slate-900 truncate max-w-[150px]">
+                            {user.property || user.hotel_name || user.property_name || "Unassigned"}
+                            {user.room_number ? ` (Rm ${user.room_number})` : ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-700">
+                          <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            Move-In Date:
+                          </span>
+                          <span className="font-semibold text-slate-800">
+                            {formatDate(user.admission_date)}
+                          </span>
+                        </div>
                       </div>
+
+                      {/* Vulnerability Tags */}
+                      {tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {tags.map((tag, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/60"
+                            >
+                              <ShieldAlert className="w-3 h-3 text-amber-600 shrink-0" />
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {tags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
-                          >
-                            <svg
-                              width="10"
-                              height="10"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                            >
-                              <circle cx="12" cy="12" r="10"></circle>
-                              <line x1="12" y1="8" x2="12" y2="12"></line>
-                              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
+                    {/* Bento Action Buttons */}
+                    <div className="flex items-center gap-2 pt-3 border-t border-slate-100 mt-2">
                       <button
-                        onClick={() => user.id && navigate(`/su/users/${user.id}`)
-                        }
-                        className="btn-secondary btn-sm rounded-xl"
+                        onClick={() => user.id && navigate(`/su/users/${user.id}`)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-slate-200 rounded-xl transition-all"
                         title="View Profile"
                       >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                        View Profile
+                        <Eye className="w-3.5 h-3.5" />
+                        View
                       </button>
                       <button
                         onClick={(e) => {
@@ -1537,21 +1555,10 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
                           handleEditUser(user);
                         }}
                         disabled={!canUpdateSU}
-                        className="btn-secondary btn-sm rounded-xl"
+                        className="flex items-center justify-center p-2 text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all"
                         title="Edit User"
                       >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                        Edit
+                        <Edit className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={(e) => {
@@ -1559,28 +1566,339 @@ export default function ServiceUsersList({ user, openAddModal = false }) {
                           handleDeleteUser(user.id);
                         }}
                         disabled={!canDeleteSU}
-                        className="btn-secondary btn-sm hover:!text-red-600 hover:!bg-red-50 hover:!border-red-200 rounded-xl"
+                        className="flex items-center justify-center p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-xl transition-all"
                         title="Delete User"
                       >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                        Delete
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* TABULAR NORMAL TABLE VIEW */}
+          {viewMode === 'table' && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider">
+                    <tr>
+                      <th className="py-3.5 px-4">Resident</th>
+                      <th className="py-3.5 px-4">Property & Room</th>
+                      <th className="py-3.5 px-4">Status</th>
+                      <th className="py-3.5 px-4">Move-In Date</th>
+                      <th className="py-3.5 px-4">Vulnerabilities / Needs</th>
+                      <th className="py-3.5 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
+                    {paginatedUsers.map((user, index) => {
+                      let tags = [];
+                      if (user.vulnerabilities) {
+                        if (Array.isArray(user.vulnerabilities)) {
+                          tags = user.vulnerabilities;
+                        } else if (typeof user.vulnerabilities === "string") {
+                          tags = user.vulnerabilities.split(",").map((t) => t.trim()).filter((t) => t.length > 0);
+                        }
+                      }
+                      const isDeleting = deletingIds.has(user.id);
+
+                      return (
+                        <tr
+                          key={user.id || `${user.first_name}-${index}`}
+                          className={`hover:bg-slate-50/80 transition-colors ${isDeleting ? 'service-user-card-deleting' : ''}`}
+                        >
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 shadow-xs ${getAvatarColor(
+                                  index
+                                )}`}
+                              >
+                                {getInitials(user.first_name, user.last_name)}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-900 text-sm">
+                                  {user.first_name} {user.last_name}
+                                </p>
+                                <p className="text-[10px] text-slate-400 font-mono">
+                                  ID #{user.id || 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <p className="font-semibold text-slate-900">
+                              {user.property || user.hotel_name || user.property_name || "Unassigned"}
+                            </p>
+                            <p className="text-slate-500 text-[11px]">
+                              {user.room_number ? `Room ${user.room_number}` : 'No room assigned'}
+                            </p>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`inline-flex items-center text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${user.status === "Active"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : user.status === "Moved Out"
+                                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                                    : "bg-slate-50 text-slate-700 border-slate-200"
+                                }`}
+                            >
+                              {user.status || "N/A"}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 font-medium text-slate-700">
+                            {formatDate(user.admission_date)}
+                          </td>
+                          <td className="py-3.5 px-4 max-w-xs">
+                            {tags.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {tags.map((tag, i) => (
+                                  <span
+                                    key={i}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/50"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-xs italic">None logged</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => user.id && navigate(`/su/users/${user.id}`)}
+                                className="px-2.5 py-1 text-xs font-bold text-slate-700 hover:text-emerald-700 bg-slate-100 hover:bg-emerald-50 border border-slate-200 rounded-lg transition-all"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditUser(user);
+                                }}
+                                disabled={!canUpdateSU}
+                                className="p-1.5 text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-all"
+                                title="Edit"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteUser(user.id);
+                                }}
+                                disabled={!canDeleteSU}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 rounded-lg transition-all"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* STANDARD CARDS VIEW */}
+          {viewMode === 'grid' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {paginatedUsers.map((user, index) => {
+                let tags = [];
+                if (user.vulnerabilities) {
+                  if (Array.isArray(user.vulnerabilities)) {
+                    tags = user.vulnerabilities;
+                  } else if (typeof user.vulnerabilities === "string") {
+                    tags = user.vulnerabilities
+                      .split(",")
+                      .map((t) => t.trim())
+                      .filter((t) => t.length > 0);
+                  }
+                }
+
+                const isDeleting = deletingIds.has(user.id);
+                return (
+                  <div
+                    key={user.id || `${user.first_name}-${index}`}
+                    className={`bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-start gap-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 ${isDeleting ? 'service-user-card-deleting' : ''}`}
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl shrink-0 ${getAvatarColor(
+                        index
+                      )}`}
+                    >
+                      {getInitials(user.first_name, user.last_name)}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-lg font-semibold text-slate-900">
+                          {user.first_name} {user.last_name}
+                        </h3>
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${user.status === "Active"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : user.status === "Moved Out"
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-gray-100 text-gray-700"
+                            }`}
+                        >
+                          {user.status || "N/A"}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-3">
+                        <div className="flex items-center gap-1.5">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="text-gray-400 flex-shrink-0"
+                          >
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                          </svg>
+                          <span className="truncate">
+                            {user.property ||
+                              user.hotel_name ||
+                              user.property_name ||
+                              "No Property"}
+                            {user.room_number && ` (Room ${user.room_number})`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-gray-600">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="text-gray-400 flex-shrink-0"
+                          >
+                            <rect
+                              x="3"
+                              y="4"
+                              width="18"
+                              height="18"
+                              rx="2"
+                              ry="2"
+                            ></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                          </svg>
+                          <span>Move-in: {formatDate(user.admission_date)}</span>
+                        </div>
+                      </div>
+
+                      {tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {tags.map((tag, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
+                            >
+                              <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                              </svg>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => user.id && navigate(`/su/users/${user.id}`)}
+                          className="btn-secondary btn-sm rounded-xl"
+                          title="View Profile"
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                          View Profile
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditUser(user);
+                          }}
+                          disabled={!canUpdateSU}
+                          className="btn-secondary btn-sm rounded-xl"
+                          title="Edit User"
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteUser(user.id);
+                          }}
+                          disabled={!canDeleteSU}
+                          className="btn-secondary btn-sm hover:!text-red-600 hover:!bg-red-50 hover:!border-red-200 rounded-xl"
+                          title="Delete User"
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Pagination Controls */}
           {filteredUsers.length > itemsPerPage && (
@@ -2116,13 +2434,13 @@ function StatCard({ color, icon, title, value }) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-5 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-gray-200">
+    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
       <div
-        className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${color}`}
+        className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${color}`}
       >
         <svg
-          width="24"
-          height="24"
+          width="20"
+          height="20"
           viewBox="0 0 24 24"
           fill="none"
           stroke="white"
@@ -2134,10 +2452,10 @@ function StatCard({ color, icon, title, value }) {
         </svg>
       </div>
       <div>
-        <div className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">
+        <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mb-1">
           {title}
         </div>
-        <div className="text-3xl font-bold text-slate-800 leading-none">
+        <div className="text-2xl font-black text-slate-900 leading-none">
           {value}
         </div>
       </div>

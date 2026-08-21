@@ -17,7 +17,10 @@ import {
     Trash2,
     Eye,
     EyeOff,
-    Check
+    Check,
+    Plus,
+    CheckCircle,
+    Clock
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -812,61 +815,71 @@ export default function RiskAssessments({ user }) {
         new: stats['New'],
         underReview: stats['Under Review'],
         escalated: stats['Escalated'],
-        completed: stats['Completed'],
+completed: stats['Completed'],
     }), [assessments, stats]);
 
     return (
         <div className="min-h-screen bg-[var(--bg-primary)] font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
-                {/* Page Header */}
-                <div className="mb-6 flex items-start justify-between">
-                    <div>
-                        <Breadcrumbs items={[{ label: 'Safeguarding', path: '/admin/safeguarding-referrals' }, { label: 'Risk Assessments', path: '/admin/risk-assessments' }]} />
-                        <h1 className="text-3xl font-black text-slate-900 mt-1">Risk Assessments Dashboard</h1>
-                    </div>
-                    {hasCreate && (
-                        <div className="flex items-center gap-3">
-                            <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
+                {/* Header Card */}
+                <div className="bg-white rounded-2xl shadow-2xs border border-slate-200 p-6 md:p-8 mb-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <Breadcrumbs items={[{ label: 'Safeguarding', path: '/admin/safeguarding-referrals' }, { label: 'Risk Assessments', path: '/admin/risk-assessments' }]} />
+                            <h1 className="text-3xl font-black text-slate-900 mt-1">Risk Assessments Dashboard</h1>
+                            <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage all risk assessment records</p>
                         </div>
-                    )}
+                        {hasCreate && (
+                            <div className="flex items-center gap-3">
+                                <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
+                                <button
+                                    onClick={() => handleOpenModal('create')}
+                                    className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-4 text-xs flex items-center gap-2 shadow-2xs transition-colors"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span>+ Add Risk Assessment</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all">
-                        <div className="bg-blue-50 text-blue-500 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0">
-                            <Shield size={24} strokeWidth={2} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-[#20b2aa] text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Shield size={20} strokeWidth={2.5} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">New</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.new}</div>
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">New</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.new}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all">
-                        <div className="bg-orange-50 text-orange-500 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0">
-                            <Shield size={24} strokeWidth={2} />
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-amber-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Shield size={20} strokeWidth={2.5} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Under Review</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.underReview}</div>
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Under Review</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.underReview}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all">
-                        <div className="bg-purple-50 text-purple-500 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0">
-                            <Shield size={24} strokeWidth={2} />
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-purple-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Shield size={20} strokeWidth={2.5} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Escalated</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.escalated}</div>
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Escalated</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.escalated}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all">
-                        <div className="bg-emerald-50 text-emerald-500 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0">
-                            <Shield size={24} strokeWidth={2} />
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-emerald-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Shield size={20} strokeWidth={2.5} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Completed</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{statsData.completed}</div>
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Completed</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.completed}</div>
                         </div>
                     </div>
                 </div>

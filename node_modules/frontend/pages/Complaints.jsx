@@ -187,7 +187,7 @@ export default function Complaints({ user }) {
         }
     };
 
-        const openAttachmentsGallery = (items = []) => {
+    const openAttachmentsGallery = (items = []) => {
         if (!items.length) return;
         _openGallery(items, "Complaint Documents", "/api/complaints/attachments");
     };
@@ -1044,41 +1044,41 @@ export default function Complaints({ user }) {
                 )}
 
                 {/* Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-blue-50 text-blue-500 h-12 w-12 rounded-xl-[14px] flex items-center justify-center shrink-0">
-                            <ClipboardList size={24} strokeWidth={2} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-[#20b2aa] text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <ClipboardList size={20} strokeWidth={2.5} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Complaints</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{stats.total}</div>
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Total Complaints</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{stats.total}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-rose-50 text-rose-500 h-12 w-12 rounded-xl-[14px] flex items-center justify-center shrink-0">
-                            <AlertCircle size={24} strokeWidth={2} />
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-rose-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <AlertCircle size={20} strokeWidth={2.5} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">High Priority</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{stats.high}</div>
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">High Priority</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{stats.high}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-orange-50 text-orange-500 h-12 w-12 rounded-xl-[14px] flex items-center justify-center shrink-0">
-                            <Clock size={24} strokeWidth={2} />
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-amber-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Clock size={20} strokeWidth={2.5} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Open Complaints</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{stats.open}</div>
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Open Complaints</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{stats.open}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm flex items-center gap-4 transition-all duration-200">
-                        <div className="bg-emerald-50 text-emerald-500 h-12 w-12 rounded-xl-[14px] flex items-center justify-center shrink-0">
-                            <CheckCircle size={24} strokeWidth={2} />
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-emerald-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <CheckCircle size={20} strokeWidth={2.5} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Resolved</div>
-                            <div className="text-2xl font-black text-slate-800 leading-none">{stats.resolved}</div>
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Resolved</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{stats.resolved}</div>
                         </div>
                     </div>
                 </div>

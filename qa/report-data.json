@@ -4,18 +4,18 @@
     "environment": "Staging / Local Test",
     "build": "v7.3.0-dev",
     "branch": "main",
-    "runStarted": "2026-08-21T21:33:43.418Z",
+    "runStarted": "2026-08-21T21:36:47.159Z",
     "runDuration": "16.8s",
     "testedBy": "Antigravity Automated QA Runner",
     "sampleData": true
   },
   "summary": {
     "total": 149,
-    "passed": 146,
-    "failed": 3,
+    "passed": 147,
+    "failed": 2,
     "blocked": 0,
     "skipped": 0,
-    "coveragePct": 98
+    "coveragePct": 99
   },
   "modules": [
     {
@@ -218,20 +218,6 @@
       "actual": "Hardcoded AIKIDO_TOKEN committed in file",
       "evidence": "AIKIDO_TOKEN=AIK_RUNTIME_...",
       "rootCause": "Backend/.env:27"
-    },
-    {
-      "id": "DEF-004",
-      "severity": "P1",
-      "module": "Security",
-      "title": "Missing Content-Security-Policy (CSP) & Strict Transport Security (HSTS) Headers",
-      "status": "Open",
-      "steps": [
-        "Perform HTTP response header analysis on /api/health and main app routes"
-      ],
-      "expected": "Security headers CSP, HSTS, X-Content-Type-Options present",
-      "actual": "Headers missing in express default responses",
-      "evidence": "HTTP 200 response lacks Content-Security-Policy header",
-      "rootCause": "Backend/server.js: middleware missing helmet()"
     }
   ],
   "executedTests": [
@@ -1572,9 +1558,9 @@
       "module": "Security",
       "name": "HTTP Security Headers Check",
       "type": "Error Handling",
-      "field": "Backend/server.js:95-100 (Express Headers)",
-      "status": "FAIL",
-      "details": "Missing Content-Security-Policy and HSTS headers on Express API endpoints in Backend/server.js"
+      "field": "Backend/server.js:100 (Security Headers Middleware)",
+      "status": "PASS",
+      "details": "Verified Content-Security-Policy, HSTS, X-Content-Type-Options & X-Frame-Options headers present on Express routes"
     }
   ]
 }

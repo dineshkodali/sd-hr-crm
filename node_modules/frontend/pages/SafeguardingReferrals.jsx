@@ -5,7 +5,8 @@ import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 import {
     Home, AlertCircle, Search, ChevronDown, Filter,
-    Columns, Download, X, Edit, Trash2, Eye, EyeOff, Check
+    Columns, Download, X, Edit, Trash2, Eye, EyeOff, Check,
+    Plus, CheckCircle, Clock
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -357,7 +358,7 @@ export default function SafeguardingReferrals({ user }) {
 
     const handleCloseModal = () => { setShowModal(false); setModalMode('create'); setSelectedReferral(null); setError(null); setSelectedPhotos([]); setExistingAttachments([]); };
 
-        const openAttachmentsGallery = (items = []) => {
+    const openAttachmentsGallery = (items = []) => {
         if (!items.length) return;
         _openGallery(items, "Safeguarding Documents", "/api/safeguarding/attachments");
     };
@@ -531,190 +532,182 @@ export default function SafeguardingReferrals({ user }) {
     return (
         <div className="min-h-screen bg-[var(--bg-primary)]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
             <div className="p-3 sm:p-4 md:p-6">
-
-                {/* Page Header */}
-                <div className="mb-6 flex items-start justify-between">
-                    <div>
-                        <Breadcrumbs items={[{ label: 'Safeguarding', path: '/admin/safeguarding-referrals' }, { label: 'Referrals' }]} />
-                        <h1 className="text-3xl font-black text-slate-900 mt-1">Safeguarding Referrals Dashboard</h1>
-                    </div>
-                    {hasCreate && (
-                        <div className="flex items-center gap-3">
-                            <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
+                {/* Header Card */}
+                <div className="bg-white rounded-2xl shadow-2xs border border-slate-200 p-6 md:p-8 mb-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <Breadcrumbs items={[{ label: 'Safeguarding', path: '/admin/safeguarding-referrals' }, { label: 'Referrals' }]} />
+                            <h1 className="text-3xl font-black text-slate-900 mt-1">Safeguarding Referrals Dashboard</h1>
+                            <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage all safeguarding referral records</p>
                         </div>
-                    )}
+                        {hasCreate && (
+                            <div className="flex items-center gap-3">
+                                <DownloadDropdown onDownloadPDF={() => openExport('pdf')} onDownloadCSV={() => openExport('csv')} />
+                                <button
+                                    onClick={() => handleOpenModal('create')}
+                                    className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-4 text-xs flex items-center gap-2 shadow-2xs transition-colors"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span>+ Add Referral</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-                    {[
-                        { label: 'New', value: statsData.new, bg: 'bg-blue-50', text: 'text-blue-500' },
-                        { label: 'Under Review', value: statsData.underReview, bg: 'bg-orange-50', text: 'text-orange-500' },
-                        { label: 'Escalated', value: statsData.escalated, bg: 'bg-purple-50', text: 'text-purple-500' },
-                        { label: 'Resolved', value: statsData.resolved, bg: 'bg-emerald-50', text: 'text-emerald-500' },
-                    ].map(({ label, value, bg, text }) => (
-                        <div key={label} className="bg-white rounded-xl p-5 border border-gray-100 flex items-center gap-4 shadow-sm transition-all duration-200">
-                            <div className={`${bg} ${text} h-14 w-14 rounded-xl flex items-center justify-center flex-shrink-0`}>
-                                <AlertCircle className="w-7 h-7" />
-                            </div>
-                            <div>
-                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</div>
-                                <div className="text-2xl font-black text-slate-800 leading-none">{value}</div>
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-[#20b2aa] text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <AlertCircle size={20} strokeWidth={2.5} />
                         </div>
-                    ))}
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">New</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.new}</div>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-amber-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <Clock size={20} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Under Review</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.underReview}</div>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-purple-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <AlertCircle size={20} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Escalated</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.escalated}</div>
+                        </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-4 transition-all duration-200 hover:shadow-xs hover:-translate-y-0.5">
+                        <div className="bg-emerald-500 text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs">
+                            <CheckCircle size={20} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Resolved</div>
+                            <div className="text-2xl font-black text-slate-900 leading-none">{statsData.resolved}</div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Main Table Card */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-200">
-
+                <div className="bg-white rounded-2xl shadow-2xs border border-slate-200 overflow-hidden transition-all duration-200">
                     {/* Toolbar */}
-                    <div className="px-5 pt-4 pb-3 border-b border-gray-100">
-                        <div className="flex items-center justify-between mb-3">
-                            <div>
-                                <h2 className="text-base font-semibold text-gray-900">All Referrals</h2>
-                                <p className="text-xs text-gray-400 mt-0.5">{statsData.total} total records</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {/* Search */}
-                                <div className="relative">
-                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <input
-                                        type="text" value={query} onChange={e => setQuery(e.target.value)}
-                                        placeholder="Search..."
-                                        className="border border-gray-200 rounded-lg w-52 py-[7px] !pl-14 pr-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent bg-white"
-                                    />
+                    <div className="p-6 pb-2">
+                        <div className="mb-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                                <div>
+                                    <h2 className="text-xl font-extrabold text-slate-900">All Records</h2>
+                                    <p className="text-xs font-semibold text-slate-400 mt-0.5">{statsData.total} total records</p>
                                 </div>
+                                <div className="flex flex-wrap items-center gap-3 justify-start sm:justify-end">
+                                    {/* Search */}
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                                        <input
+                                            type="text" value={query} onChange={e => setQuery(e.target.value)}
+                                            placeholder="Search records..."
+                                            className="h-9 bg-white border border-slate-200 rounded-xl pl-9 pr-4 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-900 placeholder-slate-400 w-full sm:w-64 shadow-2xs"
+                                        />
+                                    </div>
 
-                                {/* View Dropdown */}
-                                <div className="relative" ref={viewRef}>
-                                    <button onClick={() => setShowViewMenu(!showViewMenu)} className="border border-gray-200 text-gray-600 rounded-lg px-3 py-[7px] text-sm font-medium transition-colors flex items-center gap-1.5 bg-white">
-                                        <Eye className="w-4 h-4" />
-                                        <span>{viewMode === 'table' ? 'Table' : 'Board'}</span>
-                                        <ChevronDown className="w-3.5 h-3.5" />
-                                    </button>
-                                    {showViewMenu && (
-                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
-                                            <div className="p-4">
-                                                <h3 className="text-sm font-semibold text-gray-900 mb-3">View settings</h3>
-                                                <div className="mb-3 pb-3 border-b border-gray-200">
-                                                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Display Mode</div>
+                                    {/* View Dropdown */}
+                                    <div className="relative" ref={viewRef}>
+                                        <button onClick={() => setShowViewMenu(!showViewMenu)} className="h-9 bg-white border border-slate-200 text-slate-700 rounded-xl px-3 text-xs font-bold flex items-center gap-1.5 shadow-2xs hover:bg-slate-50 transition-all">
+                                            <Eye className="w-4 h-4 text-slate-400" />
+                                            <span>{viewMode === 'table' ? 'Table' : 'Board'}</span>
+                                            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                                        </button>
+                                        {showViewMenu && (
+                                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-lg border border-slate-200 z-50 p-4">
+                                                <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-3">View settings</h3>
+                                                <div className="mb-3 pb-3 border-b border-slate-100">
+                                                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Display Mode</div>
                                                     <div className="flex gap-2">
-                                                        <button onClick={() => setViewMode('table')} className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors ${viewMode === 'table' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                                                        <button onClick={() => setViewMode('table')} className={`flex-1 px-3 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors ${viewMode === 'table' ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
                                                             <Columns className="w-4 h-4" /><span>Table</span>
                                                         </button>
-                                                        <button onClick={() => setViewMode('board')} className={`flex-1 px-3 py-2 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-colors ${viewMode === 'board' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                                                        <button onClick={() => setViewMode('board')} className={`flex-1 px-3 py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors ${viewMode === 'board' ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
                                                             <AlertCircle className="w-4 h-4" /><span>Board</span>
                                                         </button>
                                                     </div>
                                                 </div>
                                                 {viewMode === 'table' && (
                                                     <>
-                                                        <button onClick={() => setShowPropertyVisibility(!showPropertyVisibility)} className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 rounded-xl transition-colors">
+                                                        <button onClick={() => setShowPropertyVisibility(!showPropertyVisibility)} className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-slate-700 rounded-xl transition-colors hover:bg-slate-50">
                                                             <span>Column visibility</span>
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-xs text-gray-400">{Object.values(visibleColumns).filter(Boolean).length} shown</span>
-                                                                <ChevronDown className={`w-4 h-4 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
+                                                                <span className="text-[11px] text-slate-400">{Object.values(visibleColumns).filter(Boolean).length} shown</span>
+                                                                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showPropertyVisibility ? 'rotate-180' : ''}`} />
                                                             </div>
                                                         </button>
                                                         {showPropertyVisibility && (
-                                                            <div className="mt-2 border-t border-gray-100 pt-3 max-h-96 overflow-y-auto space-y-4">
-                                                                <div>
-                                                                    <div className="flex items-center justify-between mb-2">
-                                                                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Default Columns</span>
-                                                                        <div className="flex gap-2 text-xs">
-                                                                            <button onClick={() => { const u = {}; DEFAULT_COLUMNS.forEach(c => u[c] = true); setVisibleColumns(prev => ({ ...prev, ...u })); }} className="text-teal-600 font-medium">Show all</button>
-                                                                            <span className="text-gray-300">|</span>
-                                                                            <button onClick={() => { const u = {}; DEFAULT_COLUMNS.forEach(c => u[c] = false); setVisibleColumns(prev => ({ ...prev, ...u })); }} className="text-teal-600 font-medium">Hide all</button>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="space-y-1">
-                                                                        {DEFAULT_COLUMNS.map(col => (
-                                                                            <button key={col} onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })} className={`w-full flex items-center justify-between px-3 py-1.5 text-sm rounded-lg transition-colors border ${visibleColumns[col] ? 'text-gray-700 border-gray-200 bg-white' : 'text-gray-400 border-gray-100 bg-gray-50'}`}>
-                                                                                <span className="capitalize">{col}</span>
-                                                                                {visibleColumns[col] ? <Eye className="w-3.5 h-3.5 text-teal-600" /> : <EyeOff className="w-3.5 h-3.5 text-gray-400" />}
-                                                                            </button>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                                {customColumns.length > 0 && (
-                                                                    <div className="border-t border-gray-100 pt-3">
-                                                                        <div className="flex items-center justify-between mb-2">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Custom Columns</span>
-                                                                                <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-medium">{customColumns.length}</span>
-                                                                            </div>
-                                                                            <div className="flex gap-2 text-xs">
-                                                                                <button onClick={() => { const u = {}; customColumns.forEach(c => u[c] = true); setVisibleColumns(prev => ({ ...prev, ...u })); }} className="text-teal-600 font-medium">Show all</button>
-                                                                                <span className="text-gray-300">|</span>
-                                                                                <button onClick={() => { const u = {}; customColumns.forEach(c => u[c] = false); setVisibleColumns(prev => ({ ...prev, ...u })); }} className="text-teal-600 font-medium">Hide all</button>
-                                                                            </div>
-                                                                        </div>
-                                                                        <p className="text-xs text-gray-400 mb-2">From Forms Builder <span className="text-blue-500">(refreshes every 5s)</span></p>
-                                                                        <div className="space-y-1">
-                                                                            {customColumns.map(col => (
-                                                                                <button key={col} onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })} className={`w-full flex items-center justify-between px-3 py-1.5 text-sm rounded-lg transition-colors border ${visibleColumns[col] ? 'text-gray-700 border-gray-200 bg-white' : 'text-gray-400 border-gray-100 bg-gray-50'}`}>
-                                                                                    <span className="capitalize">{col.replace(/_/g, ' ')}</span>
-                                                                                    {visibleColumns[col] ? <Eye className="w-3.5 h-3.5 text-teal-600" /> : <EyeOff className="w-3.5 h-3.5 text-gray-400" />}
-                                                                                </button>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
+                                                            <div className="mt-2 border-t border-slate-100 pt-3 max-h-64 overflow-y-auto space-y-1">
+                                                                {DEFAULT_COLUMNS.map(col => (
+                                                                    <button key={col} onClick={() => setVisibleColumns({ ...visibleColumns, [col]: !visibleColumns[col] })} className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl transition-colors border ${visibleColumns[col] ? 'text-slate-900 font-bold border-slate-200 bg-white' : 'text-slate-400 border-slate-100 bg-slate-50'}`}>
+                                                                        <span className="capitalize">{col}</span>
+                                                                        {visibleColumns[col] ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
+                                                                    </button>
+                                                                ))}
                                                             </div>
                                                         )}
                                                     </>
                                                 )}
                                             </div>
-                                        </div>
+                                        )}
+                                    </div>
+
+                                    {hasCreate && (
+                                        <button onClick={() => handleOpenModal('create')} className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-4 text-xs flex items-center gap-2 shadow-2xs transition-colors">
+                                            <Plus className="w-4 h-4" /><span>+ New Record</span>
+                                        </button>
                                     )}
                                 </div>
-
-                                {hasCreate && (
-                                    <button onClick={() => handleOpenModal('create')} className="bg-teal-500 text-white font-semibold rounded-lg py-[7px] px-4 text-sm flex items-center gap-1.5 transition-colors shadow-sm">
-                                        <span className="text-base leading-none">+</span><span>Add Task</span>
-                                    </button>
-                                )}
                             </div>
                         </div>
 
                         {/* Filter Row */}
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2.5 flex-wrap py-3 border-t border-slate-100">
                             <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="h-10 border border-gray-200 rounded-lg !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
+                                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                                <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="h-9 bg-white border border-slate-200 rounded-xl pl-9 pr-8 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer shadow-2xs">
                                     <option value="">All Priorities</option>
                                     <option>Urgent</option><option>High</option><option>Medium</option><option>Low</option>
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                             </div>
                             <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-10 border border-gray-200 rounded-lg !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
+                                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-9 bg-white border border-slate-200 rounded-xl pl-9 pr-8 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer shadow-2xs">
                                     <option value="">All Statuses</option>
                                     <option>New</option><option>Under Review</option><option>Escalated</option><option>Resolved</option>
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                             </div>
                             <div className="relative">
-                                <Home className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                <select value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)} className="h-10 border border-gray-200 rounded-lg !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
+                                <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                                <select value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)} className="h-9 bg-white border border-slate-200 rounded-xl pl-9 pr-8 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer shadow-2xs">
                                     <option value="">All Properties</option>
                                     {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                             </div>
                             <div className="relative">
-                                <Columns className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-10 border border-gray-200 rounded-lg !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer bg-white">
+                                <Columns className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-9 bg-white border border-slate-200 rounded-xl pl-9 pr-8 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 appearance-none cursor-pointer shadow-2xs">
                                     <option value="">Sort By</option>
                                     <option value="date">Date (Newest)</option><option value="priority">Priority</option>
                                     <option value="status">Status</option><option value="title">Title</option>
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                             </div>
                             {(filterPriority || filterStatus || propertyFilter || sortBy) && (
-                                <button onClick={() => { setFilterPriority(""); setFilterStatus(""); setPropertyFilter(""); setSortBy(""); }} className="h-10 text-sm text-teal-600 font-semibold px-3 py-0 rounded-lg transition-colors">
+                                <button onClick={() => { setFilterPriority(""); setFilterStatus(""); setPropertyFilter(""); setSortBy(""); }} className="h-9 text-xs text-emerald-600 font-bold px-3 hover:bg-emerald-50 rounded-xl transition-colors">
                                     Clear Filters
                                 </button>
                             )}
