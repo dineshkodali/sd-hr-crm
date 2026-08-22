@@ -1,43 +1,64 @@
-# === Git / Version control ===
+# ============================================
+# Docker Build Context Exclusions
+# ============================================
+
+# Version Control
 .git
 .gitignore
+.github
 
-# === Dependencies (will be installed inside the container) ===
+# Dependencies (Installed cleanly during docker build)
 node_modules
 **/node_modules
-frontend/node_modules
 Backend/node_modules
+frontend/node_modules
 
-# === Build artifacts ===
+# Build & Dist Artifacts
 frontend/dist
+dist/
+coverage/
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# === Dev / IDE files ===
+# Development & IDE Files
 .vscode
 .idea
+.gemini/
+.agents/
+.brain/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
 
-# === Docker files (don't copy into context recursively) ===
-docker-compose*.yml
-Dockerfile
-.dockerignore
+# Test & QA Assets
+qa/
+tests/
+*.test.js
+*.spec.js
 
-# === Documentation ===
+# Documentation
 docs/
 *.md
 !README.md
 LICENSE
 
-# === Environment files ===
+# Docker Configuration Files (Avoid self-inclusion)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Environment Files (Do not leak local secrets into image context)
 .env
 .env.*
 !.env.example
 
-# === Misc ===
-.gemini/
+# Local Uploads & Temp Data
+Backend/uploads/*
+!Backend/uploads/.gitkeep
 uploads/
-cors_debug.log
+tmp/
+temp/
+

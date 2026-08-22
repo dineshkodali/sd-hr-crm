@@ -1,0 +1,43 @@
+name: sd-hr-crm-dev
+
+services:
+  backend-dev:
+    build:
+      context: ../..
+      dockerfile: Backend/Dockerfile
+    container_name: crm-backend-dev
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+    env_file:
+      - ../../Backend/.env
+    ports:
+      - "4000:4000"
+    volumes:
+      - ../../Backend:/app
+      - /app/node_modules
+    networks:
+      - crm-dev-network
+
+  frontend-dev:
+    build:
+      context: ../..
+      dockerfile: frontend/Dockerfile
+    container_name: crm-frontend-dev
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      VITE_API_URL: http://localhost:4000/api
+    ports:
+      - "3002:5173"
+    volumes:
+      - ../../frontend:/build
+      - /build/node_modules
+    depends_on:
+      - backend-dev
+    networks:
+      - crm-dev-network
+
+networks:
+  crm-dev-network:
+    driver: bridge
