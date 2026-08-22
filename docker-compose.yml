@@ -43,7 +43,20 @@ services:
     container_name: crm-backend
     restart: unless-stopped
     env_file:
-      - Backend/.env
+      - path: .env
+        required: false
+      - path: Backend/.env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-4000}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://sdcommercial:Dinesh%408008%23@postgres:5432/new_CRM}
+      PGHOST: ${PGHOST:-postgres}
+      PGPORT: ${PGPORT:-5432}
+      PGDATABASE: ${PGDATABASE:-new_CRM}
+      PGUSER: ${PGUSER:-sdcommercial}
+      PGPASSWORD: ${PGPASSWORD:-Dinesh@8008#}
+      JWT_SECRET: ${JWT_SECRET:-8ada8990-4c3a-4a54-af8b-7fcf236c0738-sd-hr-crm-dev-secret}
     ports:
       - "4000:4000"
     volumes:

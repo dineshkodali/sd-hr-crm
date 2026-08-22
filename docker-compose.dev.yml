@@ -7,11 +7,21 @@ services:
       dockerfile: Backend/Dockerfile
     container_name: crm-backend-dev
     command: npm run dev
+    env_file:
+      - path: .env
+        required: false
+      - path: Backend/.env
+        required: false
     environment:
       NODE_ENV: development
-      PORT: 4000
-    env_file:
-      - Backend/.env
+      PORT: ${PORT:-4000}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://sdcommercial:Dinesh%408008%23@18.130.77.174:5432/new_CRM}
+      PGHOST: ${PGHOST:-18.130.77.174}
+      PGPORT: ${PGPORT:-5432}
+      PGDATABASE: ${PGDATABASE:-new_CRM}
+      PGUSER: ${PGUSER:-sdcommercial}
+      PGPASSWORD: ${PGPASSWORD:-Dinesh@8008#}
+      JWT_SECRET: ${JWT_SECRET:-8ada8990-4c3a-4a54-af8b-7fcf236c0738-sd-hr-crm-dev-secret}
     ports:
       - "4000:4000"
     volumes:
