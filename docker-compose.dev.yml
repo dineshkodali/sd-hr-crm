@@ -3,7 +3,7 @@ name: sd-hr-crm-dev
 services:
   backend-dev:
     build:
-      context: ../..
+      context: .
       dockerfile: Backend/Dockerfile
     container_name: crm-backend-dev
     command: npm run dev
@@ -11,18 +11,18 @@ services:
       NODE_ENV: development
       PORT: 4000
     env_file:
-      - ../../Backend/.env
+      - Backend/.env
     ports:
       - "4000:4000"
     volumes:
-      - ../../Backend:/app
+      - ./Backend:/app
       - /app/node_modules
     networks:
       - crm-dev-network
 
   frontend-dev:
     build:
-      context: ../..
+      context: .
       dockerfile: frontend/Dockerfile
     container_name: crm-frontend-dev
     command: npm run dev -- --host 0.0.0.0
@@ -31,7 +31,7 @@ services:
     ports:
       - "3002:5173"
     volumes:
-      - ../../frontend:/build
+      - ./frontend:/build
       - /build/node_modules
     depends_on:
       - backend-dev

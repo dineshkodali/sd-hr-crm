@@ -18,6 +18,8 @@ For detailed step-by-step breakdowns of all workflows, actors, actions, and syst
 sd-hr-crm/
 ├── .dockerignore            # Optimized build context exclusions
 ├── .env.example             # Unified environment variable template
+├── docker-compose.yml       # Production multi-container compose configuration
+├── docker-compose.dev.yml   # Development compose configuration with HMR
 ├── package.json             # Root npm workspace definitions & lifecycle scripts
 ├── README.md                # Project documentation & quickstart guide
 │

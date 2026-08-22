@@ -13,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../../database/database-init-docker.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./database/database-init-docker.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     networks:
       - crm-network
     deploy:
@@ -38,12 +38,12 @@ services:
 
   backend:
     build:
-      context: ../..
+      context: .
       dockerfile: Backend/Dockerfile
     container_name: crm-backend
     restart: unless-stopped
     env_file:
-      - ../../Backend/.env
+      - Backend/.env
     ports:
       - "4000:4000"
     volumes:
@@ -76,7 +76,7 @@ services:
 
   frontend:
     build:
-      context: ../..
+      context: .
       dockerfile: frontend/Dockerfile
     container_name: crm-frontend
     restart: unless-stopped
