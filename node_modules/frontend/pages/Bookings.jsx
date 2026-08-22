@@ -25,6 +25,7 @@ import {
   Trash2
 } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField, TabPills } from '../components/TableToolbar';
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
@@ -185,6 +186,7 @@ export default function Bookings({ user }) {
   const [viewMode, setViewMode] = useState('table');
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [showColumnVisibility, setShowColumnVisibility] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const viewRef = useRef(null);
   const [visibleColumns, setVisibleColumns] = useState(
     ALL_COLUMNS.reduce((a, c) => ({ ...a, [c]: true }), {})
@@ -1042,16 +1044,17 @@ export default function Bookings({ user }) {
         {/* Main Table Card */}
         <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-color)] p-6 transition-all duration-200">
 
-          {/* Tabs */}
-          <div className="mb-6 flex items-center gap-3 border-b border-[var(--border-color)]">
-            {[
+          {/* Tabs - Filled Pills (primary color) */}
+          <TabPills
+            className="mb-6"
+            tabs={[
               { key: 'all', label: 'All Bookings' }, { key: 'checked-in', label: 'Checked In' },
               { key: 'arriving', label: 'Arriving Today' }, { key: 'late', label: 'Late Checkout' },
               { key: 'pending', label: 'Pending' },
-            ].map(({ key, label }) => (
-              <button key={key} onClick={() => setActiveTab(key)} className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === key ? 'border-teal-500 text-teal-600' : 'border-transparent text-[var(--text-secondary)]'}`}>{label}</button>
-            ))}
-          </div>
+            ]}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+          />
 
           {/* Table Toolbar */}
           <div className="mb-6">
@@ -1070,6 +1073,12 @@ export default function Bookings({ user }) {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60" />
                   <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search bookings…" className="form-input !pl-10 !w-72 rounded-xl bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-primary)]" />
                 </div>
+
+                {/* Filters Toggle */}
+                <FiltersButton
+                  activeCount={[filterStatus, filterProperty, sortBy].filter(Boolean).length}
+                  onClick={() => setShowFilters(true)}
+                />
 
                 {/* View Dropdown */}
                 <div className="relative" ref={viewRef}>
@@ -1124,39 +1133,6 @@ export default function Bookings({ user }) {
                 <button onClick={() => setShowModal(true)} className="btn-primary rounded-xl"><Upload className="w-4 h-4" /><span>New Booking</span></button>
               </div>
             </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none z-10" />
-                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="appearance-none h-10 py-0 !pl-10 !pr-10 w-44 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] hover:bg-[var(--bg-primary)] transition-all cursor-pointer shadow-sm leading-none text-left">
-                  <option value="">All Status</option>
-                  <option value="Checked In">Checked In</option>
-                  <option value="Checked Out">Checked Out</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Late Checkout">Late Checkout</option>
-                </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none z-10" />
-              </div>
-              <div className="relative">
-                <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none z-10" />
-                <select value={filterProperty} onChange={e => setFilterProperty(e.target.value)} className="appearance-none h-10 py-0 !pl-10 !pr-10 w-48 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] hover:bg-[var(--bg-primary)] transition-all cursor-pointer shadow-sm leading-none text-left">
-                  <option value="">All Properties</option>
-                  {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none z-10" />
-              </div>
-              <div className="relative">
-                <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="appearance-none h-10 py-0 !pl-4 !pr-10 w-40 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm font-semibold outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] hover:bg-[var(--bg-primary)] transition-all cursor-pointer shadow-sm leading-none text-left">
-                  <option value="">Sort by…</option>
-                  <option value="date">Check-in Date</option>
-                  <option value="name">Name</option>
-                  <option value="room">Room</option>
-                  <option value="status">Status</option>
-                </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none z-10" />
-              </div>
-            </div>
           </div>
 
           {/* ── Table View ── */}
@@ -1196,7 +1172,7 @@ export default function Bookings({ user }) {
                       const isPending = (booking.status ?? '').toLowerCase().includes('pending');
                       const isDeleting = deletingIds.has(booking.id);
                       return (
-                        <tr key={booking.id} className={`transition-colors ${isDeleting ? 'booking-deleting' : ''}`}>
+                        <tr key={booking.id} className={`transition-colors ${isDeleting ? 'booking-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
                           {visibleColumns.checkbox && <td className="py-3 px-4"><input type="checkbox" className="rounded border-[var(--border-color)] bg-[var(--bg-surface)]" /></td>}
                           {visibleColumns.name && <td className="py-3 px-4"><div className="font-medium text-[var(--text-primary)]">{booking.full_name}</div></td>}
                           {visibleColumns.order_no && <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">{booking.order_no}</td>}
@@ -1474,6 +1450,34 @@ export default function Bookings({ user }) {
         </div>,
         document.body
       )}
+
+      {/* Filters Drawer */}
+      <FiltersDrawer
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        onClear={() => { setFilterStatus(''); setFilterProperty(''); setSortBy(''); }}
+      >
+        <FilterField label="Status" icon={Filter} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <option value="">All Status</option>
+          <option value="Checked In">Checked In</option>
+          <option value="Checked Out">Checked Out</option>
+          <option value="Pending">Pending</option>
+          <option value="Late Checkout">Late Checkout</option>
+        </FilterField>
+
+        <FilterField label="Property" icon={Building} value={filterProperty} onChange={e => setFilterProperty(e.target.value)}>
+          <option value="">All Properties</option>
+          {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </FilterField>
+
+        <FilterField label="Sort By" icon={Columns} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="">Sort by…</option>
+          <option value="date">Check-in Date</option>
+          <option value="name">Name</option>
+          <option value="room">Room</option>
+          <option value="status">Status</option>
+        </FilterField>
+      </FiltersDrawer>
 
       <ConfirmDialog isOpen={confirmDialog.isOpen} onClose={() => setConfirmDialog(p => ({ ...p, isOpen: false }))} onConfirm={confirmDialog.onConfirm} title={confirmDialog.title} message={confirmDialog.message} type={confirmDialog.type} confirmText={confirmDialog.confirmText || 'Confirm'} />
       <AlertDialog isOpen={alertDialog.isOpen} onClose={() => setAlertDialog(p => ({ ...p, isOpen: false }))} title={alertDialog.title} message={alertDialog.message} type={alertDialog.type} />

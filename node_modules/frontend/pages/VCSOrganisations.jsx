@@ -4,6 +4,7 @@ import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryMo
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 import { generatePDF } from '../utils/pdfGenerator';
 import { generateCSV } from '../utils/csvGenerator';
 import { DownloadDropdown } from '../components/DownloadDropdown';
@@ -160,6 +161,7 @@ const VCSOrganisations = () => {
     // Column Visibility State
     const [showViewMenu, setShowViewMenu] = useState(false);
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState('table');
     const viewRef = useRef(null);
 
@@ -980,6 +982,12 @@ const VCSOrganisations = () => {
                                     />
                                 </div>
 
+                                {/* Filters Toggle */}
+                                <FiltersButton
+                                    activeCount={[filterPriority !== 'All Priority', filterStatus !== 'All Status', !!propertyFilter, !!sortBy].filter(Boolean).length}
+                                    onClick={() => setShowFilters(true)}
+                                />
+
                                 {/* View Dropdown */}
                                 <div className="relative" ref={viewRef}>
                                     <button
@@ -1176,80 +1184,6 @@ const VCSOrganisations = () => {
                             </div>
                         </div>
 
-                        {/* Filter Row */}
-                        <div className="flex items-center gap-4 py-4 border-t border-gray-100 flex-wrap">
-                            <div className="relative">
-                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={filterPriority}
-                                    onChange={(e) => setFilterPriority(e.target.value)}
-                                    className="form-select !pl-12 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
-                                >
-                                    <option>All Priority</option>
-                                    <option value="urgent">Urgent</option>
-                                    <option value="high">High</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="low">Low</option>
-                                </select>
-                            </div>
-
-                            <div className="relative">
-                                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="form-select !pl-12 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
-                                >
-                                    <option>All Status</option>
-                                    <option value="new">New</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="resolved">Resolved</option>
-                                </select>
-                            </div>
-
-                            <div className="relative">
-                                <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={propertyFilter}
-                                    onChange={(e) => setPropertyFilter(e.target.value)}
-                                    className="form-select !pl-12 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
-                                >
-                                    <option value="">All Properties</option>
-                                    {properties.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                                </select>
-                            </div>
-
-                            <div className="relative">
-                                <Columns className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="form-select !pl-12 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
-                                >
-                                    <option value="">Sort By</option>
-                                    <option value="date">Date (Newest)</option>
-                                    <option value="priority">Priority</option>
-                                    <option value="status">Status</option>
-                                    <option value="name">Name</option>
-                                </select>
-                            </div>
-
-                            {(filterPriority !== 'All Priority' || filterStatus !== 'All Status' || propertyFilter || sortBy) && (
-                                <button
-                                    onClick={() => {
-                                        setFilterPriority('All Priority');
-                                        setFilterStatus('All Status');
-                                        setPropertyFilter('');
-                                        setSortBy('');
-                                    }}
-                                    className="btn-secondary rounded-xl h-10 py-0 text-sm font-semibold"
-                                >
-                                    <X className="w-4 h-4" />
-                                    <span>Clear</span>
-                                </button>
-                            )}
-                        </div>
                     </div>
 
                     {/* Data Display - Table View */}
@@ -1309,7 +1243,7 @@ const VCSOrganisations = () => {
                                         const isDeleting = deletingIds.has(organisation.id);
 
                                         return (
-                                            <tr key={organisation.id} className={`transition-colors ${isDeleting ? 'vcs-org-deleting' : ''}`}>
+                                            <tr key={organisation.id} className={`transition-colors ${isDeleting ? 'vcs-org-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
                                                 {visibleColumns.checkbox && (
                                                     <td className="py-5 px-6">
                                                         <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -2067,6 +2001,47 @@ const VCSOrganisations = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Filters Drawer */}
+                <FiltersDrawer
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    onClear={() => {
+                        setFilterPriority('All Priority');
+                        setFilterStatus('All Status');
+                        setPropertyFilter('');
+                        setSortBy('');
+                    }}
+                >
+                    <FilterField label="Priority" icon={Filter} value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)}>
+                        <option>All Priority</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </FilterField>
+
+                    <FilterField label="Status" icon={Filter} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                        <option>All Status</option>
+                        <option value="new">New</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="resolved">Resolved</option>
+                    </FilterField>
+
+                    <FilterField label="Property" icon={Home} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                        <option value="">All Properties</option>
+                        {properties.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    </FilterField>
+
+                    <FilterField label="Sort By" icon={Columns} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                        <option value="">Sort By</option>
+                        <option value="date">Date (Newest)</option>
+                        <option value="priority">Priority</option>
+                        <option value="status">Status</option>
+                        <option value="name">Name</option>
+                    </FilterField>
+                </FiltersDrawer>
 
                 {/* Confirmation Dialog */}
                 <ConfirmDialog

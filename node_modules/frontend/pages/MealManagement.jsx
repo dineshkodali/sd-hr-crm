@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
-import { Eye, EyeOff, ChevronDown, Filter, Columns, X, Home } from "lucide-react";
+import { Eye, EyeOff, ChevronDown, Filter, Columns, X, Home, Check, Loader2 } from "lucide-react";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField, TabPills } from '../components/TableToolbar';
 import { usePermissions } from "../hooks/usePermissions";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -75,6 +76,8 @@ export default function MealManagement({ user }) {
     });
     // Track rows currently being deleted for animation
     const [deletingIds, setDeletingIds] = useState(new Set());
+    // Track rows currently toggling consumed status (loading state on the button)
+    const [markingIds, setMarkingIds] = useState(new Set());
     const [loading, setLoading] = useState(false);
     const [showScheduleModal, setShowScheduleModal] = useState(false);
     const [editingMeal, setEditingMeal] = useState(null);
@@ -119,6 +122,7 @@ export default function MealManagement({ user }) {
     // View Menu State
     const [showViewMenu, setShowViewMenu] = useState(false);
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const viewRef = useRef(null);
 
     // Define all available columns
@@ -565,7 +569,7 @@ export default function MealManagement({ user }) {
         }
     };
 
-    async function markConsumed(id) {
+    async function setMealStatus(id, status) {
         if (!canUpdatePage) {
             setAlertDialog({
                 isOpen: true,
@@ -575,42 +579,37 @@ export default function MealManagement({ user }) {
             });
             return;
         }
+        const prevMeals = meals;
+        setMarkingIds((prev) => new Set(prev).add(id));
         setMeals((prev) =>
-            prev.map((m) =>
-                String(m.id) === String(id) ? { ...m, status: "Consumed" } : m
-            )
+            prev.map((m) => (String(m.id) === String(id) ? { ...m, status } : m))
         );
         try {
-            await api
-                .patch(`/api/meals/${encodeURIComponent(id)}`, { status: "Consumed" })
-                .catch(() => null);
-        } catch {
-            /* swallow */
+            await api.patch(`/api/meals/${encodeURIComponent(id)}`, { status });
+        } catch (err) {
+            console.warn("Failed to update meal status", err?.message || err);
+            setMeals(prevMeals);
+            setAlertDialog({
+                isOpen: true,
+                title: 'Error',
+                message: 'Failed to update meal status. Please try again.',
+                type: 'error'
+            });
+        } finally {
+            setMarkingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
         }
     }
 
+    async function markConsumed(id) {
+        return setMealStatus(id, "Consumed");
+    }
+
     async function markNotConsumed(id) {
-        if (!canUpdatePage) {
-            setAlertDialog({
-                isOpen: true,
-                title: 'Permission Denied',
-                message: 'You do not have permission to update meals.',
-                type: 'warning'
-            });
-            return;
-        }
-        setMeals((prev) =>
-            prev.map((m) =>
-                String(m.id) === String(id) ? { ...m, status: "Pending" } : m
-            )
-        );
-        try {
-            await api
-                .patch(`/api/meals/${encodeURIComponent(id)}`, { status: "Pending" })
-                .catch(() => null);
-        } catch {
-            /* swallow */
-        }
+        return setMealStatus(id, "Pending");
     }
 
     async function createMeal(payload) {
@@ -1062,6 +1061,12 @@ export default function MealManagement({ user }) {
                                 <p className="text-sm text-[var(--text-secondary)]">{filteredMeals().length} total records</p>
                             </div>
                             <div className="flex items-center gap-3">
+                                {/* Filters Toggle */}
+                                <FiltersButton
+                                    activeCount={[filterMealType !== 'All Meals' ? filterMealType : '', filterStatus !== 'All Status' ? filterStatus : '', selectedProperty, sortBy].filter(Boolean).length}
+                                    onClick={() => setShowFilters(true)}
+                                />
+
                                 {/* View Menu */}
                                 <div className="relative" ref={viewRef}>
                                     <button
@@ -1167,129 +1172,29 @@ export default function MealManagement({ user }) {
                             </div>
                         </div>
 
-                        {/* Filter Row */}
+                        {/* Date Filter */}
                         <div className="flex items-center gap-3 flex-wrap">
-                            <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                <select
-                                    value={filterMealType}
-                                    onChange={e => setFilterMealType(e.target.value)}
-                                    className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-                                >
-                                    <option>All Meals</option>
-                                    <option value="breakfast">Breakfast</option>
-                                    <option value="lunch">Lunch</option>
-                                    <option value="dinner">Dinner</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                <select
-                                    value={filterStatus}
-                                    onChange={e => setFilterStatus(e.target.value)}
-                                    className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-                                >
-                                    <option>All Status</option>
-                                    <option value="pending">Not Consumed</option>
-                                    <option value="consumed">Consumed</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Home className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                <select
-                                    value={selectedProperty}
-                                    onChange={e => setSelectedProperty(e.target.value)}
-                                    className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-                                >
-                                    <option value="">All Properties</option>
-                                    {properties.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                <select
-                                    value={sortBy}
-                                    onChange={e => setSortBy(e.target.value)}
-                                    className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-                                >
-                                    <option value="">Sort By</option>
-                                    <option value="date">Date (Newest)</option>
-                                    <option value="mealType">Meal Type</option>
-                                    <option value="status">Status</option>
-                                    <option value="serviceUser">Service User</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                            </div>
-
                             <input
                                 type="date"
                                 className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
                             />
-
-                            {(filterMealType !== 'All Meals' || filterStatus !== 'All Status' || selectedProperty || sortBy) && (
-                                <button
-                                    onClick={() => {
-                                        setFilterMealType('All Meals');
-                                        setFilterStatus('All Status');
-                                        setSelectedProperty('');
-                                        setSortBy('');
-                                    }}
-                                    className="bg-gray-100 text-gray-700 rounded-xl px-4 py-2 text-sm font-medium transition-all flex items-center gap-2"
-                                >
-                                    <X className="w-4 h-4" />
-                                    <span>Clear</span>
-                                </button>
-                            )}
                         </div>
                     </div>
 
-                    {/* Tab Switcher - Bookings Style */}
-                    <div className="mb-6 flex items-center gap-3 border-b border-[var(--border-color)]">
-                        <button
-                            onClick={() => setActiveTab("all")}
-                            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "all"
-                                ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-[var(--text-secondary)]'
-                                }`}
-                        >
-                            All Meals
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("breakfast")}
-                            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "breakfast"
-                                ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-[var(--text-secondary)]'
-                                }`}
-                        >
-                            Breakfast
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("lunch")}
-                            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "lunch"
-                                ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-[var(--text-secondary)]'
-                                }`}
-                        >
-                            Lunch
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("dinner")}
-                            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === "dinner"
-                                ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-[var(--text-secondary)]'
-                                }`}
-                        >
-                            Dinner
-                        </button>
-                    </div>
+                    {/* Tab Switcher - Filled Pills (primary color), attached to table */}
+                    <TabPills
+                        className="-mt-1 mb-0 border-b-0"
+                        tabs={[
+                            { key: 'all', label: 'All Meals', count: tabs.all },
+                            { key: 'breakfast', label: 'Breakfast', count: tabs.breakfast },
+                            { key: 'lunch', label: 'Lunch', count: tabs.lunch },
+                            { key: 'dinner', label: 'Dinner', count: tabs.dinner },
+                        ]}
+                        activeTab={activeTab}
+                        onChange={setActiveTab}
+                    />
 
                     {/* Data Table */}
                     <div className="overflow-x-auto">
@@ -1327,10 +1232,11 @@ export default function MealManagement({ user }) {
                                 ) : (
                                     filteredMeals().map((m) => {
                                         const isDeleting = deletingIds.has(m.id);
+                                        const isMarking = markingIds.has(m.id);
                                         return (
                                             <tr
                                                 key={m.id}
-                                                className={`transition-colors ${isDeleting ? 'meal-deleting' : ''}`}
+                                                className={`transition-colors ${isDeleting ? 'meal-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}
                                             >
                                                 {visibleColumns.serviceUser && <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{m.serviceUser}</td>}
                                                 {visibleColumns.property && <td className="px-4 py-3 text-[var(--text-secondary)]">{m.property}</td>}
@@ -1356,7 +1262,7 @@ export default function MealManagement({ user }) {
                                                             <button
                                                                 title="View Details"
                                                                 onClick={() => handleView(m)}
-                                                                className="group relative p-2 text-gray-400 rounded-xl"
+                                                                className="p-2 text-[var(--text-secondary)]/60 rounded-xl transition-colors hover:bg-blue-500/10 hover:text-blue-500"
                                                             >
                                                                 <IconEye />
                                                             </button>
@@ -1364,7 +1270,7 @@ export default function MealManagement({ user }) {
                                                                 <button
                                                                     title="Edit"
                                                                     onClick={() => handleEdit(m)}
-                                                                    className="group relative p-2 text-gray-400 rounded-xl"
+                                                                    className="p-2 text-[var(--text-secondary)]/60 rounded-xl transition-colors hover:bg-teal-500/10 hover:text-teal-500"
                                                                 >
                                                                     <IconEdit />
                                                                 </button>
@@ -1373,7 +1279,8 @@ export default function MealManagement({ user }) {
                                                                 <button
                                                                     title="Delete"
                                                                     onClick={() => handleDeleteMeal(m)}
-                                                                    className="group relative p-2 text-gray-400 rounded-xl"
+                                                                    disabled={isDeleting}
+                                                                    className="p-2 text-[var(--text-secondary)]/60 rounded-xl transition-colors hover:bg-red-500/10 hover:text-red-500 disabled:opacity-40 disabled:pointer-events-none"
                                                                 >
                                                                     <IconTrash />
                                                                 </button>
@@ -1383,17 +1290,21 @@ export default function MealManagement({ user }) {
                                                                 String(m.status).toLowerCase() === "consumed" ? (
                                                                     <button
                                                                         onClick={() => markNotConsumed(m.id)}
-                                                                        className="ml-1 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-500 text-xs font-medium border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                                                                        disabled={isMarking}
+                                                                        className="ml-1 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-500 text-xs font-medium border border-amber-500/20 hover:bg-amber-500/20 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                                                                         title="Mark as Not Consumed"
                                                                     >
+                                                                        {isMarking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
                                                                         Not Consumed
                                                                     </button>
                                                                 ) : (
                                                                     <button
                                                                         onClick={() => markConsumed(m.id)}
-                                                                        className="ml-1 px-3 py-1.5 rounded-xl bg-teal-500/10 text-teal-500 text-xs font-medium border border-teal-500/20 hover:bg-teal-500/20 transition-colors"
+                                                                        disabled={isMarking}
+                                                                        className="ml-1 px-3 py-1.5 rounded-xl bg-teal-500/10 text-teal-500 text-xs font-medium border border-teal-500/20 hover:bg-teal-500/20 transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                                                                         title="Mark as Consumed"
                                                                     >
+                                                                        {isMarking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                                                                         Mark Consumed
                                                                     </button>
                                                                 )
@@ -1410,6 +1321,44 @@ export default function MealManagement({ user }) {
                     </div>
                 </div>
             </div>
+
+            {/* Filters Drawer */}
+            <FiltersDrawer
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                onClear={() => {
+                    setFilterMealType('All Meals');
+                    setFilterStatus('All Status');
+                    setSelectedProperty('');
+                    setSortBy('');
+                }}
+            >
+                <FilterField label="Meal Type" icon={Filter} value={filterMealType} onChange={e => setFilterMealType(e.target.value)}>
+                    <option>All Meals</option>
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                </FilterField>
+
+                <FilterField label="Status" icon={Filter} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                    <option>All Status</option>
+                    <option value="pending">Not Consumed</option>
+                    <option value="consumed">Consumed</option>
+                </FilterField>
+
+                <FilterField label="Property" icon={Home} value={selectedProperty} onChange={e => setSelectedProperty(e.target.value)}>
+                    <option value="">All Properties</option>
+                    {properties.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
+                </FilterField>
+
+                <FilterField label="Sort By" icon={Columns} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                    <option value="">Sort By</option>
+                    <option value="date">Date (Newest)</option>
+                    <option value="mealType">Meal Type</option>
+                    <option value="status">Status</option>
+                    <option value="serviceUser">Service User</option>
+                </FilterField>
+            </FiltersDrawer>
 
             {/* Confirmation Dialog */}
             <ConfirmDialog

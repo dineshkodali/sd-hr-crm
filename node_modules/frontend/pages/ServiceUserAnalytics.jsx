@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
+import { TabPills } from '../components/TableToolbar';
 
 export default function ServiceUserAnalytics() {
     const [loading, setLoading] = useState(true);
@@ -337,43 +338,16 @@ export default function ServiceUserAnalytics() {
 
                 {/* Tabs */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="mb-6 flex items-center gap-3 border-b border-gray-200">
-                        <button
-                            onClick={() => setActiveTab('demographics')}
-                            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'demographics'
-                                ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <PieChart className="w-4 h-4" />
-                                Demographics
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('accommodation')}
-                            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'accommodation'
-                                ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <Home className="w-4 h-4" />
-                                Accommodation
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('reports')}
-                            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'reports'
-                                ? 'border-teal-500 text-teal-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            <div className="flex items-center gap-2">
-                                <BarChart3 className="w-4 h-4" />
-                                Reports
-                            </div>
-                        </button>
+                    <div className="mb-6">
+                        <TabPills
+                            tabs={[
+                                { key: 'demographics', label: (<span className="flex items-center gap-2"><PieChart className="w-4 h-4" />Demographics</span>) },
+                                { key: 'accommodation', label: (<span className="flex items-center gap-2"><Home className="w-4 h-4" />Accommodation</span>) },
+                                { key: 'reports', label: (<span className="flex items-center gap-2"><BarChart3 className="w-4 h-4" />Reports</span>) },
+                            ]}
+                            activeTab={activeTab}
+                            onChange={setActiveTab}
+                        />
                     </div>
 
                     {/* Demographics Tab */}
@@ -635,36 +609,36 @@ export default function ServiceUserAnalytics() {
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white">
-                                            <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                            <tr className="border-b border-gray-100 hover:bg-[var(--bg-primary)]/60 transition-colors">
                                                 <td className="py-3 px-4 text-sm text-gray-900">Total Service Users</td>
                                                 <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">{demographics.totalUsers}</td>
                                                 <td className="py-3 px-4 text-sm text-gray-600 text-right">100%</td>
                                             </tr>
-                                            <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                            <tr className="border-b border-gray-100 hover:bg-[var(--bg-primary)]/60 transition-colors">
                                                 <td className="py-3 px-4 text-sm text-gray-900">Active Users</td>
                                                 <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">{demographics.activeUsers}</td>
                                                 <td className="py-3 px-4 text-sm text-gray-600 text-right">
                                                     {demographics.totalUsers > 0 ? Math.round((demographics.activeUsers / demographics.totalUsers) * 100) : 0}%
                                                 </td>
                                             </tr>
-                                            <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                            <tr className="border-b border-gray-100 hover:bg-[var(--bg-primary)]/60 transition-colors">
                                                 <td className="py-3 px-4 text-sm text-gray-900">Moved Out</td>
                                                 <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">{demographics.movedOut}</td>
                                                 <td className="py-3 px-4 text-sm text-gray-600 text-right">
                                                     {demographics.totalUsers > 0 ? Math.round((demographics.movedOut / demographics.totalUsers) * 100) : 0}%
                                                 </td>
                                             </tr>
-                                            <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                            <tr className="border-b border-gray-100 hover:bg-[var(--bg-primary)]/60 transition-colors">
                                                 <td className="py-3 px-4 text-sm text-gray-900">Total Properties</td>
                                                 <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">{accommodation.totalProperties}</td>
                                                 <td className="py-3 px-4 text-sm text-gray-600 text-right">-</td>
                                             </tr>
-                                            <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                            <tr className="border-b border-gray-100 hover:bg-[var(--bg-primary)]/60 transition-colors">
                                                 <td className="py-3 px-4 text-sm text-gray-900">Total Rooms</td>
                                                 <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">{accommodation.totalRooms}</td>
                                                 <td className="py-3 px-4 text-sm text-gray-600 text-right">-</td>
                                             </tr>
-                                            <tr className="hover:bg-gray-50 transition-colors">
+                                            <tr className="hover:bg-[var(--bg-primary)]/60 transition-colors">
                                                 <td className="py-3 px-4 text-sm text-gray-900">Occupied Rooms</td>
                                                 <td className="py-3 px-4 text-sm text-gray-900 text-right font-medium">{accommodation.occupiedRooms}</td>
                                                 <td className="py-3 px-4 text-sm text-gray-600 text-right">{accommodation.occupancyRate}%</td>

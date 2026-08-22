@@ -27,6 +27,7 @@ import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 
 /* Inject delete animation CSS once */
 const DELETE_STYLE_ID = 'multiagency-delete-anim';
@@ -200,6 +201,7 @@ export default function MultiAgency({ user }) {
     // Column Visibility State
     const [showViewMenu, setShowViewMenu] = useState(false);
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState('table');
     const viewRef = useRef(null);
 
@@ -997,6 +999,12 @@ export default function MultiAgency({ user }) {
                                     />
                                 </div>
 
+                                {/* Filters Toggle */}
+                                <FiltersButton
+                                    activeCount={[filterPriority, filterStatus, propertyFilter, sortBy].filter(Boolean).length}
+                                    onClick={() => setShowFilters(true)}
+                                />
+
                                 {/* View Dropdown */}
                                 <div className="relative" ref={viewRef}>
                                     <button
@@ -1193,69 +1201,6 @@ export default function MultiAgency({ user }) {
                             </div>
                         </div>
 
-                        {/* Filter Row */}
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={filterPriority}
-                                    onChange={(e) => setFilterPriority(e.target.value)}
-                                    className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-                                >
-                                    <option>All Priority</option>
-                                    <option>Urgent</option>
-                                    <option>High</option>
-                                    <option>Medium</option>
-                                    <option>Low</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-                                >
-                                    <option>All Status</option>
-                                    <option>New</option>
-                                    <option>Under Review</option>
-                                    <option>Escalated</option>
-                                    <option>Completed</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Home className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={propertyFilter}
-                                    onChange={(e) => setPropertyFilter(e.target.value)}
-                                    className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-                                >
-                                    <option value="">All Properties</option>
-                                    {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-                                >
-                                    <option value="">Sort By</option>
-                                    <option value="date">Date (Newest)</option>
-                                    <option value="priority">Priority</option>
-                                    <option value="status">Status</option>
-                                    <option value="title">Title</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-                        </div>
                     </div>
 
                     {/* Data Display - Table or Board View */}
@@ -1315,7 +1260,7 @@ export default function MultiAgency({ user }) {
                                         const isDeleting = deletingIds.has(rec.id);
 
                                         return (
-                                            <tr key={idx} className={`transition-all ${isDeleting ? 'multiagency-deleting' : ''}`}>
+                                            <tr key={idx} className={`transition-all ${isDeleting ? 'multiagency-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
                                                 {visibleColumns.checkbox && (
                                                     <td className="py-5 px-6">
                                                         <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -2079,6 +2024,43 @@ export default function MultiAgency({ user }) {
                 message={alertDialog.message}
                 type={alertDialog.type}
             />
+
+            {/* Filters Drawer */}
+            <FiltersDrawer
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                onClear={() => { setFilterPriority(''); setFilterStatus(''); setPropertyFilter(''); setSortBy(''); }}
+            >
+                <FilterField label="Priority" icon={Filter} value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)}>
+                    <option>All Priority</option>
+                    <option>Urgent</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                </FilterField>
+
+                <FilterField label="Status" icon={Filter} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                    <option>All Status</option>
+                    <option>New</option>
+                    <option>Under Review</option>
+                    <option>Escalated</option>
+                    <option>Completed</option>
+                </FilterField>
+
+                <FilterField label="Property" icon={Home} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                    <option value="">All Properties</option>
+                    {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                </FilterField>
+
+                <FilterField label="Sort By" icon={Columns} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="">Sort By</option>
+                    <option value="date">Date (Newest)</option>
+                    <option value="priority">Priority</option>
+                    <option value="status">Status</option>
+                    <option value="title">Title</option>
+                </FilterField>
+            </FiltersDrawer>
+
             <ConfirmDialog
                 isOpen={confirmDialog.isOpen}
                 onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}

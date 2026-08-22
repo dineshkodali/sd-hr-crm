@@ -4,6 +4,7 @@ import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryMo
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 import {
     Home,
     Gavel,
@@ -22,7 +23,8 @@ import {
     Clock,
     Check,
     Scale,
-    CheckCircle2
+    CheckCircle2,
+    ListFilter
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -182,6 +184,7 @@ export default function Litigation({ user }) {
     // Column Visibility & View Menu
     const [showViewMenu, setShowViewMenu] = useState(false);
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState('table'); // 'table' or 'board'
     const viewRef = useRef(null);
 
@@ -808,6 +811,17 @@ export default function Litigation({ user }) {
                                     />
                                 </div>
 
+                                {/* Filters Toggle */}
+                                <FiltersButton
+                                    activeCount={[
+                                        filterPriority !== 'All Priority' ? filterPriority : '',
+                                        filterStatus !== 'All Status' ? filterStatus : '',
+                                        filterProperty !== 'All Properties' ? filterProperty : '',
+                                        sortBy,
+                                    ].filter(Boolean).length}
+                                    onClick={() => setShowFilters(true)}
+                                />
+
                                 {/* View Dropdown */}
                                 <div className="relative" ref={viewRef}>
                                     <button
@@ -886,85 +900,6 @@ export default function Litigation({ user }) {
                             </div>
                         </div>
 
-                        {/* Filter and Sorting Row */}
-                        <div className="w-full flex flex-wrap items-center gap-3 p-4 bg-[var(--bg-surface)] rounded-2xl">
-                            <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
-                                <select
-                                    value={filterPriority}
-                                    onChange={e => setFilterPriority(e.target.value)}
-                                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
-                                >
-                                    <option>All Priority</option>
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                    <option value="urgent">Urgent</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
-                                <select
-                                    value={filterStatus}
-                                    onChange={e => setFilterStatus(e.target.value)}
-                                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
-                                >
-                                    <option>All Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="in progress">In Progress</option>
-                                    <option value="in court">In Court</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="closed">Closed</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Home className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
-                                <select
-                                    value={filterProperty}
-                                    onChange={e => setFilterProperty(e.target.value)}
-                                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
-                                >
-                                    <option>All Properties</option>
-                                    {hotels.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
-                                <select
-                                    value={sortBy}
-                                    onChange={e => setSortBy(e.target.value)}
-                                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
-                                >
-                                    <option value="">Sort By</option>
-                                    <option value="date">Date (Newest)</option>
-                                    <option value="priority">Priority</option>
-                                    <option value="status">Status</option>
-                                    <option value="title">Title</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none" />
-                            </div>
-
-                            {(filterPriority !== 'All Priority' || filterStatus !== 'All Status' || filterProperty !== 'All Properties' || sortBy) && (
-                                <button
-                                    onClick={() => {
-                                        setFilterPriority('All Priority');
-                                        setFilterStatus('All Status');
-                                        setFilterProperty('All Properties');
-                                        setSortBy('');
-                                    }}
-                                    className="text-sm text-red-600 font-semibold whitespace-nowrap px-2 flex items-center gap-1 rounded-xl"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    Clear Filters
-                                </button>
-                            )}
-                        </div>
                     </div>
 
                     {/* Data Display - Table or Board View */}
@@ -1029,7 +964,7 @@ export default function Litigation({ user }) {
                                                 return (
                                                     <tr
                                                         key={t.id}
-                                                        className={`border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)] transition-colors group ${isDeleting ? 'litigation-deleting' : ''}`}
+                                                        className={`border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)]/60 transition-colors group ${isDeleting ? 'litigation-deleting' : ''}`}
                                                     >
                                                         {visibleColumns.checkbox && (
                                                             <td className="py-4 px-4">
@@ -1350,6 +1285,48 @@ export default function Litigation({ user }) {
                         />
                     )
                 }
+
+                {/* Filters Drawer */}
+                <FiltersDrawer
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    onClear={() => {
+                        setFilterPriority('All Priority');
+                        setFilterStatus('All Status');
+                        setFilterProperty('All Properties');
+                        setSortBy('');
+                    }}
+                >
+                    <FilterField label="Priority" icon={Filter} value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+                        <option>All Priority</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </FilterField>
+
+                    <FilterField label="Status" icon={CheckCircle} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                        <option>All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="in progress">In Progress</option>
+                        <option value="in court">In Court</option>
+                        <option value="completed">Completed</option>
+                        <option value="closed">Closed</option>
+                    </FilterField>
+
+                    <FilterField label="Property" icon={Home} value={filterProperty} onChange={e => setFilterProperty(e.target.value)}>
+                        <option>All Properties</option>
+                        {hotels.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
+                    </FilterField>
+
+                    <FilterField label="Sort By" icon={ListFilter} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                        <option value="">Sort By</option>
+                        <option value="date">Date (Newest)</option>
+                        <option value="priority">Priority</option>
+                        <option value="status">Status</option>
+                        <option value="title">Title</option>
+                    </FilterField>
+                </FiltersDrawer>
 
                 {/* Modal Dialogs */}
                 <ConfirmDialog

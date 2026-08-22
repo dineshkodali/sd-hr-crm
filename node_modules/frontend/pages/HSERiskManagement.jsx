@@ -22,6 +22,7 @@ import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 import Breadcrumbs from "../components/Breadcrumbs";
 
 /* Inject delete animation CSS once */
@@ -208,6 +209,7 @@ export default function HSERiskManagement({ user }) {
     // Column Visibility State
     const [showViewMenu, setShowViewMenu] = useState(false);
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState('table');
     const viewRef = useRef(null);
 
@@ -963,6 +965,12 @@ export default function HSERiskManagement({ user }) {
                                     />
                                 </div>
 
+                                {/* Filters Toggle */}
+                                <FiltersButton
+                                    activeCount={[priorityFilter, statusFilter, propertyFilter, sortBy].filter(Boolean).length}
+                                    onClick={() => setShowFilters(true)}
+                                />
+
                                 {/* View Dropdown */}
                                 <div className="relative" ref={viewRef}>
                                     <button
@@ -1159,86 +1167,6 @@ export default function HSERiskManagement({ user }) {
                             </div>
                         </div>
 
-                        {/* Filter Row */}
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <select
-                                    value={priorityFilter}
-                                    onChange={(e) => setPriorityFilter(e.target.value)}
-                                    className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
-                                >
-                                    <option value="">All Priorities</option>
-                                    <option value="Urgent">Urgent</option>
-                                    <option value="High">High</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
-                                >
-                                    <option value="">All Statuses</option>
-                                    <option value="Open">Open</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Completed">Completed</option>
-                                    <option value="Overdue">Overdue</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <select
-                                    value={propertyFilter}
-                                    onChange={(e) => setPropertyFilter(e.target.value)}
-                                    className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
-                                >
-                                    <option value="">All Properties</option>
-                                    {hotels.map(h => (
-                                        <option key={h.id} value={h.id}>{h.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            <div className="relative">
-                                <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer"
-                                >
-                                    <option value="">Sort By</option>
-                                    <option value="date">Date (Newest)</option>
-                                    <option value="priority">Priority</option>
-                                    <option value="status">Status</option>
-                                    <option value="title">Title</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            {(priorityFilter || statusFilter || propertyFilter || sortBy) && (
-                                <button
-                                    onClick={() => {
-                                        setPriorityFilter("");
-                                        setStatusFilter("");
-                                        setPropertyFilter("");
-                                        setSortBy("");
-                                    }}
-                                    className="h-10 text-sm text-teal-600 font-semibold px-3 py-0 rounded-xl transition-colors"
-                                >
-                                    Clear Filters
-                                </button>
-                            )}
-                        </div>
-
                         {/* Old Filter Row - Keep for backward compatibility */}
                         <div className="hidden">
                             <select
@@ -1324,7 +1252,7 @@ export default function HSERiskManagement({ user }) {
                                         const isDeleting = deletingIds.has(r.id);
 
                                         return (
-                                            <tr key={idx} className={`transition-colors ${isDeleting ? 'hse-risk-deleting' : ''}`}>
+                                            <tr key={idx} className={`transition-colors ${isDeleting ? 'hse-risk-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
                                                 {visibleColumns.checkbox && (
                                                     <td className="py-5 px-6">
                                                         <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -2079,6 +2007,49 @@ export default function HSERiskManagement({ user }) {
                     </div>
                 </div>
             )}
+            {/* Filters Drawer */}
+            <FiltersDrawer
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                onClear={() => {
+                    setPriorityFilter("");
+                    setStatusFilter("");
+                    setPropertyFilter("");
+                    setSortBy("");
+                }}
+            >
+                <FilterField label="Priority" icon={Filter} value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+                    <option value="">All Priorities</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </FilterField>
+
+                <FilterField label="Status" icon={Filter} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="">All Statuses</option>
+                    <option value="Open">Open</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Overdue">Overdue</option>
+                </FilterField>
+
+                <FilterField label="Property" icon={Filter} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                    <option value="">All Properties</option>
+                    {hotels.map(h => (
+                        <option key={h.id} value={h.id}>{h.name}</option>
+                    ))}
+                </FilterField>
+
+                <FilterField label="Sort By" icon={Columns} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="">Sort By</option>
+                    <option value="date">Date (Newest)</option>
+                    <option value="priority">Priority</option>
+                    <option value="status">Status</option>
+                    <option value="title">Title</option>
+                </FilterField>
+            </FiltersDrawer>
+
             {/* Modal Dialogs */}
             <AlertDialog
                 isOpen={alertDialog.isOpen}

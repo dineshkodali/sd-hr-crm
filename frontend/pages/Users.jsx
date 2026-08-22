@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { useOutletContext } from "react-router-dom";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField, TabPills } from '../components/TableToolbar';
 import { validatePassword, passwordStrengthLabel, passwordStrengthPercent } from '../src/utils/passwordUtils';
 import {
   Home,
@@ -1242,6 +1243,7 @@ export default function Users() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
   const [sortBy, setSortBy] = useState('name');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Compute stats
   const stats = useMemo(() => {
@@ -1412,36 +1414,17 @@ export default function Users() {
 
         {/* Main Content Area */}
         <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-color)] p-6 transition-all duration-200">
-          {/* Tab Switcher */}
-          <div className="mb-6 flex items-center gap-3 border-b border-[var(--border-color)]">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`pb-3 px-1 text-sm font-bold border-b-2 transition-colors ${activeTab === 'all'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)]'
-                }`}
-            >
-              All Employees
-            </button>
-            <button
-              onClick={() => setActiveTab('active')}
-              className={`pb-3 px-1 text-sm font-bold border-b-2 transition-colors ${activeTab === 'active'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)]'
-                }`}
-            >
-              Active
-            </button>
-            <button
-              onClick={() => setActiveTab('inactive')}
-              className={`pb-3 px-1 text-sm font-bold border-b-2 transition-colors ${activeTab === 'inactive'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]'
-                : 'border-transparent text-[var(--text-secondary)]'
-                }`}
-            >
-              Inactive
-            </button>
-          </div>
+          {/* Tab Switcher - Filled Pills (primary color) */}
+          <TabPills
+            className="mb-6"
+            tabs={[
+              { key: 'all', label: 'All Employees' },
+              { key: 'active', label: 'Active' },
+              { key: 'inactive', label: 'Inactive' },
+            ]}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+          />
 
           {/* Search & Filter Controls */}
           <div className="mb-6 flex flex-wrap items-center gap-4">
@@ -1461,60 +1444,11 @@ export default function Users() {
               )}
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 border border-[var(--border-color)] rounded-2xl px-4 py-2.5 bg-[var(--bg-primary)] hover:border-[var(--accent-primary)]/30 transition-all cursor-pointer">
-                <Filter className="w-4 h-4 text-[var(--accent-primary)]" />
-                <select
-                  value={filterDesignation}
-                  onChange={(e) => setFilterDesignation(e.target.value)}
-                  className="text-xs font-bold text-[var(--text-primary)] focus:outline-none bg-transparent cursor-pointer"
-                >
-                  <option value="">All Roles</option>
-                  {uniqueRoles.map(role => (
-                    <option key={role} value={role}>{role.charAt(0).toUpperCase() + role.slice(1)}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2 border border-[var(--border-color)] rounded-2xl px-4 py-2.5 bg-[var(--bg-primary)] hover:border-[var(--accent-primary)]/30 transition-all cursor-pointer">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="text-xs font-bold text-[var(--text-primary)] focus:outline-none bg-transparent cursor-pointer"
-                >
-                  <option value="">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2 border border-[var(--border-color)] rounded-2xl px-4 py-2.5 bg-[var(--bg-primary)] hover:border-[var(--accent-primary)]/30 transition-all cursor-pointer">
-                <Building className="w-4 h-4 text-[var(--accent-primary)]" />
-                <select
-                  value={filterBranch}
-                  onChange={(e) => setFilterBranch(e.target.value)}
-                  className="text-xs font-bold text-[var(--text-primary)] focus:outline-none bg-transparent cursor-pointer"
-                >
-                  <option value="">All Branches</option>
-                  {uniqueBranches.map(branch => (
-                    <option key={branch} value={branch}>{branch}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setFilterDesignation('');
-                  setFilterStatus('');
-                  setFilterBranch('');
-                }}
-                className="p-3 text-[var(--text-secondary)] border border-[var(--border-color)] rounded-2xl bg-[var(--bg-primary)] hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all shadow-sm"
-                title="Clear Filters"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            {/* Filters Toggle */}
+            <FiltersButton
+              activeCount={[filterDesignation, filterStatus, filterBranch].filter(Boolean).length}
+              onClick={() => setShowFilters(true)}
+            />
           </div>
 
           {/* Table */}
@@ -1558,7 +1492,7 @@ export default function Users() {
                 ) : filteredUsers.map((u, index) => {
                   const isDeleting = deletingIds.has(u.id);
                   return (
-                    <tr key={u.id || index} className={`border-b border-[var(--border-color)] last:border-b-0 transition-all hover:bg-[var(--bg-primary)]/30 group ${isDeleting ? 'admin-user-deleting' : ''}`}>
+                    <tr key={u.id || index} className={`border-b border-[var(--border-color)] last:border-b-0 transition-all hover:bg-[var(--bg-primary)]/60 group ${isDeleting ? 'admin-user-deleting' : ''}`}>
                       <td className="p-4 text-center">
                         <input type="checkbox" className="w-4 h-4 text-[var(--accent-primary)] rounded-md border-[var(--border-color)] focus:ring-[var(--accent-shadow)]" />
                       </td>
@@ -1963,6 +1897,38 @@ export default function Users() {
             </div>
           </div>
         )}
+
+      {/* Filters Drawer */}
+      <FiltersDrawer
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        onClear={() => {
+          setSearchQuery('');
+          setFilterDesignation('');
+          setFilterStatus('');
+          setFilterBranch('');
+        }}
+      >
+        <FilterField label="Role" icon={Filter} value={filterDesignation} onChange={(e) => setFilterDesignation(e.target.value)}>
+          <option value="">All Roles</option>
+          {uniqueRoles.map(role => (
+            <option key={role} value={role}>{role.charAt(0).toUpperCase() + role.slice(1)}</option>
+          ))}
+        </FilterField>
+
+        <FilterField label="Status" icon={Filter} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </FilterField>
+
+        <FilterField label="Branch" icon={Building} value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)}>
+          <option value="">All Branches</option>
+          {uniqueBranches.map(branch => (
+            <option key={branch} value={branch}>{branch}</option>
+          ))}
+        </FilterField>
+      </FiltersDrawer>
 
       {/* Confirmation Dialog */}
       <ConfirmDialog

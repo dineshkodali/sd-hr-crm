@@ -8,6 +8,7 @@ import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 
 import {
 
@@ -373,6 +374,8 @@ export default function VulnerableUsers({ user }) {
     const [showViewMenu, setShowViewMenu] = useState(false);
 
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+
+    const [showFilters, setShowFilters] = useState(false);
 
     const [viewMode, setViewMode] = useState('table');
 
@@ -1936,7 +1939,11 @@ export default function VulnerableUsers({ user }) {
 
                                 </div>
 
-
+                                {/* Filters Toggle */}
+                                <FiltersButton
+                                    activeCount={[filterPriority, filterStatus, propertyFilter, sortBy].filter(Boolean).length}
+                                    onClick={() => setShowFilters(true)}
+                                />
 
                                 {/* View Dropdown */}
 
@@ -2330,132 +2337,6 @@ export default function VulnerableUsers({ user }) {
 
 
 
-                        {/* Filter Row */}
-
-                        <div className="flex items-center gap-3">
-
-                            <div className="relative">
-
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                <select
-
-                                    value={filterPriority}
-
-                                    onChange={(e) => setFilterPriority(e.target.value)}
-
-                                    className="bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-
-                                >
-
-                                    <option>All Priority</option>
-
-                                    <option>Urgent</option>
-
-                                    <option>High</option>
-
-                                    <option>Medium</option>
-
-                                    <option>Low</option>
-
-                                </select>
-
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                            </div>
-
-
-
-                            <div className="relative">
-
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                <select
-
-                                    value={filterStatus}
-
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-
-                                    className="bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-
-                                >
-
-                                    <option>All Status</option>
-
-                                    <option>New</option>
-
-                                    <option>Under Review</option>
-
-                                    <option>Escalated</option>
-
-                                    <option>Completed</option>
-
-                                </select>
-
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                            </div>
-
-
-
-                            <div className="relative">
-
-                                <Home className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                <select
-
-                                    value={propertyFilter}
-
-                                    onChange={(e) => setPropertyFilter(e.target.value)}
-
-                                    className="bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-
-                                >
-
-                                    <option value="">All Properties</option>
-
-                                    {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-
-                                </select>
-
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                            </div>
-
-
-
-                            <div className="relative">
-
-                                <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                <select
-
-                                    value={sortBy}
-
-                                    onChange={(e) => setSortBy(e.target.value)}
-
-                                    className="bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-2 text-sm text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none"
-
-                                >
-
-                                    <option value="">Sort By</option>
-
-                                    <option value="date">Date (Newest)</option>
-
-                                    <option value="priority">Priority</option>
-
-                                    <option value="status">Status</option>
-
-                                    <option value="title">Title</option>
-
-                                </select>
-
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                            </div>
-
-                        </div>
-
                     </div>
 
 
@@ -2574,7 +2455,7 @@ export default function VulnerableUsers({ user }) {
 
                                         return (
 
-                                            <tr key={idx} className={`transition-all ${isDeleting ? 'vulnerable-users-deleting' : ''}`}>
+                                            <tr key={idx} className={`transition-all ${isDeleting ? 'vulnerable-users-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
 
                                                 {visibleColumns.checkbox && (
 
@@ -4084,6 +3965,42 @@ export default function VulnerableUsers({ user }) {
             )}
 
 
+
+            {/* Filters Drawer */}
+            <FiltersDrawer
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                onClear={() => { setFilterPriority(''); setFilterStatus(''); setPropertyFilter(''); setSortBy(''); }}
+            >
+                <FilterField label="Priority" icon={Filter} value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)}>
+                    <option>All Priority</option>
+                    <option>Urgent</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                </FilterField>
+
+                <FilterField label="Status" icon={Filter} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                    <option>All Status</option>
+                    <option>New</option>
+                    <option>Under Review</option>
+                    <option>Escalated</option>
+                    <option>Completed</option>
+                </FilterField>
+
+                <FilterField label="Property" icon={Home} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                    <option value="">All Properties</option>
+                    {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                </FilterField>
+
+                <FilterField label="Sort By" icon={Columns} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="">Sort By</option>
+                    <option value="date">Date (Newest)</option>
+                    <option value="priority">Priority</option>
+                    <option value="status">Status</option>
+                    <option value="title">Title</option>
+                </FilterField>
+            </FiltersDrawer>
 
             {/* Confirmation Dialog */}
 

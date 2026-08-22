@@ -14,6 +14,7 @@ import { generateCSV } from "../utils/csvGenerator";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
 import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryModal';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 
 /* Inject delete animation CSS once */
 const DELETE_STYLE_ID = 'compliance-delete-anim';
@@ -187,6 +188,7 @@ export default function Compliance() {
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [propertyFilter, setPropertyFilter] = useState("all");
+    const [showFilters, setShowFilters] = useState(false);
 
     const CERTIFICATE_TYPE_STORAGE_KEY = 'compliance.customCertificateTypes';
     const [customCertificateTypes, setCustomCertificateTypes] = useState([]);
@@ -836,33 +838,11 @@ export default function Compliance() {
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto">
-                        <div className="relative flex-1 md:flex-none">
-                            <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="w-full h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
-                            >
-                                <option value="all">All Status</option>
-                                <option value="valid">Valid</option>
-                                <option value="expiring">Expiring</option>
-                                <option value="expired">Expired</option>
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                        </div>
-
-                        <div className="relative flex-1 md:flex-none">
-                            <Building className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            <select
-                                value={propertyFilter}
-                                onChange={(e) => setPropertyFilter(e.target.value)}
-                                className="w-full h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[160px]"
-                            >
-                                <option value="all">All Properties</option>
-                                {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-                            </select>
-                            <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                        </div>
+                        {/* Filters Toggle */}
+                        <FiltersButton
+                            activeCount={[statusFilter !== 'all' ? statusFilter : '', propertyFilter !== 'all' ? propertyFilter : ''].filter(Boolean).length}
+                            onClick={() => setShowFilters(true)}
+                        />
 
                         <button
                             onClick={() => openModal('create')}
@@ -915,7 +895,7 @@ export default function Compliance() {
                                             const hasDocument = !!(c.document_data || c.document_name || c.file_path);
                                             const isDeleting = deletingIds.has(c.id);
                                             return (
-                                                <tr key={c.id} className={`transition-colors group ${isDeleting ? 'compliance-deleting' : ''}`}>
+                                                <tr key={c.id} className={`transition-colors group ${isDeleting ? 'compliance-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className="text-sm font-semibold text-[var(--text-primary)]">{c.certificate_type}</span>
                                                     </td>
@@ -1369,6 +1349,24 @@ export default function Compliance() {
                         </div>
                     )
                 }
+
+                <FiltersDrawer
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    onClear={() => { setStatusFilter('all'); setPropertyFilter('all'); }}
+                >
+                    <FilterField label="Status" icon={Filter} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                        <option value="all">All Status</option>
+                        <option value="valid">Valid</option>
+                        <option value="expiring">Expiring</option>
+                        <option value="expired">Expired</option>
+                    </FilterField>
+
+                    <FilterField label="Property" icon={Building} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                        <option value="all">All Properties</option>
+                        {hotels.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    </FilterField>
+                </FiltersDrawer>
 
                 <ConfirmDialog isOpen={confirmDialog.isOpen} onClose={() => setConfirmDialog(p => ({ ...p, isOpen: false }))} onConfirm={confirmDialog.onConfirm} title={confirmDialog.title} message={confirmDialog.message} type={confirmDialog.type} />
                 <AlertDialog isOpen={alertDialog.isOpen} onClose={() => setAlertDialog(p => ({ ...p, isOpen: false }))} title={alertDialog.title} message={alertDialog.message} type={alertDialog.type} />

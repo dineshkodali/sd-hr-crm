@@ -23,6 +23,7 @@ import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 import Breadcrumbs from "../components/Breadcrumbs";
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 
 /* Inject delete animation CSS once */
 const DELETE_STYLE_ID = 'hse-training-delete-anim';
@@ -192,6 +193,7 @@ export default function HSETraining({ user }) {
     // Column Visibility State
     const [showViewMenu, setShowViewMenu] = useState(false);
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState('table');
     const viewRef = useRef(null);
 
@@ -968,6 +970,12 @@ export default function HSETraining({ user }) {
                                         />
                                     </div>
 
+                                    {/* Filters Toggle */}
+                                    <FiltersButton
+                                        activeCount={[priorityFilter, statusFilter, propertyFilter, sortBy].filter(Boolean).length}
+                                        onClick={() => setShowFilters(true)}
+                                    />
+
                                     {/* View Dropdown */}
                                     <div className="relative" ref={viewRef}>
                                         <button
@@ -1164,81 +1172,6 @@ export default function HSETraining({ user }) {
                                 </div>
                             </div>
 
-                            {/* Filter Row */}
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <div className="relative">
-                                    <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={priorityFilter}
-                                        onChange={(e) => setPriorityFilter(e.target.value)}
-                                        className="form-select !pl-14 pr-10 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
-                                    >
-                                        <option value="">All Priorities</option>
-                                        <option value="Urgent">Urgent</option>
-                                        <option value="High">High</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="Low">Low</option>
-                                    </select>
-                                </div>
-
-                                <div className="relative">
-                                    <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="form-select !pl-14 pr-10 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
-                                    >
-                                        <option value="">All Statuses</option>
-                                        <option value="Open">Open</option>
-                                        <option value="Pending">Pending</option>
-                                        <option value="Completed">Completed</option>
-                                        <option value="Overdue">Overdue</option>
-                                    </select>
-                                </div>
-
-                                <div className="relative">
-                                    <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={propertyFilter}
-                                        onChange={(e) => setPropertyFilter(e.target.value)}
-                                        className="form-select !pl-14 pr-10 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
-                                    >
-                                        <option value="">All Properties</option>
-                                        {hotels.map(h => (
-                                            <option key={h.id} value={h.id}>{h.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="relative">
-                                    <Columns className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value)}
-                                        className="form-select !pl-14 pr-10 rounded-xl h-10 py-0 leading-none text-sm font-semibold"
-                                    >
-                                        <option value="">Sort By</option>
-                                        <option value="date">Date (Newest)</option>
-                                        <option value="priority">Priority</option>
-                                        <option value="status">Status</option>
-                                        <option value="title">Title</option>
-                                    </select>
-                                </div>
-
-                                {(priorityFilter || statusFilter || propertyFilter || sortBy) && (
-                                    <button
-                                        onClick={() => {
-                                            setPriorityFilter("");
-                                            setStatusFilter("");
-                                            setPropertyFilter("");
-                                            setSortBy("");
-                                        }}
-                                        className="btn-secondary rounded-xl h-10 py-0 text-sm font-semibold"
-                                    >
-                                        Clear Filters
-                                    </button>
-                                )}
-                            </div>
                         </div>{/* end mb-6 Table Header Section */}
 
                         {/* Data Display - Table or Board View */}
@@ -1298,7 +1231,7 @@ export default function HSETraining({ user }) {
                                             const isDeleting = deletingIds.has(r.id);
 
                                             return (
-                                                <tr key={idx} className={`transition-colors ${isDeleting ? 'hse-training-deleting' : ''}`}>
+                                                <tr key={idx} className={`transition-colors ${isDeleting ? 'hse-training-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
                                                     {visibleColumns.checkbox && (
                                                         <td className="py-5 px-6">
                                                             <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -2059,6 +1992,50 @@ export default function HSETraining({ user }) {
                     </div>
                 )}
             </div>
+
+            {/* Filters Drawer */}
+            <FiltersDrawer
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                onClear={() => {
+                    setPriorityFilter("");
+                    setStatusFilter("");
+                    setPropertyFilter("");
+                    setSortBy("");
+                }}
+            >
+                <FilterField label="Priority" icon={Filter} value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+                    <option value="">All Priorities</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </FilterField>
+
+                <FilterField label="Status" icon={Filter} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="">All Statuses</option>
+                    <option value="Open">Open</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Overdue">Overdue</option>
+                </FilterField>
+
+                <FilterField label="Property" icon={Filter} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                    <option value="">All Properties</option>
+                    {hotels.map(h => (
+                        <option key={h.id} value={h.id}>{h.name}</option>
+                    ))}
+                </FilterField>
+
+                <FilterField label="Sort By" icon={Columns} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="">Sort By</option>
+                    <option value="date">Date (Newest)</option>
+                    <option value="priority">Priority</option>
+                    <option value="status">Status</option>
+                    <option value="title">Title</option>
+                </FilterField>
+            </FiltersDrawer>
+
             <ConfirmDialog
                 isOpen={confirmDialog.isOpen}
                 onClose={() => setConfirmDialog(p => ({ ...p, isOpen: false }))}

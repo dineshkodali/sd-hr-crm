@@ -4,6 +4,7 @@ import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryMo
 import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 import {
     Home,
     Building,
@@ -21,7 +22,8 @@ import {
     EyeOff,
     X,
     Check,
-    ClipboardList
+    ClipboardList,
+    ListFilter
 } from 'lucide-react';
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -154,6 +156,7 @@ export default function Complaints({ user }) {
     // Column Visibility State
     const [showViewMenu, setShowViewMenu] = useState(false);
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState('table'); // 'table' or 'board'
     const viewRef = useRef(null);
 
@@ -1110,6 +1113,12 @@ export default function Complaints({ user }) {
                                         />
                                     </div>
 
+                                    {/* Filters Toggle */}
+                                    <FiltersButton
+                                        activeCount={[priorityFilter, statusFilter, propertyFilter, sortBy].filter(Boolean).length}
+                                        onClick={() => setShowFilters(true)}
+                                    />
+
                                     {/* View Dropdown */}
                                     <div className="relative" ref={viewRef}>
                                         <button
@@ -1307,85 +1316,6 @@ export default function Complaints({ user }) {
                                 </div>
                             </div>
 
-                            {/* Filter and Sorting Row */}
-                            <div className="flex items-center flex-wrap gap-3 py-3 border-t border-gray-50">
-                                <div className="relative">
-                                    <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={priorityFilter}
-                                        onChange={(e) => setPriorityFilter(e.target.value)}
-                                        className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 appearance-none cursor-pointer w-40"
-                                    >
-                                        <option value="">All Priority</option>
-                                        <option value="urgent">Urgent</option>
-                                        <option value="high">High</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="low">Low</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                </div>
-
-                                <div className="relative">
-                                    <Clock className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 appearance-none cursor-pointer w-40"
-                                    >
-                                        <option value="">All Status</option>
-                                        <option value="open">Open</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="resolved">Resolved</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                </div>
-
-                                <div className="relative">
-                                    <Building className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={propertyFilter}
-                                        onChange={(e) => setPropertyFilter(e.target.value)}
-                                        className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 appearance-none cursor-pointer w-48"
-                                    >
-                                        <option value="">All Properties</option>
-                                        {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
-                                    <ChevronDown className="absolute right-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                                </div>
-
-                                <div className="relative">
-                                    <ChevronDown className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                    <select
-                                        value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value)}
-                                        className="h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]"
-                                    >
-                                        <option value="">Sort By</option>
-                                        <option value="title">Title</option>
-                                        <option value="reference">Reference</option>
-                                        <option value="priority">Priority</option>
-                                        <option value="status">Status</option>
-                                        <option value="scheduled_date">Date</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                </div>
-
-                                {/* Clear Filters Button */}
-                                {(priorityFilter || statusFilter || propertyFilter || sortBy) && (
-                                    <button
-                                        onClick={() => {
-                                            setPriorityFilter('');
-                                            setStatusFilter('');
-                                            setPropertyFilter('');
-                                            setSortBy('');
-                                        }}
-                                        className="h-10 bg-gray-100 text-gray-700 rounded-xl px-4 py-0 text-sm font-semibold transition-all flex items-center gap-2"
-                                    >
-                                        <X className="w-4 h-4" />
-                                        <span>Clear Filters</span>
-                                    </button>
-                                )}
-                            </div>
                         </div>
                         {/* Data Display - Table or Board View */}
                         {viewMode === 'table' ? (
@@ -1444,7 +1374,7 @@ export default function Complaints({ user }) {
                                             const isDeleting = deletingIds.has(row.id);
 
                                             return (
-                                                <tr key={row.id} className={`transition-colors border-b border-[var(--border-color)] last:border-0 ${isDeleting ? 'complaint-deleting' : ''}`}>
+                                                <tr key={row.id} className={`transition-colors border-b border-[var(--border-color)] last:border-0 ${isDeleting ? 'complaint-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
                                                     {visibleColumns.checkbox && (
                                                         <td className="py-4 px-4">
                                                             <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -2266,6 +2196,42 @@ export default function Complaints({ user }) {
                         </div>
                     )
                 }
+
+                {/* Filters Drawer */}
+                <FiltersDrawer
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    onClear={() => { setPriorityFilter(''); setStatusFilter(''); setPropertyFilter(''); setSortBy(''); }}
+                >
+                    <FilterField label="Priority" icon={Filter} value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+                        <option value="">All Priority</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </FilterField>
+
+                    <FilterField label="Status" icon={Clock} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                        <option value="">All Status</option>
+                        <option value="open">Open</option>
+                        <option value="pending">Pending</option>
+                        <option value="resolved">Resolved</option>
+                    </FilterField>
+
+                    <FilterField label="Property" icon={Building} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                        <option value="">All Properties</option>
+                        {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </FilterField>
+
+                    <FilterField label="Sort By" icon={ListFilter} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                        <option value="">Sort By</option>
+                        <option value="title">Title</option>
+                        <option value="reference">Reference</option>
+                        <option value="priority">Priority</option>
+                        <option value="status">Status</option>
+                        <option value="scheduled_date">Date</option>
+                    </FilterField>
+                </FiltersDrawer>
 
                 {/* Modal Dialogs */}
                 <ConfirmDialog

@@ -10,6 +10,7 @@ import axios from "axios";
 import { usePermissions } from "../hooks/usePermissions";
 
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 
 import {
 
@@ -387,6 +388,8 @@ export default function Incidents({ user }) {
     const [showViewMenu, setShowViewMenu] = useState(false);
 
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+
+    const [showFilters, setShowFilters] = useState(false);
 
     const [viewMode, setViewMode] = useState('table');
 
@@ -2120,7 +2123,11 @@ export default function Incidents({ user }) {
 
                                     </div>
 
-
+                                    {/* Filters Toggle */}
+                                    <FiltersButton
+                                        activeCount={[severityFilter, statusFilter, propertyFilter, sortBy].filter(Boolean).length}
+                                        onClick={() => setShowFilters(true)}
+                                    />
 
                                     {/* View Dropdown */}
 
@@ -2466,108 +2473,6 @@ export default function Incidents({ user }) {
 
 
 
-                            {/* Filter Row */}
-
-                            <div className="flex items-center gap-3 flex-wrap">
-
-                                <div className="relative">
-
-                                    <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                    <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm text-[var(--text-primary)] font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]">
-
-                                        <option value="">All Severity</option>
-
-                                        <option value="urgent">Urgent</option>
-
-                                        <option value="high">High</option>
-
-                                        <option value="medium">Medium</option>
-
-                                        <option value="low">Low</option>
-
-                                    </select>
-
-                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                </div>
-
-                                <div className="relative">
-
-                                    <CheckCircle className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm text-[var(--text-primary)] font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]">
-
-                                        <option value="">All Status</option>
-
-                                        <option value="open">Open</option>
-
-                                        <option value="in progress">In Progress</option>
-
-                                        <option value="resolved">Resolved</option>
-
-                                    </select>
-
-                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                </div>
-
-                                <div className="relative">
-
-                                    <Building className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                    <select value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)} className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm text-[var(--text-primary)] font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]">
-
-                                        <option value="">All Properties</option>
-
-                                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-
-                                    </select>
-
-                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                </div>
-
-                                <div className="relative">
-
-                                    <ListFilter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm text-[var(--text-primary)] font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]">
-
-                                        <option value="">Sort By</option>
-
-                                        <option value="date">Date (Newest)</option>
-
-                                        <option value="severity">Severity</option>
-
-                                        <option value="status">Status</option>
-
-                                        <option value="type">Type</option>
-
-                                    </select>
-
-                                    <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-
-                                </div>
-
-                                {(severityFilter || statusFilter || propertyFilter || sortBy) && (
-
-                                    <button
-
-                                        onClick={() => { setSeverityFilter(''); setStatusFilter(''); setPropertyFilter(''); setSortBy(''); }}
-
-                                        className="h-10 bg-gray-100 text-gray-700 rounded-xl px-4 py-0 text-sm font-semibold flex items-center gap-2"
-
-                                    >
-
-                                        <X className="w-4 h-4" /><span>Clear</span>
-
-                                    </button>
-
-                                )}
-
-                            </div>
-
                         </div>
 
                     </div>
@@ -2629,7 +2534,7 @@ export default function Incidents({ user }) {
 
                                             return (
 
-                                                <tr key={row.ref} className={`transition-colors border-b border-gray-100 last:border-0 ${isDeleting ? 'incident-deleting' : ''}`}>
+                                                <tr key={row.ref} className={`transition-colors border-b border-gray-100 last:border-0 ${isDeleting ? 'incident-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
 
                                                     {ALL_COLUMNS.map((col) => (
 
@@ -3506,6 +3411,41 @@ export default function Incidents({ user }) {
                 )}
 
 
+
+                {/* Filters Drawer */}
+                <FiltersDrawer
+                    isOpen={showFilters}
+                    onClose={() => setShowFilters(false)}
+                    onClear={() => { setSeverityFilter(''); setStatusFilter(''); setPropertyFilter(''); setSortBy(''); }}
+                >
+                    <FilterField label="Severity" icon={Filter} value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
+                        <option value="">All Severity</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </FilterField>
+
+                    <FilterField label="Status" icon={CheckCircle} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                        <option value="">All Status</option>
+                        <option value="open">Open</option>
+                        <option value="in progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                    </FilterField>
+
+                    <FilterField label="Property" icon={Building} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                        <option value="">All Properties</option>
+                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    </FilterField>
+
+                    <FilterField label="Sort By" icon={ListFilter} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                        <option value="">Sort By</option>
+                        <option value="date">Date (Newest)</option>
+                        <option value="severity">Severity</option>
+                        <option value="status">Status</option>
+                        <option value="type">Type</option>
+                    </FilterField>
+                </FiltersDrawer>
 
                 {/* Confirmation Dialog */}
 

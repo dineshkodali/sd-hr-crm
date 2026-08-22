@@ -4,6 +4,7 @@ import ImageGalleryModal, { useImageGallery } from '../components/ImageGalleryMo
 import axios from "axios";
 import { usePermissions } from "../hooks/usePermissions";
 import { ConfirmDialog, AlertDialog } from "../components/ConfirmDialog";
+import { FiltersButton, FiltersDrawer, FilterField } from "../components/TableToolbar";
 import { generatePDF } from '../utils/pdfGenerator';
 import { generateCSV } from '../utils/csvGenerator';
 import { DownloadDropdown } from '../components/DownloadDropdown';
@@ -1082,21 +1083,10 @@ export default function EmergencyProtocols() {
                                 </div>
 
                                 {/* Filters Toggle */}
-                                <button
+                                <FiltersButton
+                                    activeCount={[priorityFilter, statusFilter, propertyFilter, sortBy].filter(Boolean).length}
                                     onClick={() => setShowFilters(true)}
-                                    className={`h-9 relative border rounded-xl px-3 text-xs font-medium flex items-center gap-2 transition-colors ${(priorityFilter || statusFilter || propertyFilter || sortBy)
-                                        ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]'
-                                        : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
-                                        }`}
-                                >
-                                    <Filter className="w-4 h-4" />
-                                    <span className="font-semibold">Filters</span>
-                                    {[priorityFilter, statusFilter, propertyFilter, sortBy].filter(Boolean).length > 0 && (
-                                        <span className="inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-[var(--accent-primary)] text-white text-[10px] font-bold">
-                                            {[priorityFilter, statusFilter, propertyFilter, sortBy].filter(Boolean).length}
-                                        </span>
-                                    )}
-                                </button>
+                                />
 
                                 {/* View Dropdown */}
                                 <div className="relative" ref={viewRef}>
@@ -2147,101 +2137,39 @@ export default function EmergencyProtocols() {
             }
 
             {/* Filters Drawer */}
-            {showFilters && (
-                <div className="fixed inset-0 z-[70] flex justify-end">
-                    <div
-                        className="absolute inset-0 bg-black/40 backdrop-blur-[1px] transition-opacity"
-                        onClick={() => setShowFilters(false)}
-                    />
-                    <div className="relative w-full max-w-sm h-full bg-[var(--bg-surface)] shadow-2xl border-l border-[var(--border-color)] flex flex-col animate-in slide-in-from-right duration-200">
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)]">
-                            <div className="flex items-center gap-2">
-                                <Filter className="w-4 h-4 text-[var(--accent-primary)]" />
-                                <h3 className="text-base font-semibold text-[var(--text-primary)]">Filters</h3>
-                            </div>
-                            <button
-                                onClick={() => setShowFilters(false)}
-                                className="p-2 rounded-xl text-[var(--text-secondary)]/60 hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
+            <FiltersDrawer
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                onClear={() => { setPriorityFilter(''); setStatusFilter(''); setPropertyFilter(''); setSortBy(''); }}
+            >
+                <FilterField label="Priority" icon={Filter} value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+                    <option value="">All Priority</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </FilterField>
 
-                        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-                            <div>
-                                <label className="block text-xs font-semibold text-[var(--text-secondary)]/70 uppercase tracking-wider mb-2">Priority</label>
-                                <div className="relative">
-                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                    <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl pl-10 pr-10 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] cursor-pointer appearance-none">
-                                        <option value="">All Priority</option>
-                                        <option value="urgent">Urgent</option>
-                                        <option value="high">High</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="low">Low</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                </div>
-                            </div>
+                <FilterField label="Status" icon={CheckCircle} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="in progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </FilterField>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-[var(--text-secondary)]/70 uppercase tracking-wider mb-2">Status</label>
-                                <div className="relative">
-                                    <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl pl-10 pr-10 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] cursor-pointer appearance-none">
-                                        <option value="">All Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="in progress">In Progress</option>
-                                        <option value="completed">Completed</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                </div>
-                            </div>
+                <FilterField label="Property" icon={Home} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                    <option value="">All Properties</option>
+                    {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                </FilterField>
 
-                            <div>
-                                <label className="block text-xs font-semibold text-[var(--text-secondary)]/70 uppercase tracking-wider mb-2">Property</label>
-                                <div className="relative">
-                                    <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                    <select value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl pl-10 pr-10 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] cursor-pointer appearance-none">
-                                        <option value="">All Properties</option>
-                                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-semibold text-[var(--text-secondary)]/70 uppercase tracking-wider mb-2">Sort By</label>
-                                <div className="relative">
-                                    <Columns className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl pl-10 pr-10 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] cursor-pointer appearance-none">
-                                        <option value="">Sort By</option>
-                                        <option value="date">Date (Newest)</option>
-                                        <option value="priority">Priority</option>
-                                        <option value="status">Status</option>
-                                        <option value="title">Title</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 px-5 py-4 border-t border-[var(--border-color)]">
-                            <button
-                                onClick={() => { setPriorityFilter(''); setStatusFilter(''); setPropertyFilter(''); setSortBy(''); }}
-                                className="flex-1 h-11 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[var(--bg-primary)]/70 transition-colors"
-                            >
-                                <X className="w-4 h-4" /><span>Clear all</span>
-                            </button>
-                            <button
-                                onClick={() => setShowFilters(false)}
-                                className="flex-1 h-11 rounded-xl bg-[var(--accent-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-                            >
-                                Apply
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                <FilterField label="Sort By" icon={Columns} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="">Sort By</option>
+                    <option value="date">Date (Newest)</option>
+                    <option value="priority">Priority</option>
+                    <option value="status">Status</option>
+                    <option value="title">Title</option>
+                </FilterField>
+            </FiltersDrawer>
 
             {/* Modal Dialogs */}
             <AlertDialog

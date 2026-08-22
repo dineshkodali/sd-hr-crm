@@ -12,6 +12,7 @@ import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
 import { DownloadDropdown } from "../components/DownloadDropdown";
 import Breadcrumbs from "../components/Breadcrumbs";
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 
 /* Inject delete animation CSS once */
 const DELETE_STYLE_ID = 'safeguarding-referrals-delete-anim';
@@ -638,21 +639,10 @@ export default function SafeguardingReferrals({ user }) {
                                     </div>
 
                                     {/* Filters Toggle */}
-                                    <button
+                                    <FiltersButton
+                                        activeCount={[filterPriority, filterStatus, propertyFilter, sortBy].filter(Boolean).length}
                                         onClick={() => setShowFilters(true)}
-                                        className={`h-9 relative border rounded-xl px-3 text-xs font-bold flex items-center gap-2 transition-colors ${(filterPriority || filterStatus || propertyFilter || sortBy)
-                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                                            } shadow-2xs`}
-                                    >
-                                        <Filter className="w-4 h-4" />
-                                        <span>Filters</span>
-                                        {[filterPriority, filterStatus, propertyFilter, sortBy].filter(Boolean).length > 0 && (
-                                            <span className="inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
-                                                {[filterPriority, filterStatus, propertyFilter, sortBy].filter(Boolean).length}
-                                            </span>
-                                        )}
-                                    </button>
+                                    />
 
                                     {/* View Dropdown */}
                                     <div className="relative" ref={viewRef}>
@@ -1225,94 +1215,32 @@ export default function SafeguardingReferrals({ user }) {
             )}
 
             {/* Filters Drawer */}
-            {showFilters && (
-                <div className="fixed inset-0 z-[70] flex justify-end">
-                    <div
-                        className="absolute inset-0 bg-black/40 backdrop-blur-[1px] transition-opacity"
-                        onClick={() => setShowFilters(false)}
-                    />
-                    <div className="relative w-full max-w-sm h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-200">
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                            <div className="flex items-center gap-2">
-                                <Filter className="w-4 h-4 text-emerald-600" />
-                                <h3 className="text-base font-bold text-slate-900">Filters</h3>
-                            </div>
-                            <button
-                                onClick={() => setShowFilters(false)}
-                                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
+            <FiltersDrawer
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                onClear={() => { setFilterPriority(''); setFilterStatus(''); setPropertyFilter(''); setSortBy(''); }}
+            >
+                <FilterField label="Priority" icon={Filter} value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)}>
+                    <option value="">All Priorities</option>
+                    <option>Urgent</option><option>High</option><option>Medium</option><option>Low</option>
+                </FilterField>
 
-                        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Priority</label>
-                                <div className="relative">
-                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                    <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-slate-200 rounded-xl pl-10 pr-10 text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer appearance-none">
-                                        <option value="">All Priorities</option>
-                                        <option>Urgent</option><option>High</option><option>Medium</option><option>Low</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                </div>
-                            </div>
+                <FilterField label="Status" icon={Filter} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                    <option value="">All Statuses</option>
+                    <option>New</option><option>Under Review</option><option>Escalated</option><option>Resolved</option>
+                </FilterField>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Status</label>
-                                <div className="relative">
-                                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                    <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-slate-200 rounded-xl pl-10 pr-10 text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer appearance-none">
-                                        <option value="">All Statuses</option>
-                                        <option>New</option><option>Under Review</option><option>Escalated</option><option>Resolved</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                </div>
-                            </div>
+                <FilterField label="Property" icon={Home} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+                    <option value="">All Properties</option>
+                    {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                </FilterField>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Property</label>
-                                <div className="relative">
-                                    <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                    <select value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-slate-200 rounded-xl pl-10 pr-10 text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer appearance-none">
-                                        <option value="">All Properties</option>
-                                        {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sort By</label>
-                                <div className="relative">
-                                    <Columns className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-slate-200 rounded-xl pl-10 pr-10 text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer appearance-none">
-                                        <option value="">Sort By</option>
-                                        <option value="date">Date (Newest)</option><option value="priority">Priority</option>
-                                        <option value="status">Status</option><option value="title">Title</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 px-5 py-4 border-t border-slate-200">
-                            <button
-                                onClick={() => { setFilterPriority(''); setFilterStatus(''); setPropertyFilter(''); setSortBy(''); }}
-                                className="flex-1 h-11 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-slate-100 transition-colors"
-                            >
-                                <X className="w-4 h-4" /><span>Clear all</span>
-                            </button>
-                            <button
-                                onClick={() => setShowFilters(false)}
-                                className="flex-1 h-11 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
-                            >
-                                Apply
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                <FilterField label="Sort By" icon={Columns} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="">Sort By</option>
+                    <option value="date">Date (Newest)</option><option value="priority">Priority</option>
+                    <option value="status">Status</option><option value="title">Title</option>
+                </FilterField>
+            </FiltersDrawer>
 
             {/* Delete Confirm Modal */}
             {showDeleteModal && (

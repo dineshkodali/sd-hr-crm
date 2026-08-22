@@ -12,6 +12,7 @@ import { usePermissions } from "../hooks/usePermissions";
 import { AlertModal, ConfirmModal } from "../components/ModalDialogs";
 
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 
 import {
 
@@ -551,6 +552,8 @@ export default function Inspections({ user }) {
   const [showViewMenu, setShowViewMenu] = useState(false);
 
   const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+
+  const [showFilters, setShowFilters] = useState(false);
 
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'board'
 
@@ -2974,6 +2977,14 @@ export default function Inspections({ user }) {
 
 
 
+                  {/* Filters Toggle */}
+                  <FiltersButton
+                    activeCount={[priorityFilter, statusFilter, propertyFilter, sortBy].filter(Boolean).length}
+                    onClick={() => setShowFilters(true)}
+                  />
+
+
+
                   {/* View Dropdown */}
 
                   <div className="relative" ref={viewRef}>
@@ -3532,108 +3543,6 @@ export default function Inspections({ user }) {
 
 
 
-              {/* FILTER DROPDOWNS */}
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Clock className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none" />
-                  <select
-                    value={priorityFilter}
-                    onChange={(e) => setPriorityFilter(e.target.value)}
-                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm text-[var(--text-primary)] font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]"
-                  >
-                    <option value="">All Priority</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none" />
-                </div>
-
-                <div className="relative">
-                  <CheckCircle className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none" />
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm text-[var(--text-primary)] font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]"
-                  >
-                    <option value="">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none" />
-                </div>
-
-                <div className="relative">
-                  <Building className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none" />
-                  <select
-                    value={propertyFilter}
-                    onChange={(e) => setPropertyFilter(e.target.value)}
-                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm text-[var(--text-primary)] font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]"
-                  >
-                    <option value="">All Properties</option>
-                    {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                  </select>
-                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none" />
-                </div>
-
-                <div className="relative">
-                  <ListFilter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none" />
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="h-10 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl !pl-14 pr-10 py-0 leading-none text-sm text-[var(--text-primary)] font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 cursor-pointer appearance-none min-w-[130px]"
-                  >
-                    <option value="">Sort By</option>
-                    <option value="date">Date (Newest)</option>
-
-                    <option value="priority">Priority</option>
-
-                    <option value="status">Status</option>
-
-                    <option value="type">Type</option>
-
-                  </select>
-
-                  <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/60 pointer-events-none" />
-
-                </div>
-
-
-
-                {/* Clear Filters Button */}
-
-                {(priorityFilter || statusFilter || propertyFilter || sortBy) && (
-
-                  <button
-
-                    onClick={() => {
-
-                      setPriorityFilter('');
-
-                      setStatusFilter('');
-
-                      setPropertyFilter('');
-
-                      setSortBy('');
-
-                    }}
-
-                    className="bg-[var(--bg-primary)] text-[var(--text-primary)] rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-2 hover:bg-[var(--bg-primary)]/80 transition-all"
-
-                  >
-
-                    <X className="w-4 h-4" />
-
-                    <span>Clear</span>
-
-                  </button>
-
-                )}
-
-              </div>
-
             </div>
 
           </div>
@@ -3763,7 +3672,7 @@ export default function Inspections({ user }) {
 
                       return (
 
-                        <tr key={row.id ?? row.reference} className={`transition-colors border-b border-[var(--border-color)] last:border-0 group ${isDeleting ? 'inspection-deleting' : ''}`}>
+                        <tr key={row.id ?? row.reference} className={`transition-colors border-b border-[var(--border-color)] last:border-0 group ${isDeleting ? 'inspection-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
 
                           {visibleColumns.checkbox && (
 
@@ -5329,6 +5238,41 @@ export default function Inspections({ user }) {
       }
 
 
+
+      {/* Filters Drawer */}
+      <FiltersDrawer
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        onClear={() => { setPriorityFilter(''); setStatusFilter(''); setPropertyFilter(''); setSortBy(''); }}
+      >
+        <FilterField label="Priority" icon={Clock} value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+          <option value="">All Priority</option>
+          <option value="urgent">Urgent</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </FilterField>
+
+        <FilterField label="Status" icon={CheckCircle} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </FilterField>
+
+        <FilterField label="Property" icon={Building} value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
+          <option value="">All Properties</option>
+          {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+        </FilterField>
+
+        <FilterField label="Sort By" icon={ListFilter} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="">Sort By</option>
+          <option value="date">Date (Newest)</option>
+          <option value="priority">Priority</option>
+          <option value="status">Status</option>
+          <option value="type">Type</option>
+        </FilterField>
+      </FiltersDrawer>
 
       {/* Confirmation Dialog */}
 

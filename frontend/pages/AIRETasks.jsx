@@ -6,6 +6,7 @@ import axios from 'axios';
 import { usePermissions } from '../hooks/usePermissions';
 import { AlertModal, ConfirmModal } from '../components/ModalDialogs';
 import { ConfirmDialog, AlertDialog } from '../components/ConfirmDialog';
+import { FiltersButton, FiltersDrawer, FilterField } from '../components/TableToolbar';
 import {
     Home,
     Building,
@@ -23,7 +24,8 @@ import {
     AlertCircle,
     Clock,
     CheckCircle,
-    Check
+    Check,
+    ListFilter
 } from "lucide-react";
 import { generatePDF } from "../utils/pdfGenerator";
 import { generateCSV } from "../utils/csvGenerator";
@@ -158,6 +160,7 @@ export default function AIRETasks({ user }) {
     const [sortBy, setSortBy] = useState("");
     const [showViewMenu, setShowViewMenu] = useState(false);
     const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState('table'); // 'table' or 'board'
     const viewRef = React.useRef(null);
 
@@ -972,6 +975,16 @@ export default function AIRETasks({ user }) {
                                         className="w-full h-9 bg-white border border-gray-300 rounded-xl !pl-14 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                                     />
                                 </div>
+                                {/* Filters Toggle */}
+                                <FiltersButton
+                                    activeCount={[
+                                        selectedPriority !== 'All Priority' ? selectedPriority : '',
+                                        selectedStatus !== 'All Status' ? selectedStatus : '',
+                                        selectedProperty !== 'All Properties' ? selectedProperty : '',
+                                        sortBy,
+                                    ].filter(Boolean).length}
+                                    onClick={() => setShowFilters(true)}
+                                />
                                 {/* Action Buttons */}
                                 <div className="relative" ref={viewRef}>
                                     <button
@@ -1253,83 +1266,6 @@ export default function AIRETasks({ user }) {
                             </div>
                         )}
 
-                        <div className="flex flex-wrap items-center gap-3 mb-6">
-                            <div className="relative flex-1 md:flex-none">
-                                <Filter className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={selectedPriority}
-                                    onChange={e => setSelectedPriority(e.target.value)}
-                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
-                                >
-                                    <option>All Priority</option>
-                                    <option>Low</option>
-                                    <option>Medium</option>
-                                    <option>High</option>
-                                    <option>Urgent</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            <div className="relative flex-1 md:flex-none">
-                                <Clock className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={selectedStatus}
-                                    onChange={e => setSelectedStatus(e.target.value)}
-                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
-                                >
-                                    <option>All Status</option>
-                                    <option>Pending</option>
-                                    <option>In Progress</option>
-                                    <option>Completed</option>
-                                    <option>Overdue</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            <div className="relative flex-1 md:flex-none">
-                                <Building className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={selectedProperty}
-                                    onChange={e => setSelectedProperty(e.target.value)}
-                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[160px]"
-                                >
-                                    <option>All Properties</option>
-                                    {filterProperties.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            <div className="relative flex-1 md:flex-none">
-                                <ChevronDown className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                <select
-                                    value={sortBy}
-                                    onChange={e => setSortBy(e.target.value)}
-                                    className="w-full h-10 bg-white border border-gray-300 rounded-xl !pl-14 pr-10 py-0 leading-none text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all cursor-pointer appearance-none min-w-[140px]"
-                                >
-                                    <option value="">Sort By</option>
-                                    <option value="date">Date</option>
-                                    <option value="priority">Priority</option>
-                                    <option value="status">Status</option>
-                                    <option value="title">Title</option>
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-
-                            {(selectedPriority !== 'All Priority' || selectedStatus !== 'All Status' || selectedProperty !== 'All Properties' || sortBy) && (
-                                <button
-                                    onClick={() => {
-                                        setSelectedPriority('All Priority');
-                                        setSelectedStatus('All Status');
-                                        setSelectedProperty('All Properties');
-                                        setSortBy('');
-                                    }}
-                                    className="h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl px-3 py-0 text-sm font-semibold transition-colors flex items-center gap-2"
-                                >
-                                    <X className="w-4 h-4" />
-                                    <span>Clear</span>
-                                </button>
-                            )}
-                        </div>
                     </div>
 
                     {/* Data Display - Table or Board View */}
@@ -1370,7 +1306,7 @@ export default function AIRETasks({ user }) {
                                         const isDeleting = deletingIds.has(task.id);
 
                                         return (
-                                            <tr key={task.id} className={`group hover:bg-[var(--bg-primary)] transition-colors ${isDeleting ? 'airetask-deleting' : ''}`}>
+                                            <tr key={task.id} className={`group hover:bg-[var(--bg-primary)]/60 transition-colors ${isDeleting ? 'airetask-deleting' : ''}`}>
                                                 {visibleColumns.checkbox && (
                                                     <td className="py-4 px-4">
                                                         <input type="checkbox" className="rounded-xl border-gray-300 text-teal-500 focus:ring-teal-500" />
@@ -1712,6 +1648,47 @@ export default function AIRETasks({ user }) {
                     />
                 )
             }
+
+            {/* Filters Drawer */}
+            <FiltersDrawer
+                isOpen={showFilters}
+                onClose={() => setShowFilters(false)}
+                onClear={() => {
+                    setSelectedPriority('All Priority');
+                    setSelectedStatus('All Status');
+                    setSelectedProperty('All Properties');
+                    setSortBy('');
+                }}
+            >
+                <FilterField label="Priority" icon={Filter} value={selectedPriority} onChange={e => setSelectedPriority(e.target.value)}>
+                    <option>All Priority</option>
+                    <option>Low</option>
+                    <option>Medium</option>
+                    <option>High</option>
+                    <option>Urgent</option>
+                </FilterField>
+
+                <FilterField label="Status" icon={Clock} value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)}>
+                    <option>All Status</option>
+                    <option>Pending</option>
+                    <option>In Progress</option>
+                    <option>Completed</option>
+                    <option>Overdue</option>
+                </FilterField>
+
+                <FilterField label="Property" icon={Building} value={selectedProperty} onChange={e => setSelectedProperty(e.target.value)}>
+                    <option>All Properties</option>
+                    {filterProperties.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                </FilterField>
+
+                <FilterField label="Sort By" icon={ListFilter} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                    <option value="">Sort By</option>
+                    <option value="date">Date</option>
+                    <option value="priority">Priority</option>
+                    <option value="status">Status</option>
+                    <option value="title">Title</option>
+                </FilterField>
+            </FiltersDrawer>
 
             {/* Confirmation Dialog */}
             <ConfirmDialog
