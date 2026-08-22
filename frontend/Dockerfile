@@ -7,10 +7,10 @@
 FROM node:22-alpine AS builder
 WORKDIR /build
 
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm ci --no-audit --no-fund || npm install --no-audit --no-fund
 
-COPY . ./
+COPY frontend/ ./
 RUN npm run build \
     && rm -rf node_modules /root/.npm
 
@@ -20,7 +20,7 @@ FROM nginx:alpine AS runner
 RUN rm -f /etc/nginx/conf.d/default.conf
 
 COPY --from=builder /build/dist /usr/share/nginx/html
-COPY ../deployment/nginx/nginx.conf /etc/nginx/conf.d/default.conf 2>/dev/null || true
+COPY deployment/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

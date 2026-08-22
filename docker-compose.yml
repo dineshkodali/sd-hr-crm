@@ -39,7 +39,8 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Backend/Dockerfile
+      dockerfile: Dockerfile
+      target: backend
     container_name: crm-backend
     restart: unless-stopped
     env_file:
@@ -90,7 +91,8 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile
+      dockerfile: Dockerfile
+      target: frontend
     container_name: crm-frontend
     restart: unless-stopped
     ports:

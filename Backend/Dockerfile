@@ -7,7 +7,7 @@
 FROM node:22-alpine AS deps
 WORKDIR /deps
 
-COPY package*.json ./
+COPY Backend/package*.json ./
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
     && npm ci --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund \
     && apk del .build-deps \
@@ -23,7 +23,7 @@ RUN apk add --no-cache tini wget \
 
 COPY --chown=appuser:appgroup --from=deps /deps/node_modules ./node_modules
 COPY --chown=appuser:appgroup --from=deps /deps/package*.json ./
-COPY --chown=appuser:appgroup . ./
+COPY --chown=appuser:appgroup Backend/ ./
 
 RUN mkdir -p uploads && chown -R appuser:appgroup /app
 
