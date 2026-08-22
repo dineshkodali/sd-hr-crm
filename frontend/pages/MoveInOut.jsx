@@ -195,6 +195,7 @@ export default function MoveInOutPage({ user }) {
   const [sortBy, setSortBy] = useState('');
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [showPropertyVisibility, setShowPropertyVisibility] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const viewRef = useRef(null);
 
   const ALL_COLUMNS = ["serviceUser", "property", "room", "moveInDate", "status", "actions"];
@@ -611,9 +612,9 @@ export default function MoveInOutPage({ user }) {
 
         {/* Content Panel */}
         <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-color)] min-h-[400px] transition-all duration-200">
-          <div className="mb-6 flex items-center gap-3 border-b border-[var(--border-color)] px-6 pt-6">
+          <div className="mb-6 mx-6 mt-6 flex items-center gap-1 flex-wrap bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl p-1.5">
             {[["ins", "Move-Ins"], ["outs", "Move-Outs"], ["active", "Active Residents"]].map(([tab, label]) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === tab ? 'border-[var(--accent-primary)] text-[var(--accent-primary)]' : 'border-transparent text-[var(--text-secondary)]'}`}>{label}</button>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? 'bg-[var(--accent-primary)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface)]'}`}>{label}</button>
             ))}
           </div>
 
@@ -625,9 +626,22 @@ export default function MoveInOutPage({ user }) {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="relative"><Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none z-10" /><select value={filterProperty} onChange={(e) => setFilterProperty(e.target.value)} className="h-10 py-0 !pl-10 pr-10 leading-none appearance-none cursor-pointer text-sm font-semibold border border-[var(--border-color)] text-[var(--text-primary)] outline-none rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-primary)] transition-all shadow-sm focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]"><option value="">All Properties</option>{hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}</select></div>
-                <div className="relative"><Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none z-10" /><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-10 py-0 !pl-10 pr-10 leading-none appearance-none cursor-pointer text-sm font-semibold border border-[var(--border-color)] text-[var(--text-primary)] outline-none rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-primary)] transition-all shadow-sm focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]"><option value="All Status">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-                <div className="relative"><Columns className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)] pointer-events-none z-10" /><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="h-10 py-0 !pl-10 pr-10 leading-none appearance-none cursor-pointer text-sm font-semibold border border-[var(--border-color)] text-[var(--text-primary)] outline-none rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-primary)] transition-all shadow-sm focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]"><option value="">Sort by...</option><option value="date">Date (Newest)</option><option value="name">Name</option><option value="property">Property</option></select></div>
+                {/* Filters Toggle */}
+                <button
+                  onClick={() => setShowFilters(true)}
+                  className={`h-9 relative border rounded-xl px-3 text-xs font-medium flex items-center gap-2 transition-colors ${(filterProperty || (filterStatus && filterStatus !== 'All Status') || sortBy)
+                    ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]'
+                    : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
+                    }`}
+                >
+                  <Filter className="w-4 h-4" />
+                  <span className="font-semibold">Filters</span>
+                  {[filterProperty, filterStatus !== 'All Status' ? filterStatus : '', sortBy].filter(Boolean).length > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-[var(--accent-primary)] text-white text-[10px] font-bold">
+                      {[filterProperty, filterStatus !== 'All Status' ? filterStatus : '', sortBy].filter(Boolean).length}
+                    </span>
+                  )}
+                </button>
 
                 <div className="relative ml-auto" ref={viewRef}>
                   <button onClick={() => setShowViewMenu(!showViewMenu)} className="btn-secondary rounded-xl"><Eye className="w-4 h-4" /><span>View</span><ChevronDown className="w-4 h-4" /></button>
@@ -669,7 +683,7 @@ export default function MoveInOutPage({ user }) {
                     const dateStr = r.move_in_date || r.moveInDate || r.created_at;
                     const formatted = dateStr ? new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
                     return (
-                      <div key={r.id} className="group bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl p-5 flex items-center justify-between">
+                      <div key={r.id} className="group bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl p-5 flex items-center justify-between hover:bg-[var(--bg-primary)]/60">
                         <div className="flex items-center gap-5">
                           <div className="w-12 h-12 rounded-full bg-emerald-100 border-2 border-[var(--bg-surface)] shadow-sm flex items-center justify-center text-emerald-700 font-bold text-lg">{name.charAt(0)}</div>
                           <div>
@@ -713,7 +727,7 @@ export default function MoveInOutPage({ user }) {
                     const formatted = dateStr ? new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
                     const isInactive = moveOuts.some((m) => String(m.service_user_id || m.serviceUserId) === String(r.service_user_id || r.serviceUserId));
                     return (
-                      <div key={r.id} className={`group bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between ${deletingIds.has(r.id) ? 'moveinout-card-deleting' : ''}`}>
+                      <div key={r.id} className={`group bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between ${deletingIds.has(r.id) ? 'moveinout-card-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
                         <div className="flex items-center gap-5">
                           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 border-2 border-white shadow-sm flex items-center justify-center text-slate-600 font-bold text-lg">{name.charAt(0)}</div>
                           <div>
@@ -758,7 +772,7 @@ export default function MoveInOutPage({ user }) {
                     const dateStr = r.move_out_date || r.created_at;
                     const formatted = dateStr ? new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
                     return (
-                      <div key={r.id} className={`group bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between ${deletingIds.has(r.id) ? 'moveinout-card-deleting' : ''}`}>
+                      <div key={r.id} className={`group bg-white border border-slate-200 rounded-xl p-5 flex items-center justify-between ${deletingIds.has(r.id) ? 'moveinout-card-deleting' : 'hover:bg-[var(--bg-primary)]/60'}`}>
                         <div className="flex items-center gap-5">
                           <div className="w-12 h-12 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center text-slate-400 font-bold text-lg">{name.charAt(0)}</div>
                           <div>
@@ -820,6 +834,86 @@ export default function MoveInOutPage({ user }) {
       )}
 
       {showDetailModal && <DetailModal record={detailRecord} onClose={() => { setShowDetailModal(false); setDetailRecord(null); }} moveOuts={moveOuts} />}
+
+      {/* Filters Drawer */}
+      {showFilters && (
+        <div className="fixed inset-0 z-[70] flex justify-end">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-[1px] transition-opacity"
+            onClick={() => setShowFilters(false)}
+          />
+          <div className="relative w-full max-w-sm h-full bg-[var(--bg-surface)] shadow-2xl border-l border-[var(--border-color)] flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)]">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-[var(--accent-primary)]" />
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">Filters</h3>
+              </div>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="p-2 rounded-xl text-[var(--text-secondary)]/60 hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]/70 uppercase tracking-wider mb-2">Property</label>
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
+                  <select value={filterProperty} onChange={(e) => setFilterProperty(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl pl-10 pr-10 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] cursor-pointer appearance-none">
+                    <option value="">All Properties</option>
+                    {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]/70 uppercase tracking-wider mb-2">Status</label>
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
+                  <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl pl-10 pr-10 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] cursor-pointer appearance-none">
+                    <option value="All Status">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)]/70 uppercase tracking-wider mb-2">Sort By</label>
+                <div className="relative">
+                  <Columns className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full h-11 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl pl-10 pr-10 text-sm text-[var(--text-primary)] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] cursor-pointer appearance-none">
+                    <option value="">Sort by...</option>
+                    <option value="date">Date (Newest)</option>
+                    <option value="name">Name</option>
+                    <option value="property">Property</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]/40 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 px-5 py-4 border-t border-[var(--border-color)]">
+              <button
+                onClick={() => { setFilterProperty(''); setFilterStatus('All Status'); setSortBy(''); }}
+                className="flex-1 h-11 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[var(--bg-primary)]/70 transition-colors"
+              >
+                <X className="w-4 h-4" /><span>Clear all</span>
+              </button>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="flex-1 h-11 rounded-xl bg-[var(--accent-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog isOpen={confirmDialog.isOpen} onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))} onConfirm={confirmDialog.onConfirm} title={confirmDialog.title} message={confirmDialog.message} type={confirmDialog.type} confirmText={confirmDialog.confirmText || 'Confirm'} />
       <AlertDialog isOpen={alertDialog.isOpen} onClose={() => setAlertDialog(prev => ({ ...prev, isOpen: false }))} title={alertDialog.title} message={alertDialog.message} type={alertDialog.type} />
