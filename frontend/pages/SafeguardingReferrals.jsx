@@ -298,28 +298,31 @@ export default function SafeguardingReferrals({ user }) {
 
     useEffect(() => {
         let mounted = true;
-        async function load() {
-            try {
-                const res = await api.get('/api/hotels', { params: { limit: 1000 } }).catch(() => ({ data: [] }));
-                if (mounted) setHotels(normalizeHotelsResponse(res?.data ?? {}));
-            } catch (err) { console.warn('Failed to load hotels', err); }
+        // Fetch hotels AND referrals in parallel — no sequential waiting
+        async function loadAll() {
+            const [hotelsRes, referralsRes] = await Promise.allSettled([
+                api.get('/api/hotels', { params: { limit: 1000 } }),
+                api.get('/api/safeguarding/referrals?limit=500'),
+            ]);
+            if (!mounted) return;
+
+            if (hotelsRes.status === 'fulfilled') {
+                setHotels(normalizeHotelsResponse(hotelsRes.value?.data ?? {}));
+            }
+            if (referralsRes.status === 'fulfilled') {
+                const list = Array.isArray(referralsRes.value?.data)
+                    ? referralsRes.value.data
+                    : (referralsRes.value?.data?.rows ?? referralsRes.value?.data ?? []);
+                setReferrals(list);
+                try { localStorage.setItem(SNAP_KEY, JSON.stringify({ referrals: list })); } catch {}
+            }
+            setReferralsLoading(false);
         }
-        load();
-        async function loadReferrals() {
-            try {
-                if (!referrals.length) setReferralsLoading(true);
-                const r = await api.get('/api/safeguarding/referrals?limit=500').catch(() => ({ data: [] }));
-                const list = Array.isArray(r?.data) ? r.data : (r?.data?.rows ?? r?.data ?? []);
-                if (mounted) {
-                    setReferrals(list);
-                    try { localStorage.setItem(SNAP_KEY, JSON.stringify({ referrals: list, hotels })); } catch {}
-                }
-            } catch (err) { console.warn('Failed to load referrals', err); }
-            finally { if (mounted) setReferralsLoading(false); }
-        }
-        loadReferrals();
+        setReferralsLoading(true);
+        loadAll();
         return () => { mounted = false; };
-    }, [api, hotels, referrals.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);  // run once on mount — api ref is stable
 
     const refreshReferrals = async () => {
         try {

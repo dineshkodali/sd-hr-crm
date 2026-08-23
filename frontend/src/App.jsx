@@ -414,7 +414,28 @@ export default function App() {
     };
   }, []);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (loading) return (
+    <div className="min-h-screen flex flex-col bg-[var(--bg-primary)]">
+      {/* Skeleton navbar */}
+      <div className="h-14 shrink-0 border-b border-[var(--border-color)] px-6 flex items-center gap-4">
+        <div className="skeleton w-32 h-6" />
+        <div className="flex-1" />
+        <div className="skeleton w-8 h-8 rounded-full" />
+        <div className="skeleton w-8 h-8 rounded-full" />
+      </div>
+      {/* Skeleton page content */}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="w-56 shrink-0 border-r border-[var(--border-color)] p-4 flex flex-col gap-3">
+          {[...Array(8)].map((_, i) => <div key={i} className="skeleton h-9 rounded-lg" />)}
+        </div>
+        <div className="flex-1 p-8">
+          <div className="skeleton skeleton-text medium mb-2" />
+          <div className="skeleton skeleton-text short mb-6" />
+          {[...Array(6)].map((_, i) => <div key={i} className="skeleton skeleton-row rounded-lg" />)}
+        </div>
+      </div>
+    </div>
+  );
 
   // --- Layout Wrappers ---
 
@@ -446,7 +467,16 @@ export default function App() {
 
           {/* MAIN CONTENT CONTAINER: Fills remaining height */}
           <div className="flex-1 overflow-hidden relative z-0">
-            <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)] text-gray-500">Loading page...</div>}>
+            <Suspense fallback={
+              <div className="flex-1 p-8 page-enter">
+                <div className="skeleton skeleton-text medium mb-2" style={{maxWidth: 240}} />
+                <div className="skeleton skeleton-text short mb-6" style={{maxWidth: 160}} />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                  {[...Array(3)].map((_, i) => <div key={i} className="skeleton h-24 rounded-xl" />)}
+                </div>
+                {[...Array(8)].map((_, i) => <div key={i} className="skeleton skeleton-row rounded-lg" />)}
+              </div>
+            }>
               <Routes>
 
               {/* --- PUBLIC ROUTES --- */}

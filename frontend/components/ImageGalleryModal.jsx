@@ -1,6 +1,7 @@
 // frontend/components/ImageGalleryModal.jsx
 // Shared in-page image gallery modal — replaces window.open gallery across all pages
 import React, { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Usage:
@@ -62,11 +63,12 @@ export default function ImageGalleryModal({
   const handleNext = () =>
     setActiveIndex((i) => (i < urls.length - 1 ? i + 1 : 0));
 
-  return (
+  // Render via portal so it always sits above ALL stacking contexts (including record modals)
+  const content = (
     <>
       {/* ── Gallery Modal ── */}
       <div
-        className="fixed inset-0 z-[9990] flex items-center justify-center"
+        className="fixed inset-0 z-[99990] flex items-center justify-center"
         onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       >
         {/* Backdrop */}
@@ -138,6 +140,8 @@ export default function ImageGalleryModal({
                     <img
                       src={u}
                       alt={`Attachment ${i + 1}`}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       onError={(e) => {
                         e.target.src =
@@ -197,7 +201,7 @@ export default function ImageGalleryModal({
       {/* ── Lightbox Overlay (single image full view) ── */}
       {activeIndex !== null && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          className="fixed inset-0 z-[99999] flex items-center justify-center"
           onClick={() => setActiveIndex(null)}
         >
           <div className="absolute inset-0 bg-black/90" />
@@ -272,6 +276,9 @@ export default function ImageGalleryModal({
       `}</style>
     </>
   );
+
+  // Mount at document.body to escape all parent stacking contexts
+  return createPortal(content, document.body);
 }
 
 /**
