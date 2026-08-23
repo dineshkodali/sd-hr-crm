@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import logo from "./logo.png";
+import logo from "/logo.png";
 import { applyTheme as applyThemeUtil, applyCustomTheme as applyCustomThemeUtil } from "../src/utils/themeUtils";
 
 const THEMES = {
