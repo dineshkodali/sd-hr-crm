@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import compression from "vite-plugin-compression";
-import imagemin from "vite-plugin-imagemin";
+import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -19,13 +19,16 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      // Auto-compress images during build (logo.png is 1.1MB — pngquant will cut it ~70%)
-      imagemin({
-        gifsicle: { optimizationLevel: 3 },
-        optipng: { optimizationLevel: 5 },
-        mozjpeg: { quality: 80 },
-        pngquant: { quality: [0.65, 0.9], speed: 4 },
-        svgo: false,
+      // Auto-compress images during build using sharp (Alpine-compatible)
+      ViteImageOptimizer({
+        png: { quality: 70 },
+        jpeg: { quality: 80 },
+        jpg: { quality: 80 },
+        gif: {},
+        webp: { lossless: true },
+        avif: { lossless: true },
+        cache: false,
+        cacheLocation: undefined,
       }),
       // Pre-compress all assets with gzip at build time (served by nginx/express)
       compression({

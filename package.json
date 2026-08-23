@@ -37,14 +37,7 @@
   "allowScripts": {
     "@swc/core@1.16.1": true,
     "core-js@3.48.0": true,
-    "cwebp-bin@6.1.2": true,
     "esbuild@0.27.2": true,
-    "esbuild@0.14.54": true,
-    "gifsicle@5.2.0": true,
-    "jpegtran-bin@5.0.2": true,
-    "jpegtran-bin@6.0.1": true,
-    "mozjpeg@7.1.1": true,
-    "optipng-bin@7.0.1": true,
-    "pngquant-bin@6.0.1": true
+    "esbuild@0.14.54": true
   }
 }

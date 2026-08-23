@@ -42,7 +42,7 @@
     "gh-pages": "^6.2.0",
     "globals": "^16.4.0",
     "vite-plugin-compression": "^0.5.1",
-    "vite-plugin-imagemin": "^0.6.1"
+    "vite-plugin-image-optimizer": "^1.1.9"
   },
   "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
   "main": "eslint.config.js",
