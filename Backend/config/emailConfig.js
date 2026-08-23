@@ -84,16 +84,16 @@ function initializeFromEnv() {
   const config = {
     otp: {
       service: process.env.EMAIL_SERVICE || 'gmail',
-      user: process.env.EMAIL_USER || '',
-      pass: process.env.EMAIL_PASS || '',
-      from: process.env.EMAIL_FROM || ''
+      user: process.env.SMTP_USER || process.env.EMAIL_USER || '',
+      pass: process.env.SMTP_PASS || process.env.EMAIL_PASS || '',
+      from: process.env.SMTP_FROM || process.env.EMAIL_FROM || ''
     },
     notifications: {
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      user: process.env.EMAIL_USER || '',
-      password: process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS || '',
-      fromName: process.env.EMAIL_FROM_NAME || 'SD CRM Notifications'
+      host: process.env.SMTP_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587'),
+      user: process.env.SMTP_USER || process.env.EMAIL_USER || '',
+      password: process.env.SMTP_PASS || process.env.EMAIL_PASSWORD || process.env.EMAIL_PASS || '',
+      fromName: process.env.SMTP_FROM || process.env.EMAIL_FROM_NAME || 'SD CRM Notifications'
     }
   };
 
@@ -123,18 +123,38 @@ export function getEmailConfig() {
 
   // DYNAMICALLY FORCE .env OVERRIDE
   // This helps when the server hasn't been restarted, or when the user didn't know they needed to restart.
+  // Supports both EMAIL_* and SMTP_* variable names from .env
   try {
     const parsedEnv = dotenv.config({ path: path.join(__dirname, '..', '.env') }).parsed || process.env;
-    if (parsedEnv.EMAIL_USER && parsedEnv.EMAIL_USER !== 'your-email@gmail.com') {
-      config.otp.user = parsedEnv.EMAIL_USER;
-      config.notifications.user = parsedEnv.EMAIL_USER;
+    
+    // Resolve user/pass/from from either SMTP_* or EMAIL_* env vars
+    const envUser = parsedEnv.SMTP_USER || parsedEnv.EMAIL_USER || '';
+    const envPass = parsedEnv.SMTP_PASS || parsedEnv.EMAIL_PASS || '';
+    const envHost = parsedEnv.SMTP_HOST || parsedEnv.EMAIL_HOST || '';
+    const envPort = parsedEnv.SMTP_PORT || parsedEnv.EMAIL_PORT || '';
+    const envFrom = parsedEnv.SMTP_FROM || parsedEnv.EMAIL_FROM || '';
+    const envService = parsedEnv.EMAIL_SERVICE || '';
 
-      if (parsedEnv.EMAIL_PASS && parsedEnv.EMAIL_PASS !== 'your-app-password') {
-        config.otp.pass = parsedEnv.EMAIL_PASS;
-        config.notifications.password = parsedEnv.EMAIL_PASS;
+    if (envUser && envUser !== 'your-email@gmail.com') {
+      config.otp.user = envUser;
+      config.notifications.user = envUser;
+
+      if (envPass && envPass !== 'your-app-password') {
+        config.otp.pass = envPass;
+        config.notifications.password = envPass;
       }
-      if (parsedEnv.EMAIL_SERVICE) {
-        config.otp.service = parsedEnv.EMAIL_SERVICE;
+      if (envFrom) {
+        config.otp.from = envFrom;
+        config.notifications.fromName = envFrom;
+      }
+      if (envService) {
+        config.otp.service = envService;
+      }
+      if (envHost) {
+        config.notifications.host = envHost;
+      }
+      if (envPort) {
+        config.notifications.port = parseInt(envPort);
       }
     }
   } catch (e) { /* ignore */ }
